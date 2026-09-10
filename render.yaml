@@ -22,9 +22,8 @@ services:
         value: 8h
       - key: EPHEMERE_LIEN_BASE_URL
         sync: false
-        # À renseigner après le 1er déploiement, une fois l'URL publique du
-        # frontend connue, ex. https://edusphere-frontend.onrender.com/acces-temporaire
-        # (voir README section Déploiement).
+        # Valeur définie manuellement dans le dashboard Render (non versionnée
+        # ici pour ne pas être écrasée) : https://edusphere-frontend-pryg.onrender.com/acces-temporaire
 
   - name: edusphere-frontend
     type: web
@@ -37,8 +36,9 @@ services:
         value: https
       - key: BACKEND_HOST
         # Les deux services se joignent en HTTPS public (Render ne route pas
-        # de trafic privé vers un service gratuit) — cette valeur suppose que
-        # le nom "edusphere-backend" ci-dessus est resté disponible. Si Render
-        # l'a suffixé (ex. edusphere-backend-ab12.onrender.com), corrigez cette
-        # variable dans le dashboard puis redéployez le frontend.
-        value: edusphere-backend.onrender.com
+        # de trafic privé vers un service gratuit). Render a suffixé le nom du
+        # service backend (edusphere-backend-fh30 au lieu de edusphere-backend) —
+        # cette valeur DOIT rester synchronisée avec l'URL réelle du service
+        # edusphere-backend (visible en haut de sa page Render), sous peine
+        # d'être écrasée par une resynchronisation du Blueprint.
+        value: edusphere-backend-fh30.onrender.com
