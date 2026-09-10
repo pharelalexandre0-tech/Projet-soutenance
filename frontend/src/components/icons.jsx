@@ -183,3 +183,19 @@ export function IconSettings(props) {
     </svg>
   );
 }
+
+export function IconMenu(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 6.5h16M4 12h16M4 17.5h16" />
+    </svg>
+  );
+}
+
+export function IconClose(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5.5 5.5l13 13M18.5 5.5l-13 13" />
+    </svg>
+  );
+}

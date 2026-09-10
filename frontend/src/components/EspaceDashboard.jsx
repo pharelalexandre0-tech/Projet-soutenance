@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { IconLogout } from './icons';
+import { IconLogout, IconMenu, IconClose } from './icons';
 import logoIcon from '../assets/logo-icon.png';
 
 const LIBELLES_ROLE = {
@@ -16,16 +17,35 @@ function initiales(prenom, nom) {
 export default function EspaceDashboard({ onglets, actif, onChange, avantContenu, bloquerContenu, children }) {
   const { profil, seDeconnecter } = useAuth();
   const section = onglets.find((o) => o.id === actif) || onglets[0];
+  const [menuOuvert, setMenuOuvert] = useState(false);
+
+  function choisirOnglet(id) {
+    onChange(id);
+    setMenuOuvert(false);
+  }
 
   return (
     <div className="espace">
-      <aside className="panneau-lateral">
+      <div className="entete-mobile">
+        <button className="bouton-menu-mobile" onClick={() => setMenuOuvert(true)} aria-label="Ouvrir le menu">
+          <IconMenu width={20} height={20} />
+        </button>
+        <span className="marque-pastille petite"><img src={logoIcon} alt="" /></span>
+        <div className="avatar" title={`${profil?.prenom} ${profil?.nom}`}>{initiales(profil?.prenom, profil?.nom)}</div>
+      </div>
+
+      {menuOuvert && <div className="voile-menu-mobile" onClick={() => setMenuOuvert(false)} />}
+
+      <aside className={`panneau-lateral ${menuOuvert ? 'ouvert' : ''}`}>
         <div className="marque-laterale">
           <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
           <div className="marque-texte">
             <strong>EduSphere</strong>
             <small>{LIBELLES_ROLE[profil?.role] || 'Espace'}</small>
           </div>
+          <button className="bouton-fermer-menu" onClick={() => setMenuOuvert(false)} aria-label="Fermer le menu">
+            <IconClose width={18} height={18} />
+          </button>
         </div>
 
         <nav className="nav-laterale">
@@ -35,7 +55,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
               <button
                 key={o.id}
                 className={`item-nav ${section?.id === o.id ? 'actif' : ''}`}
-                onClick={() => onChange(o.id)}
+                onClick={() => choisirOnglet(o.id)}
               >
                 {Icone && <Icone width={17} height={17} />}
                 <span>{o.label}</span>

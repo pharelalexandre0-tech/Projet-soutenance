@@ -1,4 +1,9 @@
 :root {
+  /* Site conçu en clair uniquement : empêche les navigateurs mobiles
+     d'appliquer un assombrissement automatique qui casserait les contrastes
+     (cartes, badges, dégradés) sans qu'on ait de vrai thème sombre en face. */
+  color-scheme: light only;
+
   /* Identité EduSphere : UNE seule couleur de marque forte (marine -> bleu),
      partout, sans exception — le vert et l'or du logo restent réservés au
      petit sceau (marque-pastille) et aux badges sémantiques, jamais étalés
@@ -207,16 +212,60 @@ a { color: var(--primaire); }
   display: flex; align-items: center; justify-content: center;
 }
 
+.entete-mobile { display: none; }
+.voile-menu-mobile { display: none; }
+.bouton-fermer-menu { display: none; }
+
 @media (max-width: 860px) {
   .espace { flex-direction: column; }
-  .panneau-lateral { width: 100%; flex-direction: row; align-items: center; overflow-x: auto; }
+
+  /* Barre compacte visible en permanence : ouvre le menu au lieu de tout
+     entasser (marque + nav + profil) sur une seule ligne à faire défiler. */
+  .entete-mobile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--degrade-plateforme);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .bouton-menu-mobile {
+    flex: none; width: 36px; height: 36px; border-radius: 8px;
+    border: none; background: rgba(255,255,255,0.12); color: #fff;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .bouton-menu-mobile:active { background: rgba(255,255,255,0.22); }
+  .entete-mobile .marque-pastille { width: 28px; height: 28px; }
+  .entete-mobile .avatar { margin-left: auto; }
+
+  .voile-menu-mobile {
+    display: block; position: fixed; inset: 0; z-index: 29;
+    background: rgba(11,30,61,0.45);
+    animation: fondu-entree 0.18s ease both;
+  }
+
+  /* Menu latéral = tiroir plein écran (hauteur) qui glisse depuis la gauche,
+     plutôt que la barre horizontale à faire défiler d'avant. */
+  .panneau-lateral {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 30;
+    width: 78vw; max-width: 300px;
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(.22,1,.36,1);
+    box-shadow: 0 0 40px rgba(0,0,0,0.35);
+  }
+  .panneau-lateral.ouvert { transform: translateX(0); }
   .panneau-lateral::after { display: none; }
-  .marque-laterale { border-bottom: none; border-right: 1px solid rgba(255,255,255,0.14); padding: 4px 14px 4px 4px; margin-bottom: 0; }
-  .nav-laterale { flex-direction: row; flex: none; padding: 0 8px; }
-  .item-nav span { display: none; }
-  .profil-lateral { border-top: none; border-left: 1px solid rgba(255,255,255,0.14); }
-  .profil-info { display: none; }
-  .espace-contenu { padding: 24px 20px 48px; }
+
+  .marque-laterale { position: relative; }
+  .bouton-fermer-menu {
+    display: flex; align-items: center; justify-content: center;
+    margin-left: auto; width: 30px; height: 30px; border-radius: 8px;
+    border: none; background: rgba(255,255,255,0.12); color: #fff; cursor: pointer;
+  }
+
+  .nav-laterale { flex-direction: column; }
+  .item-nav span { display: inline; }
+  .profil-info { display: flex; }
+
+  .espace-contenu { padding: 20px 16px 48px; }
 }
 
 .carte {
@@ -243,6 +292,22 @@ a { color: var(--primaire); }
 
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -2px; }
 .table-scroll table { min-width: 400px; }
+
+@media (max-width: 860px) {
+  /* Indique qu'il reste du contenu à droite tant qu'on n'a pas tout défilé —
+     sans ça, une table coupée en plein milieu d'une colonne passe pour un
+     bug plutôt que pour "il faut glisser le doigt". */
+  .table-scroll {
+    background:
+      linear-gradient(to right, var(--carte) 50%, rgba(255,255,255,0)) 0 0,
+      linear-gradient(to right, rgba(255,255,255,0), var(--carte) 50%) 100% 0,
+      linear-gradient(to right, rgba(28,35,33,0.12), rgba(28,35,33,0)) 0 0,
+      linear-gradient(to left, rgba(28,35,33,0.12), rgba(28,35,33,0)) 100% 0;
+    background-repeat: no-repeat;
+    background-size: 24px 100%, 24px 100%, 10px 100%, 10px 100%;
+    background-attachment: local, local, scroll, scroll;
+  }
+}
 
 table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
 th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--bordure); }
