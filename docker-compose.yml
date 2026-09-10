@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: plateforme_scolaire
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/plateforme_scolaire
+      JWT_SECRET: change-moi-en-production
+      JWT_EXPIRES_IN: 8h
+      EPHEMERE_LIEN_BASE_URL: http://localhost:8080/acces-temporaire
+    volumes:
+      - backend-storage:/app/storage
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      PORT: 10000
+      BACKEND_SCHEME: http
+      BACKEND_HOST: backend:4000
+    ports:
+      - "8080:10000"
+
+volumes:
+  db-data:
+  backend-storage:

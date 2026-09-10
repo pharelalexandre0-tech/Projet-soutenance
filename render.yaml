@@ -1,0 +1,44 @@
+databases:
+  - name: edusphere-db
+    plan: free
+    databaseName: plateforme_scolaire
+    user: edusphere
+
+services:
+  - name: edusphere-backend
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: edusphere-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
+      - key: EPHEMERE_LIEN_BASE_URL
+        sync: false
+        # À renseigner après le 1er déploiement, une fois l'URL publique du
+        # frontend connue, ex. https://edusphere-frontend.onrender.com/acces-temporaire
+        # (voir README section Déploiement).
+
+  - name: edusphere-frontend
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    envVars:
+      - key: BACKEND_SCHEME
+        value: https
+      - key: BACKEND_HOST
+        # Les deux services se joignent en HTTPS public (Render ne route pas
+        # de trafic privé vers un service gratuit) — cette valeur suppose que
+        # le nom "edusphere-backend" ci-dessus est resté disponible. Si Render
+        # l'a suffixé (ex. edusphere-backend-ab12.onrender.com), corrigez cette
+        # variable dans le dashboard puis redéployez le frontend.
+        value: edusphere-backend.onrender.com
