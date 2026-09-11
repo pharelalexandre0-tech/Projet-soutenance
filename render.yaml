@@ -24,20 +24,16 @@ services:
         sync: false
         # Valeur définie manuellement dans le dashboard Render (non versionnée
         # ici pour ne pas être écrasée) : https://edusphere-frontend-pryg.onrender.com/acces-temporaire
-      - key: SMTP_HOST
+      - key: RESEND_API_KEY
         sync: false
-      - key: SMTP_PORT
+      - key: RESEND_FROM
         sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASS
-        sync: false
-      - key: SMTP_FROM
-        sync: false
-        # Les 5 variables SMTP_* sont optionnelles : sans elles, les e-mails
-        # sont simulés (console.log) au lieu d'être vraiment envoyés. Voir
-        # backend/.env.example pour comment obtenir un mot de passe
-        # d'application Gmail gratuit.
+        # Render bloque le SMTP sortant sur son plan gratuit — Resend (API
+        # HTTP) est la voie qui fonctionne ici. Les variables SMTP_* restent
+        # supportées par le code pour un dev local ou un hébergeur qui
+        # autorise le SMTP, mais RESEND_API_KEY est prioritaire si présente.
+        # Sans aucune des deux, les e-mails sont simulés (console.log). Voir
+        # backend/.env.example pour le détail des deux options.
 
   - name: edusphere-frontend
     type: web

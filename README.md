@@ -98,10 +98,10 @@ npm run check:prediction    # diagramme 7 : lance l'analyse de risque IA
   choix assumé et à justifier ainsi à l'oral : un prototype de soutenance n'a pas
   besoin d'un vrai modèle pour démontrer l'architecture et le flux (collecte →
   score → seuil → alerte → décision humaine).
-- **E-mails** : envoyés pour de vrai via SMTP (`services/emailService.js`,
-  `nodemailer`) dès que les variables `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`
-  sont renseignées (voir `.env.example` pour un compte Gmail gratuit) ;
-  sans elles, simulation par `console.log` pour ne pas dépendre
+- **E-mails** : envoyés pour de vrai dès que `RESEND_API_KEY` (recommandé —
+  Render bloque le SMTP sortant sur son plan gratuit) ou les variables
+  `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` sont renseignées (voir `.env.example`) ;
+  sans aucune des deux, simulation par `console.log` pour ne pas dépendre
   d'identifiants externes en dev local.
 
 ## 5. Déploiement (Docker + Render, gratuit)
