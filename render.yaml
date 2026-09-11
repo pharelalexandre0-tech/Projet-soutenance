@@ -24,6 +24,20 @@ services:
         sync: false
         # Valeur définie manuellement dans le dashboard Render (non versionnée
         # ici pour ne pas être écrasée) : https://edusphere-frontend-pryg.onrender.com/acces-temporaire
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+        # Les 5 variables SMTP_* sont optionnelles : sans elles, les e-mails
+        # sont simulés (console.log) au lieu d'être vraiment envoyés. Voir
+        # backend/.env.example pour comment obtenir un mot de passe
+        # d'application Gmail gratuit.
 
   - name: edusphere-frontend
     type: web
