@@ -40,8 +40,12 @@ Comptes créés par le seed (mot de passe pour tous : `password123`) :
 |----------|--------------------------|
 | Académie | academie@ecole.ga       |
 | Finance  | finance@ecole.ga        |
-| Étudiant | etudiant1@example.com   |
-| Étudiant | etudiant2@example.com   |
+| Étudiant | alexandrepharel0+etudiant1@gmail.com |
+| Étudiant | alexandrepharel0+etudiant2@gmail.com |
+
+Le rôle Étudiant demande en plus un code à 6 chiffres envoyé par e-mail
+(double authentification) — les adresses ci-dessus utilisent l'alias `+`
+Gmail pour livrer ces codes dans une seule vraie boîte, testable en démo.
 
 Le Professeur (Charly Obame) n'a volontairement pas de mot de passe : conforme au
 diagramme de cas d'utilisation, il n'accède à la plateforme que via un lien

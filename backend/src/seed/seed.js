@@ -89,10 +89,12 @@ async function seed() {
 
   // Plateforme universitaire : chaque étudiant a son propre compte, pas un
   // parent séparé — créé ici puis lié à sa fiche Eleve ci-dessous.
+  // E-mails en alias "+" (Gmail) : deux comptes distincts, une seule boîte
+  // réelle — indispensable pour tester la double authentification en démo.
   const compteEtudiant1 = await Utilisateur.create({
     nom: 'Mba',
     prenom: 'Junior',
-    email: 'etudiant1@example.com',
+    email: 'alexandrepharel0+etudiant1@gmail.com',
     motDePasse: motDePasseHache,
     role: 'etudiant',
     etablissementId: etablissement.id,
@@ -101,7 +103,7 @@ async function seed() {
   const compteEtudiant2 = await Utilisateur.create({
     nom: 'Ella',
     prenom: 'Grace',
-    email: 'etudiant2@example.com',
+    email: 'alexandrepharel0+etudiant2@gmail.com',
     motDePasse: motDePasseHache,
     role: 'etudiant',
     etablissementId: etablissement.id,

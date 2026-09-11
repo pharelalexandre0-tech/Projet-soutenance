@@ -34,16 +34,22 @@ Utilisateur.init(
     // suspension d'un établissement entier (qui verrouille tous ses comptes
     // d'un coup, voir Etablissement.statut).
     statut: { type: DataTypes.ENUM('actif', 'verrouille'), allowNull: false, defaultValue: 'actif' },
+    // Double authentification (obligatoire pour le rôle Etudiant) : code à
+    // 6 chiffres envoyé par e-mail après le mot de passe, à durée de vie
+    // courte. Nul en dehors d'une connexion en cours.
+    codeDoubleFacteur: { type: DataTypes.STRING, allowNull: true },
+    codeDoubleFacteurExpire: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,
     modelName: 'Utilisateur',
     tableName: 'utilisateurs',
-    // Le hash du mot de passe ne doit jamais sortir dans une réponse JSON,
-    // y compris quand Utilisateur est inclus en relation imbriquée (ex.
-    // compte étudiant d'un élève). Le scope "avecMotDePasse" (auth
-    // uniquement) permet de le récupérer explicitement pour bcrypt.
-    defaultScope: { attributes: { exclude: ['motDePasse'] } },
+    // Le hash du mot de passe et le code 2FA en cours ne doivent jamais
+    // sortir dans une réponse JSON, y compris quand Utilisateur est inclus
+    // en relation imbriquée (ex. compte étudiant d'un élève). Le scope
+    // "avecMotDePasse" (auth uniquement) permet de les récupérer
+    // explicitement pour la vérification.
+    defaultScope: { attributes: { exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire'] } },
     scopes: { avecMotDePasse: { attributes: {} } },
   }
 );

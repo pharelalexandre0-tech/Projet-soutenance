@@ -9,13 +9,13 @@ const COMPTES_DEMO = [
   { role: 'superadmin', libelle: 'Superadmin', email: 'superadmin@edusphere.ga', description: 'Gérer les écoles', Icone: IconBuilding },
   { role: 'academie', libelle: 'Académie', email: 'academie@ecole.ga', description: 'Classes, notes, absences', Icone: IconKey },
   { role: 'finance', libelle: 'Finance', email: 'finance@ecole.ga', description: 'Frais & paiements', Icone: IconBanknote },
-  { role: 'etudiant', libelle: 'Étudiant', email: 'etudiant1@example.com', description: 'Mon dossier', Icone: IconUsers },
+  { role: 'etudiant', libelle: 'Étudiant', email: 'alexandrepharel0+etudiant1@gmail.com', description: 'Mon dossier', Icone: IconUsers },
 ];
 const MOT_DE_PASSE_DEMO = 'password123';
 
 // Diagramme 3 : saisie identifiants -> demanderConnexion -> alt [valides]/[invalides].
 export default function Login() {
-  const { profil, seConnecter } = useAuth();
+  const { profil, seConnecter, verifierDoubleFacteur } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
@@ -23,19 +23,45 @@ export default function Login() {
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [ouverture, setOuverture] = useState(false);
+  // Double authentification (compte Étudiant) : le formulaire de mot de
+  // passe cède la place à celui du code reçu par e-mail.
+  const [attenteCode, setAttenteCode] = useState(null); // { utilisateurId } | null
+  const [code, setCode] = useState('');
 
   if (ouverture) return <TransitionOuverture />;
   if (profil) return <Navigate to="/" replace />;
+
+  function ouvrirSession() {
+    setOuverture(true);
+    setTimeout(() => navigate('/'), 1500);
+  }
 
   async function connecter(mailUtilise, motDePasseUtilise) {
     setErreur('');
     setEnCours(true);
     try {
-      await seConnecter(mailUtilise, motDePasseUtilise);
-      setOuverture(true);
-      setTimeout(() => navigate('/'), 1500);
+      const resultat = await seConnecter(mailUtilise, motDePasseUtilise);
+      if (resultat.doubleFacteurRequis) {
+        setAttenteCode({ utilisateurId: resultat.utilisateurId });
+        setEnCours(false);
+        return;
+      }
+      ouvrirSession();
     } catch (err) {
       setErreur(err.response?.data?.erreur || "identifiants incorrects");
+      setEnCours(false);
+    }
+  }
+
+  async function validerCode(e) {
+    e.preventDefault();
+    setErreur('');
+    setEnCours(true);
+    try {
+      await verifierDoubleFacteur(attenteCode.utilisateurId, code);
+      ouvrirSession();
+    } catch (err) {
+      setErreur(err.response?.data?.erreur || 'code incorrect');
       setEnCours(false);
     }
   }
@@ -51,6 +77,43 @@ export default function Login() {
     e.preventDefault();
     setCompteActif('');
     connecter(email, motDePasse);
+  }
+
+  if (attenteCode) {
+    return (
+      <div className="page-connexion">
+        <div className="carte-connexion">
+          <img className="logo-connexion" src={logoIcon} alt="EduSphere" />
+          <h1>Vérification</h1>
+          <p className="sous-titre">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+          <form className="formulaire" onSubmit={validerCode}>
+            <div className="champ">
+              <label>Code de vérification</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+                required
+              />
+            </div>
+            {erreur && <div className="message-erreur">{erreur}</div>}
+            <button className="primaire" type="submit" disabled={enCours || code.length !== 6}>
+              {enCours ? 'Vérification…' : 'Valider'}
+            </button>
+            <button
+              type="button"
+              className="secondaire"
+              onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
+            >
+              Retour
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

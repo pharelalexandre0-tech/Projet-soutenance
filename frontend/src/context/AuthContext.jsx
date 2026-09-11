@@ -20,8 +20,22 @@ export function AuthProvider({ children }) {
       .finally(() => setChargement(false));
   }, []);
 
+  // Renvoie soit { profil } (connexion terminée), soit
+  // { doubleFacteurRequis: true, utilisateurId } quand un code par e-mail
+  // reste à saisir (rôle Etudiant) — c'est à l'appelant (Login) de gérer
+  // cette deuxième étape.
   async function seConnecter(email, motDePasse) {
     const res = await client.post('/auth/connexion', { email, motDePasse });
+    if (res.data.doubleFacteurRequis) {
+      return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId };
+    }
+    localStorage.setItem('pgs_token', res.data.token);
+    setProfil(res.data.profil);
+    return { profil: res.data.profil };
+  }
+
+  async function verifierDoubleFacteur(utilisateurId, code) {
+    const res = await client.post('/auth/connexion/double-facteur', { utilisateurId, code });
     localStorage.setItem('pgs_token', res.data.token);
     setProfil(res.data.profil);
     return res.data.profil;
@@ -39,7 +53,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ profil, chargement, seConnecter, seDeconnecter, mettreAJourProfil }}>
+    <AuthContext.Provider value={{ profil, chargement, seConnecter, verifierDoubleFacteur, seDeconnecter, mettreAJourProfil }}>
       {children}
     </AuthContext.Provider>
   );
