@@ -851,77 +851,32 @@ button.danger:hover { background: var(--erreur-fond); }
   position: fixed; inset: 0; z-index: 100;
   background: var(--degrade-plateforme);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 24px;
-  overflow: hidden;
+  gap: 22px;
   animation: fondu-sortie 0.4s ease 1.1s both;
 }
-/* Lueur ambiante douce derrière le badge — purement décorative, rien à
-   faire glisser ni sur laquelle cliquer. */
-.transition-ouverture::before {
-  content: "";
-  position: absolute;
-  width: 320px; height: 320px; border-radius: 50%;
-  background: radial-gradient(circle, rgba(240,173,46,0.14), transparent 70%);
-  animation: respiration-lueur 3s ease-in-out infinite;
-}
-
 .transition-ouverture .sceau {
-  position: relative; z-index: 1;
-  width: 84px; height: 84px; border-radius: 50%;
+  width: 74px; height: 74px; border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.22), 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35), 0 8px 24px rgba(0,0,0,0.3);
   display: flex; align-items: center; justify-content: center;
-  padding: 14px;
-  animation: apparition-sceau 0.5s ease both;
+  padding: 12px;
+  animation: apparition-sceau 0.6s ease both;
 }
-.marque-animee { width: 100%; height: 100%; overflow: visible; }
-/* Chaque trait se dessine comme tracé à la main, plutôt que d'apparaître
-   d'un coup — la barre du E arrive une fois le cercle du E amorcé, le S
-   juste après. */
-.marque-animee .trait-e {
-  stroke-dasharray: 240; stroke-dashoffset: 240;
-  animation: dessiner-trait 0.7s ease 0.15s forwards;
-}
-.marque-animee .trait-e-barre {
-  stroke-dasharray: 45; stroke-dashoffset: 45;
-  animation: dessiner-trait 0.25s ease 0.55s forwards;
-}
-.marque-animee .trait-s {
-  stroke-dasharray: 200; stroke-dashoffset: 200;
-  animation: dessiner-trait 0.7s ease 0.35s forwards;
-}
+.transition-ouverture .sceau img { width: 100%; height: 100%; object-fit: contain; }
 .transition-ouverture h1 {
   font-family: var(--police-serif); font-size: 1.5rem; font-weight: 600; color: #fff;
   margin: 0; text-align: center;
-  animation: tombe-doucement 0.4s ease 0.1s both;
 }
 .transition-ouverture p {
-  font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -14px 0 0; text-align: center;
-  animation: tombe-doucement 0.4s ease 0.18s both;
+  font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -12px 0 0; text-align: center;
 }
-
-/* Le "chargement" reprend le motif des petits carrés de couleur du logo
-   (le nuage de pixels en haut à droite du sceau) plutôt qu'un anneau ou une
-   barre génériques — trois carrés qui rebondissent en cascade. */
-.vague-points {
-  display: flex; gap: 9px;
-  animation: tombe-doucement 0.4s ease 0.26s both;
+.transition-ouverture .piste-progres {
+  width: 220px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden;
 }
-.vague-points span {
-  width: 9px; height: 9px; border-radius: 3px;
-  display: block;
-  animation: vague-carre 1.1s ease-in-out infinite;
+.transition-ouverture .barre-progres {
+  height: 100%; background: var(--edu-or); border-radius: 2px;
+  animation: progres-ouverture 1s ease both;
 }
-.vague-points span:nth-child(1) { background: var(--edu-or); animation-delay: 0s; }
-.vague-points span:nth-child(2) { background: var(--edu-vert); animation-delay: 0.14s; }
-.vague-points span:nth-child(3) { background: #4E9FE0; animation-delay: 0.28s; }
-
 @keyframes apparition-sceau { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-@keyframes dessiner-trait { to { stroke-dashoffset: 0; } }
-@keyframes respiration-lueur { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
-@keyframes vague-carre {
-  0%, 60%, 100% { transform: translateY(0) scale(1); opacity: 0.55; }
-  30% { transform: translateY(-9px) scale(1.15); opacity: 1; }
-}
 @keyframes progres-ouverture { from { width: 0%; } to { width: 100%; } }
 @keyframes fondu-sortie { to { opacity: 0; visibility: hidden; } }
