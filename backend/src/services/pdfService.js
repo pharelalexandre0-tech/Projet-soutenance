@@ -114,7 +114,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
 
   // Bloc identité — mêmes 4 champs que la version affichée à l'écran
   // (Étudiant / Matricule / Filière / Semestre), pour que le PDF téléchargé
-  // ne soit jamais un document différent de ce que le parent a sous les yeux.
+  // ne soit jamais un document différent de ce que l'étudiant a sous les yeux.
   const largeurCol = largeurTotale / 4;
   const identite = [
     ['Étudiant', `${eleve.prenom} ${eleve.nom}`],

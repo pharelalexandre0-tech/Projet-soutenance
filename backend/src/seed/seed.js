@@ -87,21 +87,23 @@ async function seed() {
     etablissementId: etablissement.id,
   });
 
-  const parent1 = await Utilisateur.create({
+  // Plateforme universitaire : chaque étudiant a son propre compte, pas un
+  // parent séparé — créé ici puis lié à sa fiche Eleve ci-dessous.
+  const compteEtudiant1 = await Utilisateur.create({
     nom: 'Mba',
-    prenom: 'Christelle',
-    email: 'parent1@example.com',
+    prenom: 'Junior',
+    email: 'etudiant1@example.com',
     motDePasse: motDePasseHache,
-    role: 'parent',
+    role: 'etudiant',
     etablissementId: etablissement.id,
   });
 
-  const parent2 = await Utilisateur.create({
+  const compteEtudiant2 = await Utilisateur.create({
     nom: 'Ella',
-    prenom: 'Bertrand',
-    email: 'parent2@example.com',
+    prenom: 'Grace',
+    email: 'etudiant2@example.com',
     motDePasse: motDePasseHache,
-    role: 'parent',
+    role: 'etudiant',
     etablissementId: etablissement.id,
   });
 
@@ -179,7 +181,7 @@ const professeur = await Professeur.create({
     prenom: 'Junior',
     dateNaissance: '2008-03-12',
     classeId: classe.id,
-    parentId: parent1.id,
+    compteEtudiantId: compteEtudiant1.id,
     etablissementId: etablissement.id,
   });
   const eleve2 = await Eleve.create({
@@ -187,7 +189,7 @@ const professeur = await Professeur.create({
     prenom: 'Grace',
     dateNaissance: '2008-07-25',
     classeId: classe.id,
-    parentId: parent2.id,
+    compteEtudiantId: compteEtudiant2.id,
     etablissementId: etablissement.id,
   });
 
@@ -227,8 +229,8 @@ const professeur = await Professeur.create({
   console.log(`  Superadmin (gère toutes les écoles) : ${superadmin.email}`);
   console.log(`  Académie (${etablissement.nom}) : ${academie.email}`);
   console.log(`  Finance  (${etablissement.nom}) : ${finance.email}`);
-  console.log(`  Parent 1 (parent de ${eleve1.prenom} ${eleve1.nom}) : ${parent1.email}`);
-  console.log(`  Parent 2 (parent de ${eleve2.prenom} ${eleve2.nom}) : ${parent2.email}`);
+  console.log(`  Étudiant (${eleve1.prenom} ${eleve1.nom}) : ${compteEtudiant1.email}`);
+  console.log(`  Étudiant (${eleve2.prenom} ${eleve2.nom}) : ${compteEtudiant2.email}`);
   console.log(`  Académie (${etablissement2.nom}, école neuve sans données) : academie@lepg.ga`);
   console.log('\nRéférences utiles :');
   console.log(`  classeId=${classe.id} semestreId=${semestre.id}`);

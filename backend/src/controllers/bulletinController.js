@@ -10,15 +10,15 @@ async function obtenirBulletin(req, res) {
   const { eleveId, semestreId } = req.params;
 
   const [eleve, semestre] = await Promise.all([
-    Eleve.findByPk(eleveId, { include: [Classe, { model: Utilisateur, as: 'parent' }] }),
+    Eleve.findByPk(eleveId, { include: [Classe, { model: Utilisateur, as: 'compteEtudiant' }] }),
     Semestre.findByPk(semestreId),
   ]);
   if (!eleve || !semestre || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève ou semestre introuvable' });
   }
 
-  // Un Parent ne peut consulter que le bulletin de son propre enfant.
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+  // Un Étudiant ne peut consulter que son propre bulletin.
+  if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 
@@ -27,7 +27,7 @@ async function obtenirBulletin(req, res) {
 
   // Le détail par UE/matière est toujours recalculé à la volée (léger et
   // toujours à jour), même quand le bulletin (résumé + PDF) est déjà en
-  // cache — sinon un parent qui reconsulte ne verrait plus le détail.
+  // cache — sinon l'étudiant qui reconsulte ne verrait plus le détail.
   const { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE } = await calculerBulletin(
     Number(eleveId),
     Number(semestreId)
@@ -35,7 +35,7 @@ async function obtenirBulletin(req, res) {
 
   if (bulletin) {
     // Le résumé (moyenne générale / crédits) et le PDF sont toujours
-    // regénérés à partir du détail courant — un parent doit toujours
+    // regénérés à partir du détail courant — l'étudiant doit toujours
     // télécharger le même document que celui affiché à l'écran. Seul le
     // premier envoi déclenche l'e-mail de notification.
     bulletin.moyenneGenerale = moyenneGenerale;
@@ -69,9 +69,9 @@ async function obtenirBulletin(req, res) {
     fichierPDF: cheminRelatif,
   });
 
-  if (eleve.parent) {
+  if (eleve.compteEtudiant) {
     await envoyerEmail(
-      eleve.parent.email,
+      eleve.compteEtudiant.email,
       `Bulletin de ${eleve.prenom} ${eleve.nom} disponible`,
       `Le bulletin du semestre ${semestre.libelle} est disponible : ${cheminRelatif}`
     );
@@ -80,31 +80,32 @@ async function obtenirBulletin(req, res) {
   return res.status(201).json({ bulletin, origine: 'généré', creditsTotal, admis, sessionGlobale, detailParUE, etablissement });
 }
 
-// L'Académie peut renvoyer explicitement le bulletin déjà généré au parent
-// par e-mail (ex. le parent dit ne pas l'avoir reçu, ou après correction de
-// notes) — indépendant de l'envoi automatique du premier "obtenirBulletin".
+// L'Académie peut renvoyer explicitement le bulletin déjà généré à
+// l'étudiant par e-mail (ex. il dit ne pas l'avoir reçu, ou après
+// correction de notes) — indépendant de l'envoi automatique du premier
+// "obtenirBulletin".
 async function envoyerBulletinParEmail(req, res) {
   const { eleveId, semestreId } = req.params;
 
   const [eleve, semestre, bulletin] = await Promise.all([
-    Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'parent' }] }),
+    Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'compteEtudiant' }] }),
     Semestre.findByPk(semestreId),
     Bulletin.findOne({ where: { eleveId, semestreId } }),
   ]);
   if (!eleve || !semestre || !bulletin || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'bulletin introuvable — consulte-le au moins une fois avant de l\'envoyer' });
   }
-  if (!eleve.parent) {
-    return res.status(400).json({ erreur: 'aucun parent associé à cet élève' });
+  if (!eleve.compteEtudiant) {
+    return res.status(400).json({ erreur: 'aucun compte étudiant associé à cet élève' });
   }
 
   await envoyerEmail(
-    eleve.parent.email,
+    eleve.compteEtudiant.email,
     `Bulletin de ${eleve.prenom} ${eleve.nom} — ${semestre.libelle}`,
     `Le bulletin du semestre ${semestre.libelle} est disponible : ${bulletin.fichierPDF}`
   );
 
-  return res.json({ message: 'bulletin envoyé par e-mail', destinataire: eleve.parent.email });
+  return res.json({ message: 'bulletin envoyé par e-mail', destinataire: eleve.compteEtudiant.email });
 }
 
 module.exports = { obtenirBulletin, envoyerBulletinParEmail };

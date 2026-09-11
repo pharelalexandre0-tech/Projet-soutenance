@@ -17,6 +17,6 @@ router.post('/appel', authentifier, academie, saisirAppelClasse);
 router.get('/brief', authentifier, academie, briefAbsenteisme);
 router.get('/statistiques', authentifier, academie, statistiquesAbsences);
 router.get('/eleve/:eleveId', authentifier, listerAbsencesEleve);
-router.post('/:id/justificatif', authentifier, autoriserRoles('parent'), justifierAbsence);
+router.post('/:id/justificatif', authentifier, autoriserRoles('etudiant'), justifierAbsence);
 
 module.exports = router;

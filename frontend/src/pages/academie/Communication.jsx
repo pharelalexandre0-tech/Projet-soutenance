@@ -36,7 +36,7 @@ function Messages({ classes }) {
     e.preventDefault();
     setResultat('');
     const res = await client.post('/messages', { ...form, classeId: Number(form.classeId) });
-    setResultat(`Envoyé — ${res.data.parentsNotifies} parent(s) notifié(s) par notification et e-mail.`);
+    setResultat(`Envoyé — ${res.data.etudiantsNotifies} étudiant(s) notifié(s) par notification et e-mail.`);
     setForm({ classeId: form.classeId, type: 'message', titre: '', contenu: '' });
     charger();
   }
@@ -71,7 +71,7 @@ function Messages({ classes }) {
             <label>Contenu</label>
             <textarea rows={4} value={form.contenu} onChange={(e) => setForm({ ...form, contenu: e.target.value })} required />
           </div>
-          <button className="primaire" type="submit">Envoyer aux parents de la classe</button>
+          <button className="primaire" type="submit">Envoyer aux étudiants de la classe</button>
           {resultat && <div className="message-succes">{resultat}</div>}
         </form>
       </div>

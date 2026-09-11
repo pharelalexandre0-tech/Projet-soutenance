@@ -79,15 +79,15 @@ async function saisirNotesAcademie(req, res) {
 
 // listerNotesEleve : une ligne par matière notée (session normale et
 // rattrapage déjà fusionnées côté service — la meilleure des deux est
-// retenue), pour que le relevé du Parent affiche le même résultat que le
-// bulletin plutôt que deux lignes brutes par matière.
+// retenue), pour que le relevé de l'Étudiant affiche le même résultat que
+// le bulletin plutôt que deux lignes brutes par matière.
 async function listerNotesEleve(req, res) {
   const { eleveId } = req.params;
   const eleve = await Eleve.findByPk(eleveId);
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+  if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 

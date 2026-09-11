@@ -3,8 +3,8 @@ import client from '../../api/client';
 import BulletinDocument from '../../components/BulletinDocument';
 
 // Consultation du bulletin côté Académie : même document que celui vu par
-// le Parent (via BulletinDocument), avec en plus la possibilité de le
-// renvoyer par e-mail à la demande (ex. le parent dit ne pas l'avoir reçu).
+// l'Étudiant (via BulletinDocument), avec en plus la possibilité de le
+// renvoyer par e-mail à la demande (ex. l'étudiant dit ne pas l'avoir reçu).
 export default function Bulletins() {
   const [classes, setClasses] = useState([]);
   const [semestres, setSemestres] = useState([]);
@@ -100,7 +100,7 @@ export default function Bulletins() {
         resume={resume}
         actions={
           <button type="button" className="secondaire" onClick={envoyerParEmail} disabled={envoiStatut === 'en_cours'}>
-            {envoiStatut === 'en_cours' ? 'Envoi…' : 'Envoyer par e-mail au parent'}
+            {envoiStatut === 'en_cours' ? 'Envoi…' : "Envoyer par e-mail à l'étudiant"}
           </button>
         }
       />

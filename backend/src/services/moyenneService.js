@@ -69,7 +69,7 @@ async function obtenirNoteMatiere(eleveId, matiereId) {
   return obtenirNoteSession(eleveId, matiereId, 'normale');
 }
 
-// Utilisé par le diagramme 5 (Bulletin) et par le relevé de notes du Parent :
+// Utilisé par le diagramme 5 (Bulletin) et par le relevé de notes de l'Étudiant :
 // moyenne générale pondérée par le coefficient de chaque UE (chaque UE étant
 // elle-même la moyenne de ses matières pondérée par leur propre coefficient).
 // Une UE n'est "validée" que si sa moyenne atteint le seuil, qu'aucune de ses

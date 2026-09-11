@@ -4,7 +4,7 @@ import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import { IconBuilding, IconKey, IconAlertTriangle } from '../../components/icons';
 
-const LIBELLE_ROLE = { academie: 'Académie', finance: 'Finance', parent: 'Parent' };
+const LIBELLE_ROLE = { academie: 'Académie', finance: 'Finance', etudiant: 'Étudiant' };
 
 export default function Etablissements() {
   const [etablissements, setEtablissements] = useState([]);

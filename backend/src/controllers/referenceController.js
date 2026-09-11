@@ -1,3 +1,4 @@
+const bcrypt = require('bcryptjs');
 const {
   Classe,
   Professeur,
@@ -66,26 +67,44 @@ async function listerProfesseurs(req, res) {
   return res.json({ professeurs });
 }
 
+// Plateforme universitaire : inscrire un étudiant crée dans le même geste
+// son propre compte (pas de compte "parent" séparé) — sans ça, il n'aurait
+// aucun moyen d'accéder à son dossier.
 async function creerEleve(req, res) {
-  const { nom, prenom, dateNaissance, classeId, parentEmail } = req.body;
+  const { nom, prenom, dateNaissance, classeId, email, motDePasse } = req.body;
 
   const classe = await Classe.findByPk(classeId);
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'classe introuvable' });
   }
-
-  let parentId = null;
-  if (parentEmail) {
-    const parent = await Utilisateur.findOne({ where: { email: parentEmail, role: 'parent' } });
-    if (parent && parent.etablissementId === req.utilisateur.etablissementId) parentId = parent.id;
+  if (!email || !motDePasse) {
+    return res.status(400).json({ erreur: "l'e-mail et le mot de passe du compte étudiant sont obligatoires" });
   }
-  const eleve = await Eleve.create({ nom, prenom, dateNaissance, classeId, parentId, etablissementId: req.utilisateur.etablissementId });
-  return res.status(201).json({ eleve });
+  const emailExistant = await Utilisateur.findOne({ where: { email } });
+  if (emailExistant) {
+    return res.status(400).json({ erreur: 'cette adresse e-mail est déjà utilisée par un autre compte' });
+  }
+
+  const motDePasseHache = await bcrypt.hash(motDePasse, 10);
+  const compteEtudiant = await Utilisateur.create({
+    nom,
+    prenom,
+    email,
+    motDePasse: motDePasseHache,
+    role: 'etudiant',
+    etablissementId: req.utilisateur.etablissementId,
+  });
+  const eleve = await Eleve.create({
+    nom, prenom, dateNaissance, classeId,
+    compteEtudiantId: compteEtudiant.id,
+    etablissementId: req.utilisateur.etablissementId,
+  });
+  return res.status(201).json({ eleve, compteEtudiant: compteEtudiant.toPublicJSON() });
 }
 async function listerEleves(req, res) {
   const where = { etablissementId: req.utilisateur.etablissementId };
   if (req.query.classeId) where.classeId = req.query.classeId;
-  if (req.utilisateur.role === 'parent') where.parentId = req.utilisateur.id;
+  if (req.utilisateur.role === 'etudiant') where.compteEtudiantId = req.utilisateur.id;
   const eleves = await Eleve.findAll({ where, include: [Classe] });
   return res.json({ eleves });
 }
@@ -177,8 +196,8 @@ async function ajouterCahierDeTextes(req, res) {
 }
 
 // "Envoyer un message/une annonce/une convocation" (diagramme communication
-// École-Parents) : les parents des élèves de la classe visée sont notifiés
-// dans l'appli ET par e-mail.
+// École-Étudiants) : les étudiants de la classe visée sont notifiés dans
+// l'appli ET par e-mail, directement sur leur propre compte.
 async function envoyerMessage(req, res) {
   const { titre, contenu, type, classeId } = req.body;
   if (!classeId) {
@@ -191,27 +210,27 @@ async function envoyerMessage(req, res) {
 
   const message = await MessageAnnonce.create({ titre, contenu, type, classeId, auteurId: req.utilisateur.id });
 
-  const eleves = await Eleve.findAll({ where: { classeId }, include: [{ model: Utilisateur, as: 'parent' }] });
-  const parentsUniques = new Map();
-  eleves.forEach((el) => { if (el.parent) parentsUniques.set(el.parent.id, el.parent); });
+  const eleves = await Eleve.findAll({ where: { classeId }, include: [{ model: Utilisateur, as: 'compteEtudiant' }] });
+  const destinatairesUniques = new Map();
+  eleves.forEach((el) => { if (el.compteEtudiant) destinatairesUniques.set(el.compteEtudiant.id, el.compteEtudiant); });
 
-  for (const parent of parentsUniques.values()) {
+  for (const etudiant of destinatairesUniques.values()) {
     await Notification.create({
-      utilisateurId: parent.id,
+      utilisateurId: etudiant.id,
       contenu: `${LIBELLES_TYPE_MESSAGE[message.type] || 'Message'} : ${titre}`,
     });
-    await envoyerEmail(parent.email, titre, contenu);
+    await envoyerEmail(etudiant.email, titre, contenu);
   }
 
-  return res.status(201).json({ message, parentsNotifies: parentsUniques.size });
+  return res.status(201).json({ message, etudiantsNotifies: destinatairesUniques.size });
 }
 
 async function listerMessages(req, res) {
   const where = {};
   if (req.query.classeId) where.classeId = req.query.classeId;
 
-  if (req.utilisateur.role === 'parent') {
-    const eleves = await Eleve.findAll({ where: { parentId: req.utilisateur.id } });
+  if (req.utilisateur.role === 'etudiant') {
+    const eleves = await Eleve.findAll({ where: { compteEtudiantId: req.utilisateur.id } });
     where.classeId = eleves.map((el) => el.classeId);
   }
 

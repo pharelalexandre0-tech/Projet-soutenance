@@ -5,7 +5,7 @@ import Toast from '../../components/Toast';
 import { IconKey } from '../../components/icons';
 
 // Volontairement limité aux seuls comptes superadmin : la gestion des
-// comptes d'une école (académie/finance/parent) se fait depuis la fiche de
+// comptes d'une école (académie/finance/étudiant) se fait depuis la fiche de
 // cet établissement, jamais depuis un annuaire global qui exposerait les
 // données personnelles de toutes les écoles en un seul endroit.
 export default function Superadmins() {
@@ -37,7 +37,7 @@ export default function Superadmins() {
           <button className="primaire" onClick={() => setModaleAjoutOuverte(true)}>+ Ajouter un superadmin</button>
         </div>
         <p className="note-secondaire" style={{ marginTop: -8, marginBottom: 18 }}>
-          Les comptes des établissements (académie, finance, parent) se gèrent depuis la fiche de leur école, dans l'onglet "Établissements".
+          Les comptes des établissements (académie, finance, étudiant) se gèrent depuis la fiche de leur école, dans l'onglet "Établissements".
         </p>
 
         {chargement && <div className="chargement">Chargement…</div>}

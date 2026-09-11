@@ -7,7 +7,7 @@ const LIBELLES_ROLE = {
   superadmin: 'Super-administrateur',
   academie: 'Espace Académie',
   finance: 'Espace Finance',
-  parent: 'Espace Parents',
+  etudiant: 'Espace Étudiant',
 };
 
 function initiales(prenom, nom) {

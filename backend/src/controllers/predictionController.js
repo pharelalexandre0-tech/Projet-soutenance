@@ -60,7 +60,7 @@ async function historiqueEleve(req, res) {
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+  if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 

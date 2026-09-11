@@ -1,4 +1,4 @@
-# Plateforme de Gestion Scolaire — Espace École / Espace Parents
+# Plateforme de Gestion Scolaire — Espace Établissement / Espace Étudiant
 
 Implémentation (backend + frontend) des 9 diagrammes UML du dossier de conception
 (*Diagrammes_UML_Plateforme_Scolaire.pdf*) : cas d'utilisation, classes, et les flux
@@ -40,8 +40,8 @@ Comptes créés par le seed (mot de passe pour tous : `password123`) :
 |----------|--------------------------|
 | Académie | academie@ecole.ga       |
 | Finance  | finance@ecole.ga        |
-| Parent   | parent1@example.com     |
-| Parent   | parent2@example.com     |
+| Étudiant | etudiant1@example.com   |
+| Étudiant | etudiant2@example.com   |
 
 Le Professeur (Charly Obame) n'a volontairement pas de mot de passe : conforme au
 diagramme de cas d'utilisation, il n'accède à la plateforme que via un lien

@@ -2,7 +2,7 @@ const { verifySession } = require('../utils/jwt');
 const { Utilisateur, Etablissement } = require('../models');
 
 // Diagramme 3 : verification cote serveur d'une session (Academie ou
-// Parent, et Finance qui suit le meme mecanisme d'authentification).
+// Etudiant, et Finance qui suit le meme mecanisme d'authentification).
 async function authentifier(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;

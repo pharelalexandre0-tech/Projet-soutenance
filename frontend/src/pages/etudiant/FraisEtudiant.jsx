@@ -5,7 +5,7 @@ import { IconBanknote, IconCard } from '../../components/icons';
 const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge' };
 const LIBELLE_STATUT = { du: 'dû', partiel: 'partiel', solde: 'soldé', impaye: 'impayé' };
 
-export default function FraisParent({ eleveId }) {
+export default function FraisEtudiant({ eleveId }) {
   const [frais, setFrais] = useState([]);
   const [paiements, setPaiements] = useState([]);
 

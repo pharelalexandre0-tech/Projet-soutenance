@@ -21,7 +21,7 @@ function resultatUE(ligneUE) {
   return { texte: 'Passe en rattrapage', classe: 'rouge' };
 }
 
-// Rendu unique du bulletin, partagé par l'espace Parent (consultation) et
+// Rendu unique du bulletin, partagé par l'espace Étudiant (consultation) et
 // l'espace Académie (consultation + envoi) — pour que le document affiché
 // à l'écran, celui téléchargé en PDF et celui envoyé par e-mail soient
 // toujours rigoureusement le même, jamais trois versions divergentes.

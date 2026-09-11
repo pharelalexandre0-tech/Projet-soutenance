@@ -4,7 +4,7 @@ import client from '../../api/client';
 export default function ElevesClasses() {
   const [classes, setClasses] = useState([]);
   const [nouvelleClasse, setNouvelleClasse] = useState({ nom: '', niveau: '' });
-  const [nouvelEleve, setNouvelEleve] = useState({ nom: '', prenom: '', classeId: '', parentEmail: '' });
+  const [nouvelEleve, setNouvelEleve] = useState({ nom: '', prenom: '', classeId: '', email: '', motDePasse: '' });
   const [message, setMessage] = useState('');
 
   function charger() {
@@ -24,8 +24,8 @@ export default function ElevesClasses() {
     setMessage('');
     try {
       await client.post('/eleves', nouvelEleve);
-      setMessage(`Élève ajouté.`);
-      setNouvelEleve({ nom: '', prenom: '', classeId: '', parentEmail: '' });
+      setMessage(`Élève ajouté, compte étudiant créé.`);
+      setNouvelEleve({ nom: '', prenom: '', classeId: '', email: '', motDePasse: '' });
       charger();
     } catch (err) {
       setMessage(err.response?.data?.erreur || 'erreur');
@@ -87,9 +87,15 @@ export default function ElevesClasses() {
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
               </select>
             </div>
+          </div>
+          <div className="ligne-champs">
             <div className="champ">
-              <label>E-mail du parent (compte existant)</label>
-              <input type="email" value={nouvelEleve.parentEmail} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentEmail: e.target.value })} />
+              <label>E-mail (compte étudiant)</label>
+              <input type="email" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
+            </div>
+            <div className="champ">
+              <label>Mot de passe (compte étudiant)</label>
+              <input type="password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
             </div>
           </div>
           <button className="primaire" type="submit">Inscrire l'élève</button>

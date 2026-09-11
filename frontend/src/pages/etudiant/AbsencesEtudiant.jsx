@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import { IconCalendarAlert, IconAlertTriangle } from '../../components/icons';
 
-export default function AbsencesParent({ eleveId }) {
+export default function AbsencesEtudiant({ eleveId }) {
   const [absences, setAbsences] = useState([]);
   const [motifs, setMotifs] = useState({});
   const [chargement, setChargement] = useState(true);

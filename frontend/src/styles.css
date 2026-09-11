@@ -455,7 +455,7 @@ button.danger:hover { background: var(--erreur-fond); }
    jamais propagés au reste de l'app (contrairement à l'ancien [data-role]
    sur .app-shell qui reteintait tout un tableau de bord). */
 .compte-demo-carte[data-role="finance"] { --primaire: #A67C1E; --primaire-clair: #F6EAC9; }
-.compte-demo-carte[data-role="parent"] { --primaire: var(--edu-vert); --primaire-clair: #E1F2E8; }
+.compte-demo-carte[data-role="etudiant"] { --primaire: var(--edu-vert); --primaire-clair: #E1F2E8; }
 .compte-demo-carte[data-role="superadmin"] { --primaire: var(--edu-marine); --primaire-clair: #E2E6EC; }
 
 .compte-demo-carte {

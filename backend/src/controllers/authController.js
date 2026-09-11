@@ -3,7 +3,7 @@ const { Utilisateur, Etablissement } = require('../models');
 const { signSession } = require('../utils/jwt');
 
 // Diagramme 3 - Authentification :
-// Academie/Parent/Finance saisit ses identifiants -> demanderConnexion ->
+// Academie/Etudiant/Finance saisit ses identifiants -> demanderConnexion ->
 // rechercherUtilisateur -> alt [valides]/[invalides].
 async function seConnecter(req, res) {
   const { email, motDePasse } = req.body;
@@ -38,15 +38,16 @@ async function seConnecter(req, res) {
   });
 }
 
-// Creation de compte Academie / Finance / Parent (utile pour le seed et pour
-// permettre a l'Academie de creer des comptes Finance/Parent depuis son
-// espace).
+// Creation de compte Academie / Finance (utile pour le seed et pour
+// permettre a l'Academie de creer des comptes Finance depuis son espace).
+// Les comptes Etudiant, eux, se créent via l'inscription d'un élève
+// (referenceController.creerEleve), jamais isolément.
 async function creerCompte(req, res) {
   const { nom, prenom, email, motDePasse, role, service, fonction } = req.body;
   if (!nom || !prenom || !email || !motDePasse || !role) {
     return res.status(400).json({ erreur: 'champs manquants' });
   }
-  if (!['academie', 'finance', 'parent'].includes(role)) {
+  if (!['academie', 'finance'].includes(role)) {
     return res.status(400).json({ erreur: 'rôle invalide' });
   }
 

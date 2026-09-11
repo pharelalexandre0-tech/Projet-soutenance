@@ -12,7 +12,7 @@ async function verifierImpayesService(etablissementId) {
   const whereEleve = etablissementId ? { etablissementId } : {};
   const fraisEnRetard = await FraisScolarite.findAll({
     where: { statut: ['du', 'partiel'] },
-    include: [{ model: Eleve, where: whereEleve, include: [{ model: Utilisateur, as: 'parent' }] }],
+    include: [{ model: Eleve, where: whereEleve, include: [{ model: Utilisateur, as: 'compteEtudiant' }] }],
   });
 
   const marques = [];
@@ -22,13 +22,13 @@ async function verifierImpayesService(etablissementId) {
       await frais.save();
       marques.push(frais.id);
 
-      if (frais.Eleve.parent) {
+      if (frais.Eleve.compteEtudiant) {
         await Notification.create({
-          utilisateurId: frais.Eleve.parent.id,
+          utilisateurId: frais.Eleve.compteEtudiant.id,
           contenu: `Le frais "${frais.libelle}" est en retard de paiement (échéance dépassée).`,
         });
         await envoyerEmail(
-          frais.Eleve.parent.email,
+          frais.Eleve.compteEtudiant.email,
           `Frais de scolarité impayé — ${frais.libelle}`,
           `L'échéance du ${frais.dateEcheance} est dépassée sans paiement complet.`
         );

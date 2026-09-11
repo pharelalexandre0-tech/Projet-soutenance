@@ -4,7 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import AccesTemporaire from './pages/AccesTemporaire';
 import DashboardAcademie from './pages/DashboardAcademie';
-import DashboardParent from './pages/DashboardParent';
+import DashboardEtudiant from './pages/DashboardEtudiant';
 import DashboardFinance from './pages/DashboardFinance';
 import DashboardSuperAdmin from './pages/DashboardSuperAdmin';
 
@@ -13,7 +13,7 @@ function Accueil() {
   if (profil?.role === 'superadmin') return <DashboardSuperAdmin />;
   if (profil?.role === 'academie') return <DashboardAcademie />;
   if (profil?.role === 'finance') return <DashboardFinance />;
-  if (profil?.role === 'parent') return <DashboardParent />;
+  if (profil?.role === 'etudiant') return <DashboardEtudiant />;
   return <Navigate to="/connexion" replace />;
 }
 

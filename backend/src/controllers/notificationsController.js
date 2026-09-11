@@ -1,6 +1,6 @@
 const { Notification } = require('../models');
 
-// "Recevoir notifications et messages" (Espace Parents) — utilisé aussi par
+// "Recevoir notifications et messages" (Espace Étudiant) — utilisé aussi par
 // l'Académie pour les alertes de prédiction IA.
 async function mesNotifications(req, res) {
   const notifications = await Notification.findAll({

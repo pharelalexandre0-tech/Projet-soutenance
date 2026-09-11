@@ -19,14 +19,14 @@ async function definirFrais(req, res) {
   return res.status(201).json({ frais });
 }
 
-// "Consulter mes frais et échéances" (Parent) / consultation Finance.
+// "Consulter mes frais et échéances" (Étudiant) / consultation Finance.
 async function listerFraisEleve(req, res) {
   const { eleveId } = req.params;
   const eleve = await Eleve.findByPk(eleveId);
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+  if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
   const frais = await FraisScolarite.findAll({ where: { eleveId }, order: [['dateEcheance', 'ASC']] });
@@ -43,7 +43,7 @@ async function enregistrerPaiement(req, res) {
   }
 
   const frais = await FraisScolarite.findByPk(fraisId, {
-    include: [{ model: Eleve, include: [{ model: Utilisateur, as: 'parent' }] }],
+    include: [{ model: Eleve, include: [{ model: Utilisateur, as: 'compteEtudiant' }] }],
   });
   if (!frais || frais.Eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'frais introuvable' });
@@ -77,17 +77,17 @@ async function enregistrerPaiement(req, res) {
   const recu = await Recu.create({ numero: recuNumero, paiementId: paiement.id, fichierPDF: cheminRelatif });
 
   let recuEnvoyeA = null;
-  if (frais.Eleve.parent) {
+  if (frais.Eleve.compteEtudiant) {
     await envoyerEmail(
-      frais.Eleve.parent.email,
+      frais.Eleve.compteEtudiant.email,
       `Reçu de paiement — ${frais.libelle}`,
       `Votre paiement de ${montant} FCFA a été enregistré. Reçu n° ${recuNumero} : ${cheminRelatif}`
     );
     await Notification.create({
-      utilisateurId: frais.Eleve.parent.id,
+      utilisateurId: frais.Eleve.compteEtudiant.id,
       contenu: `Paiement de ${montant} FCFA reçu pour "${frais.libelle}". Statut du frais : ${frais.statut}.`,
     });
-    recuEnvoyeA = frais.Eleve.parent.email;
+    recuEnvoyeA = frais.Eleve.compteEtudiant.email;
   }
 
   return res.status(201).json({ paiement, recu, frais, recuEnvoyeA });
@@ -99,7 +99,7 @@ async function listerPaiementsEleve(req, res) {
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+  if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 
@@ -111,7 +111,7 @@ async function listerPaiementsEleve(req, res) {
 }
 
 // Diagramme 9 : vérification quotidienne des échéances -> marquer "impayé"
-// + notifier le parent, ou classer "à jour". Déclenchable manuellement par
+// + notifier l'étudiant, ou classer "à jour". Déclenchable manuellement par
 // la Finance ici, ou automatiquement via src/scripts/checkImpayes.js.
 async function verifierImpayes(req, res) {
   const resultat = await verifierImpayesService(req.utilisateur.etablissementId);
@@ -176,20 +176,20 @@ async function roulementFraisParClasse(req, res) {
 async function envoyerRelance(req, res) {
   const { fraisId } = req.params;
   const frais = await FraisScolarite.findByPk(fraisId, {
-    include: [{ model: Eleve, include: [{ model: Utilisateur, as: 'parent' }] }],
+    include: [{ model: Eleve, include: [{ model: Utilisateur, as: 'compteEtudiant' }] }],
   });
   if (!frais || frais.Eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'frais introuvable' });
   }
-  if (!frais.Eleve.parent) return res.status(400).json({ erreur: 'aucun parent associé' });
+  if (!frais.Eleve.compteEtudiant) return res.status(400).json({ erreur: 'aucun compte étudiant associé' });
 
   await envoyerEmail(
-    frais.Eleve.parent.email,
+    frais.Eleve.compteEtudiant.email,
     `Relance — ${frais.libelle}`,
     `Merci de régulariser le paiement de "${frais.libelle}" (${frais.montant - frais.montantRegle} FCFA restants) dans les meilleurs délais.`
   );
   await Notification.create({
-    utilisateurId: frais.Eleve.parent.id,
+    utilisateurId: frais.Eleve.compteEtudiant.id,
     contenu: `Relance envoyée pour le frais "${frais.libelle}".`,
   });
 

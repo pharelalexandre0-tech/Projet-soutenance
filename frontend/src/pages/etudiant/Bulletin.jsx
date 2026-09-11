@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import BulletinDocument from '../../components/BulletinDocument';
 
-// Diagramme 5 : le Parent demande le bulletin -> généré à la volée s'il
+// Diagramme 5 : l'Étudiant demande son bulletin -> généré à la volée s'il
 // n'existe pas encore, sinon renvoyé depuis le cache.
 export default function Bulletin({ eleveId, eleve }) {
   const [semestres, setSemestres] = useState([]);

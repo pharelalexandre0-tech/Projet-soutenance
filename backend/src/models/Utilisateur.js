@@ -2,8 +2,10 @@ const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 
 // Classe Utilisateur du diagramme de classes : regroupe Academie, Finance et
-// Parent (le Professeur n'a volontairement PAS de compte permanent, voir
-// CompteEphemere). Le champ `role` fait office de discriminant plutot que
+// Etudiant (le Professeur n'a volontairement PAS de compte permanent, voir
+// CompteEphemere). Plateforme universitaire : c'est l'étudiant lui-même qui
+// a un compte et consulte son propre dossier, pas un parent. Le champ `role`
+// fait office de discriminant plutot que
 // des sous-classes Sequelize separees, avec deux colonnes optionnelles qui
 // ne servent qu'a un seul role (service pour Academie, fonction pour
 // Finance) pour rester fidele au modele de domaine.
@@ -23,7 +25,7 @@ Utilisateur.init(
     motDePasse: { type: DataTypes.STRING, allowNull: false },
     // 'superadmin' n'appartient à aucun établissement (etablissementId reste
     // null pour ce rôle) — il gère la liste des écoles elles-mêmes.
-    role: { type: DataTypes.ENUM('superadmin', 'academie', 'finance', 'parent'), allowNull: false },
+    role: { type: DataTypes.ENUM('superadmin', 'academie', 'finance', 'etudiant'), allowNull: false },
     // specifique Academie
     service: { type: DataTypes.STRING, allowNull: true },
     // specifique Finance
@@ -39,8 +41,8 @@ Utilisateur.init(
     tableName: 'utilisateurs',
     // Le hash du mot de passe ne doit jamais sortir dans une réponse JSON,
     // y compris quand Utilisateur est inclus en relation imbriquée (ex.
-    // parent d'un élève). Le scope "avecMotDePasse" (auth uniquement)
-    // permet de le récupérer explicitement pour la vérification bcrypt.
+    // compte étudiant d'un élève). Le scope "avecMotDePasse" (auth
+    // uniquement) permet de le récupérer explicitement pour bcrypt.
     defaultScope: { attributes: { exclude: ['motDePasse'] } },
     scopes: { avecMotDePasse: { attributes: {} } },
   }

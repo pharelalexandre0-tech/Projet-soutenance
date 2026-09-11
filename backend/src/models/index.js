@@ -58,9 +58,10 @@ Matiere.belongsTo(UniteEnseignement, { foreignKey: 'uniteEnseignementId' });
 Classe.hasMany(Eleve, { foreignKey: 'classeId' });
 Eleve.belongsTo(Classe, { foreignKey: 'classeId' });
 
-// Parent responsable d'un ou plusieurs eleves
-Utilisateur.hasMany(Eleve, { foreignKey: 'parentId', as: 'enfants' });
-Eleve.belongsTo(Utilisateur, { foreignKey: 'parentId', as: 'parent' });
+// Plateforme universitaire : pas d'espace parent, l'étudiant a son propre
+// compte et consulte directement son propre dossier.
+Utilisateur.hasOne(Eleve, { foreignKey: 'compteEtudiantId', as: 'dossierEtudiant' });
+Eleve.belongsTo(Utilisateur, { foreignKey: 'compteEtudiantId', as: 'compteEtudiant' });
 
 // Cahier de textes : tenu par l'Academie ou par un Professeur via un compte
 // ephemere (jamais directement par le Professeur).

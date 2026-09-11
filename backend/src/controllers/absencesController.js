@@ -2,10 +2,10 @@ const { Absence, Eleve, Classe, Utilisateur, Notification } = require('../models
 const { envoyerEmail } = require('../services/emailService');
 
 // Coeur du diagramme d'activité 6 : enregistrer l'absence, la classer
-// justifiée ou non, et notifier automatiquement le parent si elle ne l'est
+// justifiée ou non, et notifier automatiquement l'étudiant si elle ne l'est
 // pas à la saisie.
 async function enregistrerAbsence({ eleveId, date, cours, justifie, motif, saisiParAcademieId, compteEphemereId, etablissementId }) {
-  const eleve = await Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'parent' }] });
+  const eleve = await Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'compteEtudiant' }] });
   if (!eleve || (etablissementId && eleve.etablissementId !== etablissementId)) {
     throw Object.assign(new Error('élève introuvable'), { status: 404 });
   }
@@ -28,13 +28,13 @@ async function enregistrerAbsence({ eleveId, date, cours, justifie, motif, saisi
     await absence.save();
   }
 
-  if (creee && !absence.justifie && eleve.parent) {
+  if (creee && !absence.justifie && eleve.compteEtudiant) {
     await Notification.create({
-      utilisateurId: eleve.parent.id,
+      utilisateurId: eleve.compteEtudiant.id,
       contenu: `Absence non justifiée de ${eleve.prenom} ${eleve.nom} le ${date}${cours ? ' en ' + cours : ''}.`,
     });
     await envoyerEmail(
-      eleve.parent.email,
+      eleve.compteEtudiant.email,
       `Absence signalée pour ${eleve.prenom} ${eleve.nom}`,
       `Une absence non justifiée a été enregistrée le ${date}. Vous pouvez transmettre un justificatif depuis votre espace.`
     );
@@ -137,7 +137,7 @@ async function briefAbsenteisme(req, res) {
   return res.json({ brief });
 }
 
-// Parent : "Transmettre le justificatif à l'Académie" -> mise à jour du
+// Étudiant : "Transmettre le justificatif à l'Académie" -> mise à jour du
 // statut (absence justifiée).
 async function justifierAbsence(req, res) {
   const { id } = req.params;
@@ -147,7 +147,7 @@ async function justifierAbsence(req, res) {
   if (!absence || absence.Eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'absence introuvable' });
   }
-  if (req.utilisateur.role === 'parent' && absence.Eleve.parentId !== req.utilisateur.id) {
+  if (req.utilisateur.role === 'etudiant' && absence.Eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 
@@ -164,7 +164,7 @@ async function listerAbsencesEleve(req, res) {
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+  if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
   const absences = await Absence.findAll({ where: { eleveId }, order: [['date', 'DESC']] });
