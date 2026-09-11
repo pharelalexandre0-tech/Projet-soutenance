@@ -40,12 +40,16 @@ Comptes créés par le seed (mot de passe pour tous : `password123`) :
 |----------|--------------------------|
 | Académie | academie@ecole.ga       |
 | Finance  | finance@ecole.ga        |
-| Étudiant | pharelalexandre0+etudiant1@gmail.com |
-| Étudiant | pharelalexandre0+etudiant2@gmail.com |
+| Étudiant | pharelalexandre0@gmail.com            |
+| Étudiant | pharelalexandre0+etudiant2@gmail.com  |
 
 Le rôle Étudiant demande en plus un code à 6 chiffres envoyé par e-mail
-(double authentification) — les adresses ci-dessus utilisent l'alias `+`
-Gmail pour livrer ces codes dans une seule vraie boîte, testable en démo.
+(double authentification). Le premier compte utilise l'adresse Gmail
+telle quelle (sans alias) : c'est la seule que Resend, en mode sandbox
+sans domaine vérifié, accepte comme destinataire — utilisez ce compte
+pour tester le flux 2FA en démo. Le second reste utile pour les autres
+écrans mais ne recevra pas de vrai code tant qu'aucun domaine n'est
+vérifié sur Resend.
 
 Le Professeur (Charly Obame) n'a volontairement pas de mot de passe : conforme au
 diagramme de cas d'utilisation, il n'accède à la plateforme que via un lien
