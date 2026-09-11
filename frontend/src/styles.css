@@ -874,7 +874,22 @@ button.danger:hover { background: var(--erreur-fond); }
   padding: 14px;
   animation: apparition-sceau 0.5s ease both;
 }
-.transition-ouverture .sceau img { width: 100%; height: 100%; object-fit: contain; }
+.marque-animee { width: 100%; height: 100%; overflow: visible; }
+/* Chaque trait se dessine comme tracé à la main, plutôt que d'apparaître
+   d'un coup — la barre du E arrive une fois le cercle du E amorcé, le S
+   juste après. */
+.marque-animee .trait-e {
+  stroke-dasharray: 240; stroke-dashoffset: 240;
+  animation: dessiner-trait 0.7s ease 0.15s forwards;
+}
+.marque-animee .trait-e-barre {
+  stroke-dasharray: 45; stroke-dashoffset: 45;
+  animation: dessiner-trait 0.25s ease 0.55s forwards;
+}
+.marque-animee .trait-s {
+  stroke-dasharray: 200; stroke-dashoffset: 200;
+  animation: dessiner-trait 0.7s ease 0.35s forwards;
+}
 .transition-ouverture h1 {
   font-family: var(--police-serif); font-size: 1.5rem; font-weight: 600; color: #fff;
   margin: 0; text-align: center;
@@ -902,6 +917,7 @@ button.danger:hover { background: var(--erreur-fond); }
 .vague-points span:nth-child(3) { background: #4E9FE0; animation-delay: 0.28s; }
 
 @keyframes apparition-sceau { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes dessiner-trait { to { stroke-dashoffset: 0; } }
 @keyframes respiration-lueur { 0%, 100% { opacity: 0.55; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
 @keyframes vague-carre {
   0%, 60%, 100% { transform: translateY(0) scale(1); opacity: 0.55; }
