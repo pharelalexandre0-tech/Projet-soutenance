@@ -9,7 +9,7 @@ const COMPTES_DEMO = [
   { role: 'superadmin', libelle: 'Superadmin', email: 'superadmin@edusphere.ga', description: 'Gérer les écoles', Icone: IconBuilding },
   { role: 'academie', libelle: 'Académie', email: 'academie@ecole.ga', description: 'Classes, notes, absences', Icone: IconKey },
   { role: 'finance', libelle: 'Finance', email: 'finance@ecole.ga', description: 'Frais & paiements', Icone: IconBanknote },
-  { role: 'etudiant', libelle: 'Étudiant', email: 'alexandrepharel0+etudiant1@gmail.com', description: 'Mon dossier', Icone: IconUsers },
+  { role: 'etudiant', libelle: 'Étudiant', email: 'pharelalexandre0+etudiant1@gmail.com', description: 'Mon dossier', Icone: IconUsers },
 ];
 const MOT_DE_PASSE_DEMO = 'password123';
 

@@ -40,8 +40,8 @@ Comptes créés par le seed (mot de passe pour tous : `password123`) :
 |----------|--------------------------|
 | Académie | academie@ecole.ga       |
 | Finance  | finance@ecole.ga        |
-| Étudiant | alexandrepharel0+etudiant1@gmail.com |
-| Étudiant | alexandrepharel0+etudiant2@gmail.com |
+| Étudiant | pharelalexandre0+etudiant1@gmail.com |
+| Étudiant | pharelalexandre0+etudiant2@gmail.com |
 
 Le rôle Étudiant demande en plus un code à 6 chiffres envoyé par e-mail
 (double authentification) — les adresses ci-dessus utilisent l'alias `+`

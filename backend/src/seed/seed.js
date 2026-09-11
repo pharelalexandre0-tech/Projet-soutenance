@@ -94,7 +94,7 @@ async function seed() {
   const compteEtudiant1 = await Utilisateur.create({
     nom: 'Mba',
     prenom: 'Junior',
-    email: 'alexandrepharel0+etudiant1@gmail.com',
+    email: 'pharelalexandre0+etudiant1@gmail.com',
     motDePasse: motDePasseHache,
     role: 'etudiant',
     etablissementId: etablissement.id,
@@ -103,7 +103,7 @@ async function seed() {
   const compteEtudiant2 = await Utilisateur.create({
     nom: 'Ella',
     prenom: 'Grace',
-    email: 'alexandrepharel0+etudiant2@gmail.com',
+    email: 'pharelalexandre0+etudiant2@gmail.com',
     motDePasse: motDePasseHache,
     role: 'etudiant',
     etablissementId: etablissement.id,
