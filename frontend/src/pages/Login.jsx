@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
-import MotifPoints from '../components/MotifPoints';
 import { IconKey, IconBanknote, IconUsers, IconBuilding } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
@@ -100,7 +99,6 @@ export default function Login() {
         <div className="lettre-connexion">
           <EnTeteLettre />
           <div className="lettre-corps">
-            <span className="lettre-objet">Objet — Vérification en deux étapes</span>
             <p className="sous-titre">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
             <form className="formulaire" onSubmit={validerCode}>
               <div className="champ">
@@ -128,7 +126,6 @@ export default function Login() {
               </button>
             </form>
           </div>
-          <span className="lettre-cachet"><MotifPoints /></span>
         </div>
       </div>
     );
@@ -139,7 +136,6 @@ export default function Login() {
       <div className="lettre-connexion">
         <EnTeteLettre />
         <div className="lettre-corps">
-          <span className="lettre-objet">Objet — Accès à votre espace</span>
           <form className="formulaire" onSubmit={onSubmit}>
             <div className="champ">
               <label>Adresse e-mail</label>
@@ -186,7 +182,6 @@ export default function Login() {
           </div>
           <p className="comptes-demo-note">Un clic remplit les identifiants et connecte directement — mot de passe : <code>{MOT_DE_PASSE_DEMO}</code></p>
         </div>
-        <span className="lettre-cachet"><MotifPoints /></span>
       </div>
     </div>
   );

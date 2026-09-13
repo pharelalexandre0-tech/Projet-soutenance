@@ -448,29 +448,11 @@ button.danger:hover { background: var(--erreur-fond); }
   letter-spacing: 0.01em; margin: 4px 0 0; color: var(--texte);
 }
 
-.lettre-objet {
-  display: block; font-family: var(--police-mono); font-size: 0.68rem;
-  font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--primaire); margin-bottom: 18px;
-}
-.lettre-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: -10px 0 20px; }
-
-.lettre-cachet {
-  position: absolute; bottom: -20px; right: 36px;
-  width: 66px; height: 66px; border-radius: 50%;
-  background: var(--carte);
-  border: 1.5px dashed var(--bordure);
-  display: flex; align-items: center; justify-content: center;
-  transform: rotate(-8deg);
-  opacity: 0.85;
-}
-.lettre-cachet svg { width: 32px; height: auto; }
+.lettre-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: 0 0 20px; }
 
 @media (max-width: 860px) {
   .page-connexion { padding: 24px 16px 48px; align-items: flex-start; }
   .lettre-connexion { padding: 32px 24px 30px; margin-top: 12px; }
-  .lettre-cachet { width: 52px; height: 52px; right: 20px; bottom: -16px; }
-  .lettre-cachet svg { width: 24px; }
 }
 
 .separateur-demo {
