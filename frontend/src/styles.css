@@ -414,32 +414,84 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
+/* Connexion : composition à deux volets plutôt que la carte blanche
+   flottante centrée — le volet de gauche porte l'identité et le propos de
+   la plateforme (avec le nuage de points du logo comme vraie signature
+   visuelle), le droit ne contient que le formulaire, sans y répéter la
+   marque une deuxième fois. */
 .page-connexion {
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  background: var(--carte);
+}
+
+.panneau-marque {
+  flex: 1 1 46%;
   position: relative;
   overflow: hidden;
   background: var(--degrade-plateforme);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 48px;
+  color: #fff;
 }
-.carte-connexion {
-  background: #FFFFFF;
-  padding: 40px 38px;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 30px 70px rgba(6, 20, 34, 0.45);
-  position: relative;
+.motif-connexion {
+  position: absolute; top: 48px; right: 48px;
+  width: 108px; height: auto;
+  opacity: 0.9;
 }
-.logo-connexion { width: 48px; height: 48px; object-fit: contain; margin-bottom: 14px; }
-.carte-connexion h1 { font-family: var(--police-serif); font-size: 1.35rem; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
-.carte-connexion p.sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin-top: 0; margin-bottom: 24px; }
-.comptes-demo {
-  margin-top: 20px; font-size: 0.76rem; color: var(--texte-clair);
-  background: var(--gris-fond); padding: 12px 14px; border-radius: 10px; line-height: 1.7;
+.panneau-marque-corps {
+  max-width: 440px;
+  margin: auto 0;
 }
-.comptes-demo code { background: #ffffff; padding: 1px 6px; border-radius: 4px; font-family: var(--police-mono); font-size: 0.72rem; border: 1px solid var(--bordure); }
+.marque-pastille.grande {
+  width: 64px; height: 64px; padding: 9px; margin-bottom: 28px;
+}
+.panneau-marque-corps h1 {
+  font-family: var(--police-serif); font-weight: 600;
+  font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.15;
+  letter-spacing: -0.01em; margin: 0 0 18px;
+  text-wrap: balance;
+}
+.panneau-marque-corps p {
+  font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.72);
+  margin: 0; max-width: 38ch;
+}
+.panneau-marque-signature {
+  font-family: var(--police-mono); font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,255,255,0.55);
+  margin: 0;
+}
+
+.panneau-formulaire {
+  flex: 1 1 54%;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 32px;
+}
+.panneau-formulaire-corps { width: 100%; max-width: 360px; }
+.eyebrow-connexion {
+  display: inline-block; font-family: var(--police-mono); font-size: 0.68rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--primaire); margin-bottom: 10px;
+}
+.panneau-formulaire-corps h2 {
+  font-family: var(--police-serif); font-size: 1.5rem; font-weight: 600;
+  margin: 0 0 22px; letter-spacing: -0.01em;
+}
+.panneau-formulaire-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; }
+
+@media (max-width: 860px) {
+  .page-connexion { flex-direction: column; }
+  .panneau-marque { flex: none; padding: 32px 28px; }
+  .panneau-marque-corps { margin: 0; }
+  .panneau-marque-corps h1 { font-size: 1.5rem; }
+  .panneau-marque-corps p { display: none; }
+  .motif-connexion { width: 80px; top: 28px; right: 28px; }
+  .panneau-marque-signature { display: none; }
+  .marque-pastille.grande { margin-bottom: 0; }
+  .panneau-formulaire { padding: 32px 24px 48px; }
+}
 
 .separateur-demo {
   display: flex; align-items: center; gap: 10px;
@@ -565,6 +617,19 @@ button.danger:hover { background: var(--erreur-fond); }
   letter-spacing: 0.05em;
   color: var(--texte-clair);
 }
+/* La première tuile de chaque grille porte le chiffre le plus regardé —
+   lui donner un traitement distinct casse la rangée de boîtes identiques
+   typique d'un dashboard généré, et guide l'œil sans rien ajouter au DOM.
+   Ne s'applique que si elle ne porte pas déjà une couleur sémantique
+   (vert/or/rouge) : un compteur d'impayés reste rouge avant tout. */
+.stats-grid > .stat-tile:first-child:not(.tile-vert):not(.tile-or):not(.tile-rouge) {
+  background: var(--degrade-plateforme);
+  color: #fff;
+}
+.stats-grid > .stat-tile:first-child:not(.tile-vert):not(.tile-or):not(.tile-rouge) .libelle { color: rgba(255,255,255,0.7); }
+.stats-grid > .stat-tile:first-child:not(.tile-vert):not(.tile-or):not(.tile-rouge) .valeur { color: #fff; font-size: 2.6rem; }
+.stats-grid > .stat-tile:first-child:not(.tile-vert):not(.tile-or):not(.tile-rouge) .puce-icone { background: rgba(255,255,255,0.16); color: #fff; }
+
 .stat-tile.tile-vert { --tuile: var(--succes); }
 .stat-tile.tile-vert .puce-icone { background: var(--succes-fond); color: var(--succes); }
 .stat-tile.tile-or { --tuile: var(--alerte); }
@@ -851,10 +916,31 @@ button.danger:hover { background: var(--erreur-fond); }
   position: fixed; inset: 0; z-index: 100;
   background: var(--degrade-plateforme);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 22px;
+  gap: 24px;
   animation: fondu-sortie 0.4s ease 1.1s both;
 }
+
+/* Le nuage de points du logo se rassemble autour du sceau plutôt qu'un
+   anneau générique qui tourne — le "chargement" reprend un vrai détail de
+   la marque au lieu d'un motif de spinner interchangeable. */
+.halo-ouverture { position: relative; width: 74px; height: 74px; }
+.motif-ouverture {
+  position: absolute; top: -22px; right: -34px;
+  width: 62px; height: auto;
+}
+.motif-ouverture rect { animation: apparition-point 0.5s cubic-bezier(.22,1,.36,1) both; }
+.motif-ouverture rect:nth-child(1) { animation-delay: 0.05s; }
+.motif-ouverture rect:nth-child(2) { animation-delay: 0.12s; }
+.motif-ouverture rect:nth-child(3) { animation-delay: 0.19s; }
+.motif-ouverture rect:nth-child(4) { animation-delay: 0.1s; }
+.motif-ouverture rect:nth-child(5) { animation-delay: 0.26s; }
+.motif-ouverture rect:nth-child(6) { animation-delay: 0.3s; }
+.motif-ouverture rect:nth-child(7) { animation-delay: 0.22s; }
+.motif-ouverture rect:nth-child(8) { animation-delay: 0.34s; }
+.motif-ouverture rect:nth-child(9) { animation-delay: 0.16s; }
+
 .transition-ouverture .sceau {
+  position: relative; z-index: 1;
   width: 74px; height: 74px; border-radius: 50%;
   background: #FFFFFF;
   box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35), 0 8px 24px rgba(0,0,0,0.3);
@@ -866,17 +952,21 @@ button.danger:hover { background: var(--erreur-fond); }
 .transition-ouverture h1 {
   font-family: var(--police-serif); font-size: 1.5rem; font-weight: 600; color: #fff;
   margin: 0; text-align: center;
+  animation: tombe-doucement 0.4s ease 0.1s both;
 }
 .transition-ouverture p {
-  font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -12px 0 0; text-align: center;
+  font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -14px 0 0; text-align: center;
+  animation: tombe-doucement 0.4s ease 0.18s both;
 }
 .transition-ouverture .piste-progres {
   width: 220px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden;
 }
 .transition-ouverture .barre-progres {
-  height: 100%; background: var(--edu-or); border-radius: 2px;
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, var(--edu-or), var(--edu-vert));
   animation: progres-ouverture 1s ease both;
 }
 @keyframes apparition-sceau { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+@keyframes apparition-point { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
 @keyframes progres-ouverture { from { width: 0%; } to { width: 100%; } }
 @keyframes fondu-sortie { to { opacity: 0; visibility: hidden; } }

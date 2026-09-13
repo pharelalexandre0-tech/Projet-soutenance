@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
+import MotifPoints from '../components/MotifPoints';
 import { IconKey, IconBanknote, IconUsers, IconBuilding } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
@@ -12,6 +13,23 @@ const COMPTES_DEMO = [
   { role: 'etudiant', libelle: 'Étudiant', email: 'pharelalexandre0@gmail.com', description: 'Mon dossier', Icone: IconUsers },
 ];
 const MOT_DE_PASSE_DEMO = 'password123';
+
+function PanneauMarque() {
+  return (
+    <div className="panneau-marque">
+      <MotifPoints className="motif-connexion" />
+      <div className="panneau-marque-corps">
+        <span className="marque-pastille grande"><img src={logoIcon} alt="" /></span>
+        <h1>L'écosystème<br />académique,<br />réuni au même endroit.</h1>
+        <p>
+          Classes, notes, absences, frais et prédiction de risque — une seule
+          plateforme pensée pour les universités et grandes écoles gabonaises.
+        </p>
+      </div>
+      <p className="panneau-marque-signature">EduSphere</p>
+    </div>
+  );
+}
 
 // Diagramme 3 : saisie identifiants -> demanderConnexion -> alt [valides]/[invalides].
 export default function Login() {
@@ -82,35 +100,38 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <div className="carte-connexion">
-          <img className="logo-connexion" src={logoIcon} alt="EduSphere" />
-          <h1>Vérification</h1>
-          <p className="sous-titre">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
-          <form className="formulaire" onSubmit={validerCode}>
-            <div className="champ">
-              <label>Code de vérification</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                autoFocus
-                required
-              />
-            </div>
-            {erreur && <div className="message-erreur">{erreur}</div>}
-            <button className="primaire" type="submit" disabled={enCours || code.length !== 6}>
-              {enCours ? 'Vérification…' : 'Valider'}
-            </button>
-            <button
-              type="button"
-              className="secondaire"
-              onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
-            >
-              Retour
-            </button>
-          </form>
+        <PanneauMarque />
+        <div className="panneau-formulaire">
+          <div className="panneau-formulaire-corps">
+            <span className="eyebrow-connexion">Étape 2 sur 2</span>
+            <h2>Vérification</h2>
+            <p className="sous-titre">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+            <form className="formulaire" onSubmit={validerCode}>
+              <div className="champ">
+                <label>Code de vérification</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                  required
+                />
+              </div>
+              {erreur && <div className="message-erreur">{erreur}</div>}
+              <button className="primaire" type="submit" disabled={enCours || code.length !== 6}>
+                {enCours ? 'Vérification…' : 'Valider'}
+              </button>
+              <button
+                type="button"
+                className="secondaire"
+                onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
+              >
+                Retour
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     );
@@ -118,55 +139,57 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <div className="carte-connexion">
-        <img className="logo-connexion" src={logoIcon} alt="EduSphere" />
-        <h1>EduSphere</h1>
-        <p className="sous-titre">L'écosystème éducatif intelligent gabonais</p>
-        <form className="formulaire" onSubmit={onSubmit}>
-          <div className="champ">
-            <label>Adresse e-mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setCompteActif(''); }}
-              required
-            />
-          </div>
-          <div className="champ">
-            <label>Mot de passe</label>
-            <input
-              type="password"
-              value={motDePasse}
-              onChange={(e) => { setMotDePasse(e.target.value); setCompteActif(''); }}
-              required
-            />
-          </div>
-          {erreur && <div className="message-erreur">{erreur}</div>}
-          <button className="primaire" type="submit" disabled={enCours}>
-            {enCours ? 'Connexion…' : 'Se connecter'}
-          </button>
-        </form>
-
-        <div className="separateur-demo"><span>mode test — accès rapide</span></div>
-        <div className="comptes-demo-grille">
-          {COMPTES_DEMO.map((compte) => (
-            <button
-              key={compte.role}
-              type="button"
-              data-role={compte.role}
-              className={`compte-demo-carte ${compteActif === compte.role ? 'actif' : ''}`}
-              disabled={enCours}
-              onClick={() => choisirCompteDemo(compte)}
-            >
-              <span className="compte-demo-icone"><compte.Icone width={16} height={16} /></span>
-              <span className="compte-demo-texte">
-                <strong>{compte.libelle}</strong>
-                <small>{compte.description}</small>
-              </span>
+      <PanneauMarque />
+      <div className="panneau-formulaire">
+        <div className="panneau-formulaire-corps">
+          <span className="eyebrow-connexion">Connexion</span>
+          <h2>Accédez à votre espace</h2>
+          <form className="formulaire" onSubmit={onSubmit}>
+            <div className="champ">
+              <label>Adresse e-mail</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setCompteActif(''); }}
+                required
+              />
+            </div>
+            <div className="champ">
+              <label>Mot de passe</label>
+              <input
+                type="password"
+                value={motDePasse}
+                onChange={(e) => { setMotDePasse(e.target.value); setCompteActif(''); }}
+                required
+              />
+            </div>
+            {erreur && <div className="message-erreur">{erreur}</div>}
+            <button className="primaire" type="submit" disabled={enCours}>
+              {enCours ? 'Connexion…' : 'Se connecter'}
             </button>
-          ))}
+          </form>
+
+          <div className="separateur-demo"><span>mode test — accès rapide</span></div>
+          <div className="comptes-demo-grille">
+            {COMPTES_DEMO.map((compte) => (
+              <button
+                key={compte.role}
+                type="button"
+                data-role={compte.role}
+                className={`compte-demo-carte ${compteActif === compte.role ? 'actif' : ''}`}
+                disabled={enCours}
+                onClick={() => choisirCompteDemo(compte)}
+              >
+                <span className="compte-demo-icone"><compte.Icone width={16} height={16} /></span>
+                <span className="compte-demo-texte">
+                  <strong>{compte.libelle}</strong>
+                  <small>{compte.description}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="comptes-demo-note">Un clic remplit les identifiants et connecte directement — mot de passe : <code>{MOT_DE_PASSE_DEMO}</code></p>
         </div>
-        <p className="comptes-demo-note">Un clic remplit les identifiants et connecte directement — mot de passe : <code>{MOT_DE_PASSE_DEMO}</code></p>
       </div>
     </div>
   );
