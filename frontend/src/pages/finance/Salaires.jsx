@@ -29,10 +29,13 @@ export default function Salaires() {
     else setFiche(null);
   }, [personnelId]);
 
-  function surVersementReussi() {
+  function surVersementReussi(ficheEnvoyeeA) {
     setModaleOuverte(false);
     chargerFiche(personnelId);
-    setToast({ message: 'Versement enregistré.', type: 'succes' });
+    setToast({
+      message: ficheEnvoyeeA ? `Versement enregistré — fiche de paie envoyée à ${ficheEnvoyeeA}.` : 'Versement enregistré.',
+      type: 'succes',
+    });
   }
 
   function surPersonnelCree(nouveau) {
@@ -79,7 +82,10 @@ export default function Salaires() {
                 <span className="fiche-paie-avatar">{initiales(personne)}</span>
                 <div>
                   <h3>{personne.prenom} {personne.nom}</h3>
-                  <p>{personne.poste}{personne.salaireBase ? ` · salaire de base ${personne.salaireBase.toLocaleString('fr-FR')} FCFA` : ''}</p>
+                  <p>
+                    {personne.poste}{personne.salaireBase ? ` · salaire de base ${personne.salaireBase.toLocaleString('fr-FR')} FCFA` : ''}
+                    {!personne.email && <span style={{ color: 'var(--alerte)' }}> · aucun e-mail — la fiche de paie ne pourra pas être envoyée</span>}
+                  </p>
                 </div>
               </div>
               <button className="primaire" onClick={() => setModaleOuverte(true)}>Nouveau versement</button>
@@ -87,7 +93,7 @@ export default function Salaires() {
 
             <div className="table-scroll">
               <table>
-                <thead><tr><th>Période</th><th>Montant</th><th>Statut</th><th>Date de versement</th></tr></thead>
+                <thead><tr><th>Période</th><th>Montant</th><th>Statut</th><th>Date de versement</th><th></th></tr></thead>
                 <tbody>
                   {fiche.salaires.map((s) => (
                     <tr key={s.id}>
@@ -95,9 +101,16 @@ export default function Salaires() {
                       <td>{s.montant.toLocaleString('fr-FR')} FCFA</td>
                       <td><span className={`badge ${s.statut === 'verse' ? 'vert' : 'gris'}`}>{s.statut === 'verse' ? 'versé' : 'prévu'}</span></td>
                       <td>{s.dateVersement ?? '—'}</td>
+                      <td>
+                        {s.fichierPDF && (
+                          <a href={s.fichierPDF} target="_blank" rel="noreferrer" className="secondaire" style={{ display: 'inline-block', textDecoration: 'none', padding: '5px 12px' }}>
+                            Fiche PDF
+                          </a>
+                        )}
+                      </td>
                     </tr>
                   ))}
-                  {fiche.salaires.length === 0 && <tr><td colSpan={4} className="vide">Aucun versement enregistré</td></tr>}
+                  {fiche.salaires.length === 0 && <tr><td colSpan={5} className="vide">Aucun versement enregistré</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -117,7 +130,7 @@ export default function Salaires() {
 }
 
 function FormulairePersonnel({ onFermer, onReussi }) {
-  const [form, setForm] = useState({ nom: '', prenom: '', poste: '', salaireBase: '', dateEmbauche: '' });
+  const [form, setForm] = useState({ nom: '', prenom: '', email: '', poste: '', salaireBase: '', dateEmbauche: '' });
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
 
@@ -146,6 +159,10 @@ function FormulairePersonnel({ onFermer, onReussi }) {
           <label>Poste</label>
           <input placeholder="ex. Professeur, Surveillant général, Comptable" value={form.poste} onChange={(e) => setForm({ ...form, poste: e.target.value })} required />
         </div>
+        <div className="champ">
+          <label>E-mail (pour l'envoi de la fiche de paie)</label>
+          <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
         <div className="ligne-champs">
           <div className="champ"><label>Salaire de base (FCFA)</label><input type="number" min="0" value={form.salaireBase} onChange={(e) => setForm({ ...form, salaireBase: e.target.value })} /></div>
           <div className="champ"><label>Date d'embauche</label><input type="date" value={form.dateEmbauche} onChange={(e) => setForm({ ...form, dateEmbauche: e.target.value })} /></div>
@@ -167,8 +184,8 @@ function FormulaireVersement({ personne, onFermer, onReussi }) {
     setEnCours(true);
     setErreur('');
     try {
-      await client.post('/finance/salaires', { personnelId: personne.id, montant: Number(form.montant), periode: form.periode, dateVersement: form.dateVersement });
-      onReussi();
+      const res = await client.post('/finance/salaires', { personnelId: personne.id, montant: Number(form.montant), periode: form.periode, dateVersement: form.dateVersement });
+      onReussi(res.data.ficheEnvoyeeA);
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'impossible d\'enregistrer le versement');
     } finally {

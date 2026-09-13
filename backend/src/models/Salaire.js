@@ -10,6 +10,7 @@ Salaire.init(
     periode: { type: DataTypes.STRING, allowNull: false },
     statut: { type: DataTypes.ENUM('prevu', 'verse'), allowNull: false, defaultValue: 'prevu' },
     dateVersement: { type: DataTypes.DATEONLY, allowNull: true },
+    fichierPDF: { type: DataTypes.STRING, allowNull: true },
   },
   { sequelize, modelName: 'Salaire', tableName: 'salaires' }
 );

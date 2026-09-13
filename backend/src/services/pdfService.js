@@ -342,4 +342,90 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
   return { cheminAbsolu: chemin, cheminRelatif };
 }
 
-module.exports = { genererBulletinPDF, genererRecuPDF, DOSSIER_STOCKAGE };
+// genererFichePaiePDF(versement) - même traitement "document officiel" que
+// le reçu de paiement : en-tête établissement, bloc identité, montant mis
+// en avant, cachet. Une fiche par versement (pas cumulative sur l'année).
+async function genererFichePaiePDF({ personne, salaire, etablissement }) {
+  const nomFichier = `fiche_paie_${salaire.id}.pdf`;
+  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier);
+
+  const margeGauche = doc.page.margins.left;
+  const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
+
+  doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
+
+  doc.y = 34;
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
+    .text(`${etablissement.nom.toUpperCase()} — ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
+  doc.moveDown(0.4);
+  doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
+    .text('FICHE DE PAIE', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+  doc.moveDown(0.3);
+  doc.fontSize(7.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+    .text(`N° FP-${new Date().getFullYear()}-${String(salaire.id).padStart(5, '0')} — ${salaire.periode}`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+  doc.moveDown(0.6);
+  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
+  doc.moveDown(0.7);
+
+  const largeurCol = largeurTotale / 3;
+  const identite = [
+    ['Employé(e)', `${personne.prenom} ${personne.nom}`],
+    ['Poste', personne.poste],
+    ['Période', salaire.periode],
+  ];
+  const yIdentite = doc.y;
+  identite.forEach(([label, valeur], i) => {
+    const cx = margeGauche + i * largeurCol;
+    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR).text(label.toUpperCase(), cx, yIdentite, { width: largeurCol - 8, characterSpacing: 0.5 });
+    doc.fontSize(10).font('Helvetica-Bold').fillColor(COULEUR_TEXTE).text(valeur, cx, yIdentite + 11, { width: largeurCol - 8 });
+  });
+  doc.y = yIdentite + 34;
+  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).dash(2, { space: 2 }).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
+  doc.undash();
+  doc.y += 14;
+
+  const largeursDetail = [largeurTotale - 200, 110, 90];
+  let y = dessinerLigne(
+    doc, margeGauche, doc.y, largeursDetail,
+    [
+      { texte: 'Élément', gras: true, couleur: '#FFFFFF', taille: 7 },
+      { texte: 'Montant', align: 'center', gras: true, couleur: '#FFFFFF', taille: 7 },
+      { texte: 'Date de versement', align: 'center', gras: true, couleur: '#FFFFFF', taille: 7 },
+    ],
+    { hauteur: 20, fond: COULEUR_PRIMAIRE, taille: 7 }
+  );
+  y = dessinerLigne(
+    doc, margeGauche, y, largeursDetail,
+    [
+      { texte: 'Salaire net versé' },
+      { texte: `${formaterFCFA(salaire.montant)} FCFA`, align: 'center', gras: true, couleur: COULEUR_SUCCES },
+      { texte: salaire.dateVersement ? new Date(salaire.dateVersement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—', align: 'center' },
+    ],
+    { hauteur: 22 }
+  );
+
+  y += 26;
+  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
+    .text('MONTANT NET VERSÉ', margeGauche, y, { width: largeurTotale, align: 'center', characterSpacing: 0.5 });
+  doc.fontSize(26).font('Helvetica-Bold').fillColor(COULEUR_SUCCES)
+    .text(`${formaterFCFA(salaire.montant)} FCFA`, margeGauche, y + 12, { width: largeurTotale, align: 'center' });
+
+  y += 70;
+  doc.moveTo(margeGauche, y).lineTo(margeGauche + largeurTotale, y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
+  y += 14;
+  doc.fontSize(8).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+    .text(`Fait à ${etablissement.ville}, le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, margeGauche, y);
+  doc.circle(margeGauche + largeurTotale - 46, y + 30, 40).lineWidth(1).dash(2, { space: 2 }).strokeColor(COULEUR_BORDURE).stroke();
+  doc.undash();
+  doc.fontSize(6.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+    .text('CACHET &\nSIGNATURE', margeGauche + largeurTotale - 46 - 30, y + 22, { width: 60, align: 'center' });
+
+  doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+    .text(`${etablissement.nom} — ${etablissement.boitePostale} — ${etablissement.telephone} — ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
+
+  doc.end();
+  const chemin = await termine;
+  return { cheminAbsolu: chemin, cheminRelatif };
+}
+
+module.exports = { genererBulletinPDF, genererRecuPDF, genererFichePaiePDF, DOSSIER_STOCKAGE };

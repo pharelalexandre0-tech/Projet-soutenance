@@ -1,3 +1,4 @@
+const fs = require('fs');
 const nodemailer = require('nodemailer');
 
 // Render bloque le SMTP sortant (ports 25/465/587) sur son plan gratuit —
@@ -15,7 +16,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   });
 }
 
-async function envoyerViaResend(destinataire, sujet, corps) {
+async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
   const reponse = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -27,6 +28,10 @@ async function envoyerViaResend(destinataire, sujet, corps) {
       to: destinataire,
       subject: sujet,
       text: corps,
+      attachments: piecesJointes.map((p) => ({
+        filename: p.nomFichier,
+        content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
+      })),
     }),
   });
   if (!reponse.ok) {
@@ -35,9 +40,12 @@ async function envoyerViaResend(destinataire, sujet, corps) {
   }
 }
 
-async function envoyerEmail(destinataire, sujet, corps) {
+// `piecesJointes` (optionnel) : [{ cheminAbsolu, nomFichier }] — un reçu ou
+// une fiche de paie jointe en PDF, pas seulement un chemin mentionné dans
+// le texte du message.
+async function envoyerEmail(destinataire, sujet, corps, piecesJointes = []) {
   if (process.env.RESEND_API_KEY) {
-    await envoyerViaResend(destinataire, sujet, corps);
+    await envoyerViaResend(destinataire, sujet, corps, piecesJointes);
     return { envoye: true };
   }
 
@@ -47,11 +55,13 @@ async function envoyerEmail(destinataire, sujet, corps) {
       to: destinataire,
       subject: sujet,
       text: corps,
+      attachments: piecesJointes.map((p) => ({ filename: p.nomFichier, path: p.cheminAbsolu })),
     });
     return { envoye: true };
   }
 
-  console.log(`[Service E-mail] (aucun envoi configuré, simulation) À: ${destinataire} | Sujet: ${sujet}\n${corps}\n`);
+  const suffixePieces = piecesJointes.length ? ` (+ ${piecesJointes.map((p) => p.nomFichier).join(', ')})` : '';
+  console.log(`[Service E-mail] (aucun envoi configuré, simulation) À: ${destinataire} | Sujet: ${sujet}${suffixePieces}\n${corps}\n`);
   return { envoye: true, simule: true };
 }
 

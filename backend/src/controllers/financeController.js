@@ -1,5 +1,5 @@
 const { FraisScolarite, Paiement, Recu, Eleve, Classe, Utilisateur, Notification, Salaire, Personnel } = require('../models');
-const { genererRecuPDF } = require('../services/pdfService');
+const { genererRecuPDF, genererFichePaiePDF } = require('../services/pdfService');
 const { envoyerEmail } = require('../services/emailService');
 const { verifierImpayesService } = require('../services/impayesService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
@@ -17,6 +17,43 @@ async function definirFrais(req, res) {
   }
   const frais = await FraisScolarite.create({ eleveId, semestreId, libelle, montant, dateEcheance });
   return res.status(201).json({ frais });
+}
+
+// "Définir pour toute la classe" : dès qu'un étudiant est inscrit, il doit
+// avoir son frais sans que la Finance ne le crée un par un — un seul geste
+// couvre toute la classe. Un élève qui a déjà un frais du même libellé pour
+// ce semestre n'est pas dupliqué (utile si on relance l'action après avoir
+// inscrit de nouveaux étudiants en cours de semestre).
+async function definirFraisClasse(req, res) {
+  const { classeId, semestreId, libelle, montant, dateEcheance } = req.body;
+  if (!classeId || !semestreId || !libelle || !montant || !dateEcheance) {
+    return res.status(400).json({ erreur: 'champs manquants' });
+  }
+  const classe = await Classe.findByPk(classeId);
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+
+  const eleves = await Eleve.findAll({ where: { classeId }, attributes: ['id'] });
+  if (eleves.length === 0) {
+    return res.status(400).json({ erreur: 'aucun élève dans cette classe' });
+  }
+
+  const dejaDefinis = await FraisScolarite.findAll({
+    where: { eleveId: eleves.map((e) => e.id), semestreId, libelle },
+    attributes: ['eleveId'],
+  });
+  const eleveIdsDejaDefinis = new Set(dejaDefinis.map((f) => f.eleveId));
+  const eleveIdsACreer = eleves.map((e) => e.id).filter((id) => !eleveIdsDejaDefinis.has(id));
+
+  const fraisCrees = await FraisScolarite.bulkCreate(
+    eleveIdsACreer.map((eleveId) => ({ eleveId, semestreId, libelle, montant, dateEcheance }))
+  );
+
+  return res.status(201).json({
+    nombreCrees: fraisCrees.length,
+    nombreDejaExistants: eleveIdsDejaDefinis.size,
+  });
 }
 
 // "Consulter mes frais et échéances" (Étudiant) / consultation Finance.
@@ -67,7 +104,7 @@ async function enregistrerPaiement(req, res) {
   await frais.save();
 
   const recuNumero = `REC-${new Date().getFullYear()}-${String(paiement.id).padStart(5, '0')}`;
-  const { cheminRelatif } = await genererRecuPDF({
+  const { cheminAbsolu, cheminRelatif } = await genererRecuPDF({
     recuNumero,
     eleve: frais.Eleve,
     frais,
@@ -81,7 +118,8 @@ async function enregistrerPaiement(req, res) {
     await envoyerEmail(
       frais.Eleve.compteEtudiant.email,
       `Reçu de paiement — ${frais.libelle}`,
-      `Votre paiement de ${montant} FCFA a été enregistré. Reçu n° ${recuNumero} : ${cheminRelatif}`
+      `Votre paiement de ${montant} FCFA a été enregistré. Vous trouverez le reçu ${recuNumero} en pièce jointe.`,
+      [{ cheminAbsolu, nomFichier: `${recuNumero}.pdf` }]
     );
     await Notification.create({
       utilisateurId: frais.Eleve.compteEtudiant.id,
@@ -154,6 +192,11 @@ async function roulementFraisParClasse(req, res) {
       // Frais à relancer en priorité (impayé d'abord, sinon partiel) — pour
       // que le bouton "Relancer" de la liste sache quel frais cibler.
       const fraisARelancer = frais.find((f) => f.statut === 'impaye') || frais.find((f) => f.statut === 'partiel');
+      // Frais sur lequel un paiement peut s'appliquer directement depuis la
+      // liste — le premier non soldé, impayé/partiel/dû dans cet ordre.
+      const fraisActif = frais.find((f) => f.statut === 'impaye')
+        || frais.find((f) => f.statut === 'partiel')
+        || frais.find((f) => f.statut === 'du');
       return {
         id: eleve.id,
         nom: eleve.nom,
@@ -163,6 +206,7 @@ async function roulementFraisParClasse(req, res) {
         resteDu: totalDu - totalRegle,
         statutGlobal,
         fraisARelancerId: fraisARelancer ? fraisARelancer.id : null,
+        fraisActifId: fraisActif ? fraisActif.id : null,
       };
     });
     parNiveau.get(classe.niveau).push({ id: classe.id, nom: classe.nom, eleves });
@@ -198,7 +242,10 @@ async function envoyerRelance(req, res) {
 
 // Gestion de la paie (Espace Finance, hors des diagrammes détaillés mais
 // présent dans le cas d'utilisation global) : un versement est toujours
-// rattaché à une fiche Personnel existante, jamais à un nom libre.
+// rattaché à une fiche Personnel existante, jamais à un nom libre. Une fois
+// validé, la fiche de paie est générée et envoyée par e-mail à l'employé
+// (s'il a une adresse enregistrée) — même traitement que le reçu de
+// paiement élève.
 async function verserSalaire(req, res) {
   const { personnelId, montant, periode, dateVersement } = req.body;
   if (!personnelId || !montant || !periode) {
@@ -217,11 +264,32 @@ async function verserSalaire(req, res) {
     statut: 'verse',
     gereParFinanceId: req.utilisateur.id,
   });
-  return res.status(201).json({ salaire });
+
+  const { cheminAbsolu, cheminRelatif } = await genererFichePaiePDF({
+    personne,
+    salaire,
+    etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
+  });
+  salaire.fichierPDF = cheminRelatif;
+  await salaire.save();
+
+  let ficheEnvoyeeA = null;
+  if (personne.email) {
+    await envoyerEmail(
+      personne.email,
+      `Fiche de paie — ${periode}`,
+      `Votre salaire de ${montant} FCFA pour la période "${periode}" a été versé. Vous trouverez votre fiche de paie en pièce jointe.`,
+      [{ cheminAbsolu, nomFichier: `fiche_paie_${periode.replace(/\s+/g, '_')}.pdf` }]
+    );
+    ficheEnvoyeeA = personne.email;
+  }
+
+  return res.status(201).json({ salaire, ficheEnvoyeeA });
 }
 
 module.exports = {
   definirFrais,
+  definirFraisClasse,
   roulementFraisParClasse,
   listerFraisEleve,
   enregistrerPaiement,

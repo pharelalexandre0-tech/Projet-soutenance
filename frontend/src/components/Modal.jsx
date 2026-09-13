@@ -13,6 +13,7 @@ export default function Modal({ titre, onFermer, children, largeur = 480 }) {
   return (
     <div className="modale-fond" onClick={onFermer}>
       <div className="modale-carte" style={{ maxWidth: largeur }} onClick={(e) => e.stopPropagation()}>
+        <div className="modale-accent" />
         <div className="modale-entete">
           <h2>{titre}</h2>
           <button type="button" className="modale-fermer" onClick={onFermer} aria-label="Fermer">×</button>

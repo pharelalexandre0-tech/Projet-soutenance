@@ -12,12 +12,13 @@ async function listerPersonnel(req, res) {
 // Une école neuve démarre sans aucun personnel — l'Académie/la Finance doit
 // pouvoir en ajouter elle-même, pas dépendre de données pré-chargées.
 async function creerPersonnel(req, res) {
-  const { nom, prenom, poste, salaireBase, dateEmbauche } = req.body;
+  const { nom, prenom, email, poste, salaireBase, dateEmbauche } = req.body;
   if (!nom || !prenom || !poste) {
     return res.status(400).json({ erreur: 'nom, prénom et poste sont obligatoires' });
   }
   const personne = await Personnel.create({
     nom, prenom, poste,
+    email: email || null,
     salaireBase: salaireBase || null,
     dateEmbauche: dateEmbauche || null,
     etablissementId: req.utilisateur.etablissementId,

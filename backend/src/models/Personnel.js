@@ -11,6 +11,7 @@ Personnel.init(
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     nom: { type: DataTypes.STRING, allowNull: false },
     prenom: { type: DataTypes.STRING, allowNull: false },
+    email: { type: DataTypes.STRING, allowNull: true, validate: { isEmail: true } },
     poste: { type: DataTypes.STRING, allowNull: false },
     salaireBase: { type: DataTypes.FLOAT, allowNull: true },
     dateEmbauche: { type: DataTypes.DATEONLY, allowNull: true },

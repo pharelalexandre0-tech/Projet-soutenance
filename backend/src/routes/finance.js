@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   definirFrais,
+  definirFraisClasse,
   listerFraisEleve,
   enregistrerPaiement,
   listerPaiementsEleve,
@@ -17,6 +18,7 @@ const router = express.Router();
 const finance = autoriserRoles('finance');
 
 router.post('/frais', authentifier, finance, definirFrais);
+router.post('/frais/classe', authentifier, finance, definirFraisClasse);
 router.get('/frais/eleve/:eleveId', authentifier, listerFraisEleve);
 
 router.post('/paiements', authentifier, finance, enregistrerPaiement);
