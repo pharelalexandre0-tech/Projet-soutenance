@@ -5,11 +5,16 @@ const { envoyerEmail } = require('../services/emailService');
 
 const DUREE_CODE_2FA_MIN = 10;
 
+const ROLES_AVEC_2FA = ['etudiant', 'academie'];
+
 // Diagramme 3 - Authentification :
 // Academie/Etudiant/Finance saisit ses identifiants -> demanderConnexion ->
 // rechercherUtilisateur -> alt [valides]/[invalides].
-// Le rôle Etudiant passe en plus par une double authentification (code à
-// 6 chiffres envoyé par e-mail) avant que le token ne soit délivré.
+// Etudiant et Academie passent en plus par une double authentification
+// (code à 6 chiffres envoyé par e-mail) avant que le token ne soit délivré
+// — Académie porte des données sensibles sur toute une école, Étudiant son
+// propre dossier ; Finance et Superadmin restent en simple facteur pour
+// l'instant.
 async function seConnecter(req, res) {
   const { email, motDePasse } = req.body;
   if (!email || !motDePasse) {
@@ -36,7 +41,7 @@ async function seConnecter(req, res) {
     }
   }
 
-  if (utilisateur.role === 'etudiant') {
+  if (ROLES_AVEC_2FA.includes(utilisateur.role)) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     utilisateur.codeDoubleFacteur = code;
     utilisateur.codeDoubleFacteurExpire = new Date(Date.now() + DUREE_CODE_2FA_MIN * 60 * 1000);
