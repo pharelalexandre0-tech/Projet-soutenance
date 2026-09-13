@@ -220,7 +220,10 @@ const professeur = await Professeur.create({
   });
 
   // Registre du personnel pour la paie (Espace Finance).
-  const personnelObame = await Personnel.create({ nom: 'Obame', prenom: 'Charly', poste: 'Professeur de Programmation', salaireBase: 450000, dateEmbauche: '2021-09-01', etablissementId: etablissement.id });
+  // E-mail réel sur ce profil (sans alias "+" : le mode sandbox de Resend
+  // exige une correspondance exacte avec le compte vérifié), pour pouvoir
+  // démontrer l'envoi de la fiche de paie en direct.
+  const personnelObame = await Personnel.create({ nom: 'Obame', prenom: 'Charly', email: 'pharelalexandre0@gmail.com', poste: 'Professeur de Programmation', salaireBase: 450000, dateEmbauche: '2021-09-01', etablissementId: etablissement.id });
   const personnelNzue = await Personnel.create({ nom: 'Nzue', prenom: 'Larissa', poste: 'Surveillante générale', salaireBase: 280000, dateEmbauche: '2019-01-15', etablissementId: etablissement.id });
   const personnelMoussavou = await Personnel.create({ nom: 'Moussavou', prenom: 'Éric', poste: 'Agent d\'entretien', salaireBase: 150000, dateEmbauche: '2022-03-01', etablissementId: etablissement.id });
   await Salaire.create({ personnelId: personnelObame.id, montant: 450000, periode: 'Août 2026', statut: 'verse', dateVersement: '2026-08-30', gereParFinanceId: finance.id });
