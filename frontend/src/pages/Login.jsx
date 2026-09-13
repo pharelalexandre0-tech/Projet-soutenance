@@ -14,19 +14,16 @@ const COMPTES_DEMO = [
 ];
 const MOT_DE_PASSE_DEMO = 'password123';
 
-function PanneauMarque() {
+// L'en-tête reprend le vocabulaire déjà établi pour le bulletin/relevé
+// (petites capitales + grand titre serif + double filet) — un portail
+// d'accès traité comme une pièce officielle de l'établissement, pas
+// comme la page de garde d'un produit SaaS.
+function EnTeteLettre() {
   return (
-    <div className="panneau-marque">
-      <MotifPoints className="motif-connexion" />
-      <div className="panneau-marque-corps">
-        <span className="marque-pastille grande"><img src={logoIcon} alt="" /></span>
-        <h1>L'écosystème<br />académique,<br />réuni au même endroit.</h1>
-        <p>
-          Classes, notes, absences, frais et prédiction de risque — une seule
-          plateforme pensée pour les universités et grandes écoles gabonaises.
-        </p>
-      </div>
-      <p className="panneau-marque-signature">EduSphere</p>
+    <div className="lettre-entete">
+      <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+      <p className="lettre-eyebrow">Écosystème éducatif intelligent gabonais</p>
+      <h1 className="lettre-titre">EduSphere</h1>
     </div>
   );
 }
@@ -100,11 +97,10 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <PanneauMarque />
-        <div className="panneau-formulaire">
-          <div className="panneau-formulaire-corps">
-            <span className="eyebrow-connexion">Étape 2 sur 2</span>
-            <h2>Vérification</h2>
+        <div className="lettre-connexion">
+          <EnTeteLettre />
+          <div className="lettre-corps">
+            <span className="lettre-objet">Objet — Vérification en deux étapes</span>
             <p className="sous-titre">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
             <form className="formulaire" onSubmit={validerCode}>
               <div className="champ">
@@ -132,6 +128,7 @@ export default function Login() {
               </button>
             </form>
           </div>
+          <span className="lettre-cachet"><MotifPoints /></span>
         </div>
       </div>
     );
@@ -139,11 +136,10 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <PanneauMarque />
-      <div className="panneau-formulaire">
-        <div className="panneau-formulaire-corps">
-          <span className="eyebrow-connexion">Connexion</span>
-          <h2>Accédez à votre espace</h2>
+      <div className="lettre-connexion">
+        <EnTeteLettre />
+        <div className="lettre-corps">
+          <span className="lettre-objet">Objet — Accès à votre espace</span>
           <form className="formulaire" onSubmit={onSubmit}>
             <div className="champ">
               <label>Adresse e-mail</label>
@@ -190,6 +186,7 @@ export default function Login() {
           </div>
           <p className="comptes-demo-note">Un clic remplit les identifiants et connecte directement — mot de passe : <code>{MOT_DE_PASSE_DEMO}</code></p>
         </div>
+        <span className="lettre-cachet"><MotifPoints /></span>
       </div>
     </div>
   );

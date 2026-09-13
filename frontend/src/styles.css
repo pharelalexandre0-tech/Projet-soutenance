@@ -414,83 +414,62 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Connexion : composition à deux volets plutôt que la carte blanche
-   flottante centrée — le volet de gauche porte l'identité et le propos de
-   la plateforme (avec le nuage de points du logo comme vraie signature
-   visuelle), le droit ne contient que le formulaire, sans y répéter la
-   marque une deuxième fois. */
+/* Connexion traitée comme une pièce officielle de l'établissement — même
+   vocabulaire que le bulletin/relevé (petites capitales, grand titre
+   serif, double filet, cachet) — plutôt qu'une carte flottante sur un
+   dégradé, gabarit qu'on retrouve sur n'importe quel produit SaaS. */
 .page-connexion {
   min-height: 100vh;
-  display: flex;
-  background: var(--carte);
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px;
+  background: var(--fond);
 }
 
-.panneau-marque {
-  flex: 1 1 46%;
+.lettre-connexion {
   position: relative;
-  overflow: hidden;
-  background: var(--degrade-plateforme);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 48px;
-  color: #fff;
+  width: 100%; max-width: 440px;
+  background: var(--papier);
+  border: 1px solid var(--bordure);
+  border-radius: 4px;
+  padding: 40px 44px 34px;
+  box-shadow: var(--ombre);
 }
-.motif-connexion {
-  position: absolute; top: 48px; right: 48px;
-  width: 108px; height: auto;
-  opacity: 0.9;
-}
-.panneau-marque-corps {
-  max-width: 440px;
-  margin: auto 0;
-}
-.marque-pastille.grande {
-  width: 64px; height: 64px; padding: 9px; margin-bottom: 28px;
-}
-.panneau-marque-corps h1 {
-  font-family: var(--police-serif); font-weight: 600;
-  font-size: clamp(1.7rem, 3vw, 2.5rem); line-height: 1.15;
-  letter-spacing: -0.01em; margin: 0 0 18px;
-  text-wrap: balance;
-}
-.panneau-marque-corps p {
-  font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.72);
-  margin: 0; max-width: 38ch;
-}
-.panneau-marque-signature {
-  font-family: var(--police-mono); font-size: 0.7rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.14em; color: rgba(255,255,255,0.55);
+
+.lettre-entete { text-align: center; padding-bottom: 22px; margin-bottom: 26px; border-bottom: 2px solid var(--primaire); }
+.lettre-entete .marque-pastille { margin: 0 auto 14px; width: 46px; height: 46px; padding: 7px; box-shadow: var(--ombre); }
+.lettre-eyebrow {
+  font-family: var(--police-mono); font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--texte-clair);
   margin: 0;
 }
+.lettre-titre {
+  font-family: var(--police-serif); font-size: 1.7rem; font-weight: 700;
+  letter-spacing: 0.01em; margin: 4px 0 0; color: var(--texte);
+}
 
-.panneau-formulaire {
-  flex: 1 1 54%;
+.lettre-objet {
+  display: block; font-family: var(--police-mono); font-size: 0.68rem;
+  font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--primaire); margin-bottom: 18px;
+}
+.lettre-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: -10px 0 20px; }
+
+.lettre-cachet {
+  position: absolute; bottom: -20px; right: 36px;
+  width: 66px; height: 66px; border-radius: 50%;
+  background: var(--carte);
+  border: 1.5px dashed var(--bordure);
   display: flex; align-items: center; justify-content: center;
-  padding: 40px 32px;
+  transform: rotate(-8deg);
+  opacity: 0.85;
 }
-.panneau-formulaire-corps { width: 100%; max-width: 360px; }
-.eyebrow-connexion {
-  display: inline-block; font-family: var(--police-mono); font-size: 0.68rem;
-  font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--primaire); margin-bottom: 10px;
-}
-.panneau-formulaire-corps h2 {
-  font-family: var(--police-serif); font-size: 1.5rem; font-weight: 600;
-  margin: 0 0 22px; letter-spacing: -0.01em;
-}
-.panneau-formulaire-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; }
+.lettre-cachet svg { width: 32px; height: auto; }
 
 @media (max-width: 860px) {
-  .page-connexion { flex-direction: column; }
-  .panneau-marque { flex: none; padding: 32px 28px; }
-  .panneau-marque-corps { margin: 0; }
-  .panneau-marque-corps h1 { font-size: 1.5rem; }
-  .panneau-marque-corps p { display: none; }
-  .motif-connexion { width: 80px; top: 28px; right: 28px; }
-  .panneau-marque-signature { display: none; }
-  .marque-pastille.grande { margin-bottom: 0; }
-  .panneau-formulaire { padding: 32px 24px 48px; }
+  .page-connexion { padding: 24px 16px 48px; align-items: flex-start; }
+  .lettre-connexion { padding: 32px 24px 30px; margin-top: 12px; }
+  .lettre-cachet { width: 52px; height: 52px; right: 20px; bottom: -16px; }
+  .lettre-cachet svg { width: 24px; }
 }
 
 .separateur-demo {
