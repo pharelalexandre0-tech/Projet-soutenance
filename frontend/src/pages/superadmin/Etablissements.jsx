@@ -237,15 +237,13 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
           <button type="button" className={donnees.etablissement.statut === 'actif' ? 'danger secondaire' : 'secondaire'} onClick={basculerStatutEcole}>
             {donnees.etablissement.statut === 'actif' ? 'Verrouiller cette école' : 'Réactiver cette école'}
           </button>
-          {donnees.peutEtreSupprime && (
-            <button type="button" className="danger secondaire" onClick={() => setConfirmationSuppression(true)}>Supprimer cette école</button>
-          )}
+          <button type="button" className="danger secondaire" onClick={() => setConfirmationSuppression(true)}>Supprimer cette école</button>
         </div>
       </div>
 
       {confirmationSuppression && (
         <div className="message-erreur" style={{ marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span>Supprimer définitivement "{donnees.etablissement.nom}" et son compte Académie ? Cette action est irréversible.</span>
+          <span>Supprimer définitivement "{donnees.etablissement.nom}" — classes, élèves, notes, absences, frais et tous ses comptes compris ? Cette action est irréversible.</span>
           <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
             <button type="button" className="secondaire" onClick={() => setConfirmationSuppression(false)} disabled={suppressionEnCours}>Annuler</button>
             <button type="button" className="danger secondaire" onClick={confirmerSuppression} disabled={suppressionEnCours}>

@@ -353,7 +353,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 button.primaire {
-  background: var(--primaire);
+  background: linear-gradient(135deg, var(--primaire) 0%, var(--primaire-fonce) 100%);
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -364,9 +364,9 @@ button.primaire {
   align-self: flex-start;
   margin-top: 2px;
   box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--primaire) 60%, transparent);
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, filter 0.15s ease;
 }
-button.primaire:hover { background: var(--primaire-fonce); transform: translateY(-1px); }
+button.primaire:hover { filter: brightness(1.08); transform: translateY(-1px); }
 button.primaire:active { transform: translateY(0) scale(0.96); }
 button.primaire:disabled { background: var(--bordure); color: var(--texte-clair); box-shadow: none; cursor: not-allowed; transform: none; }
 
@@ -422,7 +422,7 @@ button.danger:hover { background: var(--erreur-fond); }
   min-height: 100vh;
   display: flex; align-items: center; justify-content: center;
   padding: 40px 20px;
-  background: var(--fond);
+  background: var(--degrade-plateforme);
 }
 
 .lettre-connexion {
@@ -432,7 +432,7 @@ button.danger:hover { background: var(--erreur-fond); }
   border: 1px solid var(--bordure);
   border-radius: 4px;
   padding: 40px 44px 34px;
-  box-shadow: var(--ombre);
+  box-shadow: 0 30px 70px rgba(6, 20, 34, 0.4);
 }
 
 .lettre-entete { text-align: center; padding-bottom: 22px; margin-bottom: 26px; border-bottom: 2px solid var(--primaire); }

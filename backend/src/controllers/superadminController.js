@@ -1,5 +1,11 @@
 const bcrypt = require('bcryptjs');
-const { Etablissement, Utilisateur, Classe, Eleve } = require('../models');
+const { Op } = require('sequelize');
+const {
+  Etablissement, Utilisateur, Classe, Eleve, Semestre, Professeur, Personnel,
+  UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
+  Absence, Note, Bulletin, PredictionIA, MessageAnnonce, Notification,
+  FraisScolarite, Paiement, Recu, Salaire,
+} = require('../models');
 
 // Vue d'ensemble : le superadmin gère la PLATEFORME (écoles affiliées,
 // comptes, statuts), jamais le contenu pédagogique d'une école (nombre
@@ -28,16 +34,7 @@ async function obtenirEtablissement(req, res) {
     order: [['role', 'ASC'], ['nom', 'ASC']],
   });
 
-  // Suppressible uniquement si l'école n'a jamais démarré (aucune classe ni
-  // élève) — sans exposer ces effectifs au superadmin, qui n'a pas à voir
-  // le contenu pédagogique d'une école, juste s'il peut la retirer.
-  const [nbClasses, nbEleves] = await Promise.all([
-    Classe.count({ where: { etablissementId: etablissement.id } }),
-    Eleve.count({ where: { etablissementId: etablissement.id } }),
-  ]);
-  const peutEtreSupprime = nbClasses === 0 && nbEleves === 0;
-
-  return res.json({ etablissement, comptes, peutEtreSupprime });
+  return res.json({ etablissement, comptes });
 }
 
 // "Insertion d'une école dans le système" : le superadmin crée la fiche
@@ -94,24 +91,84 @@ async function modifierEtablissement(req, res) {
   return res.json({ etablissement });
 }
 
-// Supprimer une école du système — réservé aux écoles insérées par erreur
-// ou jamais démarrées (aucune classe/élève encore créée). Une école déjà
-// active doit être suspendue, pas supprimée, pour ne jamais perdre de
-// données réelles.
+// Supprimer une école du système, à la discrétion du superadmin — y compris
+// une école déjà en activité, avec toutes ses données. Aucune confirmation
+// de sécurité côté serveur au-delà de l'existence de l'école : c'est
+// l'écran de confirmation (frontend) qui protège du clic accidentel.
+// Tout ce qui appartient à l'établissement est nettoyé, des feuilles
+// (notes, absences, paiements…) vers les racines (classes, élèves,
+// comptes), pour ne jamais laisser de lignes orphelines en base.
 async function supprimerEtablissement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id);
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
+  const etablissementId = etablissement.id;
 
-  const [nbClasses, nbEleves] = await Promise.all([
-    Classe.count({ where: { etablissementId: etablissement.id } }),
-    Eleve.count({ where: { etablissementId: etablissement.id } }),
+  const [classes, semestres, eleves, professeurs, personnel, utilisateurs] = await Promise.all([
+    Classe.findAll({ where: { etablissementId }, attributes: ['id'] }),
+    Semestre.findAll({ where: { etablissementId }, attributes: ['id'] }),
+    Eleve.findAll({ where: { etablissementId }, attributes: ['id'] }),
+    Professeur.findAll({ where: { etablissementId }, attributes: ['id'] }),
+    Personnel.findAll({ where: { etablissementId }, attributes: ['id'] }),
+    Utilisateur.findAll({ where: { etablissementId }, attributes: ['id'] }),
   ]);
-  if (nbClasses > 0 || nbEleves > 0) {
-    return res.status(400).json({ erreur: 'cette école a déjà des classes ou des élèves enregistrés — suspendez-la plutôt que de la supprimer' });
-  }
+  const classeIds = classes.map((c) => c.id);
+  const semestreIds = semestres.map((s) => s.id);
+  const eleveIds = eleves.map((e) => e.id);
+  const professeurIds = professeurs.map((p) => p.id);
+  const personnelIds = personnel.map((p) => p.id);
+  const utilisateurIds = utilisateurs.map((u) => u.id);
 
-  await Utilisateur.destroy({ where: { etablissementId: etablissement.id } });
+  const uniteEnseignements = semestreIds.length
+    ? await UniteEnseignement.findAll({ where: { semestreId: { [Op.in]: semestreIds } }, attributes: ['id'] })
+    : [];
+  const uniteEnseignementIds = uniteEnseignements.map((u) => u.id);
+
+  const fraisScolarite = (eleveIds.length || semestreIds.length)
+    ? await FraisScolarite.findAll({
+        where: { [Op.or]: [{ eleveId: { [Op.in]: eleveIds } }, { semestreId: { [Op.in]: semestreIds } }] },
+        attributes: ['id'],
+      })
+    : [];
+  const fraisIds = fraisScolarite.map((f) => f.id);
+
+  const paiements = fraisIds.length
+    ? await Paiement.findAll({ where: { fraisId: { [Op.in]: fraisIds } }, attributes: ['id'] })
+    : [];
+  const paiementIds = paiements.map((p) => p.id);
+
+  // Des feuilles vers les racines.
+  if (paiementIds.length) await Recu.destroy({ where: { paiementId: { [Op.in]: paiementIds } } });
+  if (fraisIds.length) await Paiement.destroy({ where: { fraisId: { [Op.in]: fraisIds } } });
+  if (fraisIds.length) await FraisScolarite.destroy({ where: { id: { [Op.in]: fraisIds } } });
+  if (personnelIds.length) await Salaire.destroy({ where: { personnelId: { [Op.in]: personnelIds } } });
+  if (eleveIds.length) {
+    await Bulletin.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
+    await PredictionIA.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
+    await Note.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
+    await Absence.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
+  }
+  if (classeIds.length) {
+    await CahierDeTextes.destroy({ where: { classeId: { [Op.in]: classeIds } } });
+    await MessageAnnonce.destroy({ where: { classeId: { [Op.in]: classeIds } } });
+    await EmploiDuTemps.destroy({ where: { classeId: { [Op.in]: classeIds } } });
+  }
+  if (professeurIds.length || classeIds.length) {
+    await CompteEphemere.destroy({
+      where: { [Op.or]: [{ professeurId: { [Op.in]: professeurIds } }, { classeId: { [Op.in]: classeIds } }] },
+    });
+  }
+  if (uniteEnseignementIds.length) await Matiere.destroy({ where: { uniteEnseignementId: { [Op.in]: uniteEnseignementIds } } });
+  if (semestreIds.length) await UniteEnseignement.destroy({ where: { semestreId: { [Op.in]: semestreIds } } });
+  if (utilisateurIds.length) await Notification.destroy({ where: { utilisateurId: { [Op.in]: utilisateurIds } } });
+
+  await Eleve.destroy({ where: { etablissementId } });
+  await Classe.destroy({ where: { etablissementId } });
+  await Semestre.destroy({ where: { etablissementId } });
+  await Professeur.destroy({ where: { etablissementId } });
+  await Personnel.destroy({ where: { etablissementId } });
+  await Utilisateur.destroy({ where: { etablissementId } });
   await etablissement.destroy();
+
   return res.json({ message: 'établissement supprimé' });
 }
 
