@@ -450,13 +450,16 @@ button.danger:hover { background: var(--erreur-fond); }
 .carte-bienvenue-blob {
   position: relative; overflow: hidden;
   margin-left: auto; width: 64%; min-height: 460px;
-  border-radius: 26px; background: var(--edu-marine);
+  border-radius: 26px; background: var(--degrade-plein-ecran);
   box-shadow: 0 30px 70px rgba(6, 20, 34, 0.35);
 }
-.blob { position: absolute; border-radius: 50%; }
-.blob-1 { width: 300px; height: 300px; top: -70px; right: -70px; background: var(--edu-bleu); opacity: 0.9; }
-.blob-2 { width: 240px; height: 240px; bottom: -90px; left: -60px; background: var(--primaire-fonce); opacity: 0.85; }
-.blob-3 { width: 150px; height: 150px; bottom: 60px; right: 30px; background: var(--edu-marine); opacity: 0.5; }
+/* Des formes floues plutôt que des cercles nets : la texture se fond dans
+   le dégradé au lieu de le recouvrir d'un aplat — le dégradé reste ce qui
+   se voit d'abord. */
+.blob { position: absolute; border-radius: 50%; filter: blur(30px); }
+.blob-1 { width: 320px; height: 320px; top: -110px; right: -100px; background: var(--edu-bleu); opacity: 0.55; }
+.blob-2 { width: 260px; height: 260px; bottom: -120px; left: -80px; background: #08152C; opacity: 0.5; }
+.blob-3 { width: 190px; height: 190px; bottom: 40px; right: -40px; background: var(--primaire-fonce); opacity: 0.4; }
 
 .bienvenue-contenu {
   position: relative; z-index: 1; height: 100%;
@@ -466,6 +469,7 @@ button.danger:hover { background: var(--erreur-fond); }
 .bienvenue-contenu .marque-pastille {
   width: 44px; height: 44px; padding: 8px; margin-bottom: 14px;
   background: #FFFFFF; border-radius: 50%;
+  box-shadow: 0 0 0 14px rgba(255,255,255,0.06), 0 8px 20px rgba(0,0,0,0.25);
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.08s both;
 }
 .bienvenue-contenu .marque-nom {
@@ -484,7 +488,7 @@ button.danger:hover { background: var(--erreur-fond); }
   position: absolute; left: 0; top: 50%; transform: translateY(-50%);
   width: 44%; min-height: 420px;
   background: #FFFFFF; border-radius: 22px;
-  box-shadow: 0 24px 55px rgba(6, 20, 34, 0.22);
+  box-shadow: 0 8px 20px rgba(6, 20, 34, 0.1), 0 30px 60px rgba(6, 20, 34, 0.28);
   display: flex; flex-direction: column; justify-content: center;
   padding: 44px 40px;
   /* Animation dédiée (pas entree-connexion) : une animation qui anime
