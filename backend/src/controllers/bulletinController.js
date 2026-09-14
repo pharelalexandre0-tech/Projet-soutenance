@@ -1,6 +1,7 @@
+const path = require('path');
 const { Bulletin, Eleve, Classe, Semestre, Utilisateur } = require('../models');
 const { calculerBulletin } = require('../services/moyenneService');
-const { genererBulletinPDF } = require('../services/pdfService');
+const { genererBulletinPDF, DOSSIER_STOCKAGE } = require('../services/pdfService');
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 
@@ -48,7 +49,7 @@ async function obtenirBulletin(req, res) {
     return res.json({ bulletin, origine: 'existant', creditsTotal, admis, sessionGlobale, detailParUE, etablissement });
   }
 
-  const { cheminRelatif } = await genererBulletinPDF({
+  const { cheminAbsolu, cheminRelatif } = await genererBulletinPDF({
     eleve,
     semestre,
     moyenneGenerale,
@@ -73,7 +74,8 @@ async function obtenirBulletin(req, res) {
     await envoyerEmail(
       eleve.compteEtudiant.email,
       `Bulletin de ${eleve.prenom} ${eleve.nom} disponible`,
-      `Le bulletin du semestre ${semestre.libelle} est disponible : ${cheminRelatif}`
+      `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
+      [{ cheminAbsolu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
     );
   }
 
@@ -102,7 +104,8 @@ async function envoyerBulletinParEmail(req, res) {
   await envoyerEmail(
     eleve.compteEtudiant.email,
     `Bulletin de ${eleve.prenom} ${eleve.nom} — ${semestre.libelle}`,
-    `Le bulletin du semestre ${semestre.libelle} est disponible : ${bulletin.fichierPDF}`
+    `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
+    [{ cheminAbsolu: path.join(DOSSIER_STOCKAGE, path.basename(bulletin.fichierPDF)), nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
   );
 
   return res.json({ message: 'bulletin envoyé par e-mail', destinataire: eleve.compteEtudiant.email });
