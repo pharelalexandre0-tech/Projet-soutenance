@@ -14,6 +14,12 @@
   --edu-vert: #1F8A54;
   --edu-or: #F0AD2E;
   --degrade-plateforme: linear-gradient(160deg, var(--edu-marine) 0%, var(--edu-bleu) 100%);
+  /* Variante pour les fonds plein écran (connexion, ouverture de session) :
+     le dégradé normal, étalé sur un écran entier plutôt que sur une bande
+     étroite (sidebar, tuile, barre d'accent), vire au bleu vif sur toute sa
+     partie basse — resserré vers le bleu marine pour rester sombre du haut
+     en bas sans devenir criard. */
+  --degrade-plein-ecran: linear-gradient(160deg, var(--edu-marine) 0%, var(--primaire-fonce) 100%);
 
   --primaire: var(--edu-bleu);
   --primaire-fonce: #164A85;
@@ -424,10 +430,10 @@ button.danger:hover { background: var(--erreur-fond); }
    serif, double filet, cachet) — plutôt qu'une carte flottante sur un
    dégradé, gabarit qu'on retrouve sur n'importe quel produit SaaS. */
 .page-connexion {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
   padding: 40px 20px;
-  background: var(--degrade-plateforme);
+  background: var(--degrade-plein-ecran);
 }
 
 .lettre-connexion {
@@ -461,8 +467,8 @@ button.danger:hover { background: var(--erreur-fond); }
 .lettre-corps .formulaire { gap: 20px; }
 
 @media (max-width: 860px) {
-  .page-connexion { padding: 24px 16px 48px; align-items: flex-start; }
-  .lettre-connexion { padding: 40px 28px 34px; margin-top: 12px; }
+  .page-connexion { padding: 24px 16px; }
+  .lettre-connexion { padding: 40px 28px 34px; }
   .lettre-titre { font-size: 1.8rem; }
 }
 
@@ -853,7 +859,7 @@ button.danger:hover { background: var(--erreur-fond); }
 
 .transition-ouverture {
   position: fixed; inset: 0; z-index: 100;
-  background: var(--degrade-plateforme);
+  background: var(--degrade-plein-ecran);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px;
   animation: fondu-sortie 0.4s ease 1.1s both;
