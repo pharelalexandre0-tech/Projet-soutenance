@@ -547,25 +547,25 @@ button.danger:hover { background: var(--erreur-fond); }
    qui ne se répondent pas — et le formulaire termine tout juste après
    que la carte bleue a fini la sienne, pas longtemps après. */
 .acces-eyebrow {
-  font-family: var(--police-mono); font-size: 0.68rem; font-weight: 700;
+  font-family: var(--police-mono); font-size: 0.72rem; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--edu-bleu);
-  margin: 0 0 8px; text-align: center;
+  margin: 0 0 10px; text-align: center;
   animation: entree-connexion 0.45s cubic-bezier(.22,1,.36,1) 0.28s both;
 }
 .carte-formulaire-acces h2 {
-  font-size: 1.6rem; font-weight: 700; margin: 0 0 30px; color: var(--texte); text-align: center;
+  font-size: 2rem; font-weight: 700; margin: 0 0 38px; color: var(--texte); text-align: center;
   animation: entree-connexion 0.45s cubic-bezier(.22,1,.36,1) 0.28s both;
 }
 
 .connexion-aide {
-  color: var(--texte-clair); font-size: 0.88rem; margin: -16px 0 24px; line-height: 1.5; text-align: center;
+  color: var(--texte-clair); font-size: 0.92rem; margin: -20px 0 28px; line-height: 1.6; text-align: center;
   animation: entree-connexion 0.45s cubic-bezier(.22,1,.36,1) 0.28s both;
 }
 
-.formulaire-connexion { display: flex; flex-direction: column; gap: 22px; }
+.formulaire-connexion { display: flex; flex-direction: column; gap: 26px; }
 .formulaire-connexion > * { animation: entree-connexion 0.45s cubic-bezier(.22,1,.36,1) 0.38s both; }
 .formulaire-connexion .champ label {
-  color: var(--texte-clair); letter-spacing: 0.09em; font-size: 0.63rem;
+  color: var(--texte-clair); letter-spacing: 0.09em; font-size: 0.66rem;
 }
 /* Icône, séparateur, champ flush à l'intérieur d'un même contenant bordé —
    un champ vide sans rien dedans se lit comme un simple espacement plutôt
@@ -578,13 +578,13 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 .formulaire-connexion .champ-icone:hover { border-color: #C7CCC5; }
 .formulaire-connexion .champ-icone svg {
-  flex: none; width: 17px; height: 17px;
+  flex: none; width: 18px; height: 18px;
   color: var(--texte-clair); transition: color 0.15s ease;
 }
-.champ-separateur { flex: none; width: 1px; height: 22px; background: var(--bordure); }
+.champ-separateur { flex: none; width: 1px; height: 24px; background: var(--bordure); }
 .formulaire-connexion .champ-icone input {
   flex: 1; min-width: 0; background: transparent; border: none;
-  padding: 13px 0; color: var(--texte); font-size: 0.93rem;
+  padding: 16px 0; color: var(--texte); font-size: 0.98rem;
 }
 .formulaire-connexion .champ-icone input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ-icone input:focus { outline: none; }
@@ -601,11 +601,11 @@ button.danger:hover { background: var(--erreur-fond); }
 .bouton-connexion {
   display: flex; align-items: center; justify-content: center; gap: 9px;
   background: var(--edu-bleu); color: #FFFFFF; border: none;
-  font-weight: 700; font-size: 0.92rem; letter-spacing: 0.01em; padding: 14px 0; border-radius: 10px;
-  cursor: pointer; margin-top: 8px;
+  font-weight: 700; font-size: 0.98rem; letter-spacing: 0.01em; padding: 17px 0; border-radius: 10px;
+  cursor: pointer; margin-top: 10px;
   transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
-.bouton-connexion-icone { width: 16px; height: 16px; transform: scaleX(-1); flex: none; }
+.bouton-connexion-icone { width: 17px; height: 17px; transform: scaleX(-1); flex: none; }
 .bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); box-shadow: 0 8px 18px rgba(29,95,168,0.32); transform: translateY(-1px); }
 .bouton-connexion:active:not(:disabled) { transform: scale(0.98) translateY(0); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -616,6 +616,22 @@ button.danger:hover { background: var(--erreur-fond); }
   transition: color 0.15s ease;
 }
 .connexion-retour:hover { color: var(--texte); }
+
+/* Pendant clair de .bienvenue-signature côté carte bleue : referme le bas
+   de la carte blanche avec la même idée (filet + légende), au lieu de
+   laisser le vide sous le bouton une fois le formulaire centré. */
+.formulaire-signature {
+  display: flex; align-items: center; gap: 14px; margin-top: 44px;
+  animation: entree-connexion 0.45s cubic-bezier(.22,1,.36,1) 0.5s both;
+}
+.formulaire-signature::before, .formulaire-signature::after {
+  content: ""; flex: 1; height: 1px; background: var(--bordure);
+}
+.formulaire-signature span {
+  font-family: var(--police-mono); font-size: 0.66rem; font-weight: 600;
+  letter-spacing: 0.06em; color: var(--texte-clair);
+  white-space: nowrap;
+}
 
 @keyframes entree-connexion {
   from { opacity: 0; transform: translateY(20px); }

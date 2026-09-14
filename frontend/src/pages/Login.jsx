@@ -174,6 +174,7 @@ export default function Login() {
               {enCours ? 'Connexion…' : 'Se connecter'}
             </button>
           </form>
+          <div className="formulaire-signature"><span>Identifiants fournis par votre établissement</span></div>
         </div>
       </div>
     </div>
