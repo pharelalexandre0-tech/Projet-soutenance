@@ -2,26 +2,43 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock } from '../components/icons';
+import { IconMail, IconLock, IconLogout } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
-// Huitième passe : carte à deux panneaux avec bord incurvé (référence
-// donnée par l'utilisateur), sur le dégradé bleu déjà en place. Pas de
-// bascule "créer un compte" — EduSphere n'a pas d'inscription libre, les
-// comptes sont créés par l'Académie ou le Superadmin — donc le panneau de
-// bienvenue reste statique, purement identitaire.
-function PanneauBienvenue() {
+// Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
+// coupée en deux (référence donnée par l'utilisateur) — la carte blanche du
+// formulaire est posée par-dessus la carte bleue, avec des formes
+// organiques en fond au lieu d'un simple bord incurvé. Toujours pas de
+// bascule "créer un compte", et pas de "se souvenir de moi" / "mot de
+// passe oublié" — aucun des deux n'existe côté backend, une case à cocher
+// qui ne fait rien n'a pas sa place ici.
+function CarteBienvenue() {
   return (
-    <div className="panneau-bienvenue">
-      <span className="motif-bienvenue" aria-hidden="true">
-        <i /><i /><i /><i /><i /><i />
-      </span>
-      <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-      <h1 className="marque-nom">EduSphere</h1>
-      <p className="bienvenue-texte">
-        Classes, notes, absences, finances et bulletins — l'espace de
-        gestion académique de votre établissement.
-      </p>
+    <div className="carte-bienvenue-blob">
+      <span className="blob blob-1" aria-hidden="true" />
+      <span className="blob blob-2" aria-hidden="true" />
+      <span className="blob blob-3" aria-hidden="true" />
+      <div className="bienvenue-contenu">
+        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+        <h1 className="marque-nom">EduSphere</h1>
+        <p className="bienvenue-texte">
+          Classes, notes, absences, finances et bulletins — l'espace de
+          gestion académique de votre établissement.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Champ({ label, icone: Icone, children }) {
+  return (
+    <div className="champ">
+      <label>{label}</label>
+      <div className="champ-icone">
+        <Icone aria-hidden="true" />
+        <span className="champ-separateur" aria-hidden="true" />
+        {children}
+      </div>
     </div>
   );
 }
@@ -86,29 +103,25 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <div className="carte-acces">
-          <PanneauBienvenue />
-          <div className="panneau-formulaire-acces">
+        <div className="composition-acces">
+          <CarteBienvenue />
+          <div className="carte-formulaire-acces">
             <p className="acces-eyebrow">Étape 2</p>
             <h2>Vérification</h2>
             <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
             <form className="formulaire-connexion" onSubmit={validerCode}>
-              <div className="champ">
-                <label>Code de vérification</label>
-                <div className="champ-icone">
-                  <IconLock aria-hidden="true" />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="000000"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                    autoFocus
-                    required
-                  />
-                </div>
-              </div>
+              <Champ label="Code de vérification" icone={IconLock}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                  required
+                />
+              </Champ>
               {erreur && <div className="connexion-erreur">{erreur}</div>}
               <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
                 {enCours ? 'Vérification…' : 'Valider'}
@@ -129,40 +142,33 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <div className="carte-acces">
-        <PanneauBienvenue />
-        <div className="panneau-formulaire-acces">
+      <div className="composition-acces">
+        <CarteBienvenue />
+        <div className="carte-formulaire-acces">
           <p className="acces-eyebrow">Bon retour</p>
           <h2>Se connecter</h2>
           <form className="formulaire-connexion" onSubmit={onSubmit}>
-            <div className="champ">
-              <label>Adresse e-mail</label>
-              <div className="champ-icone">
-                <IconMail aria-hidden="true" />
-                <input
-                  type="email"
-                  placeholder="vous@etablissement.ga"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div className="champ">
-              <label>Mot de passe</label>
-              <div className="champ-icone">
-                <IconLock aria-hidden="true" />
-                <input
-                  type="password"
-                  placeholder="Votre mot de passe"
-                  value={motDePasse}
-                  onChange={(e) => setMotDePasse(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
+            <Champ label="Adresse e-mail" icone={IconMail}>
+              <input
+                type="email"
+                placeholder="vous@etablissement.ga"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </Champ>
+            <Champ label="Mot de passe" icone={IconLock}>
+              <input
+                type="password"
+                placeholder="Votre mot de passe"
+                value={motDePasse}
+                onChange={(e) => setMotDePasse(e.target.value)}
+                required
+              />
+            </Champ>
             {erreur && <div className="connexion-erreur">{erreur}</div>}
             <button className="bouton-connexion" type="submit" disabled={enCours}>
+              <IconLogout className="bouton-connexion-icone" aria-hidden="true" />
               {enCours ? 'Connexion…' : 'Se connecter'}
             </button>
           </form>

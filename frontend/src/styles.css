@@ -424,113 +424,108 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Huitième passe de la connexion : carte à deux panneaux avec bord
-   incurvé, sur le dégradé bleu déjà en place — référence donnée
-   directement par l'utilisateur. Pas de bascule "créer un compte" :
-   EduSphere n'a pas d'inscription libre, donc le panneau de bienvenue est
-   statique plutôt qu'un des deux états d'un composant qui glisse. */
+/* Neuvième passe de la connexion : deux cartes qui se chevauchent (la
+   blanche du formulaire posée sur la bleue) avec des formes organiques en
+   fond, référence donnée directement par l'utilisateur — plutôt qu'une
+   seule carte coupée en deux. Pas de bascule "créer un compte" (pas
+   d'inscription libre) ni de "se souvenir de moi" / "mot de passe oublié"
+   (aucun des deux n'existe côté backend). */
 .page-connexion {
+  position: relative;
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
-  padding: 40px 20px;
-  background: var(--degrade-plein-ecran);
-}
-
-.carte-acces {
-  display: flex; width: 100%; max-width: 760px; min-height: 480px;
-  background: #FFFFFF; border-radius: 20px; overflow: hidden;
-  box-shadow: 0 30px 70px rgba(6, 20, 34, 0.4);
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
-}
-
-.panneau-bienvenue {
-  position: relative;
-  flex: 0 0 40%;
-  background: var(--degrade-plein-ecran);
-  color: #FFFFFF;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  text-align: center;
-  padding: 44px 34px;
-  border-radius: 0 42% 42% 0;
+  padding: 60px 20px;
+  background: var(--fond);
   overflow: hidden;
 }
-/* Semis de petits carrés, le même motif que le nuage du logo — une texture
-   ancrée dans la marque elle-même, pas un graphique décoratif générique. */
-.motif-bienvenue { position: absolute; top: 28px; right: 30px; width: 54px; height: 40px; }
-.motif-bienvenue i {
-  position: absolute; display: block; border-radius: 2px; background: rgba(255,255,255,0.16);
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
+.page-connexion::before, .page-connexion::after {
+  content: ""; position: absolute; border-radius: 50%;
+  background: var(--degrade-plein-ecran); opacity: 0.1; pointer-events: none;
 }
-.motif-bienvenue i:nth-child(1) { width: 12px; height: 12px; top: 0; left: 18px; animation-delay: 0.3s; }
-.motif-bienvenue i:nth-child(2) { width: 8px; height: 8px; top: 4px; left: 40px; animation-delay: 0.36s; }
-.motif-bienvenue i:nth-child(3) { width: 14px; height: 14px; top: 16px; left: 0; animation-delay: 0.33s; }
-.motif-bienvenue i:nth-child(4) { width: 9px; height: 9px; top: 22px; left: 32px; background: rgba(255,255,255,0.1); animation-delay: 0.42s; }
-.motif-bienvenue i:nth-child(5) { width: 7px; height: 7px; top: 0; left: 0; background: rgba(255,255,255,0.1); animation-delay: 0.39s; }
-.motif-bienvenue i:nth-child(6) { width: 10px; height: 10px; top: 28px; left: 14px; background: rgba(255,255,255,0.08); animation-delay: 0.45s; }
+.page-connexion::before { width: 380px; height: 380px; top: -160px; left: -160px; }
+.page-connexion::after { width: 320px; height: 320px; bottom: -140px; right: -140px; }
 
-.panneau-bienvenue .marque-pastille {
+.composition-acces { position: relative; width: 100%; max-width: 860px; }
+
+.carte-bienvenue-blob {
+  position: relative; overflow: hidden;
+  margin-left: auto; width: 64%; min-height: 460px;
+  border-radius: 26px; background: var(--edu-marine);
+  box-shadow: 0 30px 70px rgba(6, 20, 34, 0.35);
+}
+.blob { position: absolute; border-radius: 50%; }
+.blob-1 { width: 300px; height: 300px; top: -70px; right: -70px; background: var(--edu-bleu); opacity: 0.9; }
+.blob-2 { width: 240px; height: 240px; bottom: -90px; left: -60px; background: var(--primaire-fonce); opacity: 0.85; }
+.blob-3 { width: 150px; height: 150px; bottom: 60px; right: 30px; background: var(--edu-marine); opacity: 0.5; }
+
+.bienvenue-contenu {
+  position: relative; z-index: 1; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; color: #FFFFFF; padding: 44px 34px;
+}
+.bienvenue-contenu .marque-pastille {
   width: 44px; height: 44px; padding: 8px; margin-bottom: 14px;
   background: #FFFFFF; border-radius: 50%;
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.08s both;
 }
-.panneau-bienvenue .marque-nom {
+.bienvenue-contenu .marque-nom {
   font-family: var(--police-marque); font-size: 1.5rem; font-weight: 800;
   letter-spacing: -0.02em; color: #FFFFFF; margin: 0 0 14px;
   display: inline-flex; align-items: baseline; gap: 6px;
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.14s both;
 }
-.panneau-bienvenue .marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
+.bienvenue-contenu .marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
 .bienvenue-texte {
   font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin: 0;
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
 }
 
-.panneau-formulaire-acces {
-  flex: 1; display: flex; flex-direction: column; justify-content: center;
-  padding: 44px 48px;
+.carte-formulaire-acces {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 44%; min-height: 420px;
+  background: #FFFFFF; border-radius: 22px;
+  box-shadow: 0 24px 55px rgba(6, 20, 34, 0.22);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 44px 40px;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
 }
 .acces-eyebrow {
   font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--edu-bleu);
   margin: 0 0 6px; text-align: center;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.1s both;
 }
-.panneau-formulaire-acces h2 {
-  font-size: 1.3rem; font-weight: 700; margin: 0 0 22px; color: var(--texte); text-align: center;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.16s both;
-}
+.carte-formulaire-acces h2 { font-size: 1.3rem; font-weight: 700; margin: 0 0 22px; color: var(--texte); text-align: center; }
 
-.connexion-aide {
-  color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
-}
+.connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center; }
 
 .formulaire-connexion { display: flex; flex-direction: column; gap: 16px; }
-.formulaire-connexion > * { animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both; }
-.formulaire-connexion > *:nth-child(1) { animation-delay: 0.22s; }
-.formulaire-connexion > *:nth-child(2) { animation-delay: 0.28s; }
-.formulaire-connexion > *:nth-child(3) { animation-delay: 0.34s; }
 .formulaire-connexion .champ label {
   color: var(--texte-clair); letter-spacing: 0.08em;
 }
-/* Icône + placeholder à l'intérieur : un champ vide sans rien dedans se lit
-   comme un simple espacement plutôt qu'un champ de saisie. */
-.formulaire-connexion .champ-icone { position: relative; display: flex; align-items: center; }
-.formulaire-connexion .champ-icone svg {
-  position: absolute; left: 13px; width: 17px; height: 17px;
-  color: var(--texte-clair); pointer-events: none;
-  transition: color 0.15s ease;
-}
-.formulaire-connexion .champ-icone:focus-within svg { color: var(--edu-bleu); }
-.formulaire-connexion .champ input {
-  width: 100%; background: var(--gris-fond); border: 1px solid var(--bordure);
-  padding-left: 40px; color: var(--texte); font-size: 0.92rem;
+/* Icône, séparateur, champ flush à l'intérieur d'un même contenant bordé —
+   un champ vide sans rien dedans se lit comme un simple espacement plutôt
+   qu'un champ de saisie. */
+.formulaire-connexion .champ-icone {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--gris-fond); border: 1px solid var(--bordure); border-left: 3px solid var(--edu-bleu);
+  border-radius: 10px; padding: 0 14px;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
-.formulaire-connexion .champ input::placeholder { color: var(--texte-clair); }
-.formulaire-connexion .champ input:focus {
-  outline: none; background: #FFFFFF; box-shadow: 0 0 0 3px var(--primaire-clair); border-color: var(--edu-bleu);
+.formulaire-connexion .champ-icone svg {
+  flex: none; width: 17px; height: 17px;
+  color: var(--texte-clair); transition: color 0.15s ease;
 }
+.champ-separateur { flex: none; width: 1px; height: 20px; background: var(--bordure); }
+.formulaire-connexion .champ-icone input {
+  flex: 1; min-width: 0; background: transparent; border: none;
+  padding: 11px 0; color: var(--texte); font-size: 0.92rem;
+}
+.formulaire-connexion .champ-icone input::placeholder { color: var(--texte-clair); }
+.formulaire-connexion .champ-icone input:focus { outline: none; }
+.formulaire-connexion .champ-icone:focus-within {
+  border-color: var(--edu-bleu); background: #FFFFFF; box-shadow: 0 0 0 3px var(--primaire-clair);
+}
+.formulaire-connexion .champ-icone:focus-within svg { color: var(--edu-bleu); }
 
 .connexion-erreur {
   font-size: 0.82rem; color: var(--erreur); background: var(--erreur-fond);
@@ -538,11 +533,13 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 
 .bouton-connexion {
+  display: flex; align-items: center; justify-content: center; gap: 9px;
   background: var(--edu-bleu); color: #FFFFFF; border: none;
-  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 6px;
+  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 8px;
   cursor: pointer; margin-top: 4px;
   transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
+.bouton-connexion-icone { width: 16px; height: 16px; transform: scaleX(-1); flex: none; }
 .bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); box-shadow: 0 6px 16px rgba(29,95,168,0.3); }
 .bouton-connexion:active:not(:disabled) { transform: scale(0.98); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -559,22 +556,21 @@ button.danger:hover { background: var(--erreur-fond); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 640px) {
-  .page-connexion { padding: 0; }
-  .carte-acces { flex-direction: column; max-width: none; min-height: 100dvh; border-radius: 0; box-shadow: none; }
-  .panneau-bienvenue { flex: 0 0 auto; border-radius: 0 0 32px 32px; padding: 36px 28px; }
-  .panneau-formulaire-acces { padding: 36px 28px; justify-content: flex-start; }
+@media (max-width: 760px) {
+  .page-connexion { padding: 0; align-items: flex-start; }
+  .page-connexion::before, .page-connexion::after { display: none; }
+  .composition-acces { max-width: none; }
+  .carte-bienvenue-blob { width: 100%; margin-left: 0; min-height: 240px; border-radius: 0 0 28px 28px; }
+  .carte-formulaire-acces {
+    position: static; transform: none; width: 100%; min-height: auto;
+    border-radius: 0; box-shadow: none; padding: 36px 26px 44px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .carte-acces,
-  .motif-bienvenue i,
-  .panneau-bienvenue .marque-pastille,
-  .panneau-bienvenue .marque-nom,
-  .bienvenue-texte,
-  .acces-eyebrow,
-  .panneau-formulaire-acces h2,
-  .connexion-aide,
-  .formulaire-connexion > * { animation: none; }
+  .carte-formulaire-acces,
+  .bienvenue-contenu .marque-pastille,
+  .bienvenue-contenu .marque-nom,
+  .bienvenue-texte { animation: none; }
 }
 
 /* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu
