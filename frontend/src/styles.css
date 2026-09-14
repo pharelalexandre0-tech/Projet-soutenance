@@ -424,43 +424,94 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Onzième passe de la connexion : retour à une seule carte — plus de
-   panneaux qui se chevauchent. Marque et formulaire réunis dans le même
-   bloc, posé sur le dégradé. Pas de bascule "créer un compte" (pas
-   d'inscription libre) ni de "se souvenir de moi" / "mot de passe oublié"
-   (aucun des deux n'existe côté backend). */
+/* Douzième passe de la connexion : retour aux deux cartes qui se
+   chevauchent (référence utilisateur), mais à une échelle nettement plus
+   grande que le premier essai — composition, cartes, typographie et
+   pastilles toutes agrandies, pas seulement redimensionnées au pixel
+   près. Toujours pas de bascule "créer un compte" ni de "se souvenir de
+   moi" / "mot de passe oublié" (aucun des deux n'existe côté backend). */
 .page-connexion {
+  position: relative;
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
-  padding: 40px 20px;
-  background: var(--degrade-plein-ecran);
+  padding: 60px 24px;
+  background: var(--fond);
+  overflow: hidden;
 }
-
-.carte-unique {
-  width: 100%; max-width: 400px;
-  background: #FFFFFF; border-radius: 22px;
-  box-shadow: 0 8px 20px rgba(6, 20, 34, 0.12), 0 30px 65px rgba(6, 20, 34, 0.3);
-  padding: 46px 42px;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
+.page-connexion::before, .page-connexion::after {
+  content: ""; position: absolute; border-radius: 50%;
+  background: var(--degrade-plein-ecran); opacity: 0.1; pointer-events: none;
 }
+.page-connexion::before { width: 460px; height: 460px; top: -190px; left: -190px; }
+.page-connexion::after { width: 400px; height: 400px; bottom: -170px; right: -170px; }
 
-.carte-unique-entete { text-align: center; margin-bottom: 32px; }
-.carte-unique-entete .marque-pastille {
-  width: 52px; height: 52px; padding: 9px; margin: 0 auto 16px;
+.composition-acces { position: relative; width: 100%; max-width: 1080px; }
+
+.carte-bienvenue-blob {
+  position: relative; overflow: hidden;
+  margin-left: auto; width: 62%; min-height: 580px;
+  border-radius: 30px; background: var(--degrade-plein-ecran);
+  box-shadow: 0 34px 80px rgba(6, 20, 34, 0.38);
+}
+/* Des formes floues plutôt que des cercles nets : la texture se fond dans
+   le dégradé au lieu de le recouvrir d'un aplat — le dégradé reste ce qui
+   se voit d'abord. */
+.blob { position: absolute; border-radius: 50%; filter: blur(38px); }
+.blob-1 { width: 400px; height: 400px; top: -140px; right: -130px; background: var(--edu-bleu); opacity: 0.55; }
+.blob-2 { width: 330px; height: 330px; bottom: -150px; left: -100px; background: #08152C; opacity: 0.5; }
+.blob-3 { width: 240px; height: 240px; bottom: 50px; right: -50px; background: var(--primaire-fonce); opacity: 0.4; }
+
+.bienvenue-contenu {
+  position: relative; z-index: 1; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; color: #FFFFFF; padding: 56px 46px;
+}
+.bienvenue-contenu .marque-pastille {
+  width: 60px; height: 60px; padding: 11px; margin-bottom: 20px;
   background: #FFFFFF; border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--bordure), 0 6px 16px rgba(11, 30, 61, 0.12);
+  box-shadow: 0 0 0 16px rgba(255,255,255,0.06), 0 10px 26px rgba(0,0,0,0.25);
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.08s both;
 }
-.carte-unique-entete .marque-nom {
-  font-family: var(--police-marque); font-size: 1.7rem; font-weight: 800;
-  letter-spacing: -0.02em; color: var(--texte); margin: 0;
-  display: inline-flex; align-items: baseline; gap: 6px;
+.bienvenue-contenu .marque-nom {
+  font-family: var(--police-marque); font-size: 2rem; font-weight: 800;
+  letter-spacing: -0.02em; color: #FFFFFF; margin: 0 0 18px;
+  display: inline-flex; align-items: baseline; gap: 8px;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.14s both;
 }
-.carte-unique-entete .marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--edu-bleu); align-self: center; flex: none; }
-.carte-unique-entete .bienvenue-texte { color: var(--texte-clair); font-size: 0.85rem; margin: 8px 0 0; }
+.bienvenue-contenu .marque-nom::after { content: ""; width: 8px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
+.bienvenue-texte {
+  font-size: 0.98rem; line-height: 1.7; color: rgba(255,255,255,0.75); margin: 0; max-width: 340px;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
+}
 
-.connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center; }
+.carte-formulaire-acces {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 46%; min-height: 500px;
+  background: #FFFFFF; border-radius: 26px;
+  box-shadow: 0 10px 24px rgba(6, 20, 34, 0.1), 0 34px 70px rgba(6, 20, 34, 0.28);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 54px 48px;
+  /* Animation dédiée (pas entree-connexion) : une animation qui anime
+     `transform` remplace entièrement la valeur statique de `transform`
+     sur le même élément — translateY(-50%) posé à côté se faisait donc
+     écraser par l'état final de l'animation (translateY(0)), et la carte
+     finissait collée à mi-hauteur au lieu d'être centrée dessus. */
+  animation: entree-formulaire-acces 0.5s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes entree-formulaire-acces {
+  from { opacity: 0; transform: translateY(calc(-50% + 14px)); }
+  to { opacity: 1; transform: translateY(-50%); }
+}
+.acces-eyebrow {
+  font-family: var(--police-mono); font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--edu-bleu);
+  margin: 0 0 8px; text-align: center;
+}
+.carte-formulaire-acces h2 { font-size: 1.6rem; font-weight: 700; margin: 0 0 26px; color: var(--texte); text-align: center; }
 
-.formulaire-connexion { display: flex; flex-direction: column; gap: 19px; }
+.connexion-aide { color: var(--texte-clair); font-size: 0.88rem; margin: -16px 0 24px; line-height: 1.5; text-align: center; }
+
+.formulaire-connexion { display: flex; flex-direction: column; gap: 20px; }
 .formulaire-connexion .champ label {
   color: var(--texte-clair); letter-spacing: 0.09em; font-size: 0.63rem;
 }
@@ -519,12 +570,26 @@ button.danger:hover { background: var(--erreur-fond); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 480px) {
-  .page-connexion { padding: 24px 20px; }
-  .carte-unique { padding: 36px 28px; }
+@media (max-width: 900px) {
+  .page-connexion { padding: 0; align-items: flex-start; }
+  .page-connexion::before, .page-connexion::after { display: none; }
+  .composition-acces { max-width: none; }
+  .carte-bienvenue-blob { width: 100%; margin-left: 0; min-height: 280px; border-radius: 0 0 32px 32px; }
+  .carte-formulaire-acces {
+    position: static; transform: none; width: 100%; min-height: auto;
+    border-radius: 0; box-shadow: none; padding: 40px 28px 48px;
+    /* La carte n'est plus positionnée en absolu ici (empilée normalement
+       sous la carte bleue) : l'animation pensée pour le centrage vertical
+       en desktop (translateY(-50%) dans ses images clés) n'a plus de sens
+       une fois en flux normal — même geste d'arrivée, sans le décalage. */
+    animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .carte-unique { animation: none; }
+  .carte-formulaire-acces,
+  .bienvenue-contenu .marque-pastille,
+  .bienvenue-contenu .marque-nom,
+  .bienvenue-texte { animation: none; }
 }
 
 /* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu
