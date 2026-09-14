@@ -449,7 +449,7 @@ button.danger:hover { background: var(--erreur-fond); }
 
 .carte-bienvenue-blob {
   position: relative; overflow: hidden;
-  margin-left: auto; width: 64%; min-height: 540px;
+  margin-left: auto; width: 64%; min-height: 460px;
   border-radius: 26px; background: var(--degrade-plein-ecran);
   box-shadow: 0 30px 70px rgba(6, 20, 34, 0.35);
 }
@@ -480,29 +480,9 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 .bienvenue-contenu .marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
 .bienvenue-texte {
-  font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin: 0 0 30px;
+  font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin: 0;
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
 }
-
-.liste-fonctions {
-  list-style: none; margin: 0; padding: 0; width: 100%; max-width: 240px;
-  display: flex; flex-direction: column; gap: 14px;
-}
-.liste-fonctions li {
-  display: flex; align-items: center; gap: 12px;
-  font-size: 0.86rem; font-weight: 500; color: #FFFFFF; text-align: left;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
-}
-.liste-fonctions li:nth-child(1) { animation-delay: 0.26s; }
-.liste-fonctions li:nth-child(2) { animation-delay: 0.32s; }
-.liste-fonctions li:nth-child(3) { animation-delay: 0.38s; }
-.liste-fonctions li:nth-child(4) { animation-delay: 0.44s; }
-.liste-fonctions-icone {
-  flex: none; width: 32px; height: 32px; border-radius: 9px;
-  background: rgba(255,255,255,0.14);
-  display: flex; align-items: center; justify-content: center;
-}
-.liste-fonctions-icone svg { width: 16px; height: 16px; color: #FFFFFF; }
 
 .carte-formulaire-acces {
   position: absolute; left: 0; top: 50%; transform: translateY(-50%);

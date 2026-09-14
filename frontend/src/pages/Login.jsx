@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock, IconLogout, IconPencil, IconCalendarAlert, IconBanknote, IconDocument } from '../components/icons';
+import { IconMail, IconLock, IconLogout } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
 // Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
@@ -12,19 +12,6 @@ import logoIcon from '../assets/logo-icon.png';
 // bascule "créer un compte", et pas de "se souvenir de moi" / "mot de
 // passe oublié" — aucun des deux n'existe côté backend, une case à cocher
 // qui ne fait rien n'a pas sa place ici.
-//
-// Dixième retouche : un paragraphe de description ne suffisait pas à
-// donner un vrai sentiment de produit conçu — remplacé par une liste de
-// fonctions concrètes avec icône, le réflexe habituel d'un écran de
-// connexion professionnel pour donner de la substance au panneau de
-// marque sans ajouter d'effet décoratif.
-const FONCTIONS = [
-  { icone: IconPencil, libelle: 'Notes & bulletins' },
-  { icone: IconCalendarAlert, libelle: 'Suivi des absences' },
-  { icone: IconBanknote, libelle: 'Gestion financière' },
-  { icone: IconDocument, libelle: 'Emplois du temps' },
-];
-
 function CarteBienvenue() {
   return (
     <div className="carte-bienvenue-blob">
@@ -34,15 +21,10 @@ function CarteBienvenue() {
       <div className="bienvenue-contenu">
         <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
         <h1 className="marque-nom">EduSphere</h1>
-        <p className="bienvenue-texte">L'espace de gestion académique de votre établissement.</p>
-        <ul className="liste-fonctions">
-          {FONCTIONS.map(({ icone: Icone, libelle }) => (
-            <li key={libelle}>
-              <span className="liste-fonctions-icone"><Icone aria-hidden="true" /></span>
-              {libelle}
-            </li>
-          ))}
-        </ul>
+        <p className="bienvenue-texte">
+          Classes, notes, absences, finances et bulletins — l'espace de
+          gestion académique de votre établissement.
+        </p>
       </div>
     </div>
   );
