@@ -444,6 +444,7 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 
 .panneau-bienvenue {
+  position: relative;
   flex: 0 0 40%;
   background: var(--degrade-plein-ecran);
   color: #FFFFFF;
@@ -451,28 +452,64 @@ button.danger:hover { background: var(--erreur-fond); }
   text-align: center;
   padding: 44px 34px;
   border-radius: 0 42% 42% 0;
+  overflow: hidden;
 }
+/* Semis de petits carrés, le même motif que le nuage du logo — une texture
+   ancrée dans la marque elle-même, pas un graphique décoratif générique. */
+.motif-bienvenue { position: absolute; top: 28px; right: 30px; width: 54px; height: 40px; }
+.motif-bienvenue i {
+  position: absolute; display: block; border-radius: 2px; background: rgba(255,255,255,0.16);
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
+}
+.motif-bienvenue i:nth-child(1) { width: 12px; height: 12px; top: 0; left: 18px; animation-delay: 0.3s; }
+.motif-bienvenue i:nth-child(2) { width: 8px; height: 8px; top: 4px; left: 40px; animation-delay: 0.36s; }
+.motif-bienvenue i:nth-child(3) { width: 14px; height: 14px; top: 16px; left: 0; animation-delay: 0.33s; }
+.motif-bienvenue i:nth-child(4) { width: 9px; height: 9px; top: 22px; left: 32px; background: rgba(255,255,255,0.1); animation-delay: 0.42s; }
+.motif-bienvenue i:nth-child(5) { width: 7px; height: 7px; top: 0; left: 0; background: rgba(255,255,255,0.1); animation-delay: 0.39s; }
+.motif-bienvenue i:nth-child(6) { width: 10px; height: 10px; top: 28px; left: 14px; background: rgba(255,255,255,0.08); animation-delay: 0.45s; }
+
 .panneau-bienvenue .marque-pastille {
   width: 44px; height: 44px; padding: 8px; margin-bottom: 14px;
   background: #FFFFFF; border-radius: 50%;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.08s both;
 }
 .panneau-bienvenue .marque-nom {
   font-family: var(--police-marque); font-size: 1.5rem; font-weight: 800;
   letter-spacing: -0.02em; color: #FFFFFF; margin: 0 0 14px;
   display: inline-flex; align-items: baseline; gap: 6px;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.14s both;
 }
 .panneau-bienvenue .marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
-.bienvenue-texte { font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin: 0; }
+.bienvenue-texte {
+  font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin: 0;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
+}
 
 .panneau-formulaire-acces {
   flex: 1; display: flex; flex-direction: column; justify-content: center;
   padding: 44px 48px;
 }
-.panneau-formulaire-acces h2 { font-size: 1.3rem; font-weight: 700; margin: 0 0 22px; color: var(--texte); text-align: center; }
+.acces-eyebrow {
+  font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--edu-bleu);
+  margin: 0 0 6px; text-align: center;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.1s both;
+}
+.panneau-formulaire-acces h2 {
+  font-size: 1.3rem; font-weight: 700; margin: 0 0 22px; color: var(--texte); text-align: center;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.16s both;
+}
 
-.connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center; }
+.connexion-aide {
+  color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center;
+  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
+}
 
 .formulaire-connexion { display: flex; flex-direction: column; gap: 16px; }
+.formulaire-connexion > * { animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both; }
+.formulaire-connexion > *:nth-child(1) { animation-delay: 0.22s; }
+.formulaire-connexion > *:nth-child(2) { animation-delay: 0.28s; }
+.formulaire-connexion > *:nth-child(3) { animation-delay: 0.34s; }
 .formulaire-connexion .champ label {
   color: var(--texte-clair); letter-spacing: 0.08em;
 }
@@ -482,10 +519,13 @@ button.danger:hover { background: var(--erreur-fond); }
 .formulaire-connexion .champ-icone svg {
   position: absolute; left: 13px; width: 17px; height: 17px;
   color: var(--texte-clair); pointer-events: none;
+  transition: color 0.15s ease;
 }
+.formulaire-connexion .champ-icone:focus-within svg { color: var(--edu-bleu); }
 .formulaire-connexion .champ input {
   width: 100%; background: var(--gris-fond); border: 1px solid var(--bordure);
   padding-left: 40px; color: var(--texte); font-size: 0.92rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .formulaire-connexion .champ input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ input:focus {
@@ -501,13 +541,16 @@ button.danger:hover { background: var(--erreur-fond); }
   background: var(--edu-bleu); color: #FFFFFF; border: none;
   font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 6px;
   cursor: pointer; margin-top: 4px;
+  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
 }
-.bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); }
+.bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); box-shadow: 0 6px 16px rgba(29,95,168,0.3); }
+.bouton-connexion:active:not(:disabled) { transform: scale(0.98); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .connexion-retour {
   background: none; border: none; color: var(--texte-clair);
   font-size: 0.82rem; cursor: pointer; padding: 4px 0; text-align: center;
+  transition: color 0.15s ease;
 }
 .connexion-retour:hover { color: var(--texte); }
 
@@ -523,7 +566,15 @@ button.danger:hover { background: var(--erreur-fond); }
   .panneau-formulaire-acces { padding: 36px 28px; justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .carte-acces { animation: none; }
+  .carte-acces,
+  .motif-bienvenue i,
+  .panneau-bienvenue .marque-pastille,
+  .panneau-bienvenue .marque-nom,
+  .bienvenue-texte,
+  .acces-eyebrow,
+  .panneau-formulaire-acces h2,
+  .connexion-aide,
+  .formulaire-connexion > * { animation: none; }
 }
 
 /* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu

@@ -13,6 +13,9 @@ import logoIcon from '../assets/logo-icon.png';
 function PanneauBienvenue() {
   return (
     <div className="panneau-bienvenue">
+      <span className="motif-bienvenue" aria-hidden="true">
+        <i /><i /><i /><i /><i /><i />
+      </span>
       <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
       <h1 className="marque-nom">EduSphere</h1>
       <p className="bienvenue-texte">
@@ -86,6 +89,7 @@ export default function Login() {
         <div className="carte-acces">
           <PanneauBienvenue />
           <div className="panneau-formulaire-acces">
+            <p className="acces-eyebrow">Étape 2</p>
             <h2>Vérification</h2>
             <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
             <form className="formulaire-connexion" onSubmit={validerCode}>
@@ -128,6 +132,7 @@ export default function Login() {
       <div className="carte-acces">
         <PanneauBienvenue />
         <div className="panneau-formulaire-acces">
+          <p className="acces-eyebrow">Bon retour</p>
           <h2>Se connecter</h2>
           <form className="formulaire-connexion" onSubmit={onSubmit}>
             <div className="champ">
