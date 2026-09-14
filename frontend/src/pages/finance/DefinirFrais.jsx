@@ -9,15 +9,14 @@ const LIBELLE_STATUT = { du: 'dû', partiel: 'partiel', solde: 'à jour', impaye
 
 // Dès qu'un étudiant est inscrit, la Finance doit voir son frais sans avoir
 // à le créer élève par élève : la classe entière se règle en un geste
-// ("Définir pour une classe"), et chaque élève reste visible avec net à
-// payer / versé / reste, avec la possibilité d'encaisser directement depuis
-// la liste — pas seulement pour les impayés (voir l'onglet dédié pour ça).
+// ("Définir pour une classe"), jamais élève par élève depuis la liste — qui
+// ne sert qu'à consulter net à payer / versé / reste et à encaisser
+// directement quand un frais actif existe.
 export default function DefinirFrais() {
   const [niveaux, setNiveaux] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [modaleClasseOuverte, setModaleClasseOuverte] = useState(false);
   const [eleveEnPaiement, setEleveEnPaiement] = useState(null);
-  const [eleveSansFrais, setEleveSansFrais] = useState(null);
   const [toast, setToast] = useState(null);
   const [recherche, setRecherche] = useState('');
 
@@ -36,8 +35,8 @@ export default function DefinirFrais() {
 
   // Recherche par nom : on filtre les élèves de chaque classe, puis on
   // masque les classes/niveaux qui n'ont plus personne à afficher — pas
-  // besoin d'un onglet séparé, l'étudiant cherché reste actionnable ici
-  // (Encaisser / Définir un frais) exactement comme dans la liste complète.
+  // besoin d'un onglet séparé, l'étudiant cherché reste encaissable ici
+  // exactement comme dans la liste complète.
   const termeRecherche = recherche.trim().toLowerCase();
   const niveauxFiltres = termeRecherche
     ? niveaux
@@ -110,13 +109,10 @@ export default function DefinirFrais() {
                           <td className="note-secondaire">{eleve.totalRegle.toLocaleString('fr-FR')} FCFA</td>
                           <td>{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : '—'}</td>
                           <td><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
-                          <td style={{ display: 'flex', gap: 6 }}>
+                          <td>
                             {eleve.fraisActifId && (
                               <button className="secondaire" onClick={() => setEleveEnPaiement({ ...eleve, classeNom: classe.nom })}>Encaisser</button>
                             )}
-                            <button className="secondaire" onClick={() => setEleveSansFrais({ ...eleve, classeNom: classe.nom })}>
-                              {eleve.statutGlobal === 'sans_frais' ? 'Définir un frais' : '+ Nouveau frais'}
-                            </button>
                           </td>
                         </tr>
                       ))}
@@ -134,13 +130,6 @@ export default function DefinirFrais() {
         <FormulaireFraisClasse
           onFermer={() => setModaleClasseOuverte(false)}
           onReussi={(msg) => { setModaleClasseOuverte(false); charger(); setToast({ message: msg, type: 'succes' }); }}
-        />
-      )}
-      {eleveSansFrais && (
-        <FormulaireFraisEleve
-          eleve={eleveSansFrais}
-          onFermer={() => setEleveSansFrais(null)}
-          onReussi={() => { setEleveSansFrais(null); charger(); setToast({ message: 'Frais défini.', type: 'succes' }); }}
         />
       )}
       {eleveEnPaiement && (
@@ -217,53 +206,6 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
         </div>
         {erreur && <div className="message-erreur">{erreur}</div>}
         <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Application…' : 'Appliquer à la classe'}</button>
-      </form>
-    </Modal>
-  );
-}
-
-function FormulaireFraisEleve({ eleve, onFermer, onReussi }) {
-  const [semestres, setSemestres] = useState([]);
-  const [form, setForm] = useState({ semestreId: '', libelle: '', montant: '', dateEcheance: '' });
-  const [enCours, setEnCours] = useState(false);
-  const [erreur, setErreur] = useState('');
-
-  useEffect(() => { client.get('/semestres').then((res) => setSemestres(res.data.semestres)); }, []);
-
-  async function soumettre(e) {
-    e.preventDefault();
-    setEnCours(true);
-    setErreur('');
-    try {
-      await client.post('/finance/frais', { ...form, eleveId: eleve.id, semestreId: Number(form.semestreId), montant: Number(form.montant) });
-      onReussi();
-    } catch (err) {
-      setErreur(err.response?.data?.erreur || 'impossible de définir ce frais');
-    } finally {
-      setEnCours(false);
-    }
-  }
-
-  return (
-    <Modal titre={`Définir un frais — ${eleve.prenom} ${eleve.nom}`} onFermer={onFermer} largeur={480}>
-      <form className="formulaire" onSubmit={soumettre}>
-        <div className="champ">
-          <label>Semestre</label>
-          <select value={form.semestreId} onChange={(e) => setForm({ ...form, semestreId: e.target.value })} required>
-            <option value="">—</option>
-            {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
-          </select>
-        </div>
-        <div className="champ">
-          <label>Libellé</label>
-          <input placeholder="ex. Frais de scolarité — Semestre 1" value={form.libelle} onChange={(e) => setForm({ ...form, libelle: e.target.value })} required />
-        </div>
-        <div className="ligne-champs">
-          <div className="champ"><label>Montant (FCFA)</label><input type="number" min="0" placeholder="150 000" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} required /></div>
-          <div className="champ"><label>Échéance</label><input type="date" value={form.dateEcheance} onChange={(e) => setForm({ ...form, dateEcheance: e.target.value })} required /></div>
-        </div>
-        {erreur && <div className="message-erreur">{erreur}</div>}
-        <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Définir le frais'}</button>
       </form>
     </Modal>
   );
