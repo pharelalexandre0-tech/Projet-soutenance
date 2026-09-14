@@ -15,11 +15,11 @@
   --edu-or: #F0AD2E;
   --degrade-plateforme: linear-gradient(160deg, var(--edu-marine) 0%, var(--edu-bleu) 100%);
   /* Variante pour les fonds plein écran (connexion, ouverture de session) :
-     le dégradé normal, étalé sur un écran entier plutôt que sur une bande
-     étroite (sidebar, tuile, barre d'accent), vire au bleu vif sur toute sa
-     partie basse — resserré vers le bleu marine pour rester sombre du haut
-     en bas sans devenir criard. */
-  --degrade-plein-ecran: linear-gradient(160deg, var(--edu-marine) 0%, var(--primaire-fonce) 100%);
+     radial plutôt que linéaire — la zone claire reste concentrée dans un
+     coin (donc un vrai dégradé qu'on perçoit tout de suite), au lieu de se
+     répartir sur toute la moitié basse de l'écran comme le ferait un
+     dégradé linéaire à cette échelle (trop de bleu vif visible d'un coup). */
+  --degrade-plein-ecran: radial-gradient(ellipse 140% 100% at 15% 0%, var(--edu-bleu) 0%, var(--primaire-fonce) 38%, var(--edu-marine) 72%, #060F1E 100%);
 
   --primaire: var(--edu-bleu);
   --primaire-fonce: #164A85;
