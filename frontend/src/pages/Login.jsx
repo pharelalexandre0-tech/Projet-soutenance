@@ -22,8 +22,8 @@ function CarteBienvenue() {
         <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
         <h1 className="marque-nom">EduSphere</h1>
         <p className="bienvenue-texte">
-          Classes, notes, absences, finances et bulletins — l'espace de
-          gestion académique de votre établissement.
+          Académie, finance, professeurs et étudiants — un espace de
+          connexion unique pour toute la communauté de votre établissement.
         </p>
       </div>
     </div>
