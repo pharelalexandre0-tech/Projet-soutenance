@@ -4,30 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
-// Deuxième refonte : plus de carte flottante sur un dégradé — un panneau
-// scindé en deux, la marque à gauche et l'accès à droite, comme une console
-// d'accès plutôt qu'une page de garde produit. Le panneau de marque est
-// structuré du haut vers le bas (identité, mission, mention institutionnelle)
-// plutôt qu'un simple bloc centré — sur un grand écran, un logo seul au
-// milieu d'un aplat se lit comme inachevé, pas comme une plateforme
-// d'enseignement supérieur sérieuse.
-function PanneauMarque() {
+// Troisième refonte : ni le portrait "lettre officielle" (eyebrow + filet),
+// ni le panneau scindé en deux — une carte simple, arrondie, sans bordure
+// visible, posée sur le dégradé. La marque parle d'elle-même (pastille +
+// nom), pas de vocabulaire de document administratif emprunté au bulletin.
+function EnTeteCarte() {
   return (
-    <div className="panneau-marque">
-      <div className="marque-lockup">
-        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-        <div>
-          <p className="marque-tagline">Écosystème éducatif intelligent gabonais</p>
-          <h1 className="marque-nom">EduSphere</h1>
-        </div>
-      </div>
-      <p className="marque-mission">
-        Gestion académique, dossiers étudiants et suivi pédagogique pour les
-        établissements d'enseignement supérieur — classes, unités
-        d'enseignement, notes, absences, finances et bulletins réunis dans un
-        seul espace.
-      </p>
-      <p className="marque-pied">Plateforme académique — accès sécurisé</p>
+    <div className="carte-connexion-entete">
+      <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+      <h1 className="marque-nom">EduSphere</h1>
+      <p className="carte-connexion-soustitre">Connexion à votre espace</p>
     </div>
   );
 }
@@ -92,38 +78,34 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <PanneauMarque />
-        <div className="panneau-formulaire">
-          <div className="panneau-formulaire-contenu">
-            <p className="acces-eyebrow">Vérification</p>
-            <h2>Code reçu par e-mail</h2>
-            <p className="acces-sous-titre">Un code à 6 chiffres vient d'être envoyé — saisis-le pour continuer.</p>
-            <form className="formulaire" onSubmit={validerCode}>
-              <div className="champ">
-                <label>Code de vérification</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  autoFocus
-                  required
-                />
-              </div>
-              {erreur && <div className="message-erreur">{erreur}</div>}
-              <button className="primaire" type="submit" disabled={enCours || code.length !== 6}>
-                {enCours ? 'Vérification…' : 'Valider'}
-              </button>
-              <button
-                type="button"
-                className="secondaire"
-                onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
-              >
-                Retour
-              </button>
-            </form>
-          </div>
+        <div className="carte-connexion">
+          <EnTeteCarte />
+          <p className="carte-connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+          <form className="formulaire" onSubmit={validerCode}>
+            <div className="champ">
+              <label>Code de vérification</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+                required
+              />
+            </div>
+            {erreur && <div className="message-erreur">{erreur}</div>}
+            <button className="primaire" type="submit" disabled={enCours || code.length !== 6}>
+              {enCours ? 'Vérification…' : 'Valider'}
+            </button>
+            <button
+              type="button"
+              className="secondaire"
+              onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
+            >
+              Retour
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -131,36 +113,32 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <PanneauMarque />
-      <div className="panneau-formulaire">
-        <div className="panneau-formulaire-contenu">
-          <p className="acces-eyebrow">Accès</p>
-          <h2>Se connecter</h2>
-          <form className="formulaire" onSubmit={onSubmit}>
-            <div className="champ">
-              <label>Adresse e-mail</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="champ">
-              <label>Mot de passe</label>
-              <input
-                type="password"
-                value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
-                required
-              />
-            </div>
-            {erreur && <div className="message-erreur">{erreur}</div>}
-            <button className="primaire" type="submit" disabled={enCours}>
-              {enCours ? 'Connexion…' : 'Se connecter'}
-            </button>
-          </form>
-        </div>
+      <div className="carte-connexion">
+        <EnTeteCarte />
+        <form className="formulaire" onSubmit={onSubmit}>
+          <div className="champ">
+            <label>Adresse e-mail</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="champ">
+            <label>Mot de passe</label>
+            <input
+              type="password"
+              value={motDePasse}
+              onChange={(e) => setMotDePasse(e.target.value)}
+              required
+            />
+          </div>
+          {erreur && <div className="message-erreur">{erreur}</div>}
+          <button className="primaire" type="submit" disabled={enCours}>
+            {enCours ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </form>
       </div>
     </div>
   );

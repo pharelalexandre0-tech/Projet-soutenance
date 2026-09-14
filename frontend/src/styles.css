@@ -425,72 +425,43 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Deuxième refonte de la connexion : plus de carte flottante sur un
-   dégradé plein écran (gabarit qu'on retrouve sur n'importe quel produit
-   SaaS) — un panneau scindé en deux, la marque à gauche, l'accès à droite,
-   plus proche d'une console d'accès que d'une page de garde produit.
-   Aucun élément qui n'a pas de fonction : pas de filet double, pas de
-   cachet — juste la marque d'un côté, le formulaire de l'autre. */
+/* Troisième refonte de la connexion : ni la lettre officielle (eyebrow +
+   filet, vocabulaire de document administratif), ni le panneau scindé en
+   deux (trop vide sur un grand écran) — une carte simple et arrondie,
+   posée sur le dégradé plein écran, sans bordure visible ni ligne de
+   séparation : juste la marque, puis le formulaire. */
 .page-connexion {
   min-height: 100dvh;
-  display: flex;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 20px;
+  background: var(--degrade-plein-ecran);
 }
 
-.panneau-marque {
-  flex: 0 0 44%;
-  max-width: 560px;
-  background: var(--degrade-plein-ecran);
-  display: flex; flex-direction: column;
-  padding: 56px 52px;
+.carte-connexion {
+  width: 100%; max-width: 400px;
+  background: var(--papier);
+  border-radius: 20px;
+  padding: 44px 40px;
+  box-shadow: 0 24px 60px rgba(6, 20, 34, 0.35);
 }
-.marque-lockup { display: flex; align-items: center; gap: 16px; }
-.panneau-marque .marque-pastille {
-  width: 44px; height: 44px; flex: none; padding: 8px;
-  background: #FFFFFF; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,0,0,0.28);
-}
-.marque-tagline {
-  font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.6);
-  margin: 0 0 4px;
+
+.carte-connexion-entete { text-align: center; margin-bottom: 32px; }
+.carte-connexion-entete .marque-pastille {
+  width: 52px; height: 52px; padding: 9px; margin: 0 auto 16px;
+  background: #FFFFFF; border-radius: 50%; box-shadow: var(--ombre);
 }
 .marque-nom {
-  font-family: var(--police-marque); font-size: 1.9rem; font-weight: 800;
-  letter-spacing: -0.03em; color: #FFFFFF; margin: 0;
+  font-family: var(--police-marque); font-size: 1.7rem; font-weight: 800;
+  letter-spacing: -0.02em; color: var(--texte); margin: 0;
   display: inline-flex; align-items: baseline; gap: 6px;
 }
-.marque-nom::after { content: ""; width: 7px; height: 7px; border-radius: 2px; background: #FFFFFF; align-self: center; flex: none; }
-.marque-mission {
-  font-size: 0.92rem; line-height: 1.65; color: rgba(255,255,255,0.72);
-  max-width: 380px; margin: auto 0 0;
-  padding-top: 40px;
-}
-.marque-pied {
-  font-family: var(--police-mono); font-size: 0.62rem; font-weight: 600;
-  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4);
-  margin: 28px 0 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.15);
-}
+.marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--primaire); align-self: center; flex: none; }
+.carte-connexion-soustitre { color: var(--texte-clair); font-size: 0.85rem; margin: 6px 0 0; }
+.carte-connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -18px 0 22px; text-align: center; line-height: 1.5; }
 
-.panneau-formulaire {
-  flex: 1;
-  background: var(--papier);
-  display: flex; align-items: center; justify-content: center;
-  padding: 40px 24px;
-}
-.panneau-formulaire-contenu { width: 100%; max-width: 340px; }
-.acces-eyebrow {
-  font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--primaire);
-  margin: 0 0 6px;
-}
-.panneau-formulaire-contenu h2 { font-size: 1.3rem; font-weight: 700; margin: 0 0 8px; color: var(--texte); }
-.acces-sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: 0 0 24px; line-height: 1.5; }
-.panneau-formulaire-contenu .formulaire { gap: 18px; margin-top: 20px; }
-
-@media (max-width: 760px) {
-  .page-connexion { flex-direction: column; }
-  .panneau-marque { flex: 0 0 auto; max-width: none; padding: 28px 24px; }
-  .marque-mission, .marque-pied { display: none; }
-  .panneau-formulaire { padding: 36px 24px; }
+@media (max-width: 480px) {
+  .page-connexion { padding: 24px 16px; }
+  .carte-connexion { padding: 36px 26px; }
 }
 
 .entete-carte {
