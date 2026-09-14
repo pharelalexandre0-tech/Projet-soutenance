@@ -4,11 +4,10 @@ import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
-// Sixième passe : le verre dépoli et le semis de nœuds reliés sont
-// exactement la signature visuelle des interfaces générées par IA en ce
-// moment (dégradé + glassmorphism + graphique "réseau" décoratif). Retour à
-// une couleur plate, sans effet ni ornement — la typographie et l'espace
-// font le travail.
+// Septième passe : on garde le principe "couleur plate, pas d'effet" — ce
+// n'est pas ce qui posait problème — mais avec un vrai geste d'arrivée
+// (la marque puis chaque champ apparaissent en cascade, pas tout d'un bloc)
+// et un filet de couleur en haut d'écran comme seule touche de marque.
 function EnTeteMarque() {
   return (
     <div className="marque-connexion">
@@ -78,6 +77,7 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
+        <span className="filet-connexion" />
         <div className="contenu-connexion">
           <EnTeteMarque />
           <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
@@ -113,6 +113,7 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
+      <span className="filet-connexion" />
       <div className="contenu-connexion">
         <EnTeteMarque />
         <form className="formulaire-connexion" onSubmit={onSubmit}>
