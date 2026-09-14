@@ -45,8 +45,17 @@ async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
 // le texte du message.
 async function envoyerEmail(destinataire, sujet, corps, piecesJointes = []) {
   if (process.env.RESEND_API_KEY) {
-    await envoyerViaResend(destinataire, sujet, corps, piecesJointes);
-    return { envoye: true };
+    try {
+      await envoyerViaResend(destinataire, sujet, corps, piecesJointes);
+      return { envoye: true };
+    } catch (err) {
+      // Le mode sandbox de Resend (aucun domaine vérifié) refuse tout
+      // destinataire qui n'est pas le compte vérifié — ex. un compte de
+      // démo comme academie@ecole.ga. Un e-mail 2FA qui échoue à cause de
+      // cette limite ne doit jamais bloquer la connexion : on retombe sur
+      // la simulation console plutôt que de laisser l'erreur remonter.
+      console.error(`[Service E-mail] Échec Resend pour ${destinataire}, repli en simulation :`, err.message);
+    }
   }
 
   if (transporteurSMTP) {
