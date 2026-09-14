@@ -487,7 +487,16 @@ button.danger:hover { background: var(--erreur-fond); }
   box-shadow: 0 24px 55px rgba(6, 20, 34, 0.22);
   display: flex; flex-direction: column; justify-content: center;
   padding: 44px 40px;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
+  /* Animation dédiée (pas entree-connexion) : une animation qui anime
+     `transform` remplace entièrement la valeur statique de `transform`
+     sur le même élément — translateY(-50%) posé à côté se faisait donc
+     écraser par l'état final de l'animation (translateY(0)), et la carte
+     finissait collée à mi-hauteur au lieu d'être centrée dessus. */
+  animation: entree-formulaire-acces 0.5s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes entree-formulaire-acces {
+  from { opacity: 0; transform: translateY(calc(-50% + 14px)); }
+  to { opacity: 1; transform: translateY(-50%); }
 }
 .acces-eyebrow {
   font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700;
@@ -564,6 +573,11 @@ button.danger:hover { background: var(--erreur-fond); }
   .carte-formulaire-acces {
     position: static; transform: none; width: 100%; min-height: auto;
     border-radius: 0; box-shadow: none; padding: 36px 26px 44px;
+    /* La carte n'est plus positionnée en absolu ici (empilée normalement
+       sous la carte bleue) : l'animation pensée pour le centrage vertical
+       en desktop (translateY(-50%) dans ses images clés) n'a plus de sens
+       une fois en flux normal — même geste d'arrivée, sans le décalage. */
+    animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
   }
 }
 @media (prefers-reduced-motion: reduce) {
