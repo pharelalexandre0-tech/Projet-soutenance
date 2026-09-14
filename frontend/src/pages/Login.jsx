@@ -19,6 +19,7 @@ function CarteBienvenue() {
       <span className="blob blob-2" aria-hidden="true" />
       <span className="blob blob-3" aria-hidden="true" />
       <span className="blob blob-4" aria-hidden="true" />
+      <img className="bienvenue-filigrane" src={logoIcon} alt="" aria-hidden="true" />
       <div className="bienvenue-contenu">
         <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
         <h1 className="marque-nom">EduSphere</h1>

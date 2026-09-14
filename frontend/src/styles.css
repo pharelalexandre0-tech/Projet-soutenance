@@ -4,21 +4,24 @@
      (cartes, badges, dégradés) sans qu'on ait de vrai thème sombre en face. */
   color-scheme: light only;
 
-  /* Identité EduSphere : UNE seule couleur de marque forte (marine -> bleu),
-     partout, sans exception — le vert et l'or du logo restent réservés au
-     petit sceau (marque-pastille) et aux badges sémantiques, jamais étalés
-     en fond ou en accent principal. C'est cette discipline qui donne de la
-     cohérence, pas la variété. */
+  /* Identité EduSphere : UNE seule couleur de marque forte (marine -> bleu)
+     pour toute l'interface de travail (sidebar, cartes, badges) — le vert et
+     l'or du logo restent réservés aux badges sémantiques là-bas, jamais
+     étalés en accent principal. C'est cette discipline qui donne de la
+     cohérence, pas la variété.
+     Exception volontaire : les moments plein écran de marque (connexion,
+     ouverture de session) reprennent le vrai dégradé du logo lui-même —
+     marine -> bleu -> vert, la diagonale du "S" — plutôt qu'un bleu
+     générique de gabarit SaaS. */
   --edu-marine: #0B1E3D;
   --edu-bleu: #1D5FA8;
+  --edu-teal: #157A8C;
   --edu-vert: #1F8A54;
   --edu-or: #F0AD2E;
   --degrade-plateforme: linear-gradient(160deg, var(--edu-marine) 0%, var(--edu-bleu) 100%);
-  /* Variante pour les fonds plein écran (connexion, ouverture de session) :
-     radial plutôt que linéaire — la zone claire reste concentrée dans un
-     coin, un vrai dégradé qu'on perçoit tout de suite plutôt que de se
-     répartir sur toute la moitié basse de l'écran. */
-  --degrade-plein-ecran: radial-gradient(ellipse 140% 100% at 15% 0%, var(--edu-bleu) 0%, var(--primaire-fonce) 38%, var(--edu-marine) 72%, #060F1E 100%);
+  /* Le dégradé du logo, pas un bleu générique : marine (le "E") -> bleu ->
+     teal -> vert (la pointe du "S"), en diagonale comme sur le sceau. */
+  --degrade-plein-ecran: linear-gradient(135deg, var(--edu-marine) 0%, var(--edu-bleu) 42%, var(--edu-teal) 68%, var(--edu-vert) 100%);
 
   --primaire: var(--edu-bleu);
   --primaire-fonce: #164A85;
@@ -473,11 +476,27 @@ button.danger:hover { background: var(--erreur-fond); }
 /* Blobs agrandis et redistribués sur toute la hauteur de la carte (pas
    seulement dans les coins) : le vide se voyait surtout au-dessus et en
    dessous du bloc de texte centré, une fois la carte étirée en portrait. */
+/* Les formes reprennent maintenant les trois teintes du dégradé lui-même
+   (marine, bleu, vert) au lieu de rester dans le seul bleu — le vert de la
+   pointe du "S" n'apparaissait nulle part ailleurs que dans le sceau. */
 .blob { position: absolute; border-radius: 50%; filter: blur(44px); }
 .blob-1 { width: 460px; height: 460px; top: -160px; right: -150px; background: var(--edu-bleu); opacity: 0.55; }
 .blob-2 { width: 400px; height: 400px; bottom: -180px; left: -130px; background: #08152C; opacity: 0.5; }
-.blob-3 { width: 300px; height: 300px; top: 42%; right: -90px; background: var(--primaire-fonce); opacity: 0.38; }
-.blob-4 { width: 260px; height: 260px; top: 8%; left: -110px; background: #08152C; opacity: 0.35; }
+.blob-3 { width: 320px; height: 320px; bottom: -60px; right: -100px; background: var(--edu-vert); opacity: 0.42; }
+.blob-4 { width: 260px; height: 260px; top: 10%; left: -110px; background: var(--edu-marine); opacity: 0.4; }
+
+/* Filigrane : le sceau lui-même, très agrandi, en fond de carte — un motif
+   qui vient réellement de la marque plutôt qu'une forme décorative
+   générique. Le PNG a un fond blanc opaque (pas de transparence) : en
+   `multiply`, le blanc du fichier n'a aucun effet sur le dégradé dessous
+   (blanc * base = base), donc seul le tracé plus sombre du sceau reste
+   visible, sans le carré blanc qui le porte. */
+.bienvenue-filigrane {
+  position: absolute; top: 46%; left: 50%; z-index: 0;
+  width: 580px; height: 580px;
+  transform: translate(-50%, -50%) rotate(-6deg);
+  opacity: 0.34; mix-blend-mode: multiply; pointer-events: none;
+}
 
 .bienvenue-contenu {
   position: relative; z-index: 1;
@@ -485,9 +504,12 @@ button.danger:hover { background: var(--erreur-fond); }
   text-align: center; color: #FFFFFF; padding: 56px 46px;
 }
 .bienvenue-contenu .marque-pastille {
-  width: 72px; height: 72px; padding: 13px; margin-bottom: 26px;
+  /* Agrandie et sur un fond plus contrasté (au lieu du blanc plat) : le
+     détail fin du sceau (petits carrés, S en dégradé) devenait illisible
+     à 60px sur un fond de dégradé tout aussi clair. */
+  width: 104px; height: 104px; padding: 16px; margin-bottom: 28px;
   background: #FFFFFF; border-radius: 50%;
-  box-shadow: 0 0 0 18px rgba(255,255,255,0.06), 0 10px 26px rgba(0,0,0,0.25);
+  box-shadow: 0 0 0 1px rgba(11,30,61,0.06) inset, 0 0 0 20px rgba(255,255,255,0.08), 0 14px 32px rgba(0,0,0,0.32);
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.08s both;
 }
 .bienvenue-contenu .marque-nom {
@@ -496,7 +518,7 @@ button.danger:hover { background: var(--erreur-fond); }
   display: inline-flex; align-items: baseline; gap: 9px;
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.14s both;
 }
-.bienvenue-contenu .marque-nom::after { content: ""; width: 9px; height: 9px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
+.bienvenue-contenu .marque-nom::after { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--edu-or); align-self: center; flex: none; }
 .bienvenue-texte {
   font-size: 1.08rem; line-height: 1.85; color: rgba(255,255,255,0.78); margin: 0; max-width: 400px;
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.2s both;
