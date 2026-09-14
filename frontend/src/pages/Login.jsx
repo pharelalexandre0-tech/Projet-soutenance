@@ -4,16 +4,19 @@ import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
-// L'en-tête reprend le vocabulaire déjà établi pour le bulletin/relevé
-// (petites capitales + grand titre serif + double filet) — un portail
-// d'accès traité comme une pièce officielle de l'établissement, pas
-// comme la page de garde d'un produit SaaS.
-function EnTeteLettre() {
+// Deuxième refonte : plus de carte flottante sur un dégradé — un panneau
+// scindé en deux, la marque à gauche et l'accès à droite, comme une console
+// d'accès plutôt qu'une page de garde produit. Aucun élément décoratif qui
+// n'a pas de fonction (pas de filet double, pas de cachet) : juste la marque
+// d'un côté, le formulaire de l'autre.
+function PanneauMarque() {
   return (
-    <div className="lettre-entete">
+    <div className="panneau-marque">
       <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-      <p className="lettre-eyebrow">Écosystème éducatif intelligent gabonais</p>
-      <h1 className="lettre-titre">EduSphere</h1>
+      <div>
+        <p className="marque-tagline">Écosystème éducatif intelligent gabonais</p>
+        <h1 className="marque-nom">EduSphere</h1>
+      </div>
     </div>
   );
 }
@@ -78,10 +81,12 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <div className="lettre-connexion">
-          <EnTeteLettre />
-          <div className="lettre-corps">
-            <p className="sous-titre">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+        <PanneauMarque />
+        <div className="panneau-formulaire">
+          <div className="panneau-formulaire-contenu">
+            <p className="acces-eyebrow">Vérification</p>
+            <h2>Code reçu par e-mail</h2>
+            <p className="acces-sous-titre">Un code à 6 chiffres vient d'être envoyé — saisis-le pour continuer.</p>
             <form className="formulaire" onSubmit={validerCode}>
               <div className="champ">
                 <label>Code de vérification</label>
@@ -115,9 +120,11 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <div className="lettre-connexion">
-        <EnTeteLettre />
-        <div className="lettre-corps">
+      <PanneauMarque />
+      <div className="panneau-formulaire">
+        <div className="panneau-formulaire-contenu">
+          <p className="acces-eyebrow">Accès</p>
+          <h2>Se connecter</h2>
           <form className="formulaire" onSubmit={onSubmit}>
             <div className="champ">
               <label>Adresse e-mail</label>
