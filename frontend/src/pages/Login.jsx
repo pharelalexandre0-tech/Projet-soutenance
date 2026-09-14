@@ -4,16 +4,15 @@ import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
-// Troisième refonte : ni le portrait "lettre officielle" (eyebrow + filet),
-// ni le panneau scindé en deux — une carte simple, arrondie, sans bordure
-// visible, posée sur le dégradé. La marque parle d'elle-même (pastille +
-// nom), pas de vocabulaire de document administratif emprunté au bulletin.
-function EnTeteCarte() {
+// Quatrième refonte : plus de carte du tout. Le formulaire est posé
+// directement sur le dégradé — champs soulignés plutôt qu'encadrés, bouton
+// blanc plein inversé — au lieu du gabarit "panneau clair sur fond coloré"
+// répété jusqu'ici sous plusieurs habillages.
+function EnTeteMarque() {
   return (
-    <div className="carte-connexion-entete">
+    <div className="marque-connexion">
       <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
       <h1 className="marque-nom">EduSphere</h1>
-      <p className="carte-connexion-soustitre">Connexion à votre espace</p>
     </div>
   );
 }
@@ -78,10 +77,10 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <div className="carte-connexion">
-          <EnTeteCarte />
-          <p className="carte-connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
-          <form className="formulaire" onSubmit={validerCode}>
+        <div className="contenu-connexion">
+          <EnTeteMarque />
+          <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+          <form className="formulaire-connexion" onSubmit={validerCode}>
             <div className="champ">
               <label>Code de vérification</label>
               <input
@@ -94,13 +93,13 @@ export default function Login() {
                 required
               />
             </div>
-            {erreur && <div className="message-erreur">{erreur}</div>}
-            <button className="primaire" type="submit" disabled={enCours || code.length !== 6}>
+            {erreur && <div className="connexion-erreur">{erreur}</div>}
+            <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
               {enCours ? 'Vérification…' : 'Valider'}
             </button>
             <button
               type="button"
-              className="secondaire"
+              className="connexion-retour"
               onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
             >
               Retour
@@ -113,9 +112,9 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <div className="carte-connexion">
-        <EnTeteCarte />
-        <form className="formulaire" onSubmit={onSubmit}>
+      <div className="contenu-connexion">
+        <EnTeteMarque />
+        <form className="formulaire-connexion" onSubmit={onSubmit}>
           <div className="champ">
             <label>Adresse e-mail</label>
             <input
@@ -134,8 +133,8 @@ export default function Login() {
               required
             />
           </div>
-          {erreur && <div className="message-erreur">{erreur}</div>}
-          <button className="primaire" type="submit" disabled={enCours}>
+          {erreur && <div className="connexion-erreur">{erreur}</div>}
+          <button className="bouton-connexion" type="submit" disabled={enCours}>
             {enCours ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>

@@ -425,11 +425,10 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Troisième refonte de la connexion : ni la lettre officielle (eyebrow +
-   filet, vocabulaire de document administratif), ni le panneau scindé en
-   deux (trop vide sur un grand écran) — une carte simple et arrondie,
-   posée sur le dégradé plein écran, sans bordure visible ni ligne de
-   séparation : juste la marque, puis le formulaire. */
+/* Quatrième refonte de la connexion : plus de panneau clair du tout (carte,
+   lettre, panneau scindé — trois habillages du même "panneau sur fond
+   coloré"). Le formulaire est posé directement sur le dégradé : champs
+   soulignés plutôt qu'encadrés, bouton blanc plein inversé. */
 .page-connexion {
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
@@ -437,32 +436,76 @@ button.danger:hover { background: var(--erreur-fond); }
   background: var(--degrade-plein-ecran);
 }
 
-.carte-connexion {
-  width: 100%; max-width: 400px;
-  background: var(--papier);
-  border-radius: 20px;
-  padding: 44px 40px;
-  box-shadow: 0 24px 60px rgba(6, 20, 34, 0.35);
-}
+.contenu-connexion { width: 100%; max-width: 340px; }
 
-.carte-connexion-entete { text-align: center; margin-bottom: 32px; }
-.carte-connexion-entete .marque-pastille {
-  width: 52px; height: 52px; padding: 9px; margin: 0 auto 16px;
-  background: #FFFFFF; border-radius: 50%; box-shadow: var(--ombre);
+.marque-connexion { display: flex; align-items: center; gap: 14px; margin-bottom: 40px; }
+.marque-connexion .marque-pastille {
+  width: 40px; height: 40px; flex: none; padding: 7px;
+  background: #FFFFFF; border-radius: 50%; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
 }
 .marque-nom {
-  font-family: var(--police-marque); font-size: 1.7rem; font-weight: 800;
-  letter-spacing: -0.02em; color: var(--texte); margin: 0;
+  font-family: var(--police-marque); font-size: 1.5rem; font-weight: 800;
+  letter-spacing: -0.02em; color: #FFFFFF; margin: 0;
   display: inline-flex; align-items: baseline; gap: 6px;
 }
-.marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--primaire); align-self: center; flex: none; }
-.carte-connexion-soustitre { color: var(--texte-clair); font-size: 0.85rem; margin: 6px 0 0; }
-.carte-connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -18px 0 22px; text-align: center; line-height: 1.5; }
+.marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: #FFFFFF; align-self: center; flex: none; }
+
+.connexion-aide { color: rgba(255,255,255,0.65); font-size: 0.85rem; margin: -24px 0 28px; line-height: 1.5; }
+
+.formulaire-connexion { display: flex; flex-direction: column; gap: 24px; }
+.formulaire-connexion .champ label {
+  color: rgba(255,255,255,0.55); letter-spacing: 0.08em;
+}
+.formulaire-connexion .champ input {
+  background: transparent; border: none; border-bottom: 1.5px solid rgba(255,255,255,0.3);
+  border-radius: 0; padding: 8px 2px; color: #FFFFFF; font-size: 0.95rem;
+}
+.formulaire-connexion .champ input::placeholder { color: rgba(255,255,255,0.4); }
+.formulaire-connexion .champ input:focus {
+  outline: none; background: transparent; box-shadow: none; border-bottom-color: #FFFFFF;
+}
+.formulaire-connexion .champ input:-webkit-autofill {
+  -webkit-text-fill-color: #FFFFFF;
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.connexion-erreur {
+  font-size: 0.82rem; color: #FFFFFF; background: rgba(226, 92, 74, 0.28);
+  border: 1px solid rgba(226, 92, 74, 0.5); border-radius: 8px; padding: 9px 12px;
+}
+
+.bouton-connexion {
+  background: #FFFFFF; color: var(--edu-marine); border: none;
+  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 8px;
+  cursor: pointer; transition: transform 0.12s ease, opacity 0.15s ease;
+}
+.bouton-connexion:hover:not(:disabled) { opacity: 0.9; }
+.bouton-connexion:active:not(:disabled) { transform: scale(0.98); }
+.bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.connexion-retour {
+  background: none; border: none; color: rgba(255,255,255,0.6);
+  font-size: 0.82rem; cursor: pointer; padding: 4px 0; text-align: center;
+}
+.connexion-retour:hover { color: #FFFFFF; }
 
 @media (max-width: 480px) {
-  .page-connexion { padding: 24px 16px; }
-  .carte-connexion { padding: 36px 26px; }
+  .page-connexion { padding: 24px 20px; }
 }
+
+/* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu
+   par e-mail, hors du parcours de connexion et de sa propre identité
+   visuelle) — indépendante des habillages successifs de la connexion. */
+.carte-connexion {
+  width: 100%; max-width: 440px;
+  background: var(--papier);
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow: 0 24px 60px rgba(6, 20, 34, 0.35);
+}
+.carte-connexion h1 { font-family: var(--police-marque); font-size: 1.3rem; font-weight: 800; margin: 0 0 12px; color: var(--texte); }
+.carte-connexion .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: -4px 0 22px; line-height: 1.5; }
 
 .entete-carte {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
