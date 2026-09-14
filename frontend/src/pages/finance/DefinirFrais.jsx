@@ -110,13 +110,13 @@ export default function DefinirFrais() {
                           <td className="note-secondaire">{eleve.totalRegle.toLocaleString('fr-FR')} FCFA</td>
                           <td>{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : '—'}</td>
                           <td><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
-                          <td>
+                          <td style={{ display: 'flex', gap: 6 }}>
                             {eleve.fraisActifId && (
                               <button className="secondaire" onClick={() => setEleveEnPaiement({ ...eleve, classeNom: classe.nom })}>Encaisser</button>
                             )}
-                            {eleve.statutGlobal === 'sans_frais' && (
-                              <button className="secondaire" onClick={() => setEleveSansFrais({ ...eleve, classeNom: classe.nom })}>Définir un frais</button>
-                            )}
+                            <button className="secondaire" onClick={() => setEleveSansFrais({ ...eleve, classeNom: classe.nom })}>
+                              {eleve.statutGlobal === 'sans_frais' ? 'Définir un frais' : '+ Nouveau frais'}
+                            </button>
                           </td>
                         </tr>
                       ))}
