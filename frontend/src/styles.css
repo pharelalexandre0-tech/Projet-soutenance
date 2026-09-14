@@ -425,20 +425,40 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Quatrième refonte de la connexion : plus de panneau clair du tout (carte,
-   lettre, panneau scindé — trois habillages du même "panneau sur fond
-   coloré"). Le formulaire est posé directement sur le dégradé : champs
-   soulignés plutôt qu'encadrés, bouton blanc plein inversé. */
+/* Cinquième passe de la connexion : la version sans aucun panneau lisait
+   trop nue. On garde le principe (pas de bloc opaque plaqué dessus) mais on
+   donne du relief au dégradé — un semis de nœuds reliés en fond, écho du
+   mot "écosystème" plutôt qu'une illustration gratuite — et le formulaire
+   vit dans un panneau de verre dépoli (translucide, flou) au lieu d'être à
+   même le fond ou dans une carte opaque. */
 .page-connexion {
+  position: relative;
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
   padding: 40px 20px;
   background: var(--degrade-plein-ecran);
+  overflow: hidden;
 }
 
-.contenu-connexion { width: 100%; max-width: 340px; }
+.reseau-fond {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: 0; opacity: 0.5;
+}
+.reseau-fond line { stroke: #FFFFFF; stroke-width: 1; stroke-opacity: 0.18; }
+.reseau-fond circle { fill: #FFFFFF; fill-opacity: 0.4; }
 
-.marque-connexion { display: flex; align-items: center; gap: 14px; margin-bottom: 40px; }
+.contenu-connexion {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 380px;
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 24px 60px rgba(6, 20, 34, 0.35);
+}
+
+.marque-connexion { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
 .marque-connexion .marque-pastille {
   width: 40px; height: 40px; flex: none; padding: 7px;
   background: #FFFFFF; border-radius: 50%; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
@@ -492,6 +512,7 @@ button.danger:hover { background: var(--erreur-fond); }
 
 @media (max-width: 480px) {
   .page-connexion { padding: 24px 20px; }
+  .contenu-connexion { padding: 32px 24px; }
 }
 
 /* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu
