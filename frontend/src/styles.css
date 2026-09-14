@@ -448,8 +448,13 @@ button.danger:hover { background: var(--erreur-fond); }
   margin: 0;
 }
 .lettre-titre {
-  font-family: var(--police-marque); font-size: 2.1rem; font-weight: 700;
-  letter-spacing: -0.02em; margin: 8px 0 0; color: var(--texte);
+  font-family: var(--police-marque); font-size: 2.3rem; font-weight: 800;
+  letter-spacing: -0.03em; margin: 8px 0 0; color: var(--texte);
+  display: inline-flex; align-items: baseline; gap: 6px;
+}
+.lettre-titre::after {
+  content: ""; width: 8px; height: 8px; border-radius: 2.5px;
+  background: var(--primaire); align-self: center; flex: none;
 }
 
 .lettre-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: 0 0 24px; }
@@ -850,57 +855,45 @@ button.danger:hover { background: var(--erreur-fond); }
   position: fixed; inset: 0; z-index: 100;
   background: var(--degrade-plateforme);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 24px;
+  gap: 6px;
   animation: fondu-sortie 0.4s ease 1.1s both;
 }
 
-/* Le nuage de points du logo se rassemble autour du sceau plutôt qu'un
-   anneau générique qui tourne — le "chargement" reprend un vrai détail de
-   la marque au lieu d'un motif de spinner interchangeable. */
-.halo-ouverture { position: relative; width: 74px; height: 74px; }
-.motif-ouverture {
-  position: absolute; top: -22px; right: -34px;
-  width: 62px; height: auto;
-}
-.motif-ouverture rect { animation: apparition-point 0.5s cubic-bezier(.22,1,.36,1) both; }
-.motif-ouverture rect:nth-child(1) { animation-delay: 0.05s; }
-.motif-ouverture rect:nth-child(2) { animation-delay: 0.12s; }
-.motif-ouverture rect:nth-child(3) { animation-delay: 0.19s; }
-.motif-ouverture rect:nth-child(4) { animation-delay: 0.1s; }
-.motif-ouverture rect:nth-child(5) { animation-delay: 0.26s; }
-.motif-ouverture rect:nth-child(6) { animation-delay: 0.3s; }
-.motif-ouverture rect:nth-child(7) { animation-delay: 0.22s; }
-.motif-ouverture rect:nth-child(8) { animation-delay: 0.34s; }
-.motif-ouverture rect:nth-child(9) { animation-delay: 0.16s; }
-
-.transition-ouverture .sceau {
-  position: relative; z-index: 1;
+.sceau-ouverture {
   width: 74px; height: 74px; border-radius: 50%;
   background: #FFFFFF;
   box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35), 0 8px 24px rgba(0,0,0,0.3);
   display: flex; align-items: center; justify-content: center;
   padding: 12px;
+  margin-bottom: 14px;
   animation: apparition-sceau 0.6s ease both;
 }
-.transition-ouverture .sceau img { width: 100%; height: 100%; object-fit: contain; }
+.sceau-ouverture img { width: 100%; height: 100%; object-fit: contain; }
 .transition-ouverture h1 {
-  font-family: var(--police-serif); font-size: 1.5rem; font-weight: 600; color: #fff;
+  font-family: var(--police-marque); font-size: 1.7rem; font-weight: 700; letter-spacing: -0.01em; color: #fff;
   margin: 0; text-align: center;
   animation: tombe-doucement 0.4s ease 0.1s both;
 }
 .transition-ouverture p {
-  font-size: 0.85rem; color: rgba(255,255,255,0.7); margin: -14px 0 0; text-align: center;
+  font-size: 0.85rem; color: rgba(255,255,255,0.65); margin: 2px 0 18px; text-align: center;
   animation: tombe-doucement 0.4s ease 0.18s both;
 }
-.transition-ouverture .piste-progres {
-  width: 220px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.15); overflow: hidden;
+/* Indicateur sans fausse promesse de pourcentage (l'ouverture n'a pas de
+   progression mesurable) : une rangée de petits carrés — le même motif que
+   les puces du logo — qui pulsent en cascade dans le bleu de marque, jamais
+   le vert/or réservés au sceau et aux badges. */
+.indicateur-ouverture { display: flex; gap: 7px; animation: tombe-doucement 0.4s ease 0.26s both; }
+.indicateur-ouverture span {
+  width: 8px; height: 8px; border-radius: 2.5px;
+  background: #FFFFFF;
+  animation: pulse-carre 1.1s ease-in-out infinite;
 }
-.transition-ouverture .barre-progres {
-  height: 100%; border-radius: 2px;
-  background: linear-gradient(90deg, var(--edu-or), var(--edu-vert));
-  animation: progres-ouverture 1s ease both;
-}
+.indicateur-ouverture span:nth-child(1) { animation-delay: 0s; }
+.indicateur-ouverture span:nth-child(2) { animation-delay: 0.12s; }
+.indicateur-ouverture span:nth-child(3) { animation-delay: 0.24s; }
+.indicateur-ouverture span:nth-child(4) { animation-delay: 0.36s; }
+.indicateur-ouverture span:nth-child(5) { animation-delay: 0.48s; }
+
 @keyframes apparition-sceau { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-@keyframes apparition-point { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: scale(1); } }
-@keyframes progres-ouverture { from { width: 0%; } to { width: 100%; } }
+@keyframes pulse-carre { 0%, 100% { opacity: 0.25; transform: scale(0.75); } 50% { opacity: 1; transform: scale(1); } }
 @keyframes fondu-sortie { to { opacity: 0; visibility: hidden; } }
