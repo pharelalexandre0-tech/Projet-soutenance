@@ -4,23 +4,17 @@
      (cartes, badges, dégradés) sans qu'on ait de vrai thème sombre en face. */
   color-scheme: light only;
 
-  /* Identité EduSphere : UNE seule couleur de marque forte (marine -> bleu)
-     pour toute l'interface de travail (sidebar, cartes, badges) — le vert et
-     l'or du logo restent réservés aux badges sémantiques là-bas, jamais
-     étalés en accent principal. C'est cette discipline qui donne de la
-     cohérence, pas la variété.
-     Exception volontaire : les moments plein écran de marque (connexion,
-     ouverture de session) reprennent le vrai dégradé du logo lui-même —
-     marine -> bleu -> vert, la diagonale du "S" — plutôt qu'un bleu
-     générique de gabarit SaaS. */
+  /* Identité EduSphere : le dégradé du logo lui-même (marine -> bleu -> teal
+     -> vert, la diagonale du "S") partout où l'interface porte la marque —
+     sidebar, cartes, connexion, ouverture de session — pas un bleu plat
+     générique de gabarit SaaS. L'or du logo reste réservé aux badges
+     sémantiques, jamais étalé en accent principal. */
   --edu-marine: #0B1E3D;
   --edu-bleu: #1D5FA8;
   --edu-teal: #157A8C;
   --edu-vert: #1F8A54;
   --edu-or: #F0AD2E;
-  --degrade-plateforme: linear-gradient(160deg, var(--edu-marine) 0%, var(--edu-bleu) 100%);
-  /* Le dégradé du logo, pas un bleu générique : marine (le "E") -> bleu ->
-     teal -> vert (la pointe du "S"), en diagonale comme sur le sceau. */
+  --degrade-plateforme: linear-gradient(160deg, var(--edu-marine) 0%, var(--edu-bleu) 45%, var(--edu-teal) 72%, var(--edu-vert) 100%);
   --degrade-plein-ecran: linear-gradient(135deg, var(--edu-marine) 0%, var(--edu-bleu) 42%, var(--edu-teal) 68%, var(--edu-vert) 100%);
 
   --primaire: var(--edu-bleu);
@@ -485,18 +479,6 @@ button.danger:hover { background: var(--erreur-fond); }
 .blob-3 { width: 320px; height: 320px; bottom: -60px; right: -100px; background: var(--edu-vert); opacity: 0.42; }
 .blob-4 { width: 260px; height: 260px; top: 10%; left: -110px; background: var(--edu-marine); opacity: 0.4; }
 
-/* Filigrane : le sceau lui-même, très agrandi, en fond de carte — un motif
-   qui vient réellement de la marque plutôt qu'une forme décorative
-   générique. Le PNG a un fond blanc opaque (pas de transparence) : en
-   `multiply`, le blanc du fichier n'a aucun effet sur le dégradé dessous
-   (blanc * base = base), donc seul le tracé plus sombre du sceau reste
-   visible, sans le carré blanc qui le porte. */
-.bienvenue-filigrane {
-  position: absolute; top: 46%; left: 50%; z-index: 0;
-  width: 580px; height: 580px;
-  transform: translate(-50%, -50%) rotate(-6deg);
-  opacity: 0.34; mix-blend-mode: multiply; pointer-events: none;
-}
 
 .bienvenue-contenu {
   position: relative; z-index: 1;
