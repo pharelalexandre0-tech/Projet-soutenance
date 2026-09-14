@@ -470,10 +470,16 @@ button.danger:hover { background: var(--erreur-fond); }
 /* Champs pleins (fond clair, texte sombre) plutôt que translucides sur le
    marine : un champ à 8% d'opacité sur un fond déjà sombre ne se distingue
    quasiment pas de la page — le contraste doit sauter aux yeux, pas se
-   deviner. */
+   deviner. Icône + placeholder à l'intérieur : un rectangle blanc vide
+   pouvait se lire comme un simple espacement plutôt qu'un champ de saisie. */
+.formulaire-connexion .champ-icone { position: relative; display: flex; align-items: center; }
+.formulaire-connexion .champ-icone svg {
+  position: absolute; left: 13px; width: 17px; height: 17px;
+  color: var(--texte-clair); pointer-events: none;
+}
 .formulaire-connexion .champ input {
-  background: #FFFFFF; border: 1px solid transparent;
-  color: var(--texte); font-size: 0.92rem;
+  width: 100%; background: #FFFFFF; border: 1px solid var(--bordure);
+  padding-left: 40px; color: var(--texte); font-size: 0.92rem;
 }
 .formulaire-connexion .champ input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ input:focus {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
+import { IconMail, IconLock } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
 // Septième passe : on garde le principe "couleur plate, pas d'effet" — ce
@@ -83,15 +84,19 @@ export default function Login() {
           <form className="formulaire-connexion" onSubmit={validerCode}>
             <div className="champ">
               <label>Code de vérification</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                autoFocus
-                required
-              />
+              <div className="champ-icone">
+                <IconLock aria-hidden="true" />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  autoFocus
+                  required
+                />
+              </div>
             </div>
             {erreur && <div className="connexion-erreur">{erreur}</div>}
             <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
@@ -117,21 +122,29 @@ export default function Login() {
         <form className="formulaire-connexion" onSubmit={onSubmit}>
           <div className="champ">
             <label>Adresse e-mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div className="champ-icone">
+              <IconMail aria-hidden="true" />
+              <input
+                type="email"
+                placeholder="vous@etablissement.ga"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="champ">
             <label>Mot de passe</label>
-            <input
-              type="password"
-              value={motDePasse}
-              onChange={(e) => setMotDePasse(e.target.value)}
-              required
-            />
+            <div className="champ-icone">
+              <IconLock aria-hidden="true" />
+              <input
+                type="password"
+                placeholder="Votre mot de passe"
+                value={motDePasse}
+                onChange={(e) => setMotDePasse(e.target.value)}
+                required
+              />
+            </div>
           </div>
           {erreur && <div className="connexion-erreur">{erreur}</div>}
           <button className="bouton-connexion" type="submit" disabled={enCours}>
