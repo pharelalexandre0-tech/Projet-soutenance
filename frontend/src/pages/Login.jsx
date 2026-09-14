@@ -5,27 +5,17 @@ import TransitionOuverture from '../components/TransitionOuverture';
 import { IconMail, IconLock, IconLogout } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
-// Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
-// coupée en deux (référence donnée par l'utilisateur) — la carte blanche du
-// formulaire est posée par-dessus la carte bleue, avec des formes
-// organiques en fond au lieu d'un simple bord incurvé. Toujours pas de
-// bascule "créer un compte", et pas de "se souvenir de moi" / "mot de
-// passe oublié" — aucun des deux n'existe côté backend, une case à cocher
-// qui ne fait rien n'a pas sa place ici.
-function CarteBienvenue() {
+// Onzième passe : retour à une seule carte (plus de panneaux qui se
+// chevauchent) — marque et formulaire réunis dans le même bloc, posé sur
+// le dégradé. Toujours pas de bascule "créer un compte" ni de "se
+// souvenir de moi" / "mot de passe oublié" — aucun des deux n'existe côté
+// backend.
+function EnTeteCarte() {
   return (
-    <div className="carte-bienvenue-blob">
-      <span className="blob blob-1" aria-hidden="true" />
-      <span className="blob blob-2" aria-hidden="true" />
-      <span className="blob blob-3" aria-hidden="true" />
-      <div className="bienvenue-contenu">
-        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-        <h1 className="marque-nom">EduSphere</h1>
-        <p className="bienvenue-texte">
-          Classes, notes, absences, finances et bulletins — l'espace de
-          gestion académique de votre établissement.
-        </p>
-      </div>
+    <div className="carte-unique-entete">
+      <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+      <h1 className="marque-nom">EduSphere</h1>
+      <p className="bienvenue-texte">Connexion à votre espace de gestion académique.</p>
     </div>
   );
 }
@@ -103,38 +93,34 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <div className="composition-acces">
-          <CarteBienvenue />
-          <div className="carte-formulaire-acces">
-            <p className="acces-eyebrow">Étape 2</p>
-            <h2>Vérification</h2>
-            <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
-            <form className="formulaire-connexion" onSubmit={validerCode}>
-              <Champ label="Code de vérification" icone={IconLock}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  autoFocus
-                  required
-                />
-              </Champ>
-              {erreur && <div className="connexion-erreur">{erreur}</div>}
-              <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
-                {enCours ? 'Vérification…' : 'Valider'}
-              </button>
-              <button
-                type="button"
-                className="connexion-retour"
-                onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
-              >
-                Retour
-              </button>
-            </form>
-          </div>
+        <div className="carte-unique">
+          <EnTeteCarte />
+          <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+          <form className="formulaire-connexion" onSubmit={validerCode}>
+            <Champ label="Code de vérification" icone={IconLock}>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="000000"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                autoFocus
+                required
+              />
+            </Champ>
+            {erreur && <div className="connexion-erreur">{erreur}</div>}
+            <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
+              {enCours ? 'Vérification…' : 'Valider'}
+            </button>
+            <button
+              type="button"
+              className="connexion-retour"
+              onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
+            >
+              Retour
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -142,37 +128,33 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <div className="composition-acces">
-        <CarteBienvenue />
-        <div className="carte-formulaire-acces">
-          <p className="acces-eyebrow">Bon retour</p>
-          <h2>Se connecter</h2>
-          <form className="formulaire-connexion" onSubmit={onSubmit}>
-            <Champ label="Adresse e-mail" icone={IconMail}>
-              <input
-                type="email"
-                placeholder="vous@etablissement.ga"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </Champ>
-            <Champ label="Mot de passe" icone={IconLock}>
-              <input
-                type="password"
-                placeholder="Votre mot de passe"
-                value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
-                required
-              />
-            </Champ>
-            {erreur && <div className="connexion-erreur">{erreur}</div>}
-            <button className="bouton-connexion" type="submit" disabled={enCours}>
-              <IconLogout className="bouton-connexion-icone" aria-hidden="true" />
-              {enCours ? 'Connexion…' : 'Se connecter'}
-            </button>
-          </form>
-        </div>
+      <div className="carte-unique">
+        <EnTeteCarte />
+        <form className="formulaire-connexion" onSubmit={onSubmit}>
+          <Champ label="Adresse e-mail" icone={IconMail}>
+            <input
+              type="email"
+              placeholder="vous@etablissement.ga"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </Champ>
+          <Champ label="Mot de passe" icone={IconLock}>
+            <input
+              type="password"
+              placeholder="Votre mot de passe"
+              value={motDePasse}
+              onChange={(e) => setMotDePasse(e.target.value)}
+              required
+            />
+          </Champ>
+          {erreur && <div className="connexion-erreur">{erreur}</div>}
+          <button className="bouton-connexion" type="submit" disabled={enCours}>
+            <IconLogout className="bouton-connexion-icone" aria-hidden="true" />
+            {enCours ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </form>
       </div>
     </div>
   );
