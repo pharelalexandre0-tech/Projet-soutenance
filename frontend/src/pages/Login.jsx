@@ -77,7 +77,6 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <span className="filet-connexion" />
         <div className="contenu-connexion">
           <EnTeteMarque />
           <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
@@ -113,7 +112,6 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <span className="filet-connexion" />
       <div className="contenu-connexion">
         <EnTeteMarque />
         <form className="formulaire-connexion" onSubmit={onSubmit}>

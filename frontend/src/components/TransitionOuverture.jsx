@@ -2,7 +2,7 @@ import logoIcon from '../assets/logo-icon.png';
 
 // Les lettres du nom apparaissent une à une plutôt qu'un indicateur
 // générique (barre de progression, points qui pulsent) — la marque elle-même
-// qui s'assemble, sur la même couleur plate que l'écran de connexion.
+// qui s'assemble, sur le même dégradé que l'écran de connexion.
 function MarqueAnimee() {
   const lettres = 'EduSphere'.split('');
   return (
@@ -17,7 +17,6 @@ function MarqueAnimee() {
 export default function TransitionOuverture() {
   return (
     <div className="transition-ouverture">
-      <span className="filet-connexion" />
       <span className="sceau-ouverture"><img src={logoIcon} alt="" /></span>
       <MarqueAnimee />
       <p>Ouverture de votre espace…</p>
