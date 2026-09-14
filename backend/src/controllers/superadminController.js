@@ -25,16 +25,15 @@ async function listerEtablissements(req, res) {
   return res.json({ etablissements: avecCompteurs });
 }
 
+// Volontairement dépourvu de la liste des comptes de l'école : le superadmin
+// pilote l'existence et le statut des établissements, jamais l'identité des
+// personnes qui y travaillent — ça reste le regard de l'Académie sur sa
+// propre école, pas celui du superadmin sur toute la plateforme.
 async function obtenirEtablissement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id);
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
 
-  const comptes = await Utilisateur.findAll({
-    where: { etablissementId: etablissement.id },
-    order: [['role', 'ASC'], ['nom', 'ASC']],
-  });
-
-  return res.json({ etablissement, comptes });
+  return res.json({ etablissement });
 }
 
 // "Insertion d'une école dans le système" : le superadmin crée la fiche
@@ -187,42 +186,6 @@ async function changerStatutEtablissement(req, res) {
   return res.json({ etablissement });
 }
 
-// Verrouiller/déverrouiller UN compte précis (pas toute l'école) — ex. un
-// professeur qui quitte l'établissement, un compte compromis.
-async function changerStatutCompte(req, res) {
-  const compte = await Utilisateur.findByPk(req.params.id);
-  if (!compte) return res.status(404).json({ erreur: 'compte introuvable' });
-  if (compte.role === 'superadmin') {
-    return res.status(403).json({ erreur: 'un compte superadmin ne peut pas être verrouillé depuis cet écran' });
-  }
-
-  const { statut } = req.body;
-  if (!['actif', 'verrouille'].includes(statut)) {
-    return res.status(400).json({ erreur: 'statut invalide' });
-  }
-  compte.statut = statut;
-  await compte.save();
-  return res.json({ compte: compte.toPublicJSON() });
-}
-
-// Réinitialiser le mot de passe d'un compte — utile quand un responsable
-// d'établissement est bloqué et n'a personne d'autre à qui le demander.
-async function reinitialiserMotDePasseCompte(req, res) {
-  const compte = await Utilisateur.findByPk(req.params.id);
-  if (!compte) return res.status(404).json({ erreur: 'compte introuvable' });
-  if (compte.role === 'superadmin') {
-    return res.status(403).json({ erreur: 'un compte superadmin ne peut pas être réinitialisé depuis cet écran' });
-  }
-
-  const { nouveauMotDePasse } = req.body;
-  if (!nouveauMotDePasse || nouveauMotDePasse.length < 6) {
-    return res.status(400).json({ erreur: 'le nouveau mot de passe doit contenir au moins 6 caractères' });
-  }
-  compte.motDePasse = await bcrypt.hash(nouveauMotDePasse, 10);
-  await compte.save();
-  return res.json({ message: 'mot de passe réinitialisé' });
-}
-
 // Liste des seuls comptes superadmin (jamais des comptes d'écoles — ceux-là
 // se gèrent depuis la fiche de leur établissement, pour ne jamais exposer
 // les données personnelles de toutes les écoles dans un même écran).
@@ -276,8 +239,6 @@ module.exports = {
   modifierEtablissement,
   supprimerEtablissement,
   changerStatutEtablissement,
-  changerStatutCompte,
-  reinitialiserMotDePasseCompte,
   listerSuperadmins,
   creerSuperadmin,
   mettreAJourMonProfil,

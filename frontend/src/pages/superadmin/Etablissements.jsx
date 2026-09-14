@@ -4,8 +4,6 @@ import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import { IconBuilding, IconKey, IconAlertTriangle } from '../../components/icons';
 
-const LIBELLE_ROLE = { academie: 'Académie', finance: 'Finance', etudiant: 'Étudiant' };
-
 export default function Etablissements() {
   const [etablissements, setEtablissements] = useState([]);
   const [chargement, setChargement] = useState(true);
@@ -159,8 +157,6 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
   const [form, setForm] = useState(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
-  const [compteEnAction, setCompteEnAction] = useState(null);
-  const [compteAReinitialiser, setCompteAReinitialiser] = useState(null);
   const [confirmationSuppression, setConfirmationSuppression] = useState(false);
   const [suppressionEnCours, setSuppressionEnCours] = useState(false);
   const [erreurSuppression, setErreurSuppression] = useState('');
@@ -212,17 +208,6 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
     }
   }
 
-  async function basculerStatutCompte(compte) {
-    setCompteEnAction(compte.id);
-    const nouveauStatut = compte.statut === 'actif' ? 'verrouille' : 'actif';
-    await client.patch(`/superadmin/comptes/${compte.id}/statut`, { statut: nouveauStatut });
-    setCompteEnAction(null);
-    charger();
-    // Les compteurs de la liste des écoles (en arrière-plan) doivent aussi
-    // refléter ce changement sans attendre la fermeture de la modale.
-    onModifie(nouveauStatut === 'verrouille' ? `${compte.prenom} ${compte.nom} verrouillé(e).` : `${compte.prenom} ${compte.nom} déverrouillé(e).`);
-  }
-
   if (!donnees || !form) {
     return <Modal titre="Chargement…" onFermer={onFermer}><div className="chargement">Chargement…</div></Modal>;
   }
@@ -265,71 +250,6 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
         </div>
         {erreur && <div className="message-erreur">{erreur}</div>}
         <button className="primaire" type="submit" disabled={enCours} style={{ alignSelf: 'flex-start' }}>{enCours ? 'Enregistrement…' : 'Enregistrer la mise à jour'}</button>
-      </form>
-
-      <h3 style={{ marginTop: 22 }}>Comptes système rattachés</h3>
-      <div className="table-scroll">
-        <table>
-          <thead><tr><th>Nom</th><th>Rôle</th><th>E-mail</th><th>Statut</th><th></th></tr></thead>
-          <tbody>
-            {donnees.comptes.map((c) => (
-              <tr key={c.id}>
-                <td>{c.prenom} {c.nom}</td>
-                <td><span className="badge gris">{LIBELLE_ROLE[c.role] || c.role}</span></td>
-                <td className="note-secondaire">{c.email}</td>
-                <td><span className={`badge ${c.statut === 'actif' ? 'vert' : 'rouge'}`}>{c.statut === 'actif' ? 'actif' : 'verrouillé'}</span></td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <button className="secondaire" disabled={compteEnAction === c.id} onClick={() => basculerStatutCompte(c)}>
-                    {c.statut === 'actif' ? 'Verrouiller' : 'Déverrouiller'}
-                  </button>
-                  <button className="secondaire" onClick={() => setCompteAReinitialiser(c)}>Réinitialiser</button>
-                </td>
-              </tr>
-            ))}
-            {donnees.comptes.length === 0 && <tr><td colSpan={5} className="vide">Aucun compte pour cette école</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {compteAReinitialiser && (
-        <FormulaireReinitialisation
-          compte={compteAReinitialiser}
-          onFermer={() => setCompteAReinitialiser(null)}
-          onReussi={() => { setCompteAReinitialiser(null); onModifie(`Mot de passe de ${compteAReinitialiser.prenom} ${compteAReinitialiser.nom} réinitialisé.`); }}
-        />
-      )}
-    </Modal>
-  );
-}
-
-function FormulaireReinitialisation({ compte, onFermer, onReussi }) {
-  const [motDePasse, setMotDePasse] = useState('');
-  const [enCours, setEnCours] = useState(false);
-  const [erreur, setErreur] = useState('');
-
-  async function soumettre(e) {
-    e.preventDefault();
-    setEnCours(true);
-    setErreur('');
-    try {
-      await client.post(`/superadmin/comptes/${compte.id}/reinitialiser-mot-de-passe`, { nouveauMotDePasse: motDePasse });
-      onReussi();
-    } catch (err) {
-      setErreur(err.response?.data?.erreur || 'échec de la réinitialisation');
-    } finally {
-      setEnCours(false);
-    }
-  }
-
-  return (
-    <Modal titre={`Réinitialiser le mot de passe — ${compte.prenom} ${compte.nom}`} onFermer={onFermer} largeur={420}>
-      <form className="formulaire" onSubmit={soumettre}>
-        <div className="champ">
-          <label>Nouveau mot de passe</label>
-          <input type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} minLength={6} required />
-        </div>
-        {erreur && <div className="message-erreur">{erreur}</div>}
-        <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Réinitialisation…' : 'Réinitialiser'}</button>
       </form>
     </Modal>
   );

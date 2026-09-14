@@ -14,8 +14,6 @@ router.patch('/etablissements/:id/statut', authentifier, superadmin, ctrl.change
 
 router.get('/superadmins', authentifier, superadmin, ctrl.listerSuperadmins);
 router.post('/comptes', authentifier, superadmin, ctrl.creerSuperadmin);
-router.patch('/comptes/:id/statut', authentifier, superadmin, ctrl.changerStatutCompte);
-router.post('/comptes/:id/reinitialiser-mot-de-passe', authentifier, superadmin, ctrl.reinitialiserMotDePasseCompte);
 
 router.put('/mon-profil', authentifier, superadmin, ctrl.mettreAJourMonProfil);
 
