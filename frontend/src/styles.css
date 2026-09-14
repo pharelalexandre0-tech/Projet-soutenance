@@ -455,45 +455,6 @@ button.danger:hover { background: var(--erreur-fond); }
   .lettre-connexion { padding: 32px 24px 30px; margin-top: 12px; }
 }
 
-.separateur-demo {
-  display: flex; align-items: center; gap: 10px;
-  margin: 22px 0 12px; color: var(--texte-clair);
-  font-family: var(--police-mono); font-size: 0.63rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em;
-}
-.separateur-demo::before, .separateur-demo::after { content: ""; flex: 1; height: 1px; background: var(--bordure); }
-
-.comptes-demo-grille { display: flex; flex-direction: column; gap: 8px; }
-/* Ici seulement (le petit sélecteur de démo) une touche de couleur par
-   rôle est légitime : ce sont 3 boutons isolés sur l'écran de connexion,
-   jamais propagés au reste de l'app (contrairement à l'ancien [data-role]
-   sur .app-shell qui reteintait tout un tableau de bord). */
-.compte-demo-carte[data-role="finance"] { --primaire: #A67C1E; --primaire-clair: #F6EAC9; }
-.compte-demo-carte[data-role="etudiant"] { --primaire: var(--edu-vert); --primaire-clair: #E1F2E8; }
-.compte-demo-carte[data-role="superadmin"] { --primaire: var(--edu-marine); --primaire-clair: #E2E6EC; }
-
-.compte-demo-carte {
-  display: flex; align-items: center; gap: 11px;
-  padding: 10px 12px; border-radius: 10px;
-  border: 1px solid var(--bordure); background: var(--carte);
-  cursor: pointer; text-align: left; width: 100%;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
-}
-.compte-demo-carte:hover:not(:disabled) { border-color: var(--primaire); background: var(--primaire-clair); transform: translateX(2px); }
-.compte-demo-carte:active:not(:disabled) { transform: translateX(2px) scale(0.98); }
-.compte-demo-carte.actif { border-color: var(--primaire); background: var(--primaire-clair); }
-.compte-demo-carte:disabled { opacity: 0.6; cursor: not-allowed; }
-.compte-demo-icone {
-  width: 30px; height: 30px; flex: none; border-radius: 8px;
-  background: var(--primaire-clair); color: var(--primaire);
-  display: flex; align-items: center; justify-content: center;
-}
-.compte-demo-texte { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.compte-demo-texte strong { font-size: 0.83rem; font-weight: 600; color: var(--texte); }
-.compte-demo-texte small { font-size: 0.72rem; color: var(--texte-clair); }
-.comptes-demo-note { margin: 12px 0 0; font-size: 0.72rem; color: var(--texte-clair); text-align: center; }
-.comptes-demo-note code { background: var(--gris-fond); padding: 1px 6px; border-radius: 4px; font-family: var(--police-mono); font-size: 0.7rem; }
-
 .entete-carte {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding-bottom: 13px; margin-bottom: 17px; border-bottom: 1px solid var(--bordure);
