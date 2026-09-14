@@ -3,6 +3,7 @@ import client from '../../api/client';
 
 const UE_VIDE = { code: '', intitule: '', credits: '', coefficient: '1', semestreId: '' };
 const MATIERE_VIDE = { code: '', intitule: '', coefficient: '1' };
+const SEMESTRE_VIDE = { libelle: '', anneeScolaire: '' };
 
 export default function UnitesEnseignement() {
   const [ues, setUes] = useState([]);
@@ -10,15 +11,29 @@ export default function UnitesEnseignement() {
   const [ueOuverte, setUeOuverte] = useState(null);
   const [nouvelleUE, setNouvelleUE] = useState(UE_VIDE);
   const [nouvelleMatiere, setNouvelleMatiere] = useState(MATIERE_VIDE);
+  const [nouveauSemestre, setNouveauSemestre] = useState(SEMESTRE_VIDE);
+  const [formSemestreOuvert, setFormSemestreOuvert] = useState(false);
   const [message, setMessage] = useState('');
 
   function charger() {
     client.get('/unites-enseignement').then((res) => setUes(res.data.ues));
   }
+  function chargerSemestres() {
+    return client.get('/semestres').then((res) => setSemestres(res.data.semestres));
+  }
   useEffect(() => {
     charger();
-    client.get('/semestres').then((res) => setSemestres(res.data.semestres));
+    chargerSemestres();
   }, []);
+
+  async function creerSemestre(e) {
+    e.preventDefault();
+    const res = await client.post('/semestres', nouveauSemestre);
+    setNouveauSemestre(SEMESTRE_VIDE);
+    setFormSemestreOuvert(false);
+    await chargerSemestres();
+    setNouvelleUE((v) => ({ ...v, semestreId: String(res.data.semestre.id) }));
+  }
 
   async function creerUE(e) {
     e.preventDefault();
@@ -111,6 +126,38 @@ export default function UnitesEnseignement() {
 
       <div className="carte">
         <h2>Créer une UE</h2>
+        {semestres.length === 0 && (
+          <div className="message-erreur" style={{ marginBottom: 14 }}>
+            Aucun semestre n'existe encore pour cet établissement — crée-en un avant de pouvoir créer une UE.
+          </div>
+        )}
+        {(formSemestreOuvert || semestres.length === 0) && (
+          <form
+            className="ligne-champs"
+            style={{ marginBottom: 18, padding: 14, background: 'var(--gris-fond)', borderRadius: 10 }}
+            onSubmit={creerSemestre}
+          >
+            <div className="champ">
+              <label>Libellé du semestre</label>
+              <input
+                placeholder="ex. Semestre 1"
+                value={nouveauSemestre.libelle}
+                onChange={(e) => setNouveauSemestre({ ...nouveauSemestre, libelle: e.target.value })}
+                required
+              />
+            </div>
+            <div className="champ">
+              <label>Année scolaire</label>
+              <input
+                placeholder="ex. 2025-2026"
+                value={nouveauSemestre.anneeScolaire}
+                onChange={(e) => setNouveauSemestre({ ...nouveauSemestre, anneeScolaire: e.target.value })}
+                required
+              />
+            </div>
+            <button className="secondaire" type="submit" style={{ alignSelf: 'flex-end' }}>Créer le semestre</button>
+          </form>
+        )}
         <form className="formulaire" onSubmit={creerUE}>
           <div className="ligne-champs">
             <div className="champ">
@@ -124,10 +171,19 @@ export default function UnitesEnseignement() {
           </div>
           <div className="ligne-champs">
             <div className="champ">
-              <label>Semestre</label>
+              <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                Semestre
+                <button
+                  type="button"
+                  onClick={() => setFormSemestreOuvert((v) => !v)}
+                  style={{ background: 'none', border: 'none', color: 'var(--primaire)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, letterSpacing: 0, textTransform: 'none' }}
+                >
+                  + Nouveau semestre
+                </button>
+              </label>
               <select value={nouvelleUE.semestreId} onChange={(e) => setNouvelleUE({ ...nouvelleUE, semestreId: e.target.value })} required>
                 <option value="">—</option>
-                {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle}</option>)}
+                {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
               </select>
             </div>
             <div className="champ">
