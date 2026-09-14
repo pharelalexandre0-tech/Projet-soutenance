@@ -567,31 +567,36 @@ button.danger:hover { background: var(--erreur-fond); }
 .formulaire-connexion .champ label {
   color: var(--texte-clair); letter-spacing: 0.09em; font-size: 0.66rem;
 }
-/* Icône, séparateur, champ flush à l'intérieur d'un même contenant bordé —
-   un champ vide sans rien dedans se lit comme un simple espacement plutôt
-   qu'un champ de saisie. */
+/* Repris de la puce-icone déjà utilisée ailleurs dans l'appli (carrés
+   arrondis, fond teinté) plutôt que la barre bleue + séparateur + fond
+   gris de la version précédente — plus propre, et cohérent avec le
+   reste de l'interface au lieu d'inventer un style propre au formulaire
+   de connexion. */
 .formulaire-connexion .champ-icone {
   display: flex; align-items: center; gap: 12px;
-  background: var(--gris-fond); border: 1px solid var(--bordure); border-left: 3px solid var(--edu-bleu);
-  border-radius: 10px; padding: 0 15px;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  background: #FFFFFF; border: 1.5px solid var(--bordure);
+  border-radius: 12px; padding: 5px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .formulaire-connexion .champ-icone:hover { border-color: #C7CCC5; }
 .formulaire-connexion .champ-icone svg {
-  flex: none; width: 18px; height: 18px;
-  color: var(--texte-clair); transition: color 0.15s ease;
+  flex: none; width: 17px; height: 17px; color: var(--edu-bleu);
 }
-.champ-separateur { flex: none; width: 1px; height: 24px; background: var(--bordure); }
+.formulaire-connexion .champ-icone > svg {
+  width: 38px; height: 38px; padding: 10px; box-sizing: border-box;
+  background: var(--primaire-clair); border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
 .formulaire-connexion .champ-icone input {
   flex: 1; min-width: 0; background: transparent; border: none;
-  padding: 16px 0; color: var(--texte); font-size: 0.98rem;
+  padding: 11px 14px 11px 0; color: var(--texte); font-size: 0.98rem;
 }
 .formulaire-connexion .champ-icone input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ-icone input:focus { outline: none; }
 .formulaire-connexion .champ-icone:focus-within {
-  border-color: var(--edu-bleu); background: #FFFFFF; box-shadow: 0 0 0 3px var(--primaire-clair);
+  border-color: var(--edu-bleu); box-shadow: 0 0 0 3px var(--primaire-clair);
 }
-.formulaire-connexion .champ-icone:focus-within svg { color: var(--edu-bleu); }
+.formulaire-connexion .champ-icone:focus-within > svg { background: var(--edu-bleu); color: #FFFFFF; }
 
 .connexion-erreur {
   font-size: 0.82rem; color: var(--erreur); background: var(--erreur-fond);

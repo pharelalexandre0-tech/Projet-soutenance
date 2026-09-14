@@ -38,7 +38,6 @@ function Champ({ label, icone: Icone, children }) {
       <label>{label}</label>
       <div className="champ-icone">
         <Icone aria-hidden="true" />
-        <span className="champ-separateur" aria-hidden="true" />
         {children}
       </div>
     </div>
