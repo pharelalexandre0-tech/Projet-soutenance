@@ -6,17 +6,28 @@ import logoIcon from '../assets/logo-icon.png';
 
 // Deuxième refonte : plus de carte flottante sur un dégradé — un panneau
 // scindé en deux, la marque à gauche et l'accès à droite, comme une console
-// d'accès plutôt qu'une page de garde produit. Aucun élément décoratif qui
-// n'a pas de fonction (pas de filet double, pas de cachet) : juste la marque
-// d'un côté, le formulaire de l'autre.
+// d'accès plutôt qu'une page de garde produit. Le panneau de marque est
+// structuré du haut vers le bas (identité, mission, mention institutionnelle)
+// plutôt qu'un simple bloc centré — sur un grand écran, un logo seul au
+// milieu d'un aplat se lit comme inachevé, pas comme une plateforme
+// d'enseignement supérieur sérieuse.
 function PanneauMarque() {
   return (
     <div className="panneau-marque">
-      <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-      <div>
-        <p className="marque-tagline">Écosystème éducatif intelligent gabonais</p>
-        <h1 className="marque-nom">EduSphere</h1>
+      <div className="marque-lockup">
+        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+        <div>
+          <p className="marque-tagline">Écosystème éducatif intelligent gabonais</p>
+          <h1 className="marque-nom">EduSphere</h1>
+        </div>
       </div>
+      <p className="marque-mission">
+        Gestion académique, dossiers étudiants et suivi pédagogique pour les
+        établissements d'enseignement supérieur — classes, unités
+        d'enseignement, notes, absences, finances et bulletins réunis dans un
+        seul espace.
+      </p>
+      <p className="marque-pied">Plateforme académique — accès sécurisé</p>
     </div>
   );
 }

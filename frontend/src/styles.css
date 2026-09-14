@@ -437,13 +437,13 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 
 .panneau-marque {
-  flex: 0 0 40%;
-  max-width: 420px;
+  flex: 0 0 44%;
+  max-width: 560px;
   background: var(--degrade-plein-ecran);
-  display: flex; align-items: center;
-  gap: 16px;
-  padding: 48px 44px;
+  display: flex; flex-direction: column;
+  padding: 56px 52px;
 }
+.marque-lockup { display: flex; align-items: center; gap: 16px; }
 .panneau-marque .marque-pastille {
   width: 44px; height: 44px; flex: none; padding: 8px;
   background: #FFFFFF; border-radius: 50%; box-shadow: 0 6px 18px rgba(0,0,0,0.28);
@@ -459,6 +459,16 @@ button.danger:hover { background: var(--erreur-fond); }
   display: inline-flex; align-items: baseline; gap: 6px;
 }
 .marque-nom::after { content: ""; width: 7px; height: 7px; border-radius: 2px; background: #FFFFFF; align-self: center; flex: none; }
+.marque-mission {
+  font-size: 0.92rem; line-height: 1.65; color: rgba(255,255,255,0.72);
+  max-width: 380px; margin: auto 0 0;
+  padding-top: 40px;
+}
+.marque-pied {
+  font-family: var(--police-mono); font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4);
+  margin: 28px 0 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.15);
+}
 
 .panneau-formulaire {
   flex: 1;
@@ -478,7 +488,8 @@ button.danger:hover { background: var(--erreur-fond); }
 
 @media (max-width: 760px) {
   .page-connexion { flex-direction: column; }
-  .panneau-marque { flex: 0 0 auto; max-width: none; padding: 32px 24px; }
+  .panneau-marque { flex: 0 0 auto; max-width: none; padding: 28px 24px; }
+  .marque-mission, .marque-pied { display: none; }
   .panneau-formulaire { padding: 36px 24px; }
 }
 
