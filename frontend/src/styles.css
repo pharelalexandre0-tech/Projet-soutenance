@@ -463,20 +463,23 @@ button.danger:hover { background: var(--erreur-fond); }
 .formulaire-connexion > *:nth-child(3) { animation-delay: 0.24s; }
 .formulaire-connexion > *:nth-child(4) { animation-delay: 0.31s; }
 .formulaire-connexion .champ label {
-  color: rgba(255,255,255,0.5); letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.65); letter-spacing: 0.08em;
 }
+/* Champs pleins (fond clair, texte sombre) plutôt que translucides sur le
+   marine : un champ à 8% d'opacité sur un fond déjà sombre ne se distingue
+   quasiment pas de la page — le contraste doit sauter aux yeux, pas se
+   deviner. */
 .formulaire-connexion .champ input {
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
-  color: #FFFFFF; font-size: 0.92rem;
+  background: #FFFFFF; border: 1px solid transparent;
+  color: var(--texte); font-size: 0.92rem;
 }
-.formulaire-connexion .champ input::placeholder { color: rgba(255,255,255,0.35); }
+.formulaire-connexion .champ input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ input:focus {
-  outline: none; background: rgba(255,255,255,0.12); box-shadow: none; border-color: #FFFFFF;
+  outline: none; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); border-color: var(--edu-bleu);
 }
 .formulaire-connexion .champ input:-webkit-autofill {
-  -webkit-text-fill-color: #FFFFFF;
-  -webkit-box-shadow: 0 0 0 1000px var(--edu-marine) inset;
-  transition: background-color 9999s ease-in-out 0s;
+  -webkit-text-fill-color: var(--texte);
+  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset;
 }
 
 .connexion-erreur {
