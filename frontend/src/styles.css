@@ -425,94 +425,73 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Cinquième passe de la connexion : la version sans aucun panneau lisait
-   trop nue. On garde le principe (pas de bloc opaque plaqué dessus) mais on
-   donne du relief au dégradé — un semis de nœuds reliés en fond, écho du
-   mot "écosystème" plutôt qu'une illustration gratuite — et le formulaire
-   vit dans un panneau de verre dépoli (translucide, flou) au lieu d'être à
-   même le fond ou dans une carte opaque. */
+/* Sixième passe de la connexion : dégradé, verre dépoli, halo, graphique
+   "réseau" décoratif — tout ça est devenu la signature visuelle par défaut
+   des interfaces générées par IA. Retour à une couleur plate, sans effet
+   ni ornement : la typographie et l'espacement font le travail, pas les
+   filtres. */
 .page-connexion {
-  position: relative;
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
   padding: 40px 20px;
-  background: var(--degrade-plein-ecran);
-  overflow: hidden;
+  background: var(--edu-marine);
 }
 
-.reseau-fond {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  z-index: 0; opacity: 0.5;
-}
-.reseau-fond line { stroke: #FFFFFF; stroke-width: 1; stroke-opacity: 0.18; }
-.reseau-fond circle { fill: #FFFFFF; fill-opacity: 0.4; }
+.contenu-connexion { width: 100%; max-width: 360px; }
 
-.contenu-connexion {
-  position: relative; z-index: 1;
-  width: 100%; max-width: 380px;
-  background: rgba(255,255,255,0.07);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.16);
-  border-radius: 20px;
-  padding: 40px 36px;
-  box-shadow: 0 24px 60px rgba(6, 20, 34, 0.35);
-}
-
-.marque-connexion { display: flex; align-items: center; gap: 14px; margin-bottom: 36px; }
+.marque-connexion { display: flex; align-items: center; gap: 14px; margin-bottom: 44px; }
 .marque-connexion .marque-pastille {
   width: 40px; height: 40px; flex: none; padding: 7px;
-  background: #FFFFFF; border-radius: 50%; box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+  background: #FFFFFF; border-radius: 50%;
 }
 .marque-nom {
   font-family: var(--police-marque); font-size: 1.5rem; font-weight: 800;
   letter-spacing: -0.02em; color: #FFFFFF; margin: 0;
   display: inline-flex; align-items: baseline; gap: 6px;
 }
-.marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: #FFFFFF; align-self: center; flex: none; }
+.marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--edu-bleu); align-self: center; flex: none; }
 
-.connexion-aide { color: rgba(255,255,255,0.65); font-size: 0.85rem; margin: -24px 0 28px; line-height: 1.5; }
+.connexion-aide { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: -30px 0 32px; line-height: 1.5; }
 
-.formulaire-connexion { display: flex; flex-direction: column; gap: 24px; }
+.formulaire-connexion { display: flex; flex-direction: column; gap: 18px; }
 .formulaire-connexion .champ label {
-  color: rgba(255,255,255,0.55); letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.5); letter-spacing: 0.08em;
 }
 .formulaire-connexion .champ input {
-  background: transparent; border: none; border-bottom: 1.5px solid rgba(255,255,255,0.3);
-  border-radius: 0; padding: 8px 2px; color: #FFFFFF; font-size: 0.95rem;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+  color: #FFFFFF; font-size: 0.92rem;
 }
-.formulaire-connexion .champ input::placeholder { color: rgba(255,255,255,0.4); }
+.formulaire-connexion .champ input::placeholder { color: rgba(255,255,255,0.35); }
 .formulaire-connexion .champ input:focus {
-  outline: none; background: transparent; box-shadow: none; border-bottom-color: #FFFFFF;
+  outline: none; background: rgba(255,255,255,0.12); box-shadow: none; border-color: #FFFFFF;
 }
 .formulaire-connexion .champ input:-webkit-autofill {
   -webkit-text-fill-color: #FFFFFF;
-  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  -webkit-box-shadow: 0 0 0 1000px var(--edu-marine) inset;
   transition: background-color 9999s ease-in-out 0s;
 }
 
 .connexion-erreur {
   font-size: 0.82rem; color: #FFFFFF; background: rgba(226, 92, 74, 0.28);
-  border: 1px solid rgba(226, 92, 74, 0.5); border-radius: 8px; padding: 9px 12px;
+  border: 1px solid rgba(226, 92, 74, 0.5); border-radius: 4px; padding: 9px 12px;
 }
 
 .bouton-connexion {
   background: #FFFFFF; color: var(--edu-marine); border: none;
-  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 8px;
-  cursor: pointer; transition: transform 0.12s ease, opacity 0.15s ease;
+  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 4px;
+  cursor: pointer; margin-top: 4px;
 }
-.bouton-connexion:hover:not(:disabled) { opacity: 0.9; }
-.bouton-connexion:active:not(:disabled) { transform: scale(0.98); }
+.bouton-connexion:hover:not(:disabled) { background: rgba(255,255,255,0.85); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .connexion-retour {
-  background: none; border: none; color: rgba(255,255,255,0.6);
+  background: none; border: none; color: rgba(255,255,255,0.55);
   font-size: 0.82rem; cursor: pointer; padding: 4px 0; text-align: center;
 }
 .connexion-retour:hover { color: #FFFFFF; }
 
 @media (max-width: 480px) {
   .page-connexion { padding: 24px 20px; }
-  .contenu-connexion { padding: 32px 24px; }
 }
 
 /* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu

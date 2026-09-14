@@ -4,34 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
-// Cinquième passe : la version sans panneau lisait trop nu. On garde le
-// principe (pas de bloc opaque posé dessus) mais on donne au dégradé du
-// relief — un semis de nœuds reliés (l'"écosystème" du nom), pas une
-// illustration décorative gratuite — et le formulaire vit dans un panneau
-// de verre dépoli plutôt qu'à même le fond.
-function ReseauFond() {
-  const noeuds = [
-    [90, 120], [220, 60], [340, 160], [180, 230], [60, 320],
-    [280, 340], [420, 260], [500, 120], [610, 220], [560, 360],
-    [700, 340], [760, 160], [820, 420], [380, 460], [160, 460],
-  ];
-  const liens = [
-    [0, 1], [1, 2], [1, 3], [0, 3], [0, 4], [3, 5], [2, 6], [6, 7],
-    [6, 9], [7, 8], [8, 9], [8, 11], [9, 10], [10, 11], [10, 12],
-    [5, 13], [3, 14], [5, 14],
-  ];
-  return (
-    <svg className="reseau-fond" viewBox="0 0 900 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-      {liens.map(([a, b], i) => (
-        <line key={i} x1={noeuds[a][0]} y1={noeuds[a][1]} x2={noeuds[b][0]} y2={noeuds[b][1]} />
-      ))}
-      {noeuds.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i % 3 === 0 ? 4 : 2.5} />
-      ))}
-    </svg>
-  );
-}
-
+// Sixième passe : le verre dépoli et le semis de nœuds reliés sont
+// exactement la signature visuelle des interfaces générées par IA en ce
+// moment (dégradé + glassmorphism + graphique "réseau" décoratif). Retour à
+// une couleur plate, sans effet ni ornement — la typographie et l'espace
+// font le travail.
 function EnTeteMarque() {
   return (
     <div className="marque-connexion">
@@ -101,7 +78,6 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <ReseauFond />
         <div className="contenu-connexion">
           <EnTeteMarque />
           <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
@@ -137,7 +113,6 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <ReseauFond />
       <div className="contenu-connexion">
         <EnTeteMarque />
         <form className="formulaire-connexion" onSubmit={onSubmit}>
