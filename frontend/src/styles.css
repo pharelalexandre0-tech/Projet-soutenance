@@ -41,6 +41,10 @@
   --police: 'Public Sans', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --police-serif: 'Source Serif 4', Georgia, serif;
   --police-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+  /* Réservée au nom de marque (écran de connexion) : une grotesque avec du
+     caractère, pas le grand titre serif "élégant" qu'on voit sur toutes
+     les pages de connexion générées par IA — voir .lettre-titre. */
+  --police-marque: 'Bricolage Grotesque', var(--police);
 }
 
 /* Un seul bleu de marque dans les trois espaces — la distinction de rôle se
@@ -428,31 +432,33 @@ button.danger:hover { background: var(--erreur-fond); }
 
 .lettre-connexion {
   position: relative;
-  width: 100%; max-width: 440px;
+  width: 100%; max-width: 480px;
   background: var(--papier);
   border: 1px solid var(--bordure);
   border-radius: 4px;
-  padding: 40px 44px 34px;
+  padding: 56px 56px 48px;
   box-shadow: 0 30px 70px rgba(6, 20, 34, 0.4);
 }
 
-.lettre-entete { text-align: center; padding-bottom: 22px; margin-bottom: 26px; border-bottom: 2px solid var(--primaire); }
-.lettre-entete .marque-pastille { margin: 0 auto 14px; width: 46px; height: 46px; padding: 7px; box-shadow: var(--ombre); }
+.lettre-entete { text-align: center; padding-bottom: 30px; margin-bottom: 34px; border-bottom: 2px solid var(--primaire); }
+.lettre-entete .marque-pastille { margin: 0 auto 18px; width: 56px; height: 56px; padding: 9px; box-shadow: var(--ombre); }
 .lettre-eyebrow {
-  font-family: var(--police-mono); font-size: 0.62rem; font-weight: 700;
+  font-family: var(--police-mono); font-size: 0.66rem; font-weight: 700;
   letter-spacing: 0.14em; text-transform: uppercase; color: var(--texte-clair);
   margin: 0;
 }
 .lettre-titre {
-  font-family: var(--police-serif); font-size: 1.7rem; font-weight: 700;
-  letter-spacing: 0.01em; margin: 4px 0 0; color: var(--texte);
+  font-family: var(--police-marque); font-size: 2.1rem; font-weight: 700;
+  letter-spacing: -0.02em; margin: 8px 0 0; color: var(--texte);
 }
 
-.lettre-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: 0 0 20px; }
+.lettre-corps .sous-titre { color: var(--texte-clair); font-size: 0.85rem; margin: 0 0 24px; }
+.lettre-corps .formulaire { gap: 20px; }
 
 @media (max-width: 860px) {
   .page-connexion { padding: 24px 16px 48px; align-items: flex-start; }
-  .lettre-connexion { padding: 32px 24px 30px; margin-top: 12px; }
+  .lettre-connexion { padding: 40px 28px 34px; margin-top: 12px; }
+  .lettre-titre { font-size: 1.8rem; }
 }
 
 .entete-carte {
