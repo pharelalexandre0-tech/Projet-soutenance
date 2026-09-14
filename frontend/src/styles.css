@@ -460,27 +460,28 @@ button.danger:hover { background: var(--erreur-fond); }
 
 .connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center; }
 
-.formulaire-connexion { display: flex; flex-direction: column; gap: 16px; }
+.formulaire-connexion { display: flex; flex-direction: column; gap: 19px; }
 .formulaire-connexion .champ label {
-  color: var(--texte-clair); letter-spacing: 0.08em;
+  color: var(--texte-clair); letter-spacing: 0.09em; font-size: 0.63rem;
 }
 /* Icône, séparateur, champ flush à l'intérieur d'un même contenant bordé —
    un champ vide sans rien dedans se lit comme un simple espacement plutôt
    qu'un champ de saisie. */
 .formulaire-connexion .champ-icone {
-  display: flex; align-items: center; gap: 11px;
+  display: flex; align-items: center; gap: 12px;
   background: var(--gris-fond); border: 1px solid var(--bordure); border-left: 3px solid var(--edu-bleu);
-  border-radius: 10px; padding: 0 14px;
+  border-radius: 10px; padding: 0 15px;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
+.formulaire-connexion .champ-icone:hover { border-color: #C7CCC5; }
 .formulaire-connexion .champ-icone svg {
   flex: none; width: 17px; height: 17px;
   color: var(--texte-clair); transition: color 0.15s ease;
 }
-.champ-separateur { flex: none; width: 1px; height: 20px; background: var(--bordure); }
+.champ-separateur { flex: none; width: 1px; height: 22px; background: var(--bordure); }
 .formulaire-connexion .champ-icone input {
   flex: 1; min-width: 0; background: transparent; border: none;
-  padding: 11px 0; color: var(--texte); font-size: 0.92rem;
+  padding: 13px 0; color: var(--texte); font-size: 0.93rem;
 }
 .formulaire-connexion .champ-icone input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ-icone input:focus { outline: none; }
@@ -491,19 +492,19 @@ button.danger:hover { background: var(--erreur-fond); }
 
 .connexion-erreur {
   font-size: 0.82rem; color: var(--erreur); background: var(--erreur-fond);
-  border: 1px solid var(--erreur); border-radius: 4px; padding: 9px 12px;
+  border: 1px solid var(--erreur); border-radius: 6px; padding: 10px 13px;
 }
 
 .bouton-connexion {
   display: flex; align-items: center; justify-content: center; gap: 9px;
   background: var(--edu-bleu); color: #FFFFFF; border: none;
-  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 8px;
-  cursor: pointer; margin-top: 4px;
-  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  font-weight: 700; font-size: 0.92rem; letter-spacing: 0.01em; padding: 14px 0; border-radius: 10px;
+  cursor: pointer; margin-top: 8px;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 .bouton-connexion-icone { width: 16px; height: 16px; transform: scaleX(-1); flex: none; }
-.bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); box-shadow: 0 6px 16px rgba(29,95,168,0.3); }
-.bouton-connexion:active:not(:disabled) { transform: scale(0.98); }
+.bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); box-shadow: 0 8px 18px rgba(29,95,168,0.32); transform: translateY(-1px); }
+.bouton-connexion:active:not(:disabled) { transform: scale(0.98) translateY(0); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .connexion-retour {
