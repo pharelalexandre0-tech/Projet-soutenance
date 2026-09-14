@@ -1087,11 +1087,14 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 
 .sceau-ouverture {
-  width: 74px; height: 74px; border-radius: 50%;
+  /* Même échelle que le sceau de la carte de connexion (marque-pastille,
+     104px) : il paraissait chétif à côté une fois celui-ci agrandi. */
+  width: 108px; height: 108px; border-radius: 50%;
   background: #FFFFFF;
+  box-shadow: 0 0 0 20px rgba(255,255,255,0.08), 0 14px 32px rgba(0,0,0,0.3);
   display: flex; align-items: center; justify-content: center;
-  padding: 12px;
-  margin-bottom: 18px;
+  padding: 16px;
+  margin-bottom: 24px;
   animation: apparition-sceau 0.6s ease both;
 }
 .sceau-ouverture img { width: 100%; height: 100%; object-fit: contain; }
@@ -1100,7 +1103,7 @@ button.danger:hover { background: var(--erreur-fond); }
    générique (barre, points qui pulsent) — la marque elle-même comme signe
    de chargement. */
 .marque-lettres {
-  font-family: var(--police-marque); font-size: 1.7rem; font-weight: 800;
+  font-family: var(--police-marque); font-size: 2.2rem; font-weight: 800;
   letter-spacing: -0.01em; color: #fff; margin: 0; text-align: center;
 }
 .marque-lettres span {
@@ -1108,7 +1111,7 @@ button.danger:hover { background: var(--erreur-fond); }
   animation: entree-lettre 0.4s cubic-bezier(.22,1,.36,1) both;
 }
 .transition-ouverture p {
-  font-size: 0.85rem; color: rgba(255,255,255,0.6); margin: 10px 0 0; text-align: center;
+  font-size: 0.94rem; color: rgba(255,255,255,0.65); margin: 14px 0 0; text-align: center;
   animation: tombe-doucement 0.4s ease 0.85s both;
 }
 
