@@ -102,11 +102,7 @@ export default function TableauDeBord({ onNaviguer }) {
         <div className="actions-rapides" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
           <button className="action-rapide" onClick={() => onNaviguer?.('frais')}>
             <span className="puce-icone petite"><IconBanknote width={16} height={16} /></span>
-            Définir des frais
-          </button>
-          <button className="action-rapide" onClick={() => onNaviguer?.('paiements')}>
-            <span className="puce-icone petite"><IconCard width={16} height={16} /></span>
-            Enregistrer un paiement
+            Frais &amp; paiements
           </button>
           <button className="action-rapide" onClick={() => onNaviguer?.('impayes')}>
             <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>

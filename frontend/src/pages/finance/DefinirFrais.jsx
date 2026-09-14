@@ -19,6 +19,7 @@ export default function DefinirFrais() {
   const [eleveEnPaiement, setEleveEnPaiement] = useState(null);
   const [eleveSansFrais, setEleveSansFrais] = useState(null);
   const [toast, setToast] = useState(null);
+  const [recherche, setRecherche] = useState('');
 
   function charger() {
     setChargement(true);
@@ -32,6 +33,22 @@ export default function DefinirFrais() {
   const totalEleves = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.length, 0), 0);
   const totalNetAPayer = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.reduce((s3, e) => s3 + e.totalDu, 0), 0), 0);
   const totalVerse = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.reduce((s3, e) => s3 + e.totalRegle, 0), 0), 0);
+
+  // Recherche par nom : on filtre les élèves de chaque classe, puis on
+  // masque les classes/niveaux qui n'ont plus personne à afficher — pas
+  // besoin d'un onglet séparé, l'étudiant cherché reste actionnable ici
+  // (Encaisser / Définir un frais) exactement comme dans la liste complète.
+  const termeRecherche = recherche.trim().toLowerCase();
+  const niveauxFiltres = termeRecherche
+    ? niveaux
+        .map((n) => ({
+          ...n,
+          classes: n.classes
+            .map((c) => ({ ...c, eleves: c.eleves.filter((e) => `${e.prenom} ${e.nom}`.toLowerCase().includes(termeRecherche)) }))
+            .filter((c) => c.eleves.length > 0),
+        }))
+        .filter((n) => n.classes.length > 0)
+    : niveaux;
 
   return (
     <>
@@ -59,10 +76,21 @@ export default function DefinirFrais() {
           <button className="primaire" onClick={() => setModaleClasseOuverte(true)}>+ Définir pour une classe</button>
         </div>
 
+        <input
+          type="search"
+          placeholder="Rechercher un étudiant par nom…"
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
+        />
+
         {chargement && <div className="chargement">Chargement…</div>}
         {!chargement && niveaux.length === 0 && <div className="vide">Aucune classe enregistrée</div>}
+        {!chargement && niveaux.length > 0 && niveauxFiltres.length === 0 && (
+          <div className="vide">Aucun étudiant ne correspond à "{recherche.trim()}"</div>
+        )}
 
-        {niveaux.map(({ niveau, classes }) => (
+        {niveauxFiltres.map(({ niveau, classes }) => (
           <div className="roster-niveau" key={niveau}>
             <h3 className="roster-niveau-titre">{niveau}</h3>
             {classes.map((classe) => (
