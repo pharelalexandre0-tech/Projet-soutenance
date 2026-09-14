@@ -424,11 +424,11 @@ button.danger:hover { background: var(--erreur-fond); }
 .message-erreur { color: var(--erreur); background: var(--erreur-fond); border-color: var(--erreur); }
 .message-succes { color: var(--succes); background: var(--succes-fond); border-color: var(--succes); }
 
-/* Septième passe de la connexion : couleur plate, pas d'effet — ce
-   principe reste (dégradé/verre/halo/réseau lisent comme des interfaces
-   générées par IA). Ce qui change : un vrai geste d'arrivée, la marque puis
-   chaque champ en cascade plutôt que tout d'un bloc, et un filet de
-   couleur en haut d'écran comme seule touche de marque. */
+/* Huitième passe de la connexion : carte à deux panneaux avec bord
+   incurvé, sur le dégradé bleu déjà en place — référence donnée
+   directement par l'utilisateur. Pas de bascule "créer un compte" :
+   EduSphere n'a pas d'inscription libre, donc le panneau de bienvenue est
+   statique plutôt qu'un des deux états d'un composant qui glisse. */
 .page-connexion {
   min-height: 100dvh;
   display: flex; align-items: center; justify-content: center;
@@ -436,89 +436,94 @@ button.danger:hover { background: var(--erreur-fond); }
   background: var(--degrade-plein-ecran);
 }
 
-.contenu-connexion { width: 100%; max-width: 360px; }
-
-.marque-connexion {
-  display: flex; align-items: center; gap: 14px; margin-bottom: 44px;
+.carte-acces {
+  display: flex; width: 100%; max-width: 760px; min-height: 480px;
+  background: #FFFFFF; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 30px 70px rgba(6, 20, 34, 0.4);
   animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both;
 }
-.marque-connexion .marque-pastille {
-  width: 40px; height: 40px; flex: none; padding: 7px;
+
+.panneau-bienvenue {
+  flex: 0 0 40%;
+  background: var(--degrade-plein-ecran);
+  color: #FFFFFF;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  padding: 44px 34px;
+  border-radius: 0 42% 42% 0;
+}
+.panneau-bienvenue .marque-pastille {
+  width: 44px; height: 44px; padding: 8px; margin-bottom: 14px;
   background: #FFFFFF; border-radius: 50%;
 }
-.marque-nom {
+.panneau-bienvenue .marque-nom {
   font-family: var(--police-marque); font-size: 1.5rem; font-weight: 800;
-  letter-spacing: -0.02em; color: #FFFFFF; margin: 0;
+  letter-spacing: -0.02em; color: #FFFFFF; margin: 0 0 14px;
   display: inline-flex; align-items: baseline; gap: 6px;
 }
-.marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--edu-bleu); align-self: center; flex: none; }
+.panneau-bienvenue .marque-nom::after { content: ""; width: 6px; height: 6px; border-radius: 2px; background: rgba(255,255,255,0.6); align-self: center; flex: none; }
+.bienvenue-texte { font-size: 0.85rem; line-height: 1.6; color: rgba(255,255,255,0.75); margin: 0; }
 
-.connexion-aide {
-  color: rgba(255,255,255,0.6); font-size: 0.85rem; margin: -30px 0 32px; line-height: 1.5;
-  animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) 0.08s both;
+.panneau-formulaire-acces {
+  flex: 1; display: flex; flex-direction: column; justify-content: center;
+  padding: 44px 48px;
 }
+.panneau-formulaire-acces h2 { font-size: 1.3rem; font-weight: 700; margin: 0 0 22px; color: var(--texte); text-align: center; }
 
-.formulaire-connexion { display: flex; flex-direction: column; gap: 18px; }
-.formulaire-connexion > * { animation: entree-connexion 0.5s cubic-bezier(.22,1,.36,1) both; }
-.formulaire-connexion > *:nth-child(1) { animation-delay: 0.1s; }
-.formulaire-connexion > *:nth-child(2) { animation-delay: 0.17s; }
-.formulaire-connexion > *:nth-child(3) { animation-delay: 0.24s; }
-.formulaire-connexion > *:nth-child(4) { animation-delay: 0.31s; }
+.connexion-aide { color: var(--texte-clair); font-size: 0.85rem; margin: -14px 0 22px; line-height: 1.5; text-align: center; }
+
+.formulaire-connexion { display: flex; flex-direction: column; gap: 16px; }
 .formulaire-connexion .champ label {
-  color: rgba(255,255,255,0.65); letter-spacing: 0.08em;
+  color: var(--texte-clair); letter-spacing: 0.08em;
 }
-/* Champs pleins (fond clair, texte sombre) plutôt que translucides sur le
-   marine : un champ à 8% d'opacité sur un fond déjà sombre ne se distingue
-   quasiment pas de la page — le contraste doit sauter aux yeux, pas se
-   deviner. Icône + placeholder à l'intérieur : un rectangle blanc vide
-   pouvait se lire comme un simple espacement plutôt qu'un champ de saisie. */
+/* Icône + placeholder à l'intérieur : un champ vide sans rien dedans se lit
+   comme un simple espacement plutôt qu'un champ de saisie. */
 .formulaire-connexion .champ-icone { position: relative; display: flex; align-items: center; }
 .formulaire-connexion .champ-icone svg {
   position: absolute; left: 13px; width: 17px; height: 17px;
   color: var(--texte-clair); pointer-events: none;
 }
 .formulaire-connexion .champ input {
-  width: 100%; background: #FFFFFF; border: 1px solid var(--bordure);
+  width: 100%; background: var(--gris-fond); border: 1px solid var(--bordure);
   padding-left: 40px; color: var(--texte); font-size: 0.92rem;
 }
 .formulaire-connexion .champ input::placeholder { color: var(--texte-clair); }
 .formulaire-connexion .champ input:focus {
-  outline: none; background: #FFFFFF; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); border-color: var(--edu-bleu);
-}
-.formulaire-connexion .champ input:-webkit-autofill {
-  -webkit-text-fill-color: var(--texte);
-  -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset;
+  outline: none; background: #FFFFFF; box-shadow: 0 0 0 3px var(--primaire-clair); border-color: var(--edu-bleu);
 }
 
 .connexion-erreur {
-  font-size: 0.82rem; color: #FFFFFF; background: rgba(226, 92, 74, 0.28);
-  border: 1px solid rgba(226, 92, 74, 0.5); border-radius: 4px; padding: 9px 12px;
+  font-size: 0.82rem; color: var(--erreur); background: var(--erreur-fond);
+  border: 1px solid var(--erreur); border-radius: 4px; padding: 9px 12px;
 }
 
 .bouton-connexion {
-  background: #FFFFFF; color: var(--edu-marine); border: none;
-  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 4px;
+  background: var(--edu-bleu); color: #FFFFFF; border: none;
+  font-weight: 700; font-size: 0.9rem; padding: 13px 0; border-radius: 6px;
   cursor: pointer; margin-top: 4px;
 }
-.bouton-connexion:hover:not(:disabled) { background: rgba(255,255,255,0.85); }
+.bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .connexion-retour {
-  background: none; border: none; color: rgba(255,255,255,0.55);
+  background: none; border: none; color: var(--texte-clair);
   font-size: 0.82rem; cursor: pointer; padding: 4px 0; text-align: center;
 }
-.connexion-retour:hover { color: #FFFFFF; }
+.connexion-retour:hover { color: var(--texte); }
 
 @keyframes entree-connexion {
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 480px) {
-  .page-connexion { padding: 24px 20px; }
+@media (max-width: 640px) {
+  .page-connexion { padding: 0; }
+  .carte-acces { flex-direction: column; max-width: none; min-height: 100dvh; border-radius: 0; box-shadow: none; }
+  .panneau-bienvenue { flex: 0 0 auto; border-radius: 0 0 32px 32px; padding: 36px 28px; }
+  .panneau-formulaire-acces { padding: 36px 28px; justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .marque-connexion, .connexion-aide, .formulaire-connexion > * { animation: none; }
+  .carte-acces { animation: none; }
 }
 
 /* Carte simple réutilisée par l'accès temporaire du Professeur (lien reçu

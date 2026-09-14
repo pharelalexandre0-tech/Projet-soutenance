@@ -5,15 +5,20 @@ import TransitionOuverture from '../components/TransitionOuverture';
 import { IconMail, IconLock } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
-// Septième passe : on garde le principe "couleur plate, pas d'effet" — ce
-// n'est pas ce qui posait problème — mais avec un vrai geste d'arrivée
-// (la marque puis chaque champ apparaissent en cascade, pas tout d'un bloc)
-// et un filet de couleur en haut d'écran comme seule touche de marque.
-function EnTeteMarque() {
+// Huitième passe : carte à deux panneaux avec bord incurvé (référence
+// donnée par l'utilisateur), sur le dégradé bleu déjà en place. Pas de
+// bascule "créer un compte" — EduSphere n'a pas d'inscription libre, les
+// comptes sont créés par l'Académie ou le Superadmin — donc le panneau de
+// bienvenue reste statique, purement identitaire.
+function PanneauBienvenue() {
   return (
-    <div className="marque-connexion">
+    <div className="panneau-bienvenue">
       <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
       <h1 className="marque-nom">EduSphere</h1>
+      <p className="bienvenue-texte">
+        Classes, notes, absences, finances et bulletins — l'espace de
+        gestion académique de votre établissement.
+      </p>
     </div>
   );
 }
@@ -78,38 +83,41 @@ export default function Login() {
   if (attenteCode) {
     return (
       <div className="page-connexion">
-        <div className="contenu-connexion">
-          <EnTeteMarque />
-          <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
-          <form className="formulaire-connexion" onSubmit={validerCode}>
-            <div className="champ">
-              <label>Code de vérification</label>
-              <div className="champ-icone">
-                <IconLock aria-hidden="true" />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  autoFocus
-                  required
-                />
+        <div className="carte-acces">
+          <PanneauBienvenue />
+          <div className="panneau-formulaire-acces">
+            <h2>Vérification</h2>
+            <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+            <form className="formulaire-connexion" onSubmit={validerCode}>
+              <div className="champ">
+                <label>Code de vérification</label>
+                <div className="champ-icone">
+                  <IconLock aria-hidden="true" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    autoFocus
+                    required
+                  />
+                </div>
               </div>
-            </div>
-            {erreur && <div className="connexion-erreur">{erreur}</div>}
-            <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
-              {enCours ? 'Vérification…' : 'Valider'}
-            </button>
-            <button
-              type="button"
-              className="connexion-retour"
-              onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
-            >
-              Retour
-            </button>
-          </form>
+              {erreur && <div className="connexion-erreur">{erreur}</div>}
+              <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
+                {enCours ? 'Vérification…' : 'Valider'}
+              </button>
+              <button
+                type="button"
+                className="connexion-retour"
+                onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
+              >
+                Retour
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     );
@@ -117,40 +125,43 @@ export default function Login() {
 
   return (
     <div className="page-connexion">
-      <div className="contenu-connexion">
-        <EnTeteMarque />
-        <form className="formulaire-connexion" onSubmit={onSubmit}>
-          <div className="champ">
-            <label>Adresse e-mail</label>
-            <div className="champ-icone">
-              <IconMail aria-hidden="true" />
-              <input
-                type="email"
-                placeholder="vous@etablissement.ga"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+      <div className="carte-acces">
+        <PanneauBienvenue />
+        <div className="panneau-formulaire-acces">
+          <h2>Se connecter</h2>
+          <form className="formulaire-connexion" onSubmit={onSubmit}>
+            <div className="champ">
+              <label>Adresse e-mail</label>
+              <div className="champ-icone">
+                <IconMail aria-hidden="true" />
+                <input
+                  type="email"
+                  placeholder="vous@etablissement.ga"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-          </div>
-          <div className="champ">
-            <label>Mot de passe</label>
-            <div className="champ-icone">
-              <IconLock aria-hidden="true" />
-              <input
-                type="password"
-                placeholder="Votre mot de passe"
-                value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
-                required
-              />
+            <div className="champ">
+              <label>Mot de passe</label>
+              <div className="champ-icone">
+                <IconLock aria-hidden="true" />
+                <input
+                  type="password"
+                  placeholder="Votre mot de passe"
+                  value={motDePasse}
+                  onChange={(e) => setMotDePasse(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-          </div>
-          {erreur && <div className="connexion-erreur">{erreur}</div>}
-          <button className="bouton-connexion" type="submit" disabled={enCours}>
-            {enCours ? 'Connexion…' : 'Se connecter'}
-          </button>
-        </form>
+            {erreur && <div className="connexion-erreur">{erreur}</div>}
+            <button className="bouton-connexion" type="submit" disabled={enCours}>
+              {enCours ? 'Connexion…' : 'Se connecter'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
