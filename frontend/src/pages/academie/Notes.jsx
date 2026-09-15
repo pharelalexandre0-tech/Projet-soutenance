@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import { lireFichierExcel, normaliserTexte } from '../../utils/excel';
 
 // Diagramme 4 (cas nominal) : l'Académie saisit, par matière, la moyenne de
 // contrôle continu et la moyenne d'examen de chaque élève — pas note par
@@ -16,6 +17,7 @@ export default function Notes() {
   const [eleves, setEleves] = useState([]);
   const [valeurs, setValeurs] = useState({});
   const [message, setMessage] = useState('');
+  const [importMessage, setImportMessage] = useState('');
 
   useEffect(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -41,6 +43,51 @@ export default function Notes() {
   }
   function fixerValeur(eleveId, categorie, v) {
     setValeurs({ ...valeurs, [`${eleveId}-${categorie}`]: v });
+  }
+
+  // Un enseignant hors du système envoie ses moyennes dans son propre
+  // tableur — pas d'identifiant technique, juste un nom et un prénom. On
+  // retrouve l'élève par nom+prénom (dans les deux sens, au cas où les
+  // colonnes soient inversées) parmi les élèves déjà chargés pour la
+  // classe choisie, puis on remplit le tableau de saisie exactement comme
+  // une saisie manuelle — rien n'est enregistré tant que l'Académie n'a
+  // pas vérifié et cliqué sur "Enregistrer les moyennes".
+  async function importerNotes(e) {
+    setImportMessage('');
+    const fichier = e.target.files[0];
+    if (!fichier || eleves.length === 0) return;
+
+    const parNomPrenom = new Map();
+    eleves.forEach((el) => {
+      parNomPrenom.set(normaliserTexte(`${el.prenom} ${el.nom}`), el);
+      parNomPrenom.set(normaliserTexte(`${el.nom} ${el.prenom}`), el);
+    });
+
+    const lignes = await lireFichierExcel(fichier);
+    const nouvellesValeurs = { ...valeurs };
+    let importees = 0;
+    const introuvables = [];
+    lignes.forEach((ligne, i) => {
+      const prenom = ligne.prenom || ligne.prenoms || '';
+      const nom = ligne.nom || ligne.noms || '';
+      const el = parNomPrenom.get(normaliserTexte(`${prenom} ${nom}`)) || parNomPrenom.get(normaliserTexte(`${nom} ${prenom}`));
+      if (!el) {
+        introuvables.push(`ligne ${i + 2} (${prenom} ${nom})`.trim());
+        return;
+      }
+      const cc = ligne.cc ?? ligne.controlecontinu ?? ligne.moyennecc ?? '';
+      const examen = ligne.examen ?? ligne.moyenneexamen ?? '';
+      if (cc !== '') nouvellesValeurs[`${el.id}-cc`] = cc;
+      if (examen !== '') nouvellesValeurs[`${el.id}-examen`] = examen;
+      if (cc !== '' || examen !== '') importees += 1;
+    });
+    setValeurs(nouvellesValeurs);
+    setImportMessage(
+      `${importees} élève(s) rempli(s) depuis le fichier.` +
+      (introuvables.length ? ` Non reconnus : ${introuvables.join(', ')}.` : '') +
+      ' Vérifie les valeurs puis enregistre.'
+    );
+    e.target.value = '';
   }
 
   async function enregistrer(e) {
@@ -109,6 +156,14 @@ export default function Notes() {
         {session === 'rattrapage' && (
           <div className="message-erreur" style={{ marginTop: -4 }}>
             Session de rattrapage : ces moyennes ne remplacent la session normale que si elles sont meilleures.
+          </div>
+        )}
+
+        {matiereId && eleves.length > 0 && (
+          <div className="champ" style={{ marginBottom: 6 }}>
+            <label>Importer les moyennes depuis un fichier (Excel/CSV) — colonnes : prénom, nom, cc, examen</label>
+            <input type="file" accept=".xlsx,.xls,.csv" onChange={importerNotes} />
+            {importMessage && <div style={{ fontSize: '0.82rem', color: 'var(--texte-clair)', marginTop: 6 }}>{importMessage}</div>}
           </div>
         )}
 

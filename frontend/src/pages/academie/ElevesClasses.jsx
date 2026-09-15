@@ -1,16 +1,63 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
 
 export default function ElevesClasses() {
   const [classes, setClasses] = useState([]);
   const [nouvelleClasse, setNouvelleClasse] = useState({ nom: '', niveau: '' });
   const [nouvelEleve, setNouvelEleve] = useState({ nom: '', prenom: '', classeId: '', email: '', motDePasse: '' });
   const [message, setMessage] = useState('');
+  const [classeImportId, setClasseImportId] = useState('');
+  const [importEnCours, setImportEnCours] = useState(false);
+  const [resultatImport, setResultatImport] = useState(null);
 
   function charger() {
     client.get('/classes').then((res) => setClasses(res.data.classes));
   }
   useEffect(charger, []);
+
+  // Une ligne doit fournir au moins prénom + nom + email — le mot de passe
+  // du compte étudiant est généré s'il manque (un enseignant qui exporte sa
+  // liste depuis son propre tableur n'a évidemment pas de colonne mot de
+  // passe), et rapporté dans le résumé pour que l'Académie puisse le
+  // communiquer.
+  async function importerEleves(e) {
+    e.preventDefault();
+    if (!classeImportId) return;
+    const fichier = e.target.elements.fichierEleves.files[0];
+    if (!fichier) return;
+    setImportEnCours(true);
+    setResultatImport(null);
+    const lignes = await lireFichierExcel(fichier);
+    const reussis = [];
+    const echecs = [];
+    for (let i = 0; i < lignes.length; i += 1) {
+      const ligne = lignes[i];
+      const prenom = ligne.prenom || ligne.prenoms;
+      const nom = ligne.nom || ligne.noms;
+      const email = ligne.email || ligne.mail || ligne.courriel;
+      if (!prenom || !nom || !email) {
+        echecs.push({ ligne: i + 2, raison: 'prénom, nom ou e-mail manquant' });
+        continue;
+      }
+      const motDePasse = ligne.motdepasse || ligne.mdp || ligne.password || motDePasseAleatoire();
+      try {
+        await client.post('/eleves', {
+          nom, prenom, email,
+          motDePasse: String(motDePasse),
+          classeId: classeImportId,
+          dateNaissance: ligne.datenaissance || undefined,
+        });
+        reussis.push({ nom, prenom, email, motDePasse });
+      } catch (err) {
+        echecs.push({ ligne: i + 2, raison: err.response?.data?.erreur || 'erreur inconnue' });
+      }
+    }
+    setResultatImport({ reussis, echecs });
+    setImportEnCours(false);
+    e.target.reset();
+    charger();
+  }
 
   async function creerClasse(e) {
     e.preventDefault();
@@ -101,6 +148,61 @@ export default function ElevesClasses() {
           <button className="primaire" type="submit">Inscrire l'élève</button>
           {message && <div className="message-succes">{message}</div>}
         </form>
+
+        <h3 style={{ marginTop: 24 }}>Importer une liste (Excel/CSV)</h3>
+        <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -8, marginBottom: 14 }}>
+          Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong> — et en
+          option date de naissance, mot de passe (sinon généré automatiquement).
+        </p>
+        <form className="formulaire" onSubmit={importerEleves}>
+          <div className="ligne-champs">
+            <div className="champ">
+              <label>Classe cible</label>
+              <select value={classeImportId} onChange={(e) => setClasseImportId(e.target.value)} required>
+                <option value="">—</option>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+              </select>
+            </div>
+            <div className="champ">
+              <label>Fichier</label>
+              <input type="file" name="fichierEleves" accept=".xlsx,.xls,.csv" required />
+            </div>
+          </div>
+          <button className="secondaire" type="submit" disabled={importEnCours || !classeImportId}>
+            {importEnCours ? 'Import en cours…' : 'Importer'}
+          </button>
+        </form>
+        {resultatImport && (
+          <div style={{ marginTop: 12 }}>
+            {resultatImport.reussis.length > 0 && (
+              <div className="message-succes" style={{ marginBottom: 8 }}>
+                {resultatImport.reussis.length} élève(s) importé(s).
+              </div>
+            )}
+            {resultatImport.reussis.length > 0 && (
+              <table style={{ marginBottom: 8 }}>
+                <thead><tr><th>Élève</th><th>E-mail</th><th>Mot de passe</th></tr></thead>
+                <tbody>
+                  {resultatImport.reussis.map((r, i) => (
+                    <tr key={i}>
+                      <td>{r.prenom} {r.nom}</td>
+                      <td style={{ fontFamily: 'var(--police-mono)' }}>{r.email}</td>
+                      <td style={{ fontFamily: 'var(--police-mono)' }}>{r.motDePasse}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {resultatImport.echecs.length > 0 && (
+              <div className="message-erreur">
+                {resultatImport.echecs.length} ligne(s) ignorée(s) :
+                <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                  {resultatImport.echecs.map((e, i) => <li key={i}>ligne {e.ligne} : {e.raison}</li>)}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
