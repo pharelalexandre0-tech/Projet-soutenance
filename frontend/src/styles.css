@@ -621,13 +621,15 @@ button.danger:hover { background: var(--erreur-fond); }
 
 .bouton-connexion {
   display: flex; align-items: center; justify-content: center; gap: 9px;
-  background: var(--edu-bleu); color: #FFFFFF; border: none;
+  /* Même dégradé que le reste de la page (sceau, fond plein écran) au lieu
+     d'un bleu plat — le bouton était le seul endroit resté en aplat. */
+  background: var(--degrade-plein-ecran); color: #FFFFFF; border: none;
   font-weight: 700; font-size: 0.98rem; letter-spacing: 0.01em; padding: 17px 0; border-radius: 10px;
   cursor: pointer; margin-top: 10px;
-  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+  transition: filter 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 .bouton-connexion-icone { width: 17px; height: 17px; transform: scaleX(-1); flex: none; }
-.bouton-connexion:hover:not(:disabled) { background: var(--primaire-fonce); box-shadow: 0 8px 18px rgba(29,95,168,0.32); transform: translateY(-1px); }
+.bouton-connexion:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 8px 18px rgba(11,30,61,0.35); transform: translateY(-1px); }
 .bouton-connexion:active:not(:disabled) { transform: scale(0.98) translateY(0); }
 .bouton-connexion:disabled { opacity: 0.6; cursor: not-allowed; }
 
