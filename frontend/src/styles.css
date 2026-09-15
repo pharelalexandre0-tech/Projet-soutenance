@@ -472,6 +472,28 @@ button.danger:hover { background: var(--erreur-fond); }
 .blob-3 { width: 320px; height: 320px; bottom: -60px; right: -100px; background: var(--edu-vert); opacity: 0.42; }
 .blob-4 { width: 260px; height: 260px; top: 10%; left: -110px; background: var(--edu-marine); opacity: 0.4; }
 
+/* Petits carrés qui flottent doucement dans le grand vide entre le sceau
+   et le message — repris du motif déjà présent dans le logo lui-même
+   (les petits carrés près du "S"), pas une forme décorative inventée. Un
+   mouvement lent et discret (pas un clignotement), pour que ça reste une
+   texture ambiante et non un élément qui réclame l'attention. */
+.particule {
+  position: absolute; width: 7px; height: 7px; border-radius: 2px;
+  background: #FFFFFF; opacity: 0; z-index: 0;
+  animation: flotter-particule 7s ease-in-out infinite both;
+}
+.particule-1 { top: 34%; left: 22%; width: 6px; height: 6px; background: var(--edu-or); animation-delay: 0.3s; animation-duration: 8s; }
+.particule-2 { top: 44%; left: 68%; animation-delay: 1.6s; animation-duration: 6.5s; }
+.particule-3 { top: 56%; left: 40%; width: 5px; height: 5px; animation-delay: 3s; animation-duration: 7.5s; }
+.particule-4 { top: 40%; left: 82%; width: 8px; height: 8px; background: var(--edu-teal); animation-delay: 0.9s; animation-duration: 9s; }
+.particule-5 { top: 62%; left: 16%; width: 6px; height: 6px; animation-delay: 2.2s; animation-duration: 7s; }
+@keyframes flotter-particule {
+  0%, 100% { transform: translateY(6px) scale(0.85); opacity: 0; }
+  50% { transform: translateY(-10px) scale(1); opacity: 0.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .particule { display: none; }
+}
 
 /* Occupe toute la carte (au lieu d'être un bloc centré dessus) et répartit
    sceau/nom/texte sur toute la hauteur avec space-between — c'est ce qui
