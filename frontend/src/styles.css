@@ -450,10 +450,12 @@ button.danger:hover { background: var(--erreur-fond); }
    retour au gabarit large d'avant. */
 .composition-acces { position: relative; width: 100%; max-width: 1080px; }
 
-/* Rectangles verticaux (plus hauts que larges). */
+/* Rectangles verticaux (plus hauts que larges). Le côté dégradé prenait
+   trop le dessus sur le formulaire (62% contre 48%) — resserré pour que
+   les deux panneaux pèsent à peu près pareil. */
 .carte-bienvenue-blob {
   position: relative; overflow: hidden;
-  margin-left: auto; width: 62%; min-height: 720px;
+  margin-left: auto; width: 55%; min-height: 680px;
   border-radius: 30px; background: var(--degrade-plein-ecran);
   box-shadow: 0 34px 80px rgba(6, 20, 34, 0.38);
 }
