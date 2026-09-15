@@ -20,8 +20,10 @@ function CarteBienvenue() {
       <span className="blob blob-3" aria-hidden="true" />
       <span className="blob blob-4" aria-hidden="true" />
       <div className="bienvenue-contenu">
-        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-        <h1 className="marque-nom">EduSphere</h1>
+        <div className="marque-groupe">
+          <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+          <h1 className="marque-nom">EduSphere</h1>
+        </div>
         <p className="bienvenue-texte">
           Bienvenue sur EduSphere, l'espace numérique qui réunit toute
           la vie de votre établissement.
