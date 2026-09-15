@@ -26,7 +26,6 @@ function CarteBienvenue() {
           Bienvenue sur EduSphere, l'espace numérique qui réunit toute
           la vie de votre établissement.
         </p>
-        <div className="bienvenue-signature"><span>Accès sécurisé</span></div>
       </div>
     </div>
   );
@@ -173,7 +172,6 @@ export default function Login() {
               {enCours ? 'Connexion…' : 'Se connecter'}
             </button>
           </form>
-          <div className="formulaire-signature"><span>Identifiants fournis par votre établissement</span></div>
         </div>
       </div>
     </div>
