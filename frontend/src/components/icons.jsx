@@ -210,6 +210,25 @@ export function IconMenu(props) {
   );
 }
 
+export function IconGraduationCap(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.5 9.5 12 5l9.5 4.5L12 14 2.5 9.5Z" />
+      <path d="M6.5 11.5V16c0 1.4 2.5 2.5 5.5 2.5s5.5-1.1 5.5-2.5v-4.5" />
+      <path d="M21 9.5v5.5" />
+    </svg>
+  );
+}
+
+export function IconBook(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 6.5c-1.6-1.3-3.8-2-6.5-2-.6 0-1 .4-1 1v11c0 .6.4 1 1 1 2.7 0 4.9.7 6.5 2" />
+      <path d="M12 6.5c1.6-1.3 3.8-2 6.5-2 .6 0 1 .4 1 1v11c0 .6-.4 1-1 1-2.7 0-4.9.7-6.5 2v-13Z" />
+    </svg>
+  );
+}
+
 export function IconClose(props) {
   return (
     <svg {...base} {...props}>

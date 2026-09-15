@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock, IconLogout } from '../components/icons';
+import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
 // Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
@@ -19,11 +19,11 @@ function CarteBienvenue() {
       <span className="blob blob-2" aria-hidden="true" />
       <span className="blob blob-3" aria-hidden="true" />
       <span className="blob blob-4" aria-hidden="true" />
-      <span className="particule particule-1" aria-hidden="true" />
-      <span className="particule particule-2" aria-hidden="true" />
-      <span className="particule particule-3" aria-hidden="true" />
-      <span className="particule particule-4" aria-hidden="true" />
-      <span className="particule particule-5" aria-hidden="true" />
+      <span className="particule particule-1" aria-hidden="true"><IconGraduationCap /></span>
+      <span className="particule particule-2" aria-hidden="true"><IconBook /></span>
+      <span className="particule particule-3" aria-hidden="true"><IconBuilding /></span>
+      <span className="particule particule-4" aria-hidden="true"><IconPencil /></span>
+      <span className="particule particule-5" aria-hidden="true"><IconGraduationCap /></span>
       <div className="bienvenue-contenu">
         <div className="marque-groupe">
           <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
