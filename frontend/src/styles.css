@@ -538,17 +538,18 @@ button.danger:hover { background: var(--erreur-fond); }
   box-shadow: 0 10px 24px rgba(6, 20, 34, 0.1), 0 34px 70px rgba(6, 20, 34, 0.28);
   display: flex; flex-direction: column; justify-content: center;
   padding: 48px 48px;
-  /* Quatorzième passe : la carte ne se rétracte plus, elle se redresse —
-     un léger basculement en perspective (comme posée puis mise à plat)
-     plutôt qu'un simple zoom. `transform` reste entièrement piloté par
-     l'animation (translateY(-50%) fixé dans chaque image clé, y compris
-     `from`) pour ne pas se faire écraser par l'état final. */
-  animation: redressement-formulaire 0.7s cubic-bezier(.22,1,.36,1) both;
-  transform-style: preserve-3d;
+  /* La carte glisse depuis la gauche, comme si elle sortait de sous la
+     carte bleue qu'elle chevauche — cohérent avec la composition plutôt
+     qu'un mouvement arbitraire. Un léger dépassement (cubic-bezier avec
+     rebond) la rend bien plus visible que le simple redressement d'avant.
+     `transform` reste entièrement piloté par l'animation (translateY(-50%)
+     fixé dans chaque image clé, y compris `from`) pour ne pas se faire
+     écraser par l'état final. */
+  animation: glissement-formulaire 0.85s cubic-bezier(.24,1.12,.4,1) both;
 }
-@keyframes redressement-formulaire {
-  from { opacity: 0; transform: translateY(-50%) perspective(1000px) rotateX(10deg) scale(0.97); }
-  to { opacity: 1; transform: translateY(-50%) perspective(1000px) rotateX(0deg) scale(1); }
+@keyframes glissement-formulaire {
+  from { opacity: 0; transform: translateY(-50%) translateX(-64px); }
+  to { opacity: 1; transform: translateY(-50%) translateX(0); }
 }
 /* Le contenu ne se révèle plus champ par champ : deux temps seulement
    (l'entête, puis le formulaire). Même courbe et même rythme que la
@@ -668,14 +669,13 @@ button.danger:hover { background: var(--erreur-fond); }
     /* La carte n'est plus positionnée en absolu ici (empilée normalement
        sous la carte bleue) : l'image clé desktop fixe translateY(-50%)
        dans son `from`/`to`, ce qui n'a plus de sens une fois en flux
-       normal — même idée de redressement (bascule + échelle), sans le
-       décalage vertical. */
-    animation: redressement-formulaire-mobile 0.6s cubic-bezier(.22,1,.36,1) both;
+       normal — même idée de glissade, sans le décalage vertical. */
+    animation: glissement-formulaire-mobile 0.7s cubic-bezier(.24,1.12,.4,1) both;
   }
 }
-@keyframes redressement-formulaire-mobile {
-  from { opacity: 0; transform: perspective(1000px) rotateX(8deg) scale(0.97); }
-  to { opacity: 1; transform: perspective(1000px) rotateX(0deg) scale(1); }
+@keyframes glissement-formulaire-mobile {
+  from { opacity: 0; transform: translateX(-48px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 @media (prefers-reduced-motion: reduce) {
   .carte-formulaire-acces,
