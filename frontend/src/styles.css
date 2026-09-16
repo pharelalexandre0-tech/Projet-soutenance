@@ -21,7 +21,12 @@
   --primaire-fonce: #164A85;
   --primaire-clair: #E3ECF6;
 
-  --fond: #F4F5F3;
+  /* #F4F5F3 était à peine distinguable du blanc des cartes (--carte) — tout
+     le tableau de bord lisait comme un seul aplat blanc trop cru. Un
+     gris-bleu plus marqué, dans la famille du bleu de marque plutôt qu'un
+     beige/crème générique, pour que les cartes blanches se détachent
+     vraiment. */
+  --fond: #E7EBEF;
   --carte: #FFFFFF;
   --papier: #FBF9F1;
   --texte: #1C2321;
@@ -168,7 +173,7 @@ a { color: var(--primaire); }
 
 .profil-lateral {
   display: flex; align-items: center; gap: 10px;
-  padding: 14px 8px 4px; margin-top: 8px;
+  padding: 16px 12px; margin-top: 8px;
   border-top: 1px solid rgba(255,255,255,0.14);
 }
 .avatar {
