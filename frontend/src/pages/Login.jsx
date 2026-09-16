@@ -50,6 +50,18 @@ function Champ({ label, icone: Icone, children }) {
   );
 }
 
+// axios ne renseigne `err.response` que si le serveur a répondu — un
+// serveur injoignable (backend Render en veille, coupure réseau) laisse
+// `err.response` indéfini. Sans cette distinction, ces deux cas très
+// différents affichaient le même "identifiants incorrects", trompeur
+// quand le mot de passe est en fait le bon.
+function messageErreurConnexion(err, messageParDefaut) {
+  if (!err.response) {
+    return "Impossible de joindre le serveur — réessaie dans quelques secondes.";
+  }
+  return err.response.data?.erreur || messageParDefaut;
+}
+
 // Diagramme 3 : saisie identifiants -> demanderConnexion -> alt [valides]/[invalides].
 export default function Login() {
   const { profil, seConnecter, verifierDoubleFacteur } = useAuth();
@@ -84,7 +96,7 @@ export default function Login() {
       }
       ouvrirSession();
     } catch (err) {
-      setErreur(err.response?.data?.erreur || "identifiants incorrects");
+      setErreur(messageErreurConnexion(err, 'identifiants incorrects'));
       setEnCours(false);
     }
   }
@@ -97,7 +109,7 @@ export default function Login() {
       await verifierDoubleFacteur(attenteCode.utilisateurId, code);
       ouvrirSession();
     } catch (err) {
-      setErreur(err.response?.data?.erreur || 'code incorrect');
+      setErreur(messageErreurConnexion(err, 'code incorrect'));
       setEnCours(false);
     }
   }
