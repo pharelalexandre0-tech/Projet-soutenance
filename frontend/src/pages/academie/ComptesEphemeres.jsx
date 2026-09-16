@@ -179,7 +179,7 @@ export default function ComptesEphemeres() {
         <div className="separateur-section" />
         <div className="entete-section">
           <h3>Ajouter un professeur</h3>
-          <button type="button" className="secondaire" onClick={() => setProfFormOuvert((v) => !v)}>
+          <button type="button" className={profFormOuvert ? 'secondaire' : 'primaire'} onClick={() => setProfFormOuvert((v) => !v)}>
             {profFormOuvert ? 'Annuler' : '+ Ajouter un professeur'}
           </button>
         </div>

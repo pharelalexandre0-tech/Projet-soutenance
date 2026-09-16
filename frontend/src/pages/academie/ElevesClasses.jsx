@@ -205,7 +205,7 @@ export default function ElevesClasses() {
         </table>
         <div className="entete-section">
           <h3>Créer une classe</h3>
-          <button type="button" className="secondaire" onClick={() => setClasseFormOuvert((v) => !v)}>
+          <button type="button" className={classeFormOuvert ? 'secondaire' : 'primaire'} onClick={() => setClasseFormOuvert((v) => !v)}>
             {classeFormOuvert ? 'Annuler' : '+ Nouvelle classe'}
           </button>
         </div>
@@ -256,7 +256,7 @@ export default function ElevesClasses() {
 
         <div className="entete-section" style={{ marginTop: 22 }}>
           <h3>Inscrire un élève</h3>
-          <button type="button" className="secondaire" onClick={() => setEleveFormOuvert((v) => !v)}>
+          <button type="button" className={eleveFormOuvert ? 'secondaire' : 'primaire'} onClick={() => setEleveFormOuvert((v) => !v)}>
             {eleveFormOuvert ? 'Annuler' : '+ Inscrire un élève'}
           </button>
         </div>
@@ -305,7 +305,7 @@ export default function ElevesClasses() {
 
         <div className="entete-section" style={{ marginTop: 18 }}>
           <h3>Importer une liste (Excel/CSV)</h3>
-          <button type="button" className="secondaire" onClick={() => setImportFormOuvert((v) => !v)}>
+          <button type="button" className={importFormOuvert ? 'secondaire' : 'primaire'} onClick={() => setImportFormOuvert((v) => !v)}>
             {importFormOuvert ? 'Annuler' : '+ Importer un fichier'}
           </button>
         </div>
