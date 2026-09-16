@@ -14,6 +14,13 @@ export default function ElevesClasses() {
   const [importEnCours, setImportEnCours] = useState(false);
   const [resultatImport, setResultatImport] = useState(null);
 
+  // Les formulaires de création restent cachés par défaut — ils
+  // apparaissent au clic sur leur bouton d'action, pas en permanence sous
+  // la liste qu'ils encombrent sinon.
+  const [classeFormOuvert, setClasseFormOuvert] = useState(false);
+  const [eleveFormOuvert, setEleveFormOuvert] = useState(false);
+  const [importFormOuvert, setImportFormOuvert] = useState(false);
+
   // Détail d'une classe (voir/modifier/supprimer) : une seule ouverte à la
   // fois, dépliée sous sa ligne — pas une page séparée, pour rester dans le
   // même geste que la liste.
@@ -114,6 +121,7 @@ export default function ElevesClasses() {
     e.preventDefault();
     await client.post('/classes', nouvelleClasse);
     setNouvelleClasse({ nom: '', niveau: '' });
+    setClasseFormOuvert(false);
     charger();
   }
 
@@ -124,6 +132,7 @@ export default function ElevesClasses() {
       await client.post('/eleves', nouvelEleve);
       setMessage(`Élève ajouté, compte étudiant créé.`);
       setNouvelEleve(ELEVE_VIDE);
+      setEleveFormOuvert(false);
       charger();
     } catch (err) {
       setMessage(err.response?.data?.erreur || 'erreur');
@@ -194,20 +203,27 @@ export default function ElevesClasses() {
             {classes.length === 0 && <tr><td colSpan={3} className="vide">Aucune classe</td></tr>}
           </tbody>
         </table>
-        <h3 style={{ marginTop: 18 }}>Créer une classe</h3>
-        <form className="formulaire" onSubmit={creerClasse}>
-          <div className="ligne-champs">
-            <div className="champ">
-              <label>Nom</label>
-              <input value={nouvelleClasse.nom} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, nom: e.target.value })} required />
+        <div className="entete-section">
+          <h3>Créer une classe</h3>
+          <button type="button" className="secondaire" onClick={() => setClasseFormOuvert((v) => !v)}>
+            {classeFormOuvert ? 'Annuler' : '+ Nouvelle classe'}
+          </button>
+        </div>
+        {classeFormOuvert && (
+          <form className="formulaire" onSubmit={creerClasse}>
+            <div className="ligne-champs">
+              <div className="champ">
+                <label>Nom</label>
+                <input value={nouvelleClasse.nom} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, nom: e.target.value })} required autoFocus />
+              </div>
+              <div className="champ">
+                <label>Niveau</label>
+                <input value={nouvelleClasse.niveau} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, niveau: e.target.value })} required />
+              </div>
             </div>
-            <div className="champ">
-              <label>Niveau</label>
-              <input value={nouvelleClasse.niveau} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, niveau: e.target.value })} required />
-            </div>
-          </div>
-          <button className="primaire" type="submit">Ajouter la classe</button>
-        </form>
+            <button className="primaire" type="submit">Ajouter la classe</button>
+          </form>
+        )}
       </div>
 
       <div className="carte">
@@ -238,71 +254,87 @@ export default function ElevesClasses() {
           </tbody>
         </table>
 
-        <h3 style={{ marginTop: 22 }}>Inscrire un élève</h3>
-        <form className="formulaire" onSubmit={creerEleve} autoComplete="off">
-          <div className="ligne-champs">
-            <div className="champ">
-              <label>Prénom</label>
-              <input value={nouvelEleve.prenom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, prenom: e.target.value })} required />
-            </div>
-            <div className="champ">
-              <label>Nom</label>
-              <input value={nouvelEleve.nom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, nom: e.target.value })} required />
-            </div>
-          </div>
-          <div className="ligne-champs">
-            <div className="champ">
-              <label>Classe</label>
-              <select value={nouvelEleve.classeId} onChange={(e) => setNouvelEleve({ ...nouvelEleve, classeId: e.target.value })} required>
-                <option value="">—</option>
-                {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </select>
-            </div>
-            <div className="champ">
-              <label>E-mail (compte étudiant)</label>
-              <input type="email" autoComplete="off" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
-            </div>
-          </div>
-          <div className="ligne-champs">
-            <div className="champ" style={{ flex: 1 }}>
-              <label>Mot de passe (compte étudiant)</label>
-              <input type="password" autoComplete="new-password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
-            </div>
-            <button
-              type="button" className="secondaire"
-              style={{ alignSelf: 'flex-end', marginBottom: 1 }}
-              onClick={() => setNouvelEleve({ ...nouvelEleve, motDePasse: motDePasseAleatoire() })}
-            >
-              Générer
-            </button>
-          </div>
-          <button className="primaire" type="submit">Inscrire l'élève</button>
-          {message && <div className={message.includes('ajouté') ? 'message-succes' : 'message-erreur'}>{message}</div>}
-        </form>
-
-        <h3 style={{ marginTop: 24 }}>Importer une liste (Excel/CSV)</h3>
-        <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -8, marginBottom: 14 }}>
-          Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong> — et en
-          option date de naissance, mot de passe (sinon généré automatiquement).
-        </p>
-        <form className="formulaire" onSubmit={importerEleves}>
-          <div className="ligne-champs">
-            <div className="champ">
-              <label>Classe cible</label>
-              <select value={classeImportId} onChange={(e) => setClasseImportId(e.target.value)} required>
-                <option value="">—</option>
-                {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-              </select>
-            </div>
-            <div className="champ">
-              <label>Fichier</label>
-              <input type="file" name="fichierEleves" accept=".xlsx,.xls,.csv" required />
-            </div>
-          </div>
-          <button className="secondaire" type="submit" disabled={importEnCours || !classeImportId}>
-            {importEnCours ? 'Import en cours…' : 'Importer'}
+        <div className="entete-section" style={{ marginTop: 22 }}>
+          <h3>Inscrire un élève</h3>
+          <button type="button" className="secondaire" onClick={() => setEleveFormOuvert((v) => !v)}>
+            {eleveFormOuvert ? 'Annuler' : '+ Inscrire un élève'}
           </button>
-        </form>
+        </div>
+        {eleveFormOuvert && (
+          <form className="formulaire" onSubmit={creerEleve} autoComplete="off">
+            <div className="ligne-champs">
+              <div className="champ">
+                <label>Prénom</label>
+                <input value={nouvelEleve.prenom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, prenom: e.target.value })} required autoFocus />
+              </div>
+              <div className="champ">
+                <label>Nom</label>
+                <input value={nouvelEleve.nom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, nom: e.target.value })} required />
+              </div>
+            </div>
+            <div className="ligne-champs">
+              <div className="champ">
+                <label>Classe</label>
+                <select value={nouvelEleve.classeId} onChange={(e) => setNouvelEleve({ ...nouvelEleve, classeId: e.target.value })} required>
+                  <option value="">—</option>
+                  {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                </select>
+              </div>
+              <div className="champ">
+                <label>E-mail (compte étudiant)</label>
+                <input type="email" autoComplete="off" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
+              </div>
+            </div>
+            <div className="ligne-champs">
+              <div className="champ" style={{ flex: 1 }}>
+                <label>Mot de passe (compte étudiant)</label>
+                <input type="password" autoComplete="new-password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
+              </div>
+              <button
+                type="button" className="secondaire"
+                style={{ alignSelf: 'flex-end', marginBottom: 1 }}
+                onClick={() => setNouvelEleve({ ...nouvelEleve, motDePasse: motDePasseAleatoire() })}
+              >
+                Générer
+              </button>
+            </div>
+            <button className="primaire" type="submit">Inscrire l'élève</button>
+            {message && <div className={message.includes('ajouté') ? 'message-succes' : 'message-erreur'}>{message}</div>}
+          </form>
+        )}
+
+        <div className="entete-section" style={{ marginTop: 18 }}>
+          <h3>Importer une liste (Excel/CSV)</h3>
+          <button type="button" className="secondaire" onClick={() => setImportFormOuvert((v) => !v)}>
+            {importFormOuvert ? 'Annuler' : '+ Importer un fichier'}
+          </button>
+        </div>
+        {importFormOuvert && (
+          <>
+            <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 14 }}>
+              Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong> — et en
+              option date de naissance, mot de passe (sinon généré automatiquement).
+            </p>
+            <form className="formulaire" onSubmit={importerEleves}>
+              <div className="ligne-champs">
+                <div className="champ">
+                  <label>Classe cible</label>
+                  <select value={classeImportId} onChange={(e) => setClasseImportId(e.target.value)} required>
+                    <option value="">—</option>
+                    {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                  </select>
+                </div>
+                <div className="champ">
+                  <label>Fichier</label>
+                  <input type="file" name="fichierEleves" accept=".xlsx,.xls,.csv" required />
+                </div>
+              </div>
+              <button className="secondaire" type="submit" disabled={importEnCours || !classeImportId}>
+                {importEnCours ? 'Import en cours…' : 'Importer'}
+              </button>
+            </form>
+          </>
+        )}
         {resultatImport && (
           <div style={{ marginTop: 12 }}>
             {resultatImport.reussis.length > 0 && (

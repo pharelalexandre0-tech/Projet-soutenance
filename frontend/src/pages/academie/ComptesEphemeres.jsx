@@ -14,6 +14,7 @@ export default function ComptesEphemeres() {
   const [nouveauProf, setNouveauProf] = useState({ nom: '', prenom: '', email: '', matiere: '' });
   const [lienGenere, setLienGenere] = useState(null);
   const [erreur, setErreur] = useState('');
+  const [profFormOuvert, setProfFormOuvert] = useState(false);
 
   function chargerReferences() {
     client.get('/professeurs').then((res) => setProfesseurs(res.data.professeurs));
@@ -40,6 +41,7 @@ export default function ComptesEphemeres() {
     e.preventDefault();
     await client.post('/professeurs', nouveauProf);
     setNouveauProf({ nom: '', prenom: '', email: '', matiere: '' });
+    setProfFormOuvert(false);
     chargerReferences();
   }
 
@@ -175,18 +177,25 @@ export default function ComptesEphemeres() {
           </tbody>
         </table>
         <div className="separateur-section" />
-        <h3>Ajouter un professeur</h3>
-        <form className="formulaire" onSubmit={creerProfesseur} autoComplete="off">
-          <div className="ligne-champs">
-            <div className="champ"><label>Prénom</label><input value={nouveauProf.prenom} onChange={(e) => setNouveauProf({ ...nouveauProf, prenom: e.target.value })} required /></div>
-            <div className="champ"><label>Nom</label><input value={nouveauProf.nom} onChange={(e) => setNouveauProf({ ...nouveauProf, nom: e.target.value })} required /></div>
-          </div>
-          <div className="ligne-champs">
-            <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={nouveauProf.email} onChange={(e) => setNouveauProf({ ...nouveauProf, email: e.target.value })} required /></div>
-            <div className="champ"><label>Matière</label><input value={nouveauProf.matiere} onChange={(e) => setNouveauProf({ ...nouveauProf, matiere: e.target.value })} /></div>
-          </div>
-          <button className="primaire" type="submit">Ajouter</button>
-        </form>
+        <div className="entete-section">
+          <h3>Ajouter un professeur</h3>
+          <button type="button" className="secondaire" onClick={() => setProfFormOuvert((v) => !v)}>
+            {profFormOuvert ? 'Annuler' : '+ Ajouter un professeur'}
+          </button>
+        </div>
+        {profFormOuvert && (
+          <form className="formulaire" onSubmit={creerProfesseur} autoComplete="off">
+            <div className="ligne-champs">
+              <div className="champ"><label>Prénom</label><input value={nouveauProf.prenom} onChange={(e) => setNouveauProf({ ...nouveauProf, prenom: e.target.value })} required autoFocus /></div>
+              <div className="champ"><label>Nom</label><input value={nouveauProf.nom} onChange={(e) => setNouveauProf({ ...nouveauProf, nom: e.target.value })} required /></div>
+            </div>
+            <div className="ligne-champs">
+              <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={nouveauProf.email} onChange={(e) => setNouveauProf({ ...nouveauProf, email: e.target.value })} required /></div>
+              <div className="champ"><label>Matière</label><input value={nouveauProf.matiere} onChange={(e) => setNouveauProf({ ...nouveauProf, matiere: e.target.value })} /></div>
+            </div>
+            <button className="primaire" type="submit">Ajouter</button>
+          </form>
+        )}
       </div>
     </div>
   );

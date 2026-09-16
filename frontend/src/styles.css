@@ -343,6 +343,13 @@ td:has(.badge), td { font-variant-numeric: tabular-nums; }
    simple margin-top qui laisse les deux collés l'un à l'autre. */
 .separateur-section { height: 1px; background: var(--bordure); margin: 24px 0 20px; }
 
+/* En-tête de section avec bouton d'action à droite — le formulaire qu'il
+   déclenche reste caché tant qu'on n'a pas cliqué, au lieu de rester
+   affiché en permanence sous la liste. */
+.entete-section { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.entete-section h3 { margin: 0; }
+.entete-section button { flex: none; }
+
 /* Encart d'import mis en avant — pas un simple champ de formulaire parmi
    d'autres, la voie rapide pour ne pas saisir des centaines de lignes à
    la main. */
