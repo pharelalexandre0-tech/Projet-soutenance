@@ -81,10 +81,11 @@ export default function Login() {
 
   function ouvrirSession() {
     setOuverture(true);
-    // 1.5s passait trop vite pour se lire comme un vrai chargement — la
-    // durée doit rester synchronisée avec les animations CSS de
-    // .transition-ouverture (barre de progression incluse).
-    setTimeout(() => navigate('/'), 2300);
+    // 2.3s restait trop rapide — la barre de progression elle-même ne
+    // remplissait que 0.65s, le reste n'était que la marque qui s'écrit.
+    // Le remplissage porte maintenant la durée (1.7s), pas du temps mort
+    // en plus. Doit rester synchronisé avec .transition-ouverture en CSS.
+    setTimeout(() => navigate('/'), 3500);
   }
 
   async function connecter(mailUtilise, motDePasseUtilise) {
