@@ -88,13 +88,13 @@ function FormulaireSuperadmin({ onFermer, onReussi }) {
 
   return (
     <Modal titre="Ajouter un superadmin" onFermer={onFermer} largeur={440}>
-      <form className="formulaire" onSubmit={soumettre}>
+      <form className="formulaire" onSubmit={soumettre} autoComplete="off">
         <div className="ligne-champs">
           <div className="champ"><label>Prénom</label><input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} required /></div>
           <div className="champ"><label>Nom</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
         </div>
-        <div className="champ"><label>E-mail</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
-        <div className="champ"><label>Mot de passe</label><input type="password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={6} required /></div>
+        <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
+        <div className="champ"><label>Mot de passe</label><input type="password" autoComplete="new-password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={6} required /></div>
         {erreur && <div className="message-erreur">{erreur}</div>}
         <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Création…' : 'Créer le compte'}</button>
       </form>

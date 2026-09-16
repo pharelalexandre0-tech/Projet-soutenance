@@ -118,7 +118,7 @@ function FormulaireCreationEcole({ onFermer, onReussi }) {
 
   return (
     <Modal titre="Insérer une nouvelle école" onFermer={onFermer} largeur={560}>
-      <form className="formulaire" onSubmit={soumettre}>
+      <form className="formulaire" onSubmit={soumettre} autoComplete="off">
         <h3 style={{ marginBottom: -6 }}>Identité de l'établissement</h3>
         <div className="ligne-champs">
           <div className="champ"><label>Nom de l'établissement</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
@@ -133,7 +133,7 @@ function FormulaireCreationEcole({ onFermer, onReussi }) {
           <div className="champ"><label>Boîte postale</label><input value={form.boitePostale} onChange={(e) => setForm({ ...form, boitePostale: e.target.value })} /></div>
           <div className="champ"><label>Téléphone</label><input value={form.telephone} onChange={(e) => setForm({ ...form, telephone: e.target.value })} /></div>
         </div>
-        <div className="champ"><label>E-mail de contact</label><input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+        <div className="champ"><label>E-mail de contact</label><input type="email" autoComplete="off" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
 
         <h3 style={{ marginTop: 8, marginBottom: -6 }}>Premier compte Académie</h3>
         <div className="ligne-champs">
@@ -141,8 +141,8 @@ function FormulaireCreationEcole({ onFermer, onReussi }) {
           <div className="champ"><label>Nom</label><input value={form.academieNom} onChange={(e) => setForm({ ...form, academieNom: e.target.value })} required /></div>
         </div>
         <div className="ligne-champs">
-          <div className="champ"><label>E-mail</label><input type="email" value={form.academieEmail} onChange={(e) => setForm({ ...form, academieEmail: e.target.value })} required /></div>
-          <div className="champ"><label>Mot de passe</label><input type="password" value={form.academieMotDePasse} onChange={(e) => setForm({ ...form, academieMotDePasse: e.target.value })} required /></div>
+          <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={form.academieEmail} onChange={(e) => setForm({ ...form, academieEmail: e.target.value })} required /></div>
+          <div className="champ"><label>Mot de passe</label><input type="password" autoComplete="new-password" value={form.academieMotDePasse} onChange={(e) => setForm({ ...form, academieMotDePasse: e.target.value })} required /></div>
         </div>
 
         {erreur && <div className="message-erreur">{erreur}</div>}

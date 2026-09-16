@@ -151,13 +151,13 @@ export default function ComptesEphemeres() {
           </tbody>
         </table>
         <h3 style={{ marginTop: 18 }}>Ajouter un professeur</h3>
-        <form className="formulaire" onSubmit={creerProfesseur}>
+        <form className="formulaire" onSubmit={creerProfesseur} autoComplete="off">
           <div className="ligne-champs">
             <div className="champ"><label>Prénom</label><input value={nouveauProf.prenom} onChange={(e) => setNouveauProf({ ...nouveauProf, prenom: e.target.value })} required /></div>
             <div className="champ"><label>Nom</label><input value={nouveauProf.nom} onChange={(e) => setNouveauProf({ ...nouveauProf, nom: e.target.value })} required /></div>
           </div>
           <div className="ligne-champs">
-            <div className="champ"><label>E-mail</label><input type="email" value={nouveauProf.email} onChange={(e) => setNouveauProf({ ...nouveauProf, email: e.target.value })} required /></div>
+            <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={nouveauProf.email} onChange={(e) => setNouveauProf({ ...nouveauProf, email: e.target.value })} required /></div>
             <div className="champ"><label>Matière</label><input value={nouveauProf.matiere} onChange={(e) => setNouveauProf({ ...nouveauProf, matiere: e.target.value })} /></div>
           </div>
           <button className="primaire" type="submit">Ajouter</button>

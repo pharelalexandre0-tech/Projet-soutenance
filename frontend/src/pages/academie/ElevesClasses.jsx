@@ -115,7 +115,7 @@ export default function ElevesClasses() {
       <div className="carte">
         <h2>Élèves</h2>
         <h3>Inscrire un élève</h3>
-        <form className="formulaire" onSubmit={creerEleve}>
+        <form className="formulaire" onSubmit={creerEleve} autoComplete="off">
           <div className="ligne-champs">
             <div className="champ">
               <label>Prénom</label>
@@ -138,11 +138,11 @@ export default function ElevesClasses() {
           <div className="ligne-champs">
             <div className="champ">
               <label>E-mail (compte étudiant)</label>
-              <input type="email" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
+              <input type="email" autoComplete="off" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
             </div>
             <div className="champ">
               <label>Mot de passe (compte étudiant)</label>
-              <input type="password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
+              <input type="password" autoComplete="new-password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
             </div>
           </div>
           <button className="primaire" type="submit">Inscrire l'élève</button>
