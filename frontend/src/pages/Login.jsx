@@ -81,7 +81,10 @@ export default function Login() {
 
   function ouvrirSession() {
     setOuverture(true);
-    setTimeout(() => navigate('/'), 1500);
+    // 1.5s passait trop vite pour se lire comme un vrai chargement — la
+    // durée doit rester synchronisée avec les animations CSS de
+    // .transition-ouverture (barre de progression incluse).
+    setTimeout(() => navigate('/'), 2300);
   }
 
   async function connecter(mailUtilise, motDePasseUtilise) {

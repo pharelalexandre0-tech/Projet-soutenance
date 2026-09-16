@@ -1133,7 +1133,12 @@ button.danger:hover { background: var(--erreur-fond); }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 6px;
   clip-path: circle(0% at 50% 50%);
-  animation: iris-ouverture 0.75s cubic-bezier(.22,1,.36,1) both, fondu-sortie 0.4s ease 1.1s both;
+  /* 1.5s au total passait trop vite pour se lire comme un chargement —
+     étiré à 2.3s (voir setTimeout dans Login.jsx, qui doit rester
+     synchronisé), avec une vraie barre de progression en plus des lettres
+     qui s'assemblent : elle donne un signal de chargement explicite que
+     ni le sceau ni le nom qui s'écrit ne donnaient vraiment. */
+  animation: iris-ouverture 0.75s cubic-bezier(.22,1,.36,1) both, fondu-sortie 0.4s ease 1.9s both;
 }
 @keyframes iris-ouverture { to { clip-path: circle(75% at 50% 50%); } }
 
@@ -1167,9 +1172,27 @@ button.danger:hover { background: var(--erreur-fond); }
   animation: tombe-doucement 0.4s ease 0.85s both;
 }
 
+/* Piste + remplissage : le signal de chargement explicite qui manquait.
+   La piste se révèle après la légende, puis se remplit sur ~0.65s — elle
+   finit de se remplir juste avant que l'écran ne s'efface. */
+.piste-ouverture {
+  width: 160px; height: 4px; margin-top: 22px; border-radius: 4px;
+  background: rgba(255,255,255,0.22); overflow: hidden;
+  opacity: 0;
+  animation: tombe-doucement 0.3s ease 1s both;
+}
+.remplissage-ouverture {
+  display: block; height: 100%; width: 0%; border-radius: 4px;
+  background: #FFFFFF;
+  animation: remplir-piste 0.65s cubic-bezier(.22,1,.36,1) 1.2s both;
+}
+@keyframes remplir-piste { to { width: 100%; } }
+
 @keyframes entree-lettre { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fondu-sortie { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) {
   .transition-ouverture { animation: none; clip-path: none; }
   .marque-lettres span, .transition-ouverture p { animation: none; }
+  .piste-ouverture { opacity: 1; animation: none; }
+  .remplissage-ouverture { width: 100%; animation: none; }
 }
