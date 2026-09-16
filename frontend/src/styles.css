@@ -524,10 +524,14 @@ button.danger:hover { background: var(--erreur-fond); }
    comblait le vide avant, pas la taille du texte en elle-même : un bloc
    plus gros mais toujours centré laisse quand même deux grands vides
    symétriques au-dessus et en dessous. */
+/* Recentré (au lieu de space-between) maintenant que les icônes qui
+   flottent occupent déjà l'espace autour — le sceau collé en haut et le
+   message collé en bas lisaient comme deux blocs séparés plutôt qu'une
+   seule composition. */
 .bienvenue-contenu {
   position: absolute; inset: 0; z-index: 1;
-  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-  text-align: center; color: #FFFFFF; padding: 52px 38px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; color: #FFFFFF; padding: 52px 38px; gap: 40px;
 }
 .marque-groupe { display: flex; flex-direction: column; align-items: center; }
 .bienvenue-contenu .marque-pastille {
