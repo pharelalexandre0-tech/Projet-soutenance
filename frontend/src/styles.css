@@ -475,28 +475,45 @@ button.danger:hover { background: var(--erreur-fond); }
 .blob-4 { width: 260px; height: 260px; top: 10%; left: -110px; background: var(--edu-marine); opacity: 0.4; }
 
 /* Des icônes de la vie scolaire (toge, livre, établissement, crayon) qui
-   flottent doucement dans le grand vide entre le sceau et le message —
-   plus abstrait comme les petits carrés du logo, l'utilisateur voulait
-   quelque chose qui parle vraiment d'établissement scolaire. Même trait
-   que les icônes du reste de l'appli (icons.jsx), juste en blanc
-   translucide sur le dégradé. Mouvement lent, pas un clignotement : une
-   texture ambiante, pas un élément qui réclame l'attention. */
+   flottent dans le grand vide entre le sceau et le message — pas
+   abstraites comme les petits carrés du logo, ça parle vraiment
+   d'établissement scolaire. Même trait que les icônes du reste de l'appli
+   (icons.jsx). Le mouvement (dérive + légère rotation + halo qui
+   s'intensifie au pic) est plus marqué qu'un simple fondu, pour que ce
+   soit une vraie petite animation et pas juste un point qui s'allume. */
 .particule {
-  position: absolute; color: rgba(255,255,255,0.5); opacity: 0; z-index: 0;
+  position: absolute; color: rgba(255,255,255,0.6); opacity: 0; z-index: 0;
   animation: flotter-particule 7s ease-in-out infinite both;
 }
-.particule svg { display: block; width: 22px; height: 22px; }
+.particule svg { display: block; width: 24px; height: 24px; }
 .particule-1 { top: 32%; left: 20%; animation-delay: 0.3s; animation-duration: 8s; }
 .particule-2 { top: 46%; left: 70%; animation-delay: 1.6s; animation-duration: 6.5s; }
 .particule-3 { top: 58%; left: 38%; animation-delay: 3s; animation-duration: 7.5s; }
-.particule-3 svg { width: 19px; height: 19px; }
+.particule-3 svg { width: 20px; height: 20px; }
 .particule-4 { top: 38%; left: 84%; animation-delay: 0.9s; animation-duration: 9s; }
-.particule-4 svg { width: 18px; height: 18px; }
+.particule-4 svg { width: 19px; height: 19px; }
 .particule-5 { top: 64%; left: 14%; animation-delay: 2.2s; animation-duration: 7s; }
-.particule-5 svg { width: 17px; height: 17px; }
+.particule-5 svg { width: 18px; height: 18px; }
+.particule:nth-child(odd) { animation-name: flotter-particule-inverse; }
 @keyframes flotter-particule {
-  0%, 100% { transform: translateY(6px) scale(0.9); opacity: 0; }
-  50% { transform: translateY(-10px) scale(1); opacity: 0.55; }
+  0%, 100% {
+    transform: translateY(10px) scale(0.85) rotate(-6deg); opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+  }
+  50% {
+    transform: translateY(-16px) scale(1.1) rotate(4deg); opacity: 0.85;
+    filter: drop-shadow(0 0 9px rgba(255,255,255,0.6));
+  }
+}
+@keyframes flotter-particule-inverse {
+  0%, 100% {
+    transform: translateY(10px) scale(0.85) rotate(6deg); opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(255,255,255,0));
+  }
+  50% {
+    transform: translateY(-16px) scale(1.1) rotate(-4deg); opacity: 0.85;
+    filter: drop-shadow(0 0 9px rgba(255,255,255,0.6));
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .particule { display: none; }
