@@ -11,6 +11,7 @@ const {
   CahierDeTextes,
   MessageAnnonce,
   Notification,
+  Absence,
 } = require('../models');
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
@@ -57,6 +58,44 @@ async function listerClasses(req, res) {
   const classes = await Classe.findAll({ where: { etablissementId: req.utilisateur.etablissementId }, include: [Eleve] });
   return res.json({ classes });
 }
+async function modifierClasse(req, res) {
+  const classe = await Classe.findByPk(req.params.id);
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+  const { nom, niveau } = req.body;
+  await classe.update({ nom, niveau });
+  return res.json({ classe });
+}
+// Une classe avec des élèves ne se supprime pas directement — il faut
+// d'abord les déplacer ou les retirer, pour ne jamais perdre un dossier
+// élève par effet de bord d'une suppression de classe.
+async function supprimerClasse(req, res) {
+  const classe = await Classe.findByPk(req.params.id, { include: [Eleve] });
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+  if (classe.Eleves && classe.Eleves.length > 0) {
+    return res.status(400).json({ erreur: `impossible de supprimer : ${classe.Eleves.length} élève(s) encore inscrit(s) dans cette classe` });
+  }
+  await classe.destroy();
+  return res.status(204).send();
+}
+async function statistiquesClasse(req, res) {
+  const classe = await Classe.findByPk(req.params.id, { include: [Eleve] });
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+  const eleveIds = classe.Eleves.map((e) => e.id);
+  const absences = eleveIds.length > 0 ? await Absence.findAll({ where: { eleveId: eleveIds } }) : [];
+  const justifiees = absences.filter((a) => a.justifie).length;
+  const nonJustifiees = absences.length - justifiees;
+  return res.json({
+    effectif: classe.Eleves.length,
+    statut: classe.Eleves.length > 0 ? 'active' : 'vide',
+    absences: { total: absences.length, justifiees, nonJustifiees },
+  });
+}
 
 async function creerProfesseur(req, res) {
   const professeur = await Professeur.create({ ...req.body, etablissementId: req.utilisateur.etablissementId });
@@ -65,6 +104,14 @@ async function creerProfesseur(req, res) {
 async function listerProfesseurs(req, res) {
   const professeurs = await Professeur.findAll({ where: { etablissementId: req.utilisateur.etablissementId } });
   return res.json({ professeurs });
+}
+async function supprimerProfesseur(req, res) {
+  const professeur = await Professeur.findByPk(req.params.id);
+  if (!professeur || professeur.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'professeur introuvable' });
+  }
+  await professeur.destroy();
+  return res.status(204).send();
 }
 
 // Plateforme universitaire : inscrire un étudiant crée dans le même geste
@@ -107,6 +154,18 @@ async function listerEleves(req, res) {
   if (req.utilisateur.role === 'etudiant') where.compteEtudiantId = req.utilisateur.id;
   const eleves = await Eleve.findAll({ where, include: [Classe] });
   return res.json({ eleves });
+}
+// Supprime la fiche élève ET son compte étudiant (login) — un élève retiré
+// ne doit pas laisser un compte orphelin qui peut encore se connecter.
+async function supprimerEleve(req, res) {
+  const eleve = await Eleve.findByPk(req.params.id);
+  if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'élève introuvable' });
+  }
+  const compteEtudiantId = eleve.compteEtudiantId;
+  await eleve.destroy();
+  if (compteEtudiantId) await Utilisateur.destroy({ where: { id: compteEtudiantId } });
+  return res.status(204).send();
 }
 
 async function creerSemestre(req, res) {
@@ -245,10 +304,15 @@ async function listerMessages(req, res) {
 module.exports = {
   creerClasse,
   listerClasses,
+  modifierClasse,
+  supprimerClasse,
+  statistiquesClasse,
   creerProfesseur,
   listerProfesseurs,
+  supprimerProfesseur,
   creerEleve,
   listerEleves,
+  supprimerEleve,
   creerSemestre,
   listerSemestres,
   creerUE,

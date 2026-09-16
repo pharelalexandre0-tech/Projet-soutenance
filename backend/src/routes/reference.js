@@ -7,12 +7,17 @@ const academie = autoriserRoles('academie');
 
 router.post('/classes', authentifier, academie, ctrl.creerClasse);
 router.get('/classes', authentifier, ctrl.listerClasses);
+router.put('/classes/:id', authentifier, academie, ctrl.modifierClasse);
+router.delete('/classes/:id', authentifier, academie, ctrl.supprimerClasse);
+router.get('/classes/:id/statistiques', authentifier, academie, ctrl.statistiquesClasse);
 
 router.post('/professeurs', authentifier, academie, ctrl.creerProfesseur);
 router.get('/professeurs', authentifier, academie, ctrl.listerProfesseurs);
+router.delete('/professeurs/:id', authentifier, academie, ctrl.supprimerProfesseur);
 
 router.post('/eleves', authentifier, academie, ctrl.creerEleve);
 router.get('/eleves', authentifier, ctrl.listerEleves);
+router.delete('/eleves/:id', authentifier, academie, ctrl.supprimerEleve);
 
 router.post('/semestres', authentifier, academie, ctrl.creerSemestre);
 router.get('/semestres', authentifier, ctrl.listerSemestres);
