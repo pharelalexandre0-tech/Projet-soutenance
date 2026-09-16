@@ -184,6 +184,15 @@ async function statistiquesAbsences(req, res) {
   });
 }
 
+async function supprimerAbsence(req, res) {
+  const absence = await Absence.findByPk(req.params.id, { include: [Eleve] });
+  if (!absence || absence.Eleve.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'absence introuvable' });
+  }
+  await absence.destroy();
+  return res.status(204).send();
+}
+
 module.exports = {
   saisirAbsenceAcademie,
   saisirAbsenceEphemere,
@@ -192,4 +201,5 @@ module.exports = {
   justifierAbsence,
   listerAbsencesEleve,
   statistiquesAbsences,
+  supprimerAbsence,
 };

@@ -6,6 +6,7 @@ const {
   justifierAbsence,
   listerAbsencesEleve,
   statistiquesAbsences,
+  supprimerAbsence,
 } = require('../controllers/absencesController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
 
@@ -17,6 +18,7 @@ router.post('/appel', authentifier, academie, saisirAppelClasse);
 router.get('/brief', authentifier, academie, briefAbsenteisme);
 router.get('/statistiques', authentifier, academie, statistiquesAbsences);
 router.get('/eleve/:eleveId', authentifier, listerAbsencesEleve);
+router.delete('/:id', authentifier, academie, supprimerAbsence);
 router.post('/:id/justificatif', authentifier, autoriserRoles('etudiant'), justifierAbsence);
 
 module.exports = router;
