@@ -160,10 +160,11 @@ export default function Notes() {
         )}
 
         {matiereId && eleves.length > 0 && (
-          <div className="champ" style={{ marginBottom: 6 }}>
-            <label>Importer les moyennes depuis un fichier (Excel/CSV) — colonnes : prénom, nom, cc, examen</label>
+          <div className="encart-import">
+            <div className="encart-import-titre">Import rapide (recommandé pour une classe nombreuse)</div>
+            <p>Téléverse un fichier avec les colonnes <strong>prénom</strong>, <strong>nom</strong>, <strong>cc</strong>, <strong>examen</strong> — chaque ligne remplit automatiquement le tableau ci-dessous par correspondance de nom, sans rien saisir à la main.</p>
             <input type="file" accept=".xlsx,.xls,.csv" onChange={importerNotes} />
-            {importMessage && <div style={{ fontSize: '0.82rem', color: 'var(--texte-clair)', marginTop: 6 }}>{importMessage}</div>}
+            {importMessage && <div style={{ fontSize: '0.82rem', color: 'var(--texte-clair)', marginTop: 8 }}>{importMessage}</div>}
           </div>
         )}
 
@@ -200,7 +201,12 @@ export default function Notes() {
           </table>
         )}
         {matiereId && eleves.length === 0 && <div className="vide">Choisis une classe pour afficher les élèves.</div>}
-        {!matiereId && <div className="vide">Choisis une UE puis une matière pour saisir des moyennes.</div>}
+        {!matiereId && (
+          <div className="vide">
+            Choisis une UE puis une matière pour saisir des moyennes.
+            <br />Une classe nombreuse ? Un import depuis un fichier Excel/CSV sera proposé juste après — pas besoin de tout saisir à la main.
+          </div>
+        )}
 
         <button className="primaire" type="submit">Enregistrer les moyennes</button>
         {message && <div className={message.includes('enregistrée') ? 'message-succes' : 'message-erreur'}>{message}</div>}

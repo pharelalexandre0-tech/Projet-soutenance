@@ -338,6 +338,32 @@ tbody tr:nth-child(n+5) { animation-delay: 0.14s; }
 tbody tr:hover { background: var(--gris-fond); }
 tr:last-child td { border-bottom: none; }
 td:has(.badge), td { font-variant-numeric: tabular-nums; }
+.ligne-cliquable { cursor: pointer; }
+/* Sépare visiblement une liste du formulaire qui suit, au lieu d'un
+   simple margin-top qui laisse les deux collés l'un à l'autre. */
+.separateur-section { height: 1px; background: var(--bordure); margin: 24px 0 20px; }
+
+/* Encart d'import mis en avant — pas un simple champ de formulaire parmi
+   d'autres, la voie rapide pour ne pas saisir des centaines de lignes à
+   la main. */
+.encart-import {
+  background: var(--primaire-clair); border: 1px solid color-mix(in srgb, var(--primaire) 35%, var(--primaire-clair));
+  border-radius: 10px; padding: 14px 16px; margin-bottom: 6px;
+}
+.encart-import-titre { font-weight: 700; font-size: 0.85rem; color: var(--primaire-fonce); margin-bottom: 6px; }
+.encart-import p { font-size: 0.82rem; color: var(--texte); line-height: 1.5; margin: 0 0 10px; }
+
+/* Détail d'une classe, déplié sous sa ligne dans le tableau — voir son
+   effectif/statut/statistiques et la modifier ou la supprimer sans quitter
+   la liste ni ouvrir une page à part. */
+.detail-classe {
+  background: var(--gris-fond); padding: 16px 18px; border-radius: 0 0 10px 10px;
+  animation: tombe-doucement 0.25s ease both;
+}
+.detail-classe-stats { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; font-size: 0.85rem; }
+.detail-classe-chiffre { display: flex; align-items: baseline; gap: 6px; }
+.detail-classe-chiffre strong { font-family: var(--police-mono); font-size: 1.1rem; color: var(--primaire); }
+.detail-classe-chiffre span { color: var(--texte-clair); }
 
 .formulaire { display: flex; flex-direction: column; gap: 16px; }
 .ligne-champs { display: flex; gap: 14px; flex-wrap: wrap; }

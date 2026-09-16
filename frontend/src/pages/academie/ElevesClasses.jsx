@@ -1,20 +1,71 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
 
+const ELEVE_VIDE = { nom: '', prenom: '', classeId: '', email: '', motDePasse: '' };
+
 export default function ElevesClasses() {
   const [classes, setClasses] = useState([]);
+  const [eleves, setEleves] = useState([]);
   const [nouvelleClasse, setNouvelleClasse] = useState({ nom: '', niveau: '' });
-  const [nouvelEleve, setNouvelEleve] = useState({ nom: '', prenom: '', classeId: '', email: '', motDePasse: '' });
+  const [nouvelEleve, setNouvelEleve] = useState(ELEVE_VIDE);
   const [message, setMessage] = useState('');
   const [classeImportId, setClasseImportId] = useState('');
   const [importEnCours, setImportEnCours] = useState(false);
   const [resultatImport, setResultatImport] = useState(null);
 
+  // Détail d'une classe (voir/modifier/supprimer) : une seule ouverte à la
+  // fois, dépliée sous sa ligne — pas une page séparée, pour rester dans le
+  // même geste que la liste.
+  const [classeOuverte, setClasseOuverte] = useState(null);
+  const [statsClasse, setStatsClasse] = useState(null);
+  const [editionClasse, setEditionClasse] = useState({ nom: '', niveau: '' });
+  const [erreurClasse, setErreurClasse] = useState('');
+
+  const [filtreClasse, setFiltreClasse] = useState('');
+
   function charger() {
     client.get('/classes').then((res) => setClasses(res.data.classes));
+    client.get('/eleves').then((res) => setEleves(res.data.eleves));
   }
   useEffect(charger, []);
+
+  async function ouvrirClasse(c) {
+    if (classeOuverte === c.id) { setClasseOuverte(null); return; }
+    setClasseOuverte(c.id);
+    setEditionClasse({ nom: c.nom, niveau: c.niveau });
+    setErreurClasse('');
+    setStatsClasse(null);
+    const res = await client.get(`/classes/${c.id}/statistiques`);
+    setStatsClasse(res.data);
+  }
+
+  async function enregistrerClasse(id) {
+    setErreurClasse('');
+    try {
+      await client.put(`/classes/${id}`, editionClasse);
+      charger();
+    } catch (err) {
+      setErreurClasse(err.response?.data?.erreur || 'erreur');
+    }
+  }
+
+  async function supprimerClasseAction(id) {
+    setErreurClasse('');
+    try {
+      await client.delete(`/classes/${id}`);
+      setClasseOuverte(null);
+      charger();
+    } catch (err) {
+      setErreurClasse(err.response?.data?.erreur || 'erreur');
+    }
+  }
+
+  async function supprimerEleveAction(eleve) {
+    if (!window.confirm(`Retirer ${eleve.prenom} ${eleve.nom} ? Son compte étudiant sera aussi supprimé.`)) return;
+    await client.delete(`/eleves/${eleve.id}`);
+    charger();
+  }
 
   // Une ligne doit fournir au moins prénom + nom + email — le mot de passe
   // du compte étudiant est généré s'il manque (un enseignant qui exporte sa
@@ -72,26 +123,73 @@ export default function ElevesClasses() {
     try {
       await client.post('/eleves', nouvelEleve);
       setMessage(`Élève ajouté, compte étudiant créé.`);
-      setNouvelEleve({ nom: '', prenom: '', classeId: '', email: '', motDePasse: '' });
+      setNouvelEleve(ELEVE_VIDE);
       charger();
     } catch (err) {
       setMessage(err.response?.data?.erreur || 'erreur');
     }
   }
 
+  const elevesAffiches = filtreClasse ? eleves.filter((e) => String(e.classeId) === filtreClasse) : eleves;
+
   return (
     <div className="grille-2">
       <div className="carte">
         <h2>Classes</h2>
+        <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -8, marginBottom: 16 }}>
+          Clique une classe pour voir son effectif, ses statistiques, la modifier ou la supprimer.
+        </p>
         <table>
           <thead><tr><th>Nom</th><th>Niveau</th><th>Effectif</th></tr></thead>
           <tbody>
             {classes.map((c) => (
-              <tr key={c.id}>
-                <td>{c.nom}</td>
-                <td>{c.niveau}</td>
-                <td>{c.Eleves?.length ?? 0}</td>
-              </tr>
+              <Fragment key={c.id}>
+                <tr className="ligne-cliquable" onClick={() => ouvrirClasse(c)}>
+                  <td>{c.nom}</td>
+                  <td>{c.niveau}</td>
+                  <td>{c.Eleves?.length ?? 0}</td>
+                </tr>
+                {classeOuverte === c.id && (
+                  <tr>
+                    <td colSpan={3} style={{ padding: 0 }}>
+                      <div className="detail-classe">
+                        {!statsClasse ? (
+                          <div className="vide">Chargement…</div>
+                        ) : (
+                          <div className="detail-classe-stats">
+                            <div className="detail-classe-chiffre">
+                              <strong>{statsClasse.effectif}</strong>
+                              <span>élève(s)</span>
+                            </div>
+                            <span className={`badge ${statsClasse.statut === 'active' ? 'vert' : 'gris'}`}>
+                              {statsClasse.statut === 'active' ? 'Active' : 'Vide'}
+                            </span>
+                            <div className="detail-classe-chiffre">
+                              <strong>{statsClasse.absences.total}</strong>
+                              <span>absence(s) — {statsClasse.absences.justifiees} justifiée(s), {statsClasse.absences.nonJustifiees} non justifiée(s)</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="ligne-champs" style={{ marginTop: 14 }}>
+                          <div className="champ">
+                            <label>Nom</label>
+                            <input value={editionClasse.nom} onChange={(e) => setEditionClasse({ ...editionClasse, nom: e.target.value })} />
+                          </div>
+                          <div className="champ">
+                            <label>Niveau</label>
+                            <input value={editionClasse.niveau} onChange={(e) => setEditionClasse({ ...editionClasse, niveau: e.target.value })} />
+                          </div>
+                        </div>
+                        {erreurClasse && <div className="message-erreur" style={{ marginTop: 10 }}>{erreurClasse}</div>}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                          <button className="secondaire" onClick={() => enregistrerClasse(c.id)}>Enregistrer</button>
+                          <button className="secondaire danger" onClick={() => supprimerClasseAction(c.id)}>Supprimer</button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
             {classes.length === 0 && <tr><td colSpan={3} className="vide">Aucune classe</td></tr>}
           </tbody>
@@ -114,7 +212,33 @@ export default function ElevesClasses() {
 
       <div className="carte">
         <h2>Élèves</h2>
-        <h3>Inscrire un élève</h3>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <h3 style={{ margin: 0 }}>Liste ({elevesAffiches.length})</h3>
+          <select value={filtreClasse} onChange={(e) => setFiltreClasse(e.target.value)} style={{ maxWidth: 200 }}>
+            <option value="">Toutes les classes</option>
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+          </select>
+        </div>
+        <table>
+          <thead><tr><th>Élève</th><th>Classe</th><th></th></tr></thead>
+          <tbody>
+            {elevesAffiches.map((e) => (
+              <tr key={e.id}>
+                <td>{e.prenom} {e.nom}</td>
+                <td>{e.Classe?.nom ?? '—'}</td>
+                <td style={{ textAlign: 'right' }}>
+                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => supprimerEleveAction(e)}>
+                    Retirer
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {elevesAffiches.length === 0 && <tr><td colSpan={3} className="vide">Aucun élève</td></tr>}
+          </tbody>
+        </table>
+
+        <h3 style={{ marginTop: 22 }}>Inscrire un élève</h3>
         <form className="formulaire" onSubmit={creerEleve} autoComplete="off">
           <div className="ligne-champs">
             <div className="champ">
@@ -134,19 +258,26 @@ export default function ElevesClasses() {
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
               </select>
             </div>
-          </div>
-          <div className="ligne-champs">
             <div className="champ">
               <label>E-mail (compte étudiant)</label>
               <input type="email" autoComplete="off" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
             </div>
-            <div className="champ">
+          </div>
+          <div className="ligne-champs">
+            <div className="champ" style={{ flex: 1 }}>
               <label>Mot de passe (compte étudiant)</label>
               <input type="password" autoComplete="new-password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
             </div>
+            <button
+              type="button" className="secondaire"
+              style={{ alignSelf: 'flex-end', marginBottom: 1 }}
+              onClick={() => setNouvelEleve({ ...nouvelEleve, motDePasse: motDePasseAleatoire() })}
+            >
+              Générer
+            </button>
           </div>
           <button className="primaire" type="submit">Inscrire l'élève</button>
-          {message && <div className="message-succes">{message}</div>}
+          {message && <div className={message.includes('ajouté') ? 'message-succes' : 'message-erreur'}>{message}</div>}
         </form>
 
         <h3 style={{ marginTop: 24 }}>Importer une liste (Excel/CSV)</h3>
