@@ -674,6 +674,13 @@ button.danger:hover { background: var(--erreur-fond); }
   .page-connexion::before, .page-connexion::after { display: none; }
   .composition-acces { max-width: none; }
   .carte-bienvenue-blob { width: 100%; margin-left: 0; min-height: 280px; border-radius: 0 0 32px 32px; }
+  /* Les icônes flottantes sont positionnées en % de la carte, réglé pour
+     les ~680px de haut du desktop où il reste de la vraie place autour du
+     contenu. En bannière mobile (280px, contenu en flux qui prend presque
+     toute la hauteur) les mêmes % tombent en plein sur le texte au lieu
+     du vide — pas la place de les repositionner proprement, on les
+     retire plutôt que de laisser ce résultat bancal. */
+  .particule { display: none; }
   /* Le space-between plein-cadre (voir desktop) suppose une carte assez
      haute pour ne pas rogner son contenu ; en bannière mobile la carte n'a
      que sa min-height et ne grandit plus toute seule avec le texte une
