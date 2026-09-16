@@ -195,6 +195,11 @@ export default function UnitesEnseignement() {
               <input type="number" min="0.5" step="0.5" value={nouvelleUE.coefficient} onChange={(e) => setNouvelleUE({ ...nouvelleUE, coefficient: e.target.value })} required />
             </div>
           </div>
+          <p style={{ fontSize: '0.78rem', color: 'var(--texte-clair)', marginTop: -8 }}>
+            Deux pondérations distinctes existent : le coefficient d'une <strong>matière</strong> pèse dans la
+            moyenne de son UE ; le coefficient de l'<strong>UE</strong> pèse à son tour dans la moyenne générale
+            de l'élève. Ce n'est pas un doublon.
+          </p>
           <button className="primaire" type="submit">Créer l'UE</button>
           {message && <div className={message === 'UE créée.' ? 'message-succes' : 'message-erreur'}>{message}</div>}
         </form>
