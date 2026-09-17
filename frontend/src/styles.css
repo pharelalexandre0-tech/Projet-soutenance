@@ -398,7 +398,10 @@ input:focus, select:focus, textarea:focus {
 }
 
 button.primaire {
-  background: linear-gradient(135deg, var(--primaire) 0%, var(--primaire-fonce) 100%);
+  /* Le dégradé du système (marine -> bleu -> teal -> vert, comme la
+     connexion et la sidebar) plutôt qu'un simple bleu -> bleu foncé — un
+     bouton "primaire" doit porter la même identité que le reste. */
+  background: var(--degrade-plein-ecran);
   color: #fff;
   border: none;
   padding: 10px 20px;
@@ -411,8 +414,14 @@ button.primaire {
   box-shadow: 0 6px 16px -8px color-mix(in srgb, var(--primaire) 60%, transparent);
   transition: box-shadow 0.15s ease, transform 0.15s ease, filter 0.15s ease;
 }
-button.primaire:hover { filter: brightness(1.08); transform: translateY(-1px); }
+button.primaire:hover { filter: brightness(1.1); transform: translateY(-1px); }
 button.primaire:active { transform: translateY(0) scale(0.96); }
+/* Vert : action de confirmation/enregistrement — distincte du bleu
+   (création) et du rouge (suppression, voir button.danger). */
+button.succes {
+  color: var(--succes); border-color: color-mix(in srgb, var(--succes) 40%, var(--bordure));
+}
+button.succes:hover { background: var(--succes-fond); }
 button.primaire:disabled { background: var(--bordure); color: var(--texte-clair); box-shadow: none; cursor: not-allowed; transform: none; }
 
 button.secondaire {

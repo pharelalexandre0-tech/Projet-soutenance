@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 
-const UE_VIDE = { code: '', intitule: '', credits: '', coefficient: '1', semestreId: '' };
+const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '' };
 const MATIERE_VIDE = { code: '', intitule: '', coefficient: '1' };
 const SEMESTRE_VIDE = { libelle: '', anneeScolaire: '' };
 
@@ -39,10 +39,13 @@ export default function UnitesEnseignement() {
     e.preventDefault();
     setMessage('');
     try {
+      // Le coefficient de l'UE ne se règle pas à la création — l'Académie
+      // crée une UE, pas un poids ; il part sur la même valeur que les
+      // crédits (convention LMD courante : coefficient = crédits ECTS).
       await client.post('/unites-enseignement', {
         ...nouvelleUE,
         credits: Number(nouvelleUE.credits),
-        coefficient: Number(nouvelleUE.coefficient),
+        coefficient: Number(nouvelleUE.credits),
       });
       setMessage('UE créée.');
       setNouvelleUE(UE_VIDE);
@@ -190,16 +193,7 @@ export default function UnitesEnseignement() {
               <label>Crédits</label>
               <input type="number" min="1" value={nouvelleUE.credits} onChange={(e) => setNouvelleUE({ ...nouvelleUE, credits: e.target.value })} required />
             </div>
-            <div className="champ">
-              <label>Coefficient</label>
-              <input type="number" min="0.5" step="0.5" value={nouvelleUE.coefficient} onChange={(e) => setNouvelleUE({ ...nouvelleUE, coefficient: e.target.value })} required />
-            </div>
           </div>
-          <p style={{ fontSize: '0.78rem', color: 'var(--texte-clair)', marginTop: -8 }}>
-            Deux pondérations distinctes existent : le coefficient d'une <strong>matière</strong> pèse dans la
-            moyenne de son UE ; le coefficient de l'<strong>UE</strong> pèse à son tour dans la moyenne générale
-            de l'élève. Ce n'est pas un doublon.
-          </p>
           <button className="primaire" type="submit">Créer l'UE</button>
           {message && <div className={message === 'UE créée.' ? 'message-succes' : 'message-erreur'}>{message}</div>}
         </form>

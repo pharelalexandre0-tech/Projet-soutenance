@@ -191,7 +191,7 @@ export default function ElevesClasses() {
                         </div>
                         {erreurClasse && <div className="message-erreur" style={{ marginTop: 10 }}>{erreurClasse}</div>}
                         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                          <button className="secondaire" onClick={() => enregistrerClasse(c.id)}>Enregistrer</button>
+                          <button className="secondaire succes" onClick={() => enregistrerClasse(c.id)}>Enregistrer</button>
                           <button className="secondaire danger" onClick={() => supprimerClasseAction(c.id)}>Supprimer</button>
                         </div>
                       </div>
