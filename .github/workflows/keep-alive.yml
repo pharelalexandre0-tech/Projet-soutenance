@@ -2,17 +2,28 @@ name: Keep Render backend awake
 
 on:
   schedule:
-    # Toutes les 10 minutes — sous les 15 min d'inactivité avant mise en
-    # veille du plan gratuit Render. GitHub peut retarder légèrement les
-    # cron schedules, d'où la marge de 5 minutes.
-    - cron: '*/10 * * * *'
+    # `schedule` seul ne suffit pas : GitHub ne respecte pas l'horaire à
+    # la minute près (délais observés en pratique : 2 à 5h+ au lieu des
+    # 10 min configurées), largement au-dessus des 15 min d'inactivité
+    # avant mise en veille de Render. Ici `schedule` ne sert qu'à
+    # redémarrer la boucle ci-dessous si besoin — le vrai rythme de ping
+    # (5 min) vient de la boucle interne d'un job déjà en cours
+    # d'exécution, qui elle n'est pas soumise aux délais de file d'attente
+    # de GitHub. Le déclenchement toutes les 5h laisse ~40 min de marge
+    # de recouvrement avec la boucle de 5h40 ci-dessous.
+    - cron: '0 */5 * * *'
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
-      - name: Ping backend health endpoint
-        run: curl -fsS https://edusphere-backend-fh30.onrender.com/api/sante
-      - name: Ping frontend
-        run: curl -fsS https://edusphere-frontend-pryg.onrender.com/
+      - name: Ping toutes les 5 minutes pendant ~5h40
+        run: |
+          fin=$((SECONDS + 340 * 60))
+          while [ $SECONDS -lt $fin ]; do
+            curl -fsS -o /dev/null https://edusphere-backend-fh30.onrender.com/api/sante || true
+            curl -fsS -o /dev/null https://edusphere-frontend-pryg.onrender.com/ || true
+            sleep 300
+          done

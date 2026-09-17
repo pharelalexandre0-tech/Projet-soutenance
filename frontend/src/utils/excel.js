@@ -1,10 +1,24 @@
-import * as XLSX from 'xlsx';
-import * as cptable from 'xlsx/dist/cpexcel.full.mjs';
-
-// Sans ça, XLSX.read({ codepage: ... }) fonctionne quand même pour
-// l'UTF-8 mais log une erreur "Codepage tables are not loaded" à chaque
-// fichier importé.
-XLSX.set_cptable(cptable);
+// xlsx est une grosse bibliothèque (~400 Ko gzippés) qui ne sert qu'à
+// l'import Excel/CSV — un enseignant sur mille l'utilise dans une
+// session donnée. Importée en dur, elle partait dans le bundle principal
+// de tout le monde ; chargée à la demande ici, elle n'est téléchargée
+// que par qui clique réellement sur "Importer".
+let xlsxPromise;
+function chargerXLSX() {
+  if (!xlsxPromise) {
+    xlsxPromise = Promise.all([
+      import('xlsx'),
+      // Sans ça, XLSX.read({ codepage: ... }) fonctionne quand même pour
+      // l'UTF-8 mais log une erreur "Codepage tables are not loaded" à
+      // chaque fichier importé.
+      import('xlsx/dist/cpexcel.full.mjs'),
+    ]).then(([XLSX, cptable]) => {
+      XLSX.set_cptable(cptable);
+      return XLSX;
+    });
+  }
+  return xlsxPromise;
+}
 
 // Un enseignant qui exporte sa liste depuis un tableur n'utilisera jamais
 // exactement "prenom"/"nom" sans accent ni majuscule — on normalise les
@@ -34,6 +48,7 @@ export function normaliserTexte(texte) {
 // appelant sait alors chercher ligne.prenom / ligne.email sans se soucier
 // de la façon dont le fichier d'origine a nommé ses colonnes.
 export async function lireFichierExcel(fichier) {
+  const XLSX = await chargerXLSX();
   const tampon = await fichier.arrayBuffer();
   // codepage 65001 (UTF-8) : sans lui, un .csv sans BOM voit ses accents
   // corrompus ("Prénom" -> "PrÃ©nom") — un .xlsx/.xls binaire n'est pas

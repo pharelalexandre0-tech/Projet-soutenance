@@ -2,6 +2,7 @@ require('dotenv').config();
 require('express-async-errors');
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
@@ -19,6 +20,7 @@ const { DOSSIER_STOCKAGE } = require('./services/pdfService');
 const app = express();
 
 app.use(cors());
+app.use(compression());
 app.use(express.json());
 
 // Bulletins et reçus PDF générés par pdfService (diagrammes 5 et 8).
