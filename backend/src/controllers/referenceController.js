@@ -15,6 +15,7 @@ const {
 } = require('../models');
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
+const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 
 // Identité de l'établissement (nom, ville…) DE L'UTILISATEUR CONNECTÉ,
 // utilisée sur les documents officiels (bulletin, reçu). Paramétrable en
@@ -126,6 +127,10 @@ async function creerEleve(req, res) {
   }
   if (!email || !motDePasse) {
     return res.status(400).json({ erreur: "l'e-mail et le mot de passe du compte étudiant sont obligatoires" });
+  }
+  const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
+  if (erreurMotDePasse) {
+    return res.status(400).json({ erreur: erreurMotDePasse });
   }
   const emailExistant = await Utilisateur.findOne({ where: { email } });
   if (emailExistant) {

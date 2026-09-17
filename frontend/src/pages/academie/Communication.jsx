@@ -26,6 +26,7 @@ function Messages({ classes }) {
   const [messages, setMessages] = useState([]);
   const [form, setForm] = useState({ classeId: '', type: 'message', titre: '', contenu: '' });
   const [resultat, setResultat] = useState('');
+  const [formOuvert, setFormOuvert] = useState(false);
 
   function charger() {
     client.get('/messages').then((res) => setMessages(res.data.messages));
@@ -38,13 +39,20 @@ function Messages({ classes }) {
     const res = await client.post('/messages', { ...form, classeId: Number(form.classeId) });
     setResultat(`Envoyé — ${res.data.etudiantsNotifies} étudiant(s) notifié(s) par notification et e-mail.`);
     setForm({ classeId: form.classeId, type: 'message', titre: '', contenu: '' });
+    setFormOuvert(false);
     charger();
   }
 
   return (
     <div className="grille-2">
       <div className="carte">
-        <h2>Envoyer un message</h2>
+        <div className="entete-section">
+          <h2>Envoyer un message</h2>
+          <button type="button" className={formOuvert ? 'secondaire' : 'primaire'} onClick={() => setFormOuvert((v) => !v)}>
+            {formOuvert ? 'Annuler' : '+ Nouveau message'}
+          </button>
+        </div>
+        {formOuvert && (
         <form className="formulaire" onSubmit={envoyer}>
           <div className="ligne-champs">
             <div className="champ">
@@ -74,6 +82,8 @@ function Messages({ classes }) {
           <button className="primaire" type="submit">Envoyer aux étudiants de la classe</button>
           {resultat && <div className="message-succes">{resultat}</div>}
         </form>
+        )}
+        {!formOuvert && resultat && <div className="message-succes" style={{ marginTop: 14 }}>{resultat}</div>}
       </div>
 
       <div className="carte">
@@ -102,6 +112,7 @@ function CahierDeTextes({ classes }) {
   const [classeId, setClasseId] = useState('');
   const [cahier, setCahier] = useState([]);
   const [form, setForm] = useState({ date: '', contenuSeance: '' });
+  const [formOuvert, setFormOuvert] = useState(false);
 
   useEffect(() => {
     if (classeId) client.get(`/cahier-de-textes?classeId=${classeId}`).then((res) => setCahier(res.data.cahier));
@@ -112,6 +123,7 @@ function CahierDeTextes({ classes }) {
     e.preventDefault();
     await client.post('/cahier-de-textes', { ...form, classeId: Number(classeId) });
     setForm({ date: '', contenuSeance: '' });
+    setFormOuvert(false);
     client.get(`/cahier-de-textes?classeId=${classeId}`).then((res) => setCahier(res.data.cahier));
   }
 
@@ -139,7 +151,14 @@ function CahierDeTextes({ classes }) {
       </div>
 
       <div className="carte">
-        <h2>Ajouter une séance</h2>
+        <div className="entete-section">
+          <h2>Ajouter une séance</h2>
+          <button type="button" className={formOuvert ? 'secondaire' : 'primaire'} onClick={() => setFormOuvert((v) => !v)} disabled={!classeId}>
+            {formOuvert ? 'Annuler' : '+ Nouvelle séance'}
+          </button>
+        </div>
+        {!classeId && <div className="vide">Sélectionne une classe à gauche</div>}
+        {formOuvert && classeId && (
         <form className="formulaire" onSubmit={ajouter}>
           <div className="champ">
             <label>Date</label>
@@ -149,9 +168,9 @@ function CahierDeTextes({ classes }) {
             <label>Contenu de la séance</label>
             <textarea rows={4} value={form.contenuSeance} onChange={(e) => setForm({ ...form, contenuSeance: e.target.value })} required />
           </div>
-          <button className="primaire" type="submit" disabled={!classeId}>Enregistrer</button>
-          {!classeId && <div className="vide">Sélectionne une classe à gauche</div>}
+          <button className="primaire" type="submit">Enregistrer</button>
         </form>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const { Utilisateur, Etablissement } = require('../models');
 const { signSession } = require('../utils/jwt');
 const { envoyerEmail } = require('../services/emailService');
+const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 
 const DUREE_CODE_2FA_MIN = 10;
 
@@ -102,6 +103,10 @@ async function creerCompte(req, res) {
   if (!['academie', 'finance'].includes(role)) {
     return res.status(400).json({ erreur: 'rôle invalide' });
   }
+  const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
+  if (erreurMotDePasse) {
+    return res.status(400).json({ erreur: erreurMotDePasse });
+  }
 
   const motDePasseHache = await bcrypt.hash(motDePasse, 10);
   const utilisateur = await Utilisateur.create({
@@ -125,4 +130,27 @@ async function monProfil(req, res) {
   return res.json({ profil: req.utilisateur.toPublicJSON() });
 }
 
-module.exports = { seConnecter, verifierDoubleFacteur, creerCompte, monProfil };
+// Symétrique de superadminController.mettreAJourMonProfil, pour les trois
+// autres rôles — jusqu'ici seul le superadmin pouvait changer son propre
+// mot de passe depuis l'app ; Académie, Finance et Étudiant n'avaient
+// aucun moyen en libre-service (ex. après un mot de passe temporaire
+// reçu par e-mail).
+async function mettreAJourMonProfil(req, res) {
+  const { nom, prenom, motDePasse } = req.body;
+  if (!nom || !prenom) {
+    return res.status(400).json({ erreur: 'nom et prénom sont obligatoires' });
+  }
+  req.utilisateur.nom = nom;
+  req.utilisateur.prenom = prenom;
+  if (motDePasse) {
+    const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
+    if (erreurMotDePasse) {
+      return res.status(400).json({ erreur: erreurMotDePasse });
+    }
+    req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
+  }
+  await req.utilisateur.save();
+  return res.json({ profil: req.utilisateur.toPublicJSON() });
+}
+
+module.exports = { seConnecter, verifierDoubleFacteur, creerCompte, monProfil, mettreAJourMonProfil };

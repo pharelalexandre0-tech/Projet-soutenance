@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { IconLogout, IconMenu, IconClose } from './icons';
+import { IconLogout, IconMenu, IconClose, IconSettings } from './icons';
+import ModaleMonCompte from './ModaleMonCompte';
 import logoIcon from '../assets/logo-icon.png';
 
 const LIBELLES_ROLE = {
@@ -18,6 +19,9 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   const { profil, seDeconnecter } = useAuth();
   const section = onglets.find((o) => o.id === actif) || onglets[0];
   const [menuOuvert, setMenuOuvert] = useState(false);
+  // Le superadmin a déjà son propre onglet "Mon profil" dédié — pas besoin
+  // de ce second accès qui ferait doublon pour lui seul.
+  const [compteOuvert, setCompteOuvert] = useState(false);
 
   function choisirOnglet(id) {
     onChange(id);
@@ -70,6 +74,11 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
             <strong>{profil?.prenom} {profil?.nom}</strong>
             <small>{profil?.email}</small>
           </div>
+          {profil?.role !== 'superadmin' && (
+            <button className="bouton-parametres-compte" onClick={() => setCompteOuvert(true)} title="Mon compte" aria-label="Mon compte">
+              <IconSettings width={16} height={16} />
+            </button>
+          )}
           <button className="bouton-deconnexion" onClick={seDeconnecter} title="Déconnexion" aria-label="Déconnexion">
             <IconLogout width={16} height={16} />
           </button>
@@ -85,6 +94,8 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
           </>
         )}
       </div>
+
+      {compteOuvert && <ModaleMonCompte onFermer={() => setCompteOuvert(false)} />}
     </div>
   );
 }

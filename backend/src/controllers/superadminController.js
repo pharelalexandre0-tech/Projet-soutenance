@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
+const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const {
   Etablissement, Utilisateur, Classe, Eleve, Semestre, Professeur, Personnel,
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
@@ -50,6 +51,10 @@ async function creerEtablissement(req, res) {
   }
   if (!academieNom || !academiePrenom || !academieEmail || !academieMotDePasse) {
     return res.status(400).json({ erreur: "les informations du premier compte Académie sont obligatoires" });
+  }
+  const erreurMotDePasse = erreurMotDePasseInvalide(academieMotDePasse);
+  if (erreurMotDePasse) {
+    return res.status(400).json({ erreur: erreurMotDePasse });
   }
 
   const emailExistant = await Utilisateur.findOne({ where: { email: academieEmail } });
@@ -204,6 +209,10 @@ async function creerSuperadmin(req, res) {
   if (!nom || !prenom || !email || !motDePasse) {
     return res.status(400).json({ erreur: 'champs manquants' });
   }
+  const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
+  if (erreurMotDePasse) {
+    return res.status(400).json({ erreur: erreurMotDePasse });
+  }
   const emailExistant = await Utilisateur.findOne({ where: { email } });
   if (emailExistant) {
     return res.status(400).json({ erreur: 'cette adresse e-mail est déjà utilisée par un autre compte' });
@@ -223,8 +232,9 @@ async function mettreAJourMonProfil(req, res) {
   req.utilisateur.nom = nom;
   req.utilisateur.prenom = prenom;
   if (motDePasse) {
-    if (motDePasse.length < 6) {
-      return res.status(400).json({ erreur: 'le mot de passe doit contenir au moins 6 caractères' });
+    const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
+    if (erreurMotDePasse) {
+      return res.status(400).json({ erreur: erreurMotDePasse });
     }
     req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
   }
