@@ -50,13 +50,15 @@ function Champ({ label, icone: Icone, children }) {
   );
 }
 
-// axios ne renseigne `err.response` que si le serveur a répondu — un
+// axios ne renseigne `err.response` que si une réponse est arrivée — un
 // serveur injoignable (backend Render en veille, coupure réseau) laisse
-// `err.response` indéfini. Sans cette distinction, ces deux cas très
-// différents affichaient le même "identifiants incorrects", trompeur
-// quand le mot de passe est en fait le bon.
+// `err.response` indéfini. Mais un 502/503/504 EST une réponse : c'est la
+// passerelle Render qui répond à la place du backend pas encore réveillé,
+// pas l'application qui rejette le mot de passe — sans ce deuxième cas,
+// ce genre de réponse s'affichait aussi comme "identifiants incorrects",
+// trompeur puisque le mot de passe est en fait le bon.
 function messageErreurConnexion(err, messageParDefaut) {
-  if (!err.response) {
+  if (!err.response || err.response.status >= 500) {
     return "Impossible de joindre le serveur — réessaie dans quelques secondes.";
   }
   return err.response.data?.erreur || messageParDefaut;
