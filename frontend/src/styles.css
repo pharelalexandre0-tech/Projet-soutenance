@@ -711,6 +711,14 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 .connexion-retour:hover { color: var(--texte); }
 
+.connexion-mot-de-passe-oublie {
+  background: none; border: none; color: var(--primaire);
+  font-size: 0.8rem; font-weight: 500; cursor: pointer;
+  align-self: flex-end; margin-top: -8px; padding: 2px 0;
+  transition: color 0.15s ease;
+}
+.connexion-mot-de-passe-oublie:hover { color: var(--texte); text-decoration: underline; }
+
 @keyframes entree-connexion {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }

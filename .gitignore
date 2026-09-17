@@ -1,5 +1,8 @@
 node_modules/
 dist/
 **/storage/pdfs/*.pdf
+# Dumps de sauvegarde (npm run backup) : données réelles des établissements
+# (noms, e-mails, notes, montants financiers) — jamais dans un dépôt public.
+**/storage/sauvegardes/
 .env
 *.log

@@ -47,6 +47,9 @@ app.use(express.json());
 // Un formulaire de connexion mal protégé accepte des centaines d'essais
 // par seconde — large marge (les cold starts Render peuvent multiplier
 // les tentatives légitimes) mais assez basse pour freiner un bruteforce.
+// Même limiteur pour la réinitialisation de mot de passe : aussi
+// sensible (jeton devinable par force brute, ou spam d'e-mails vers un
+// tiers si on ne limitait pas les demandes).
 const limiteurConnexion = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 30,
@@ -54,7 +57,7 @@ const limiteurConnexion = rateLimit({
   legacyHeaders: false,
   message: { erreur: 'trop de tentatives — réessaie dans quelques minutes' },
 });
-app.use('/api/auth/connexion', limiteurConnexion);
+app.use(['/api/auth/connexion', '/api/auth/mot-de-passe-oublie', '/api/auth/reinitialiser-mot-de-passe'], limiteurConnexion);
 
 // Bulletins et reçus PDF générés par pdfService (diagrammes 5 et 8).
 app.use('/fichiers', express.static(DOSSIER_STOCKAGE));

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
 import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
@@ -9,9 +10,9 @@ import logoIcon from '../assets/logo-icon.png';
 // coupée en deux (référence donnée par l'utilisateur) — la carte blanche du
 // formulaire est posée par-dessus la carte bleue, avec des formes
 // organiques en fond au lieu d'un simple bord incurvé. Toujours pas de
-// bascule "créer un compte", et pas de "se souvenir de moi" / "mot de
-// passe oublié" — aucun des deux n'existe côté backend, une case à cocher
-// qui ne fait rien n'a pas sa place ici.
+// bascule "créer un compte" ni de "se souvenir de moi" — aucun des deux
+// n'existe côté backend, une case à cocher qui ne fait rien n'a pas sa
+// place ici. "Mot de passe oublié" existe bien, lui (ReinitialiserMotDePasse.jsx).
 function CarteBienvenue() {
   return (
     <div className="carte-bienvenue-blob">
@@ -77,6 +78,13 @@ export default function Login() {
   // passe cède la place à celui du code reçu par e-mail.
   const [attenteCode, setAttenteCode] = useState(null); // { utilisateurId } | null
   const [code, setCode] = useState('');
+  // "Mot de passe oublié" : mini-formulaire à la place du formulaire de
+  // connexion, pas une page séparée — évite un aller-retour complet pour
+  // une action qui ne quitte jamais vraiment l'écran de connexion.
+  const [motDePasseOublieOuvert, setMotDePasseOublieOuvert] = useState(false);
+  const [emailOubli, setEmailOubli] = useState('');
+  const [messageOubli, setMessageOubli] = useState('');
+  const [enCoursOubli, setEnCoursOubli] = useState(false);
 
   if (ouverture) return <TransitionOuverture />;
   if (profil) return <Navigate to="/" replace />;
@@ -123,6 +131,60 @@ export default function Login() {
   function onSubmit(e) {
     e.preventDefault();
     connecter(email, motDePasse);
+  }
+
+  async function demanderReinitialisation(e) {
+    e.preventDefault();
+    setEnCoursOubli(true);
+    try {
+      const res = await client.post('/auth/mot-de-passe-oublie', { email: emailOubli });
+      // Message volontairement identique côté backend, compte trouvé ou
+      // non — sinon ce formulaire devient un moyen de vérifier quelles
+      // adresses ont un compte ici.
+      setMessageOubli(res.data.message);
+    } catch (err) {
+      setMessageOubli(messageErreurConnexion(err, "impossible d'envoyer l'e-mail pour le moment"));
+    } finally {
+      setEnCoursOubli(false);
+    }
+  }
+
+  if (motDePasseOublieOuvert) {
+    return (
+      <div className="page-connexion">
+        <div className="composition-acces">
+          <CarteBienvenue />
+          <div className="carte-formulaire-acces">
+            <p className="acces-eyebrow">Mot de passe oublié</p>
+            <h2>Réinitialiser l'accès</h2>
+            <p className="connexion-aide">Saisis ton e-mail — si un compte existe, un lien de réinitialisation t'est envoyé.</p>
+            <form className="formulaire-connexion" onSubmit={demanderReinitialisation}>
+              <Champ label="Adresse e-mail" icone={IconMail}>
+                <input
+                  type="email"
+                  placeholder="vous@etablissement.ga"
+                  value={emailOubli}
+                  onChange={(e) => setEmailOubli(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </Champ>
+              {messageOubli && <div className="message-succes">{messageOubli}</div>}
+              <button className="bouton-connexion" type="submit" disabled={enCoursOubli}>
+                {enCoursOubli ? 'Envoi…' : 'Envoyer le lien'}
+              </button>
+              <button
+                type="button"
+                className="connexion-retour"
+                onClick={() => { setMotDePasseOublieOuvert(false); setMessageOubli(''); setEmailOubli(''); }}
+              >
+                Retour
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (attenteCode) {
@@ -191,6 +253,13 @@ export default function Login() {
                 required
               />
             </Champ>
+            <button
+              type="button"
+              className="connexion-mot-de-passe-oublie"
+              onClick={() => { setMotDePasseOublieOuvert(true); setEmailOubli(email); }}
+            >
+              Mot de passe oublié ?
+            </button>
             {erreur && <div className="connexion-erreur">{erreur}</div>}
             <button className="bouton-connexion" type="submit" disabled={enCours}>
               <IconLogout className="bouton-connexion-icone" aria-hidden="true" />

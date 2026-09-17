@@ -9,6 +9,7 @@ import Login from './pages/Login';
 // monde (~400 Ko gzippés) avant même l'écran de connexion. En lazy, un
 // étudiant ne télécharge plus le code de l'espace finance ou académie.
 const AccesTemporaire = lazy(() => import('./pages/AccesTemporaire'));
+const ReinitialiserMotDePasse = lazy(() => import('./pages/ReinitialiserMotDePasse'));
 const DashboardAcademie = lazy(() => import('./pages/DashboardAcademie'));
 const DashboardEtudiant = lazy(() => import('./pages/DashboardEtudiant'));
 const DashboardFinance = lazy(() => import('./pages/DashboardFinance'));
@@ -40,6 +41,7 @@ export default function App() {
           <Routes>
             <Route path="/connexion" element={<Login />} />
             <Route path="/acces-temporaire/:jeton" element={<AccesTemporaire />} />
+            <Route path="/reinitialiser-mot-de-passe/:jeton" element={<ReinitialiserMotDePasse />} />
             <Route
               path="/"
               element={

@@ -3,6 +3,11 @@ import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
 
 const ELEVE_VIDE = { nom: '', prenom: '', classeId: '', email: '', motDePasse: '' };
+// Un établissement peut compter des milliers d'élèves — rendre 7000 lignes
+// d'un coup alourdit le navigateur pour rien, alors que l'API renvoie déjà
+// tout (le filtrage par classe reste instantané côté client). Fenêtrage de
+// l'affichage seulement, pas de la requête.
+const TAILLE_PAGE = 50;
 
 export default function ElevesClasses() {
   const [classes, setClasses] = useState([]);
@@ -30,6 +35,7 @@ export default function ElevesClasses() {
   const [erreurClasse, setErreurClasse] = useState('');
 
   const [filtreClasse, setFiltreClasse] = useState('');
+  const [pageEleves, setPageEleves] = useState(0);
 
   function charger() {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -140,6 +146,9 @@ export default function ElevesClasses() {
   }
 
   const elevesAffiches = filtreClasse ? eleves.filter((e) => String(e.classeId) === filtreClasse) : eleves;
+  const totalPagesEleves = Math.max(1, Math.ceil(elevesAffiches.length / TAILLE_PAGE));
+  const pageEleveActuelle = Math.min(pageEleves, totalPagesEleves - 1);
+  const elevesPage = elevesAffiches.slice(pageEleveActuelle * TAILLE_PAGE, (pageEleveActuelle + 1) * TAILLE_PAGE);
 
   return (
     <div className="grille-2">
@@ -231,7 +240,7 @@ export default function ElevesClasses() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
           <h3 style={{ margin: 0 }}>Liste ({elevesAffiches.length})</h3>
-          <select value={filtreClasse} onChange={(e) => setFiltreClasse(e.target.value)} style={{ maxWidth: 200 }}>
+          <select value={filtreClasse} onChange={(e) => { setFiltreClasse(e.target.value); setPageEleves(0); }} style={{ maxWidth: 200 }}>
             <option value="">Toutes les classes</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
@@ -239,7 +248,7 @@ export default function ElevesClasses() {
         <table>
           <thead><tr><th>Élève</th><th>Classe</th><th></th></tr></thead>
           <tbody>
-            {elevesAffiches.map((e) => (
+            {elevesPage.map((e) => (
               <tr key={e.id}>
                 <td>{e.prenom} {e.nom}</td>
                 <td>{e.Classe?.nom ?? '—'}</td>
@@ -253,6 +262,17 @@ export default function ElevesClasses() {
             {elevesAffiches.length === 0 && <tr><td colSpan={3} className="vide">Aucun élève</td></tr>}
           </tbody>
         </table>
+        {totalPagesEleves > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 12 }}>
+            <button className="secondaire" style={{ padding: '4px 12px' }} disabled={pageEleveActuelle === 0} onClick={() => setPageEleves(pageEleveActuelle - 1)}>
+              Précédent
+            </button>
+            <span className="note-secondaire">Page {pageEleveActuelle + 1} / {totalPagesEleves}</span>
+            <button className="secondaire" style={{ padding: '4px 12px' }} disabled={pageEleveActuelle >= totalPagesEleves - 1} onClick={() => setPageEleves(pageEleveActuelle + 1)}>
+              Suivant
+            </button>
+          </div>
+        )}
 
         <div className="entete-section" style={{ marginTop: 22 }}>
           <h3>Inscrire un élève</h3>

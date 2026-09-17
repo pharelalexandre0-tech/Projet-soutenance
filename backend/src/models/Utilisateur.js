@@ -39,17 +39,22 @@ Utilisateur.init(
     // courte. Nul en dehors d'une connexion en cours.
     codeDoubleFacteur: { type: DataTypes.STRING, allowNull: true },
     codeDoubleFacteurExpire: { type: DataTypes.DATE, allowNull: true },
+    // "Mot de passe oublié" : jeton aléatoire à usage unique envoyé par
+    // e-mail, même principe de durée de vie courte que le code 2FA
+    // ci-dessus. Nul en dehors d'une réinitialisation en cours.
+    tokenReinitialisation: { type: DataTypes.STRING, allowNull: true },
+    tokenReinitialisationExpire: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,
     modelName: 'Utilisateur',
     tableName: 'utilisateurs',
-    // Le hash du mot de passe et le code 2FA en cours ne doivent jamais
-    // sortir dans une réponse JSON, y compris quand Utilisateur est inclus
-    // en relation imbriquée (ex. compte étudiant d'un élève). Le scope
-    // "avecMotDePasse" (auth uniquement) permet de les récupérer
-    // explicitement pour la vérification.
-    defaultScope: { attributes: { exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire'] } },
+    // Le hash du mot de passe et les jetons temporaires (2FA, réinitialisation)
+    // ne doivent jamais sortir dans une réponse JSON, y compris quand
+    // Utilisateur est inclus en relation imbriquée (ex. compte étudiant d'un
+    // élève). Le scope "avecMotDePasse" (auth uniquement) permet de les
+    // récupérer explicitement pour la vérification.
+    defaultScope: { attributes: { exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire', 'tokenReinitialisation', 'tokenReinitialisationExpire'] } },
     scopes: { avecMotDePasse: { attributes: {} } },
   }
 );
