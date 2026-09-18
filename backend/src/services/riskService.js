@@ -1,15 +1,16 @@
 const { Note, Absence, IncidentComportement } = require('../models');
 const { calculerNoteFinale } = require('./moyenneService');
+const { predireProbabilite } = require('./logisticRegression');
+const modele = require('./modeleRisque.json');
 
 const SEUIL_ALERTE = 60; // sur 100
 
 // "Collecter les données (notes, absences, comportement)" puis "Calculer le
 // score de risque de décrochage / échec par élève" - diagramme d'activité 7.
-// Heuristique simple et explicable (volontairement pas un vrai modèle de
-// machine learning entraîné, ce qui serait hors de portée d'un prototype de
-// soutenance) : plus la moyenne est basse, plus les absences non justifiées
-// sont nombreuses et plus les incidents de comportement sont graves/répétés,
-// plus le score de risque augmente.
+// scoreRisque = probabilité prédite par une régression logistique entraînée
+// (scripts/entrainerModeleRisque.js, npm run train:risque), pas une formule
+// à poids choisis à la main — voir modeleRisque.json pour les poids appris
+// et les métriques mesurées sur le jeu de test (exactitude, précision, rappel).
 async function calculerRisqueEleve(eleveId) {
   const [notes, absences, incidents] = await Promise.all([
     Note.findAll({ where: { eleveId, session: 'normale' } }),
@@ -26,11 +27,18 @@ async function calculerRisqueEleve(eleveId) {
   const incidentsMajeurs = incidents.filter((i) => i.gravite === 'majeur').length;
   const incidentsMineurs = incidents.length - incidentsMajeurs;
 
-  const facteurNotes = moyenneNotes !== null ? Math.max(0, (10 - moyenneNotes) * 6) : 20; // pas de notes = incertitude
-  const facteurAbsences = Math.min(60, absencesNonJustifiees * 8);
-  const facteurComportement = Math.min(30, incidentsMineurs * 4 + incidentsMajeurs * 10);
+  // Mêmes conventions de normalisation [0,1] que le jeu d'entraînement
+  // synthétique — un score ne veut dire quelque chose que si l'inférence
+  // utilise exactement les caractéristiques sur lesquelles le modèle a
+  // appris. Pas de notes = 0.5 (incertitude), ni bon ni mauvais signe.
+  const caracteristiques = [
+    moyenneNotes !== null ? (20 - moyenneNotes) / 20 : 0.5,
+    Math.min(absencesNonJustifiees / 10, 1),
+    Math.min((incidentsMineurs + 2 * incidentsMajeurs) / 6, 1),
+  ];
 
-  const scoreRisque = Math.round(Math.min(100, facteurNotes + facteurAbsences + facteurComportement) * 10) / 10;
+  const probabilite = predireProbabilite(caracteristiques, modele.poids, modele.biais);
+  const scoreRisque = Math.round(probabilite * 1000) / 10; // 0-100, une décimale
   const niveauRisque = scoreRisque >= SEUIL_ALERTE ? 'eleve' : scoreRisque >= 30 ? 'moyen' : 'faible';
 
   const facteursCles = [

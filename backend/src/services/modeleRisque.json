@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "entraineLe": "2026-09-18T13:41:42.046Z",
+  "caracteristiques": [
+    "notes",
+    "absences",
+    "comportement"
+  ],
+  "poids": [
+    3.505082266310616,
+    2.419385205571754,
+    1.6628864476296557
+  ],
+  "biais": -2.933367139204249,
+  "metriquesTest": {
+    "exactitude": 0.722,
+    "precision": 0.727,
+    "rappel": 0.838,
+    "f1": 0.779,
+    "matriceConfusion": {
+      "vraisPositifs": 176,
+      "fauxPositifs": 66,
+      "vraisNegatifs": 84,
+      "fauxNegatifs": 34
+    }
+  },
+  "tailleJeuEntrainement": 840,
+  "tailleJeuTest": 360,
+  "origineDonnees": "synthetique_faiblement_supervisee"
+}
