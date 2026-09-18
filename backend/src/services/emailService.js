@@ -33,6 +33,11 @@ async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
         content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
       })),
     }),
+    // `fetch` n'a par défaut aucune limite de temps — un Resend qui traîne
+    // (ou un simple souci réseau sortant) bloquait la requête entière au
+    // lieu de basculer vers le repli, y compris pour la 2FA qui dépend de
+    // cet appel avant de répondre au navigateur.
+    signal: AbortSignal.timeout(8000),
   });
   if (!reponse.ok) {
     const detail = await reponse.text();
