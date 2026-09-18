@@ -30,6 +30,7 @@ router.get('/matieres', authentifier, ctrl.listerMatieres);
 
 router.post('/emplois-du-temps', authentifier, academie, ctrl.creerEmploiDuTemps);
 router.get('/emplois-du-temps', authentifier, ctrl.listerEmploisDuTemps);
+router.delete('/emplois-du-temps/:id', authentifier, academie, ctrl.supprimerEmploiDuTemps);
 
 router.get('/cahier-de-textes', authentifier, ctrl.listerCahierDeTextes);
 router.post('/cahier-de-textes', authentifier, academie, ctrl.ajouterCahierDeTextes);

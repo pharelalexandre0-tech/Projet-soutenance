@@ -3,6 +3,7 @@ import EspaceDashboard from '../components/EspaceDashboard';
 import TableauDeBord from './academie/TableauDeBord';
 import ElevesClasses from './academie/ElevesClasses';
 import UnitesEnseignement from './academie/UnitesEnseignement';
+import EmploisDuTemps from './academie/EmploisDuTemps';
 import Notes from './academie/Notes';
 import Bulletins from './academie/Bulletins';
 import ComptesEphemeres from './academie/ComptesEphemeres';
@@ -16,6 +17,7 @@ const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard },
   { id: 'eleves', label: 'Élèves & classes', composant: ElevesClasses, icone: IconUsers },
   { id: 'ue', label: "Unités d'enseignement", composant: UnitesEnseignement, icone: IconDocument },
+  { id: 'emplois', label: 'Emplois du temps', composant: EmploisDuTemps, icone: IconDashboard },
   { id: 'notes', label: 'Notes', composant: Notes, icone: IconPencil },
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument },
   { id: 'comptes', label: 'Comptes éphémères (Professeurs)', composant: ComptesEphemeres, icone: IconKey },

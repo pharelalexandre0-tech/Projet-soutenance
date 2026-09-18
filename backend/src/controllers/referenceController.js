@@ -115,11 +115,14 @@ async function supprimerProfesseur(req, res) {
   return res.status(204).send();
 }
 
-// Plateforme universitaire : inscrire un étudiant crée dans le même geste
-// son propre compte (pas de compte "parent" séparé) — sans ça, il n'aurait
-// aucun moyen d'accéder à son dossier.
+// Inscrire un étudiant crée dans le même geste son propre compte — sans ça,
+// il n'aurait aucun moyen d'accéder à son dossier. Le compte Parent (champs
+// parent* ci-dessous) reste optionnel et indépendant : un même parent
+// couvre plusieurs enfants, donc son e-mail peut déjà exister — dans ce
+// cas on rattache l'élève au compte parent existant plutôt que d'exiger
+// un nouveau mot de passe à chaque inscription.
 async function creerEleve(req, res) {
-  const { nom, prenom, dateNaissance, classeId, email, motDePasse } = req.body;
+  const { nom, prenom, dateNaissance, classeId, email, motDePasse, parentNom, parentPrenom, parentEmail, parentMotDePasse } = req.body;
 
   const classe = await Classe.findByPk(classeId);
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
@@ -137,6 +140,34 @@ async function creerEleve(req, res) {
     return res.status(400).json({ erreur: 'cette adresse e-mail est déjà utilisée par un autre compte' });
   }
 
+  let compteParent = null;
+  if (parentEmail) {
+    compteParent = await Utilisateur.findOne({ where: { email: parentEmail } });
+    if (compteParent) {
+      if (compteParent.role !== 'parent' || compteParent.etablissementId !== req.utilisateur.etablissementId) {
+        return res.status(400).json({ erreur: 'cette adresse e-mail parent est déjà utilisée par un autre compte' });
+      }
+      // Compte parent déjà existant (ex. un deuxième enfant) : juste
+      // rattaché, pas besoin d'un nouveau mot de passe.
+    } else {
+      if (!parentNom || !parentPrenom || !parentMotDePasse) {
+        return res.status(400).json({ erreur: 'nom, prénom et mot de passe du parent sont obligatoires pour créer son compte' });
+      }
+      const erreurMotDePasseParent = erreurMotDePasseInvalide(parentMotDePasse);
+      if (erreurMotDePasseParent) {
+        return res.status(400).json({ erreur: erreurMotDePasseParent });
+      }
+      compteParent = await Utilisateur.create({
+        nom: parentNom,
+        prenom: parentPrenom,
+        email: parentEmail,
+        motDePasse: await bcrypt.hash(parentMotDePasse, 10),
+        role: 'parent',
+        etablissementId: req.utilisateur.etablissementId,
+      });
+    }
+  }
+
   const motDePasseHache = await bcrypt.hash(motDePasse, 10);
   const compteEtudiant = await Utilisateur.create({
     nom,
@@ -149,14 +180,18 @@ async function creerEleve(req, res) {
   const eleve = await Eleve.create({
     nom, prenom, dateNaissance, classeId,
     compteEtudiantId: compteEtudiant.id,
+    parentId: compteParent?.id || null,
     etablissementId: req.utilisateur.etablissementId,
   });
-  return res.status(201).json({ eleve, compteEtudiant: compteEtudiant.toPublicJSON() });
+  return res.status(201).json({ eleve, compteEtudiant: compteEtudiant.toPublicJSON(), compteParent: compteParent?.toPublicJSON() || null });
 }
 async function listerEleves(req, res) {
   const where = { etablissementId: req.utilisateur.etablissementId };
   if (req.query.classeId) where.classeId = req.query.classeId;
   if (req.utilisateur.role === 'etudiant') where.compteEtudiantId = req.utilisateur.id;
+  // Un Parent peut avoir plusieurs enfants — where.parentId filtre déjà sur
+  // tous ses Eleve liés, pas un seul comme pour compteEtudiantId ci-dessus.
+  if (req.utilisateur.role === 'parent') where.parentId = req.utilisateur.id;
   const eleves = await Eleve.findAll({ where, include: [Classe] });
   return res.json({ eleves });
 }
@@ -236,8 +271,17 @@ async function listerEmploisDuTemps(req, res) {
   const emplois = await EmploiDuTemps.findAll({
     where,
     include: [{ model: Classe, where: { etablissementId: req.utilisateur.etablissementId } }],
+    order: [['jour', 'ASC'], ['heureDebut', 'ASC']],
   });
   return res.json({ emplois });
+}
+async function supprimerEmploiDuTemps(req, res) {
+  const emploi = await EmploiDuTemps.findByPk(req.params.id, { include: [Classe] });
+  if (!emploi || emploi.Classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'créneau introuvable' });
+  }
+  await emploi.destroy();
+  return res.status(204).send();
 }
 
 async function listerCahierDeTextes(req, res) {
@@ -274,16 +318,25 @@ async function envoyerMessage(req, res) {
 
   const message = await MessageAnnonce.create({ titre, contenu, type, classeId, auteurId: req.utilisateur.id });
 
-  const eleves = await Eleve.findAll({ where: { classeId }, include: [{ model: Utilisateur, as: 'compteEtudiant' }] });
+  const eleves = await Eleve.findAll({
+    where: { classeId },
+    include: [{ model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }],
+  });
+  // Un élève avec compte étudiant ET parent lié reçoit le message sur les
+  // deux — la Map dédoublonne par id, au cas où le même compte serait
+  // rattaché à plusieurs élèves de la classe (ex. jumeaux).
   const destinatairesUniques = new Map();
-  eleves.forEach((el) => { if (el.compteEtudiant) destinatairesUniques.set(el.compteEtudiant.id, el.compteEtudiant); });
+  eleves.forEach((el) => {
+    if (el.compteEtudiant) destinatairesUniques.set(el.compteEtudiant.id, el.compteEtudiant);
+    if (el.parent) destinatairesUniques.set(el.parent.id, el.parent);
+  });
 
-  for (const etudiant of destinatairesUniques.values()) {
+  for (const destinataire of destinatairesUniques.values()) {
     await Notification.create({
-      utilisateurId: etudiant.id,
+      utilisateurId: destinataire.id,
       contenu: `${LIBELLES_TYPE_MESSAGE[message.type] || 'Message'} : ${titre}`,
     });
-    await envoyerEmail(etudiant.email, titre, contenu);
+    await envoyerEmail(destinataire.email, titre, contenu);
   }
 
   return res.status(201).json({ message, etudiantsNotifies: destinatairesUniques.size });
@@ -295,6 +348,10 @@ async function listerMessages(req, res) {
 
   if (req.utilisateur.role === 'etudiant') {
     const eleves = await Eleve.findAll({ where: { compteEtudiantId: req.utilisateur.id } });
+    where.classeId = eleves.map((el) => el.classeId);
+  }
+  if (req.utilisateur.role === 'parent') {
+    const eleves = await Eleve.findAll({ where: { parentId: req.utilisateur.id } });
     where.classeId = eleves.map((el) => el.classeId);
   }
 
@@ -326,6 +383,7 @@ module.exports = {
   listerMatieres,
   creerEmploiDuTemps,
   listerEmploisDuTemps,
+  supprimerEmploiDuTemps,
   listerCahierDeTextes,
   ajouterCahierDeTextes,
   envoyerMessage,

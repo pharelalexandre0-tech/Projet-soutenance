@@ -54,7 +54,7 @@ export default function Bulletins() {
     setEnvoiStatut('en_cours');
     try {
       const res = await client.post(`/bulletins/${eleveId}/${semestreId}/envoyer`);
-      setEnvoiStatut(`envoyé à ${res.data.destinataire}`);
+      setEnvoiStatut(`envoyé à ${res.data.destinataires.join(', ')}`);
     } catch (err) {
       setEnvoiStatut(err.response?.data?.erreur || 'échec de l\'envoi');
     }

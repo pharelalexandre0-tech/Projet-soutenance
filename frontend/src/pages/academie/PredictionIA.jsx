@@ -31,7 +31,7 @@ export default function PredictionIA() {
     <div className="carte">
       <h2>Prédiction IA — élèves à risque</h2>
       <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem' }}>
-        Analyse périodique (notes + absences) calculant un score de risque de décrochage par élève.
+        Analyse périodique (notes, absences et comportement) calculant un score de risque de décrochage par élève.
         Au-delà du seuil d'alerte, l'équipe pédagogique est notifiée ; la décision d'action (suivi,
         entretien, soutien) reste humaine.
       </p>

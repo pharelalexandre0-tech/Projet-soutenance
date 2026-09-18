@@ -21,6 +21,7 @@ export default function AbsencesEtudiant({ eleveId }) {
     charger();
   }
 
+  const retards = absences.filter((a) => a.type === 'retard').length;
   const justifiees = absences.filter((a) => a.justifie).length;
   const nonJustifiees = absences.length - justifiees;
   const taux = absences.length > 0 ? Math.round((nonJustifiees / absences.length) * 100) : 0;
@@ -30,12 +31,12 @@ export default function AbsencesEtudiant({ eleveId }) {
       {absences.length > 0 && (
         <div className="stats-grid">
           <div className="stat-tile">
-            <div className="stat-tile-haut"><span className="libelle">Total absences</span><span className="puce-icone petite"><IconCalendarAlert width={16} height={16} /></span></div>
-            <div className="valeur">{absences.length}</div>
+            <div className="stat-tile-haut"><span className="libelle">Absences</span><span className="puce-icone petite"><IconCalendarAlert width={16} height={16} /></span></div>
+            <div className="valeur">{absences.length - retards}</div>
           </div>
-          <div className="stat-tile tile-vert">
-            <div className="stat-tile-haut"><span className="libelle">Justifiées</span></div>
-            <div className="valeur">{justifiees}</div>
+          <div className={`stat-tile ${retards > 0 ? 'tile-or' : 'tile-vert'}`}>
+            <div className="stat-tile-haut"><span className="libelle">Retards</span></div>
+            <div className="valeur">{retards}</div>
           </div>
           <div className={`stat-tile ${nonJustifiees > 0 ? 'tile-rouge' : 'tile-vert'}`}>
             <div className="stat-tile-haut"><span className="libelle">Non justifiées</span><span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span></div>
@@ -49,18 +50,19 @@ export default function AbsencesEtudiant({ eleveId }) {
       )}
 
       <div className="carte">
-        <h2>Absences</h2>
+        <h2>Absences &amp; retards</h2>
         {chargement && <div className="chargement">Chargement…</div>}
         {!chargement && absences.length === 0 && <div className="vide">Aucune absence enregistrée</div>}
         {!chargement && absences.length > 0 && (
           <div className="table-scroll">
             <table>
-              <thead><tr><th>Date</th><th>Cours</th><th>Statut</th><th>Justificatif</th></tr></thead>
+              <thead><tr><th>Date</th><th>Cours</th><th>Type</th><th>Statut</th><th>Justificatif</th></tr></thead>
               <tbody>
                 {absences.map((a) => (
                   <tr key={a.id}>
                     <td>{new Date(a.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                     <td>{a.cours || '—'}</td>
+                    <td>{a.type === 'retard' ? <span className="badge or">retard</span> : <span className="badge gris">absence</span>}</td>
                     <td>{a.justifie ? <span className="badge vert">justifiée</span> : <span className="badge rouge">non justifiée</span>}</td>
                     <td>
                       {a.justifie ? (

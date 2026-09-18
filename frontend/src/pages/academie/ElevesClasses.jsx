@@ -2,7 +2,10 @@ import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
 
-const ELEVE_VIDE = { nom: '', prenom: '', classeId: '', email: '', motDePasse: '' };
+const ELEVE_VIDE = {
+  nom: '', prenom: '', classeId: '', email: '', motDePasse: '',
+  parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '',
+};
 // Un établissement peut compter des milliers d'élèves — rendre 7000 lignes
 // d'un coup alourdit le navigateur pour rien, alors que l'API renvoie déjà
 // tout (le filtrage par classe reste instantané côté client). Fenêtrage de
@@ -24,6 +27,7 @@ export default function ElevesClasses() {
   // la liste qu'ils encombrent sinon.
   const [classeFormOuvert, setClasseFormOuvert] = useState(false);
   const [eleveFormOuvert, setEleveFormOuvert] = useState(false);
+  const [avecParent, setAvecParent] = useState(false);
   const [importFormOuvert, setImportFormOuvert] = useState(false);
 
   // Détail d'une classe (voir/modifier/supprimer) : une seule ouverte à la
@@ -135,9 +139,15 @@ export default function ElevesClasses() {
     e.preventDefault();
     setMessage('');
     try {
-      await client.post('/eleves', nouvelEleve);
-      setMessage(`Élève ajouté, compte étudiant créé.`);
+      // Champs parent ignorés si la case n'est pas cochée, même si
+      // l'académie y avait tapé quelque chose puis décoché.
+      const payload = avecParent
+        ? nouvelEleve
+        : { ...nouvelEleve, parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
+      const res = await client.post('/eleves', payload);
+      setMessage(res.data.compteParent ? `Élève ajouté, compte étudiant et compte parent créés/rattachés.` : `Élève ajouté, compte étudiant créé.`);
       setNouvelEleve(ELEVE_VIDE);
+      setAvecParent(false);
       setEleveFormOuvert(false);
       charger();
     } catch (err) {
@@ -318,6 +328,40 @@ export default function ElevesClasses() {
                 Générer
               </button>
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
+              <input type="checkbox" checked={avecParent} onChange={(e) => setAvecParent(e.target.checked)} />
+              Rattacher un compte Parent (consultation des notes, absences, bulletins…)
+            </label>
+            {avecParent && (
+              <>
+                <p className="note-secondaire" style={{ margin: '-4px 0 0' }}>
+                  Un même parent peut être rattaché à plusieurs enfants — s'il a déjà un compte, son e-mail suffit,
+                  pas besoin de renseigner à nouveau nom/prénom/mot de passe.
+                </p>
+                <div className="ligne-champs">
+                  <div className="champ">
+                    <label>Prénom du parent</label>
+                    <input value={nouvelEleve.parentPrenom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentPrenom: e.target.value })} />
+                  </div>
+                  <div className="champ">
+                    <label>Nom du parent</label>
+                    <input value={nouvelEleve.parentNom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentNom: e.target.value })} />
+                  </div>
+                </div>
+                <div className="ligne-champs">
+                  <div className="champ">
+                    <label>E-mail du parent</label>
+                    <input type="email" autoComplete="off" value={nouvelEleve.parentEmail} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentEmail: e.target.value })} required />
+                  </div>
+                  <div className="champ">
+                    <label>Mot de passe (si nouveau compte)</label>
+                    <input type="password" autoComplete="new-password" value={nouvelEleve.parentMotDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentMotDePasse: e.target.value })} minLength={6} />
+                  </div>
+                </div>
+              </>
+            )}
+
             <button className="primaire" type="submit">Inscrire l'élève</button>
             {message && <div className={message.includes('ajouté') ? 'message-succes' : 'message-erreur'}>{message}</div>}
           </form>

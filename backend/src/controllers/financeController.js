@@ -66,6 +66,9 @@ async function listerFraisEleve(req, res) {
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
+  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
+  }
   const frais = await FraisScolarite.findAll({ where: { eleveId }, order: [['dateEcheance', 'ASC']] });
   return res.json({ frais });
 }
@@ -138,6 +141,9 @@ async function listerPaiementsEleve(req, res) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
+    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
+  }
+  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 

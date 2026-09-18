@@ -9,6 +9,7 @@ const LIBELLES_ROLE = {
   academie: 'Espace Académie',
   finance: 'Espace Finance',
   etudiant: 'Espace Étudiant',
+  parent: 'Espace Parents',
 };
 
 function initiales(prenom, nom) {

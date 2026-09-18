@@ -90,6 +90,9 @@ async function listerNotesEleve(req, res) {
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
+  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
+    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
+  }
 
   const lignes = await Note.findAll({
     where: { eleveId },

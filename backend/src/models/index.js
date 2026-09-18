@@ -11,6 +11,7 @@ const Eleve = require('./Eleve');
 const CompteEphemere = require('./CompteEphemere');
 const CahierDeTextes = require('./CahierDeTextes');
 const Absence = require('./Absence');
+const IncidentComportement = require('./IncidentComportement');
 const Note = require('./Note');
 const Bulletin = require('./Bulletin');
 const PredictionIA = require('./PredictionIA');
@@ -58,10 +59,14 @@ Matiere.belongsTo(UniteEnseignement, { foreignKey: 'uniteEnseignementId' });
 Classe.hasMany(Eleve, { foreignKey: 'classeId' });
 Eleve.belongsTo(Classe, { foreignKey: 'classeId' });
 
-// Plateforme universitaire : pas d'espace parent, l'étudiant a son propre
-// compte et consulte directement son propre dossier.
+// Le compte Étudiant reste (l'élève consulte directement son propre
+// dossier) et coexiste avec un compte Parent optionnel : un même parent
+// peut être rattaché à plusieurs enfants (hasMany), l'inverse non — un
+// élève a un seul contact parent principal dans le système.
 Utilisateur.hasOne(Eleve, { foreignKey: 'compteEtudiantId', as: 'dossierEtudiant' });
 Eleve.belongsTo(Utilisateur, { foreignKey: 'compteEtudiantId', as: 'compteEtudiant' });
+Utilisateur.hasMany(Eleve, { foreignKey: 'parentId', as: 'enfants' });
+Eleve.belongsTo(Utilisateur, { foreignKey: 'parentId', as: 'parent' });
 
 // Cahier de textes : tenu par l'Academie ou par un Professeur via un compte
 // ephemere (jamais directement par le Professeur).
@@ -92,6 +97,12 @@ Utilisateur.hasMany(Absence, { foreignKey: 'saisiParAcademieId' });
 Absence.belongsTo(Utilisateur, { foreignKey: 'saisiParAcademieId', as: 'saisiParAcademie' });
 CompteEphemere.hasMany(Absence, { foreignKey: 'compteEphemereId' });
 Absence.belongsTo(CompteEphemere, { foreignKey: 'compteEphemereId' });
+
+// Troisième signal du module IA (notes, absences, comportement).
+Eleve.hasMany(IncidentComportement, { foreignKey: 'eleveId' });
+IncidentComportement.belongsTo(Eleve, { foreignKey: 'eleveId' });
+Utilisateur.hasMany(IncidentComportement, { foreignKey: 'saisiParAcademieId' });
+IncidentComportement.belongsTo(Utilisateur, { foreignKey: 'saisiParAcademieId', as: 'saisiParAcademie' });
 
 // ---- Notes / Bulletin (diagrammes 4 et 5) ----------------------------------
 Eleve.hasMany(Note, { foreignKey: 'eleveId' });
@@ -153,6 +164,7 @@ module.exports = {
   CompteEphemere,
   CahierDeTextes,
   Absence,
+  IncidentComportement,
   Note,
   Bulletin,
   PredictionIA,

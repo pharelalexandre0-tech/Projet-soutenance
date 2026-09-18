@@ -11,15 +11,19 @@ async function obtenirBulletin(req, res) {
   const { eleveId, semestreId } = req.params;
 
   const [eleve, semestre] = await Promise.all([
-    Eleve.findByPk(eleveId, { include: [Classe, { model: Utilisateur, as: 'compteEtudiant' }] }),
+    Eleve.findByPk(eleveId, { include: [Classe, { model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }] }),
     Semestre.findByPk(semestreId),
   ]);
   if (!eleve || !semestre || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève ou semestre introuvable' });
   }
 
-  // Un Étudiant ne peut consulter que son propre bulletin.
+  // Un Étudiant ne peut consulter que son propre bulletin, un Parent que
+  // celui d'un de ses enfants.
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
+    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
+  }
+  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 
@@ -70,9 +74,9 @@ async function obtenirBulletin(req, res) {
     fichierPDF: cheminRelatif,
   });
 
-  if (eleve.compteEtudiant) {
+  for (const destinataire of [eleve.compteEtudiant, eleve.parent].filter(Boolean)) {
     await envoyerEmail(
-      eleve.compteEtudiant.email,
+      destinataire.email,
       `Bulletin de ${eleve.prenom} ${eleve.nom} disponible`,
       `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
       [{ cheminAbsolu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
@@ -90,25 +94,28 @@ async function envoyerBulletinParEmail(req, res) {
   const { eleveId, semestreId } = req.params;
 
   const [eleve, semestre, bulletin] = await Promise.all([
-    Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'compteEtudiant' }] }),
+    Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }] }),
     Semestre.findByPk(semestreId),
     Bulletin.findOne({ where: { eleveId, semestreId } }),
   ]);
   if (!eleve || !semestre || !bulletin || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'bulletin introuvable — consulte-le au moins une fois avant de l\'envoyer' });
   }
-  if (!eleve.compteEtudiant) {
-    return res.status(400).json({ erreur: 'aucun compte étudiant associé à cet élève' });
+  const destinataires = [eleve.compteEtudiant, eleve.parent].filter(Boolean);
+  if (destinataires.length === 0) {
+    return res.status(400).json({ erreur: 'aucun compte étudiant ou parent associé à cet élève' });
   }
 
-  await envoyerEmail(
-    eleve.compteEtudiant.email,
-    `Bulletin de ${eleve.prenom} ${eleve.nom} — ${semestre.libelle}`,
-    `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
-    [{ cheminAbsolu: path.join(DOSSIER_STOCKAGE, path.basename(bulletin.fichierPDF)), nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
-  );
+  for (const destinataire of destinataires) {
+    await envoyerEmail(
+      destinataire.email,
+      `Bulletin de ${eleve.prenom} ${eleve.nom} — ${semestre.libelle}`,
+      `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
+      [{ cheminAbsolu: path.join(DOSSIER_STOCKAGE, path.basename(bulletin.fichierPDF)), nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
+    );
+  }
 
-  return res.json({ message: 'bulletin envoyé par e-mail', destinataire: eleve.compteEtudiant.email });
+  return res.json({ message: 'bulletin envoyé par e-mail', destinataires: destinataires.map((d) => d.email) });
 }
 
 module.exports = { obtenirBulletin, envoyerBulletinParEmail };

@@ -16,7 +16,7 @@ function baseUrlReinitialisation() {
   return (process.env.EPHEMERE_LIEN_BASE_URL || '').replace(/\/[^/]*$/, '/reinitialiser-mot-de-passe');
 }
 
-const ROLES_AVEC_2FA = ['etudiant'];
+const ROLES_AVEC_2FA = ['etudiant', 'parent'];
 
 // Diagramme 3 - Authentification :
 // Academie/Etudiant/Finance saisit ses identifiants -> demanderConnexion ->

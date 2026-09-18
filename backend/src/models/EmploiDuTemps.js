@@ -10,6 +10,7 @@ EmploiDuTemps.init(
     heureDebut: { type: DataTypes.STRING, allowNull: false },
     heureFin: { type: DataTypes.STRING, allowNull: false },
     salle: { type: DataTypes.STRING, allowNull: true },
+    matiere: { type: DataTypes.STRING, allowNull: true },
   },
   { sequelize, modelName: 'EmploiDuTemps', tableName: 'emplois_du_temps' }
 );

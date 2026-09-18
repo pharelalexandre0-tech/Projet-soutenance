@@ -18,34 +18,47 @@ const ONGLETS = [
   { id: 'messages', label: 'Messages', icone: IconMessage },
 ];
 
-// Plateforme universitaire : l'étudiant consulte directement son propre
-// dossier — pas de sélecteur "enfant", son compte n'a qu'une seule fiche.
-export default function DashboardEtudiant() {
-  const [monDossier, setMonDossier] = useState(null);
+// Espace Parents : consultation en temps réel des notes, absences, emploi
+// du temps et bulletins d'un ou plusieurs enfants (contrairement à
+// l'Étudiant, qui n'a jamais qu'un seul dossier — le sien). Les pages
+// consultées sont exactement les mêmes composants que l'Espace Étudiant,
+// juste alimentées par l'enfant sélectionné plutôt que "son propre" dossier.
+export default function DashboardParent() {
+  const [enfants, setEnfants] = useState([]);
   const [chargement, setChargement] = useState(true);
+  const [eleveId, setEleveId] = useState('');
   const [onglet, setOnglet] = useState('bulletin');
 
   useEffect(() => {
     client.get('/eleves').then((res) => {
-      setMonDossier(res.data.eleves[0] || null);
+      setEnfants(res.data.eleves);
+      if (res.data.eleves[0]) setEleveId(String(res.data.eleves[0].id));
       setChargement(false);
     });
   }, []);
 
-  const eleveId = monDossier ? String(monDossier.id) : '';
+  const enfant = enfants.find((e) => String(e.id) === eleveId) || null;
 
   return (
     <EspaceDashboard
       onglets={ONGLETS}
       actif={onglet}
       onChange={setOnglet}
-      avantContenu={!chargement && !monDossier && <div className="vide">Aucun dossier étudiant rattaché à ce compte.</div>}
-      bloquerContenu={!chargement && !monDossier}
+      avantContenu={!chargement && enfants.length === 0 && <div className="vide">Aucun enfant rattaché à ce compte.</div>}
+      bloquerContenu={!chargement && enfants.length === 0}
     >
-      {onglet === 'bulletin' && <Bulletin eleveId={eleveId} eleve={monDossier} />}
-      {onglet === 'notes' && <RelevesNotes eleveId={eleveId} eleve={monDossier} />}
+      {enfants.length > 1 && (
+        <div className="champ" style={{ maxWidth: 280, marginBottom: 18 }}>
+          <label>Enfant</label>
+          <select value={eleveId} onChange={(e) => setEleveId(e.target.value)}>
+            {enfants.map((e) => <option key={e.id} value={e.id}>{e.prenom} {e.nom} — {e.Classe?.nom}</option>)}
+          </select>
+        </div>
+      )}
+      {onglet === 'bulletin' && <Bulletin eleveId={eleveId} eleve={enfant} />}
+      {onglet === 'notes' && <RelevesNotes eleveId={eleveId} eleve={enfant} />}
       {onglet === 'absences' && <AbsencesEtudiant eleveId={eleveId} />}
-      {onglet === 'emploi' && <EmploiDuTemps classeId={monDossier?.classeId} />}
+      {onglet === 'emploi' && <EmploiDuTemps classeId={enfant?.classeId} />}
       {onglet === 'frais' && <FraisEtudiant eleveId={eleveId} />}
       {onglet === 'messages' && <Messages />}
     </EspaceDashboard>
