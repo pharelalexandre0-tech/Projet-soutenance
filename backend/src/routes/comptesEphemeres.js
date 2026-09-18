@@ -4,7 +4,7 @@ const {
   verifierJeton,
   enregistrerNotesEphemere,
 } = require('../controllers/comptesEphemeresController');
-const { saisirAbsenceEphemere } = require('../controllers/absencesController');
+const { saisirAppelEphemere } = require('../controllers/absencesController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
 const { verifierCompteEphemere } = require('../middlewares/ephemeralAuth');
 
@@ -18,6 +18,6 @@ router.post('/', authentifier, autoriserRoles('academie'), creerCompteEphemere);
 // jeton fait office d'authentification temporaire.
 router.get('/:jeton', verifierCompteEphemere, verifierJeton);
 router.post('/:jeton/notes', verifierCompteEphemere, enregistrerNotesEphemere);
-router.post('/:jeton/absences', verifierCompteEphemere, saisirAbsenceEphemere);
+router.post('/:jeton/absences', verifierCompteEphemere, saisirAppelEphemere);
 
 module.exports = router;

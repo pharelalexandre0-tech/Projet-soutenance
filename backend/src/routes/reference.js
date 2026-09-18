@@ -38,6 +38,8 @@ router.post('/cahier-de-textes', authentifier, academie, ctrl.ajouterCahierDeTex
 router.post('/messages', authentifier, academie, ctrl.envoyerMessage);
 router.get('/messages', authentifier, ctrl.listerMessages);
 
+router.get('/tableau-de-bord/academique', authentifier, academie, ctrl.statistiquesAcademiques);
+
 router.get('/etablissement', authentifier, ctrl.obtenirEtablissement);
 router.put('/etablissement', authentifier, academie, ctrl.configurerEtablissement);
 

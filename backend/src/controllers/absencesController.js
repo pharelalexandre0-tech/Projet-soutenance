@@ -61,24 +61,51 @@ async function saisirAbsenceAcademie(req, res) {
   }
 }
 
-// Saisie par un Professeur via compte éphémère (tache = saisie_absences).
-async function saisirAbsenceEphemere(req, res) {
+// Saisie par un Professeur via compte éphémère (tache = saisie_absences) —
+// même "appel" que celui de l'Académie (saisirAppelClasse), borné à la
+// classe du lien. Un seul geste pour toute la classe plutôt qu'un appel
+// par élève, puis le compte se révoque (tâche terminée).
+async function saisirAppelEphemere(req, res) {
   const compte = req.compteEphemere;
   if (compte.tache !== 'saisie_absences') {
     return res.status(403).json({ erreur: 'ce compte éphémère ne permet pas la saisie des absences' });
   }
+  const { date, cours, absentEleveIds = [], retardEleveIds = [] } = req.body;
+  if (!date || !Array.isArray(absentEleveIds) || !Array.isArray(retardEleveIds)) {
+    return res.status(400).json({ erreur: 'date et liste des absents/retards requises' });
+  }
+
   // Le lien éphémère ne porte que sur SA classe — un élève d'une autre
   // classe (ou d'une autre école) ne peut pas être marqué absent via ce lien.
-  const eleveVise = await Eleve.findByPk(req.body.eleveId);
-  if (!eleveVise || eleveVise.classeId !== compte.classeId) {
-    return res.status(400).json({ erreur: "cet élève ne correspond pas à la portée du compte éphémère" });
+  const elevesClasse = await Eleve.findAll({ where: { classeId: compte.classeId } });
+  const idsEleveClasse = new Set(elevesClasse.map((e) => e.id));
+  const marques = [
+    ...absentEleveIds.map((eleveId) => ({ eleveId, type: 'absence' })),
+    ...retardEleveIds.map((eleveId) => ({ eleveId, type: 'retard' })),
+  ];
+  for (const { eleveId } of marques) {
+    if (!idsEleveClasse.has(eleveId)) {
+      return res.status(400).json({ erreur: "un élève ne correspond pas à la portée du compte éphémère" });
+    }
   }
-  try {
-    const absence = await enregistrerAbsence({ ...req.body, compteEphemereId: compte.id });
-    return res.status(201).json({ absence });
-  } catch (err) {
-    return res.status(err.status || 500).json({ erreur: err.message });
+
+  const absences = [];
+  for (const { eleveId, type } of marques) {
+    try {
+      absences.push(await enregistrerAbsence({ eleveId, date, cours, type, justifie: false, compteEphemereId: compte.id }));
+    } catch (err) {
+      // un élève introuvable ne doit pas bloquer le reste de l'appel
+    }
   }
+
+  compte.statut = 'revoque';
+  await compte.save();
+
+  return res.status(201).json({
+    message: `Appel enregistré — ${absentEleveIds.length} absence(s), ${retardEleveIds.length} retard(s).`,
+    absences,
+    compte: { statut: compte.statut },
+  });
 }
 
 // "Faire l'appel" : liste numérotée d'une classe pour une date/un cours
@@ -211,7 +238,7 @@ async function supprimerAbsence(req, res) {
 
 module.exports = {
   saisirAbsenceAcademie,
-  saisirAbsenceEphemere,
+  saisirAppelEphemere,
   saisirAppelClasse,
   briefAbsenteisme,
   justifierAbsence,

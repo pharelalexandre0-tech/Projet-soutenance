@@ -16,6 +16,7 @@ const {
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
+const { calculerBulletin } = require('../services/moyenneService');
 
 // Identité de l'établissement (nom, ville…) DE L'UTILISATEUR CONNECTÉ,
 // utilisée sur les documents officiels (bulletin, reçu). Paramétrable en
@@ -363,6 +364,47 @@ async function listerMessages(req, res) {
   return res.json({ messages });
 }
 
+// Tableau de bord École : moyenne générale et taux de réussite par UE,
+// à côté des effectifs et de l'absentéisme déjà calculés ailleurs.
+// Réutilise calculerBulletin (mêmes règles LMD que le bulletin individuel :
+// éliminatoire, rattrapage non compté comme validé en session normale...)
+// plutôt que de réimplémenter la logique de validation d'une UE.
+async function statistiquesAcademiques(req, res) {
+  const etabId = req.utilisateur.etablissementId;
+  const [semestres, eleves] = await Promise.all([
+    Semestre.findAll({ where: { etablissementId: etabId } }),
+    Eleve.findAll({ where: { etablissementId: etabId } }),
+  ]);
+
+  const parUE = new Map();
+  let sommeMoyennes = 0;
+  let nbMoyennes = 0;
+
+  for (const semestre of semestres) {
+    for (const eleve of eleves) {
+      const { moyenneGenerale, detailParUE } = await calculerBulletin(eleve.id, semestre.id);
+      if (detailParUE.length === 0) continue;
+      sommeMoyennes += moyenneGenerale;
+      nbMoyennes += 1;
+      for (const ue of detailParUE) {
+        if (!parUE.has(ue.code)) parUE.set(ue.code, { code: ue.code, intitule: ue.ue, valides: 0, total: 0 });
+        const entree = parUE.get(ue.code);
+        entree.total += 1;
+        if (ue.valide) entree.valides += 1;
+      }
+    }
+  }
+
+  const reussiteParUE = [...parUE.values()]
+    .map((u) => ({ code: u.code, intitule: u.intitule, tauxReussite: Math.round((u.valides / u.total) * 100) }))
+    .sort((a, b) => a.code.localeCompare(b.code));
+
+  return res.json({
+    moyenneGenerale: nbMoyennes > 0 ? Math.round((sommeMoyennes / nbMoyennes) * 100) / 100 : null,
+    reussiteParUE,
+  });
+}
+
 module.exports = {
   creerClasse,
   listerClasses,
@@ -387,6 +429,7 @@ module.exports = {
   listerCahierDeTextes,
   ajouterCahierDeTextes,
   envoyerMessage,
+  statistiquesAcademiques,
   listerMessages,
   obtenirEtablissement,
   configurerEtablissement,

@@ -9,7 +9,7 @@ export default function ComptesEphemeres() {
   const [semestres, setSemestres] = useState([]);
   const [ues, setUes] = useState([]);
   const [form, setForm] = useState({
-    professeurId: '', classeId: '', semestreId: '', ueId: '', matiereId: '', categorie: 'cc', evaluationLibelle: '', dureeMinutes: 60,
+    tache: 'saisie_notes', professeurId: '', classeId: '', semestreId: '', ueId: '', matiereId: '', categorie: 'cc', evaluationLibelle: '', dureeMinutes: 60,
   });
   const [nouveauProf, setNouveauProf] = useState({ nom: '', prenom: '', email: '', matiere: '' });
   const [lienGenere, setLienGenere] = useState(null);
@@ -57,11 +57,13 @@ export default function ComptesEphemeres() {
     setLienGenere(null);
     try {
       const res = await client.post('/comptes-ephemeres', {
+        tache: form.tache,
         professeurId: Number(form.professeurId),
         classeId: Number(form.classeId),
-        matiereId: Number(form.matiereId),
-        categorie: form.categorie,
-        evaluationLibelle: form.evaluationLibelle,
+        // La matière n'a de sens que pour la saisie de notes.
+        ...(form.tache === 'saisie_notes'
+          ? { matiereId: Number(form.matiereId), categorie: form.categorie, evaluationLibelle: form.evaluationLibelle }
+          : {}),
         dureeMinutes: Number(form.dureeMinutes),
       });
       setLienGenere(res.data);
@@ -75,10 +77,18 @@ export default function ComptesEphemeres() {
       <div className="carte">
         <h2>Créer un accès temporaire pour un Professeur</h2>
         <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem' }}>
-          Le Professeur n'a pas de compte permanent : ce lien lui permet de saisir les notes d'une
-          classe, pour une UE et une durée précises, puis se révoque automatiquement.
+          Le Professeur n'a pas de compte permanent : ce lien lui permet de saisir les notes ou
+          l'appel d'une classe, pour une durée précise, puis se révoque automatiquement.
         </p>
         <form className="formulaire" onSubmit={genererCompte}>
+          <div className="onglets-secondaires" style={{ marginBottom: 4 }}>
+            <button type="button" className={form.tache === 'saisie_notes' ? 'actif' : ''} onClick={() => setForm({ ...form, tache: 'saisie_notes' })}>
+              Saisie des notes
+            </button>
+            <button type="button" className={form.tache === 'saisie_absences' ? 'actif' : ''} onClick={() => setForm({ ...form, tache: 'saisie_absences' })}>
+              Saisie des absences
+            </button>
+          </div>
           <div className="ligne-champs">
             <div className="champ">
               <label>Professeur</label>
@@ -94,7 +104,7 @@ export default function ComptesEphemeres() {
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
               </select>
             </div>
-            {semestres.length > 1 && (
+            {form.tache === 'saisie_notes' && semestres.length > 1 && (
               <div className="champ">
                 <label>Semestre</label>
                 <select value={form.semestreId} onChange={(e) => setForm({ ...form, semestreId: e.target.value })} required>
@@ -104,36 +114,40 @@ export default function ComptesEphemeres() {
               </div>
             )}
           </div>
+          {form.tache === 'saisie_notes' && (
+            <div className="ligne-champs">
+              <div className="champ">
+                <label>UE</label>
+                <select value={form.ueId} onChange={(e) => setForm({ ...form, ueId: e.target.value, matiereId: '' })} required disabled={!form.semestreId}>
+                  <option value="">—</option>
+                  {ues.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.intitule}</option>)}
+                </select>
+              </div>
+              <div className="champ">
+                <label>Matière</label>
+                <select value={form.matiereId} onChange={(e) => setForm({ ...form, matiereId: e.target.value })} required disabled={!form.ueId}>
+                  <option value="">—</option>
+                  {(ues.find((u) => String(u.id) === form.ueId)?.Matieres || []).map((m) => (
+                    <option key={m.id} value={m.id}>{m.code} — {m.intitule}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="champ">
+                <label>Catégorie</label>
+                <select value={form.categorie} onChange={(e) => setForm({ ...form, categorie: e.target.value })}>
+                  <option value="cc">Contrôle continu (CC)</option>
+                  <option value="examen">Examen</option>
+                </select>
+              </div>
+            </div>
+          )}
           <div className="ligne-champs">
-            <div className="champ">
-              <label>UE</label>
-              <select value={form.ueId} onChange={(e) => setForm({ ...form, ueId: e.target.value, matiereId: '' })} required disabled={!form.semestreId}>
-                <option value="">—</option>
-                {ues.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.intitule}</option>)}
-              </select>
-            </div>
-            <div className="champ">
-              <label>Matière</label>
-              <select value={form.matiereId} onChange={(e) => setForm({ ...form, matiereId: e.target.value })} required disabled={!form.ueId}>
-                <option value="">—</option>
-                {(ues.find((u) => String(u.id) === form.ueId)?.Matieres || []).map((m) => (
-                  <option key={m.id} value={m.id}>{m.code} — {m.intitule}</option>
-                ))}
-              </select>
-            </div>
-            <div className="champ">
-              <label>Catégorie</label>
-              <select value={form.categorie} onChange={(e) => setForm({ ...form, categorie: e.target.value })}>
-                <option value="cc">Contrôle continu (CC)</option>
-                <option value="examen">Examen</option>
-              </select>
-            </div>
-          </div>
-          <div className="ligne-champs">
-            <div className="champ">
-              <label>Évaluation (libellé libre)</label>
-              <input value={form.evaluationLibelle} onChange={(e) => setForm({ ...form, evaluationLibelle: e.target.value })} placeholder="Devoir surveillé 1" />
-            </div>
+            {form.tache === 'saisie_notes' && (
+              <div className="champ">
+                <label>Évaluation (libellé libre)</label>
+                <input value={form.evaluationLibelle} onChange={(e) => setForm({ ...form, evaluationLibelle: e.target.value })} placeholder="Devoir surveillé 1" />
+              </div>
+            )}
             <div className="champ" style={{ maxWidth: 160 }}>
               <label>Durée (minutes)</label>
               <input type="number" min="5" value={form.dureeMinutes} onChange={(e) => setForm({ ...form, dureeMinutes: e.target.value })} />

@@ -8,21 +8,26 @@ const { enregistrerMoyenne } = require('./notesController');
 // SMTP reel en environnement de demo).
 async function creerCompteEphemere(req, res) {
   const { professeurId, classeId, matiereId, categorie, evaluationLibelle, dureeMinutes, tache } = req.body;
+  // La matière n'a de sens que pour la saisie de notes — un relevé
+  // d'absences porte sur la classe entière, pas une matière précise.
+  const tacheFinale = tache === 'saisie_absences' ? 'saisie_absences' : 'saisie_notes';
 
-  if (!professeurId || !classeId || !matiereId) {
-    return res.status(400).json({ erreur: 'portée incomplète (professeur, classe, matière requis)' });
+  if (!professeurId || !classeId || (tacheFinale === 'saisie_notes' && !matiereId)) {
+    return res.status(400).json({
+      erreur: `portée incomplète (professeur, classe${tacheFinale === 'saisie_notes' ? ', matière' : ''} requis)`,
+    });
   }
 
   const [professeur, classe, matiere] = await Promise.all([
     Professeur.findByPk(professeurId),
     Classe.findByPk(classeId),
-    Matiere.findByPk(matiereId, { include: [{ model: UniteEnseignement, include: [Semestre] }] }),
+    matiereId ? Matiere.findByPk(matiereId, { include: [{ model: UniteEnseignement, include: [Semestre] }] }) : null,
   ]);
   const etabId = req.utilisateur.etablissementId;
   if (
     !professeur || professeur.etablissementId !== etabId ||
     !classe || classe.etablissementId !== etabId ||
-    !matiere || matiere.UniteEnseignement?.Semestre?.etablissementId !== etabId
+    (tacheFinale === 'saisie_notes' && (!matiere || matiere.UniteEnseignement?.Semestre?.etablissementId !== etabId))
   ) {
     return res.status(404).json({ erreur: 'professeur, classe ou matière introuvable' });
   }
@@ -32,14 +37,14 @@ async function creerCompteEphemere(req, res) {
 
   const compte = await CompteEphemere.create({
     jeton: genererJetonEphemere(),
-    tache: tache || 'saisie_notes',
+    tache: tacheFinale,
     categorie: categorie === 'examen' ? 'examen' : 'cc',
     evaluationLibelle: evaluationLibelle || null,
     dateExpiration,
     statut: 'actif',
     professeurId,
     classeId,
-    matiereId,
+    matiereId: matiereId || null,
     creeParAcademieId: req.utilisateur.id,
   });
 
@@ -53,10 +58,11 @@ async function creerCompteEphemere(req, res) {
       id: compte.id,
       statut: compte.statut,
       dateExpiration: compte.dateExpiration,
+      tache: compte.tache,
       portee: {
         classe: classe.nom,
-        ue: matiere.UniteEnseignement?.intitule,
-        matiere: matiere.intitule,
+        ue: matiere?.UniteEnseignement?.intitule,
+        matiere: matiere?.intitule,
         categorie: compte.categorie,
         evaluation: compte.evaluationLibelle,
       },
@@ -71,18 +77,19 @@ async function verifierJeton(req, res) {
   const compte = req.compteEphemere;
   const [classe, matiere, professeur, eleves] = await Promise.all([
     Classe.findByPk(compte.classeId),
-    Matiere.findByPk(compte.matiereId, { include: [UniteEnseignement] }),
+    compte.matiereId ? Matiere.findByPk(compte.matiereId, { include: [UniteEnseignement] }) : null,
     Professeur.findByPk(compte.professeurId),
     Eleve.findAll({ where: { classeId: compte.classeId }, order: [['nom', 'ASC']] }),
   ]);
 
   return res.json({
     session: 'temporaire',
+    tache: compte.tache,
     professeur: { nom: professeur.nom, prenom: professeur.prenom },
     portee: {
       classe: classe.nom,
-      ue: matiere.UniteEnseignement?.intitule,
-      matiere: matiere.intitule,
+      ue: matiere?.UniteEnseignement?.intitule,
+      matiere: matiere?.intitule,
       categorie: compte.categorie,
       evaluation: compte.evaluationLibelle,
     },
