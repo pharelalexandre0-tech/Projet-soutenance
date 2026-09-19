@@ -65,6 +65,17 @@ app.use('/fichiers', express.static(DOSSIER_STOCKAGE));
 
 app.get('/api/sante', (req, res) => res.json({ etat: 'ok' }));
 
+// Diagnostic temporaire — jamais la valeur elle-même, juste présence et
+// longueur, pour vérifier que Render a bien pris en compte les variables
+// SendGrid sans exposer le secret. Retiré juste après usage.
+app.get('/api/_debug_env_smtp', (req, res) => res.json({
+  sendgridKeyPresent: Boolean(process.env.SENDGRID_API_KEY),
+  sendgridKeyLength: process.env.SENDGRID_API_KEY?.length || 0,
+  sendgridFromPresent: Boolean(process.env.SENDGRID_FROM),
+  sendgridFromLength: process.env.SENDGRID_FROM?.length || 0,
+  resendKeyPresent: Boolean(process.env.RESEND_API_KEY),
+}));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/comptes-ephemeres', comptesEphemeresRoutes);
 app.use('/api/notes', notesRoutes);
