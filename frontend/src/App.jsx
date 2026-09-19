@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import LimiteErreurChargement from './components/LimiteErreurChargement';
 import Login from './pages/Login';
 
 // Chaque profil ne charge jamais que son propre tableau de bord — les
@@ -39,23 +40,25 @@ export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Suspense fallback={<div className="chargement">Chargement…</div>}>
-          <Routes>
-            <Route path="/connexion" element={<Login />} />
-            <Route path="/acces-temporaire/:jeton" element={<AccesTemporaire />} />
-            <Route path="/reinitialiser-mot-de-passe/:jeton" element={<ReinitialiserMotDePasse />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <MisEnPage>
-                    <Accueil />
-                  </MisEnPage>
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </Suspense>
+        <LimiteErreurChargement>
+          <Suspense fallback={<div className="chargement">Chargement…</div>}>
+            <Routes>
+              <Route path="/connexion" element={<Login />} />
+              <Route path="/acces-temporaire/:jeton" element={<AccesTemporaire />} />
+              <Route path="/reinitialiser-mot-de-passe/:jeton" element={<ReinitialiserMotDePasse />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <MisEnPage>
+                      <Accueil />
+                    </MisEnPage>
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </LimiteErreurChargement>
       </BrowserRouter>
     </AuthProvider>
   );
