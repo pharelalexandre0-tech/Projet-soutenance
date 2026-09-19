@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { lazy, useEffect, useState } from 'react';
 import client from '../api/client';
 import EspaceDashboard from '../components/EspaceDashboard';
-import Bulletin from './etudiant/Bulletin';
-import RelevesNotes from './etudiant/RelevesNotes';
-import AbsencesEtudiant from './etudiant/AbsencesEtudiant';
-import FraisEtudiant from './etudiant/FraisEtudiant';
-import Messages from './etudiant/Messages';
-import EmploiDuTemps from './etudiant/EmploiDuTemps';
 import { IconDocument, IconPencil, IconCalendarAlert, IconBanknote, IconMessage, IconDashboard } from '../components/icons';
+
+const Bulletin = lazy(() => import('./etudiant/Bulletin'));
+const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
+const AbsencesEtudiant = lazy(() => import('./etudiant/AbsencesEtudiant'));
+const FraisEtudiant = lazy(() => import('./etudiant/FraisEtudiant'));
+const Messages = lazy(() => import('./etudiant/Messages'));
+const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
 
 const ONGLETS = [
   { id: 'bulletin', label: 'Bulletin', icone: IconDocument },

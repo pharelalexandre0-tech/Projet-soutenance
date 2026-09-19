@@ -1,17 +1,22 @@
-import { useState } from 'react';
+import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
-import TableauDeBord from './academie/TableauDeBord';
-import ElevesClasses from './academie/ElevesClasses';
-import UnitesEnseignement from './academie/UnitesEnseignement';
-import EmploisDuTemps from './academie/EmploisDuTemps';
-import Notes from './academie/Notes';
-import Bulletins from './academie/Bulletins';
-import ComptesEphemeres from './academie/ComptesEphemeres';
-import Absences from './academie/Absences';
-import PredictionIA from './academie/PredictionIA';
-import Communication from './academie/Communication';
-import Parametres from './academie/Parametres';
 import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconCalendarAlert, IconBrain, IconMessage, IconSettings } from '../components/icons';
+
+// Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
+// que tout téléchargé d'un bloc à la connexion — un compte Académie qui ne
+// touche jamais "Prédiction IA" ou "Communication" pendant sa session n'en
+// télécharge alors jamais le code.
+const TableauDeBord = lazy(() => import('./academie/TableauDeBord'));
+const ElevesClasses = lazy(() => import('./academie/ElevesClasses'));
+const UnitesEnseignement = lazy(() => import('./academie/UnitesEnseignement'));
+const EmploisDuTemps = lazy(() => import('./academie/EmploisDuTemps'));
+const Notes = lazy(() => import('./academie/Notes'));
+const Bulletins = lazy(() => import('./academie/Bulletins'));
+const ComptesEphemeres = lazy(() => import('./academie/ComptesEphemeres'));
+const Absences = lazy(() => import('./academie/Absences'));
+const PredictionIA = lazy(() => import('./academie/PredictionIA'));
+const Communication = lazy(() => import('./academie/Communication'));
+const Parametres = lazy(() => import('./academie/Parametres'));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard },

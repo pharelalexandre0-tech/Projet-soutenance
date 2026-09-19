@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { IconLogout, IconMenu, IconClose, IconSettings } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
@@ -91,7 +91,13 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
         {!bloquerContenu && (
           <>
             <div className="entete-page" key={section?.id}><h1>{section?.label}</h1></div>
-            {children}
+            {/* Chaque onglet est chargé à la demande (voir les ONGLETS de
+                chaque DashboardX.jsx, en lazy()) — un seul repli ici plutôt
+                que dans chacun des 5 tableaux de bord, pour que cliquer un
+                onglet affiche "Chargement…" à la place du contenu sans faire
+                disparaître la barre latérale (contrairement au Suspense
+                global d'App.jsx, qui remplacerait toute la page). */}
+            <Suspense fallback={<div className="chargement">Chargement…</div>}>{children}</Suspense>
           </>
         )}
       </div>
