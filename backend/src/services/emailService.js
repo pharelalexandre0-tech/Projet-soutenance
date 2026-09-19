@@ -5,26 +5,28 @@ function echapperHtml(texte) {
   return texte.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Gabarit HTML minimal (styles en ligne, tableau plutôt que flex/grid — la
-// plupart des clients mail rognent ou ignorent une feuille de style liée,
-// et beaucoup ignorent aussi les mises en page modernes) pour que les
-// e-mails transactionnels (codes 2FA, réinitialisation, notifications)
-// aient un minimum d'identité visuelle au lieu du texte brut par défaut —
-// qui, en plus d'être austère, contribue à un moins bon score anti-spam
-// qu'un e-mail HTML correctement formé avec une alternative texte.
+// Gabarit HTML minimal et volontairement sobre — première version (fond
+// gris pleine page, bandeau dégradé, texte joint par <br>) jugée "bizarre"
+// à l'usage : le dégradé passe mal selon les clients, et une couleur
+// posée sur le <td> plutôt que sur chaque ligne peut se perdre en route
+// (Gmail retouche parfois les styles en ligne). Repris plus près des
+// e-mails transactionnels standards (fond blanc uni, liseré de couleur
+// sous le nom plutôt qu'un bandeau, couleur redéclarée sur CHAQUE
+// paragraphe) pour rester lisible partout sans surprise.
 function versHtml(corps) {
-  const lignes = echapperHtml(corps).split('\n').map((l) => l || '&nbsp;').join('<br>');
+  const paragraphes = echapperHtml(corps)
+    .split('\n')
+    .map((l) => `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.7; font-family:Arial,Helvetica,sans-serif;">${l || '&nbsp;'}</p>`)
+    .join('');
   return `<!DOCTYPE html>
-<html lang="fr"><body style="margin:0; padding:24px; background-color:#E7EBEF; font-family:Arial,Helvetica,sans-serif;">
-<table role="presentation" width="100%" style="max-width:480px; margin:0 auto; border-collapse:collapse;"><tr>
-<td style="background-color:#1D5FA8; background-image:linear-gradient(135deg,#0B1E3D,#1D5FA8,#157A8C,#1F8A54); padding:22px 28px; border-radius:10px 10px 0 0; text-align:center;">
-<span style="color:#ffffff; font-size:20px; font-weight:bold; letter-spacing:0.02em;">EduSphere</span>
-</td></tr><tr>
-<td style="background-color:#ffffff; border:1px solid #E2E5E1; border-top:none; border-radius:0 0 10px 10px; padding:28px; color:#1C2321; font-size:15px; line-height:1.7;">
-${lignes}
-</td></tr><tr>
-<td style="padding:16px 4px; text-align:center; color:#6B7370; font-size:12px;">EduSphere — plateforme de gestion scolaire</td>
-</tr></table>
+<html lang="fr"><body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" style="max-width:480px; margin:0 auto; border-collapse:collapse;">
+<tr><td style="padding:24px 28px 16px; border-bottom:3px solid #1D5FA8;">
+<span style="color:#1D5FA8; font-size:18px; font-weight:bold; font-family:Arial,Helvetica,sans-serif;">EduSphere</span>
+</td></tr>
+<tr><td style="padding:22px 28px 6px;">${paragraphes}</td></tr>
+<tr><td style="padding:14px 28px 22px; color:#6B7370; font-size:12px; font-family:Arial,Helvetica,sans-serif; border-top:1px solid #E2E5E1;">EduSphere — plateforme de gestion scolaire</td></tr>
+</table>
 </body></html>`;
 }
 
