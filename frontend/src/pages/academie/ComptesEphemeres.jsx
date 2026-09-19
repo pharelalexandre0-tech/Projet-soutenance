@@ -37,6 +37,11 @@ export default function ComptesEphemeres() {
   useEffect(() => {
     if (form.semestreId) client.get(`/unites-enseignement?semestreId=${form.semestreId}`).then((res) => setUes(res.data.ues));
     else setUes([]);
+    // ueId/matiereId appartiennent au semestre précédent — sans ça, changer
+    // de semestre laissait les champs UE/Matière vides à l'écran mais
+    // form.ueId/matiereId gardaient l'ancien id, généré alors pour la
+    // mauvaise matière si l'académie ne les retouchait pas avant de valider.
+    setForm((f) => ({ ...f, ueId: '', matiereId: '' }));
   }, [form.semestreId]);
 
   async function creerProfesseur(e) {

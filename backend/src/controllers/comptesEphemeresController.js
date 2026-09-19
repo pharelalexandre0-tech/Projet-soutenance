@@ -81,6 +81,12 @@ async function verifierJeton(req, res) {
     Professeur.findByPk(compte.professeurId),
     Eleve.findAll({ where: { classeId: compte.classeId }, order: [['nom', 'ASC']] }),
   ]);
+  // Le jeton peut rester valide (durée non écoulée) alors que le professeur
+  // ou la classe visée a été supprimé entre-temps — sans ce contrôle,
+  // `professeur.nom`/`classe.nom` plantait en 500 au lieu d'un message clair.
+  if (!professeur || !classe) {
+    return res.status(410).json({ erreur: 'ce lien ne correspond plus à un professeur ou une classe existant(e)' });
+  }
 
   return res.json({
     session: 'temporaire',

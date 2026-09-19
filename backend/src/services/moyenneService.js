@@ -90,11 +90,13 @@ async function calculerBulletin(eleveId, semestreId) {
     let sommeCoefficientsUE = 0;
     let eliminatoireUE = false;
     let rattrapageUtilise = false;
+    let uneMatiereNotee = false;
     const detailMatieres = [];
 
     for (const matiere of ue.Matieres) {
       const resultat = await obtenirResultatMatiere(eleveId, matiere.id);
       if (!resultat) continue;
+      uneMatiereNotee = true;
       const { normale, rattrapage, retenue, sessionRetenue } = resultat;
 
       sommePondereeUE += retenue.noteFinale * matiere.coefficient;
@@ -116,9 +118,12 @@ async function calculerBulletin(eleveId, semestreId) {
       });
     }
 
-    if (sommeCoefficientsUE === 0) continue; // aucune matière notée pour cette UE
-
-    const moyenneUE = Math.round((sommePondereeUE / sommeCoefficientsUE) * 100) / 100;
+    if (!uneMatiereNotee) continue; // aucune matière notée pour cette UE
+    // `sommeCoefficientsUE` peut rester à 0 même quand une matière EST notée
+    // (coefficient 0 mal saisi) — auparavant ce cas était confondu avec
+    // "rien de noté" et faisait disparaître toute l'UE du bulletin, y
+    // compris une note éliminatoire qu'elle contenait.
+    const moyenneUE = sommeCoefficientsUE > 0 ? Math.round((sommePondereeUE / sommeCoefficientsUE) * 100) / 100 : 0;
     const seuilAtteint = moyenneUE >= SEUIL_VALIDATION_UE && !eliminatoireUE;
     // Une UE qui est passée par le rattrapage n'est jamais comptée comme
     // "validée" au même titre qu'une validation en session normale — même

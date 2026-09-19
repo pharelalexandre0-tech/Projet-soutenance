@@ -17,6 +17,16 @@ export default function Bulletin({ eleveId, eleve }) {
     client.get('/semestres').then((res) => setSemestres(res.data.semestres));
   }, []);
 
+  // Réutilisé par le parent avec un sélecteur d'enfant (DashboardParent) —
+  // sans ça, changer d'enfant gardait affiché le bulletin du précédent tant
+  // que "Consulter" n'était pas recliqué.
+  useEffect(() => {
+    setBulletin(null);
+    setDetail(null);
+    setResume(null);
+    setErreur('');
+  }, [eleveId]);
+
   const semestre = semestres.find((s) => String(s.id) === String(semestreId));
 
   async function demanderBulletin() {

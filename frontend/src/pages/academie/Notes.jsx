@@ -18,6 +18,7 @@ export default function Notes() {
   const [valeurs, setValeurs] = useState({});
   const [message, setMessage] = useState('');
   const [importMessage, setImportMessage] = useState('');
+  const [enCours, setEnCours] = useState(false);
 
   useEffect(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -108,8 +109,15 @@ export default function Notes() {
       setMessage('saisis au moins une moyenne');
       return;
     }
-    const res = await client.post('/notes', { notes, session });
-    setMessage(`${res.data.resultats.length} moyenne(s) enregistrée(s) (session ${session === 'rattrapage' ? 'de rattrapage' : 'normale'}).`);
+    setEnCours(true);
+    try {
+      const res = await client.post('/notes', { notes, session });
+      setMessage(`${res.data.resultats.length} moyenne(s) enregistrée(s) (session ${session === 'rattrapage' ? 'de rattrapage' : 'normale'}).`);
+    } catch (err) {
+      setMessage(err.response?.data?.erreur || "échec de l'enregistrement");
+    } finally {
+      setEnCours(false);
+    }
   }
 
   return (
@@ -208,7 +216,7 @@ export default function Notes() {
           </div>
         )}
 
-        <button className="primaire" type="submit">Enregistrer les moyennes</button>
+        <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer les moyennes'}</button>
         {message && <div className={message.includes('enregistrée') ? 'message-succes' : 'message-erreur'}>{message}</div>}
       </form>
     </div>

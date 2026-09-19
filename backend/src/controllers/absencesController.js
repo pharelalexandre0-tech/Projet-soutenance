@@ -94,15 +94,20 @@ async function saisirAppelEphemere(req, res) {
     try {
       absences.push(await enregistrerAbsence({ eleveId, date, cours, type, justifie: false, compteEphemereId: compte.id }));
     } catch (err) {
-      // un élève introuvable ne doit pas bloquer le reste de l'appel
+      // Seul "élève introuvable" (déjà écarté plus haut normalement) ne doit
+      // pas bloquer le reste de l'appel — une vraie erreur BD ne doit jamais
+      // se taire derrière un message qui annonce quand même un succès total.
+      if (err.status !== 404) throw err;
     }
   }
 
   compte.statut = 'revoque';
   await compte.save();
 
+  const nbAbsences = absences.filter((a) => a.type === 'absence').length;
+  const nbRetards = absences.filter((a) => a.type === 'retard').length;
   return res.status(201).json({
-    message: `Appel enregistré — ${absentEleveIds.length} absence(s), ${retardEleveIds.length} retard(s).`,
+    message: `Appel enregistré — ${nbAbsences} absence(s), ${nbRetards} retard(s).`,
     absences,
     compte: { statut: compte.statut },
   });
@@ -139,12 +144,17 @@ async function saisirAppelClasse(req, res) {
       });
       absences.push(absence);
     } catch (err) {
-      // un élève introuvable dans la liste ne doit pas bloquer le reste de l'appel
+      // Seul "élève introuvable" ne doit pas bloquer le reste de l'appel —
+      // une vraie erreur BD ne doit jamais se taire derrière un message qui
+      // annonce quand même un succès total.
+      if (err.status !== 404) throw err;
     }
   }
 
+  const nbAbsences = absences.filter((a) => a.type === 'absence').length;
+  const nbRetards = absences.filter((a) => a.type === 'retard').length;
   return res.status(201).json({
-    message: `Appel enregistré — ${absentEleveIds.length} absence(s), ${retardEleveIds.length} retard(s) sur ${marques.length} coché(es).`,
+    message: `Appel enregistré — ${nbAbsences} absence(s), ${nbRetards} retard(s) sur ${marques.length} coché(es).`,
     absences,
   });
 }
