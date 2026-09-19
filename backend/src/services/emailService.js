@@ -1,6 +1,33 @@
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 
+function echapperHtml(texte) {
+  return texte.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Gabarit HTML minimal (styles en ligne, tableau plutôt que flex/grid — la
+// plupart des clients mail rognent ou ignorent une feuille de style liée,
+// et beaucoup ignorent aussi les mises en page modernes) pour que les
+// e-mails transactionnels (codes 2FA, réinitialisation, notifications)
+// aient un minimum d'identité visuelle au lieu du texte brut par défaut —
+// qui, en plus d'être austère, contribue à un moins bon score anti-spam
+// qu'un e-mail HTML correctement formé avec une alternative texte.
+function versHtml(corps) {
+  const lignes = echapperHtml(corps).split('\n').map((l) => l || '&nbsp;').join('<br>');
+  return `<!DOCTYPE html>
+<html lang="fr"><body style="margin:0; padding:24px; background-color:#E7EBEF; font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" style="max-width:480px; margin:0 auto; border-collapse:collapse;"><tr>
+<td style="background-color:#1D5FA8; background-image:linear-gradient(135deg,#0B1E3D,#1D5FA8,#157A8C,#1F8A54); padding:22px 28px; border-radius:10px 10px 0 0; text-align:center;">
+<span style="color:#ffffff; font-size:20px; font-weight:bold; letter-spacing:0.02em;">EduSphere</span>
+</td></tr><tr>
+<td style="background-color:#ffffff; border:1px solid #E2E5E1; border-top:none; border-radius:0 0 10px 10px; padding:28px; color:#1C2321; font-size:15px; line-height:1.7;">
+${lignes}
+</td></tr><tr>
+<td style="padding:16px 4px; text-align:center; color:#6B7370; font-size:12px;">EduSphere — plateforme de gestion scolaire</td>
+</tr></table>
+</body></html>`;
+}
+
 // Render bloque le SMTP sortant (ports 25/465/587) sur son plan gratuit —
 // une API HTTP (port 443, jamais bloqué) est donc la voie prioritaire.
 // SendGrid passe avant Resend : sa "Single Sender Verification" ne vérifie
@@ -39,7 +66,13 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, piecesJointes) {
       personalizations: [{ to: [{ email: destinataire }] }],
       from: { email: process.env.SENDGRID_FROM, name: 'EduSphere' },
       subject: sujet,
-      content: [{ type: 'text/plain', value: corps }],
+      // L'alternative texte brut doit être listée avant le HTML (ordre
+      // attendu par SendGrid) — les deux ensemble plutôt que HTML seul,
+      // meilleur signal anti-spam qu'un message mono-format.
+      content: [
+        { type: 'text/plain', value: corps },
+        { type: 'text/html', value: versHtml(corps) },
+      ],
       // SendGrid refuse la requête entière si `attachments` est présent
       // mais vide ("must have at least one attachment") — la clé ne doit
       // apparaître que lorsqu'il y a vraiment une pièce jointe, jamais en
@@ -75,6 +108,7 @@ async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
       to: destinataire,
       subject: sujet,
       text: corps,
+      html: versHtml(corps),
       attachments: piecesJointes.map((p) => ({
         filename: p.nomFichier,
         content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
@@ -126,6 +160,7 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = []) {
         to: destinataire,
         subject: sujet,
         text: corps,
+        html: versHtml(corps),
         attachments: piecesJointes.map((p) => ({ filename: p.nomFichier, path: p.cheminAbsolu })),
       });
       return { envoye: true };
