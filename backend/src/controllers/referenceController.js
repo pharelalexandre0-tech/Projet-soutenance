@@ -18,6 +18,24 @@ const { obtenirEtablissementDe } = require('../services/etablissementService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { calculerBulletin } = require('../services/moyenneService');
 
+// Restreint étudiant/parent à LEUR(S) propre(s) classe(s) sur les listes
+// partagées (messages, emploi du temps, cahier de textes) — `null` = pas de
+// restriction (Académie/Finance voient tout l'établissement). Centralisé ici
+// plutôt que réécrit à chaque contrôleur : c'est exactement ce genre de
+// vérification copiée-collée qui, oubliée une seule fois, devient une fuite
+// de données entre familles (cas vécu avec predictionController.js).
+async function classeIdsAutorises(utilisateur) {
+  if (utilisateur.role === 'etudiant') {
+    const eleves = await Eleve.findAll({ where: { compteEtudiantId: utilisateur.id } });
+    return eleves.map((e) => e.classeId);
+  }
+  if (utilisateur.role === 'parent') {
+    const eleves = await Eleve.findAll({ where: { parentId: utilisateur.id } });
+    return eleves.map((e) => e.classeId);
+  }
+  return null;
+}
+
 // Identité de l'établissement (nom, ville…) DE L'UTILISATEUR CONNECTÉ,
 // utilisée sur les documents officiels (bulletin, reçu). Paramétrable en
 // base par l'Académie — jamais codée en dur, pour que la plateforme
@@ -287,6 +305,11 @@ async function creerEmploiDuTemps(req, res) {
 async function listerEmploisDuTemps(req, res) {
   const where = {};
   if (req.query.classeId) where.classeId = req.query.classeId;
+  // Étudiant/parent restreints à LEUR(S) classe(s), quel que soit le
+  // classeId demandé — sans ça, rien n'empêchait de lire l'emploi du temps
+  // d'une autre classe en passant n'importe quel id en query.
+  const classesAutorisees = await classeIdsAutorises(req.utilisateur);
+  if (classesAutorisees) where.classeId = classesAutorisees;
   const emplois = await EmploiDuTemps.findAll({
     where,
     include: [{ model: Classe, where: { etablissementId: req.utilisateur.etablissementId } }],
@@ -306,6 +329,8 @@ async function supprimerEmploiDuTemps(req, res) {
 async function listerCahierDeTextes(req, res) {
   const { classeId } = req.query;
   const where = classeId ? { classeId } : {};
+  const classesAutorisees = await classeIdsAutorises(req.utilisateur);
+  if (classesAutorisees) where.classeId = classesAutorisees;
   const cahier = await CahierDeTextes.findAll({
     where,
     include: [{ model: Classe, where: { etablissementId: req.utilisateur.etablissementId } }],
@@ -364,15 +389,8 @@ async function envoyerMessage(req, res) {
 async function listerMessages(req, res) {
   const where = {};
   if (req.query.classeId) where.classeId = req.query.classeId;
-
-  if (req.utilisateur.role === 'etudiant') {
-    const eleves = await Eleve.findAll({ where: { compteEtudiantId: req.utilisateur.id } });
-    where.classeId = eleves.map((el) => el.classeId);
-  }
-  if (req.utilisateur.role === 'parent') {
-    const eleves = await Eleve.findAll({ where: { parentId: req.utilisateur.id } });
-    where.classeId = eleves.map((el) => el.classeId);
-  }
+  const classesAutorisees = await classeIdsAutorises(req.utilisateur);
+  if (classesAutorisees) where.classeId = classesAutorisees;
 
   const messages = await MessageAnnonce.findAll({
     where,

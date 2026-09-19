@@ -6,7 +6,11 @@ const router = express.Router();
 const academie = autoriserRoles('academie');
 
 router.post('/classes', authentifier, academie, ctrl.creerClasse);
-router.get('/classes', authentifier, ctrl.listerClasses);
+// Renvoie la liste complète des élèves de CHAQUE classe (noms, dates de
+// naissance...) — jamais destiné à étudiant/parent, qui n'y accédaient que
+// faute d'une restriction de rôle explicite ici (seuls Académie et Finance
+// l'appellent réellement, voir leurs pages respectives).
+router.get('/classes', authentifier, autoriserRoles('academie', 'finance'), ctrl.listerClasses);
 router.put('/classes/:id', authentifier, academie, ctrl.modifierClasse);
 router.delete('/classes/:id', authentifier, academie, ctrl.supprimerClasse);
 router.get('/classes/:id/statistiques', authentifier, academie, ctrl.statistiquesClasse);
