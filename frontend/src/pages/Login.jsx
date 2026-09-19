@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil } from '../components/icons';
+import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle } from '../components/icons';
 import logoIcon from '../assets/logo-icon.png';
 
 // Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
@@ -39,14 +39,28 @@ function CarteBienvenue() {
   );
 }
 
-function Champ({ label, icone: Icone, children }) {
+// `erreur` (optionnel) : ne dit jamais laquelle des deux valeurs est en
+// cause — "identifiants incorrects" reste volontairement générique côté
+// backend, révéler que c'est l'e-mail ou le mot de passe spécifiquement
+// permettrait à quelqu'un de deviner quels comptes existent. On flague
+// donc les deux champs à la fois, jamais un seul.
+function Champ({ label, icone: Icone, erreur, children }) {
   return (
     <div className="champ">
       <label>{label}</label>
-      <div className="champ-icone">
+      <div className={erreur ? 'champ-icone champ-icone--erreur' : 'champ-icone'}>
         <Icone aria-hidden="true" />
         {children}
       </div>
+    </div>
+  );
+}
+
+function AlerteErreur({ children }) {
+  return (
+    <div className="connexion-erreur" role="alert">
+      <IconAlertTriangle aria-hidden="true" />
+      <span>{children}</span>
     </div>
   );
 }
@@ -84,6 +98,7 @@ export default function Login() {
   const [motDePasseOublieOuvert, setMotDePasseOublieOuvert] = useState(false);
   const [emailOubli, setEmailOubli] = useState('');
   const [messageOubli, setMessageOubli] = useState('');
+  const [erreurOubli, setErreurOubli] = useState(false);
   const [enCoursOubli, setEnCoursOubli] = useState(false);
 
   if (ouverture) return <TransitionOuverture />;
@@ -141,8 +156,10 @@ export default function Login() {
       // Message volontairement identique côté backend, compte trouvé ou
       // non — sinon ce formulaire devient un moyen de vérifier quelles
       // adresses ont un compte ici.
+      setErreurOubli(false);
       setMessageOubli(res.data.message);
     } catch (err) {
+      setErreurOubli(true);
       setMessageOubli(messageErreurConnexion(err, "impossible d'envoyer l'e-mail pour le moment"));
     } finally {
       setEnCoursOubli(false);
@@ -169,14 +186,16 @@ export default function Login() {
                   required
                 />
               </Champ>
-              {messageOubli && <div className="message-succes">{messageOubli}</div>}
+              {messageOubli && (erreurOubli
+                ? <AlerteErreur>{messageOubli}</AlerteErreur>
+                : <div className="message-succes">{messageOubli}</div>)}
               <button className="bouton-connexion" type="submit" disabled={enCoursOubli}>
                 {enCoursOubli ? 'Envoi…' : 'Envoyer le lien'}
               </button>
               <button
                 type="button"
                 className="connexion-retour"
-                onClick={() => { setMotDePasseOublieOuvert(false); setMessageOubli(''); setEmailOubli(''); }}
+                onClick={() => { setMotDePasseOublieOuvert(false); setMessageOubli(''); setErreurOubli(false); setEmailOubli(''); }}
               >
                 Retour
               </button>
@@ -197,19 +216,19 @@ export default function Login() {
             <h2>Vérification</h2>
             <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
             <form className="formulaire-connexion" onSubmit={validerCode}>
-              <Champ label="Code de vérification" icone={IconLock}>
+              <Champ label="Code de vérification" icone={IconLock} erreur={Boolean(erreur)}>
                 <input
                   type="text"
                   inputMode="numeric"
                   maxLength={6}
                   placeholder="000000"
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setErreur(''); }}
                   autoFocus
                   required
                 />
               </Champ>
-              {erreur && <div className="connexion-erreur">{erreur}</div>}
+              {erreur && <AlerteErreur>{erreur}</AlerteErreur>}
               <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
                 {enCours ? 'Vérification…' : 'Valider'}
               </button>
@@ -235,21 +254,21 @@ export default function Login() {
           <p className="acces-eyebrow">Bon retour</p>
           <h2>Se connecter</h2>
           <form className="formulaire-connexion" onSubmit={onSubmit}>
-            <Champ label="Adresse e-mail" icone={IconMail}>
+            <Champ label="Adresse e-mail" icone={IconMail} erreur={Boolean(erreur)}>
               <input
                 type="email"
                 placeholder="vous@etablissement.ga"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setErreur(''); }}
                 required
               />
             </Champ>
-            <Champ label="Mot de passe" icone={IconLock}>
+            <Champ label="Mot de passe" icone={IconLock} erreur={Boolean(erreur)}>
               <input
                 type="password"
                 placeholder="Votre mot de passe"
                 value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
+                onChange={(e) => { setMotDePasse(e.target.value); setErreur(''); }}
                 required
               />
             </Champ>
@@ -260,7 +279,7 @@ export default function Login() {
             >
               Mot de passe oublié ?
             </button>
-            {erreur && <div className="connexion-erreur">{erreur}</div>}
+            {erreur && <AlerteErreur>{erreur}</AlerteErreur>}
             <button className="bouton-connexion" type="submit" disabled={enCours}>
               <IconLogout className="bouton-connexion-icone" aria-hidden="true" />
               {enCours ? 'Connexion…' : 'Se connecter'}

@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const ELEVE_VIDE = {
   nom: '', prenom: '', classeId: '', email: '', motDePasse: '',
@@ -17,7 +18,13 @@ export default function ElevesClasses() {
   const [eleves, setEleves] = useState([]);
   const [nouvelleClasse, setNouvelleClasse] = useState({ nom: '', niveau: '' });
   const [nouvelEleve, setNouvelEleve] = useState(ELEVE_VIDE);
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
+  const [parentMotDePasseVisible, setParentMotDePasseVisible] = useState(false);
   const [message, setMessage] = useState('');
+  // Recap des identifiants juste créés (l'académie doit pouvoir les
+  // relever/communiquer — le mot de passe redevient irrécupérable dès que
+  // le formulaire se vide, il n'existe plus qu'en haché côté serveur).
+  const [dernierCompteCree, setDernierCompteCree] = useState(null);
   const [classeImportId, setClasseImportId] = useState('');
   const [importEnCours, setImportEnCours] = useState(false);
   const [resultatImport, setResultatImport] = useState(null);
@@ -40,6 +47,8 @@ export default function ElevesClasses() {
 
   const [filtreClasse, setFiltreClasse] = useState('');
   const [pageEleves, setPageEleves] = useState(0);
+
+  const [eleveASupprimer, setEleveASupprimer] = useState(null);
 
   function charger() {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -78,9 +87,9 @@ export default function ElevesClasses() {
     }
   }
 
-  async function supprimerEleveAction(eleve) {
-    if (!window.confirm(`Retirer ${eleve.prenom} ${eleve.nom} ? Son compte étudiant sera aussi supprimé.`)) return;
-    await client.delete(`/eleves/${eleve.id}`);
+  async function confirmerSuppressionEleve() {
+    await client.delete(`/eleves/${eleveASupprimer.id}`);
+    setEleveASupprimer(null);
     charger();
   }
 
@@ -138,6 +147,7 @@ export default function ElevesClasses() {
   async function creerEleve(e) {
     e.preventDefault();
     setMessage('');
+    setDernierCompteCree(null);
     try {
       // Champs parent ignorés si la case n'est pas cochée, même si
       // l'académie y avait tapé quelque chose puis décoché.
@@ -145,10 +155,20 @@ export default function ElevesClasses() {
         ? nouvelEleve
         : { ...nouvelEleve, parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
       const res = await client.post('/eleves', payload);
-      setMessage(res.data.compteParent ? `Élève ajouté, compte étudiant et compte parent créés/rattachés.` : `Élève ajouté, compte étudiant créé.`);
+      setDernierCompteCree({
+        etudiant: { email: nouvelEleve.email, motDePasse: nouvelEleve.motDePasse },
+        // Compte parent réutilisé (déjà existant) : le mot de passe tapé ici
+        // n'a servi à rien côté serveur, donc jamais le réafficher comme si
+        // c'était le sien — seulement pour un compte fraîchement créé.
+        parent: res.data.compteParent && !res.data.parentReutilise
+          ? { email: nouvelEleve.parentEmail, motDePasse: nouvelEleve.parentMotDePasse }
+          : null,
+        parentReutilise: Boolean(res.data.compteParent) && res.data.parentReutilise,
+      });
       setNouvelEleve(ELEVE_VIDE);
       setAvecParent(false);
-      setEleveFormOuvert(false);
+      setMotDePasseVisible(false);
+      setParentMotDePasseVisible(false);
       charger();
     } catch (err) {
       setMessage(err.response?.data?.erreur || 'erreur');
@@ -256,20 +276,30 @@ export default function ElevesClasses() {
           </select>
         </div>
         <table>
-          <thead><tr><th>Élève</th><th>Classe</th><th></th></tr></thead>
+          <thead><tr><th>Élève</th><th>Classe</th><th>Parent</th><th></th></tr></thead>
           <tbody>
             {elevesPage.map((e) => (
               <tr key={e.id}>
                 <td>{e.prenom} {e.nom}</td>
                 <td>{e.Classe?.nom ?? '—'}</td>
+                <td>
+                  {e.parent ? (
+                    <>
+                      {e.parent.prenom} {e.parent.nom}
+                      <div className="note-secondaire" style={{ fontSize: '0.74rem' }}>{e.parent.email}</div>
+                    </>
+                  ) : (
+                    <span className="note-secondaire">— aucun</span>
+                  )}
+                </td>
                 <td style={{ textAlign: 'right' }}>
-                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => supprimerEleveAction(e)}>
+                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setEleveASupprimer(e)}>
                     Retirer
                   </button>
                 </td>
               </tr>
             ))}
-            {elevesAffiches.length === 0 && <tr><td colSpan={3} className="vide">Aucun élève</td></tr>}
+            {elevesAffiches.length === 0 && <tr><td colSpan={4} className="vide">Aucun élève</td></tr>}
           </tbody>
         </table>
         {totalPagesEleves > 1 && (
@@ -318,12 +348,29 @@ export default function ElevesClasses() {
             <div className="ligne-champs">
               <div className="champ" style={{ flex: 1 }}>
                 <label>Mot de passe (compte étudiant)</label>
-                <input type="password" autoComplete="new-password" value={nouvelEleve.motDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })} minLength={6} required />
+                <input
+                  type={motDePasseVisible ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={nouvelEleve.motDePasse}
+                  onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })}
+                  minLength={6}
+                  required
+                />
               </div>
               <button
                 type="button" className="secondaire"
                 style={{ alignSelf: 'flex-end', marginBottom: 1 }}
-                onClick={() => setNouvelEleve({ ...nouvelEleve, motDePasse: motDePasseAleatoire() })}
+                onClick={() => setMotDePasseVisible((v) => !v)}
+              >
+                {motDePasseVisible ? 'Masquer' : 'Afficher'}
+              </button>
+              <button
+                type="button" className="secondaire"
+                style={{ alignSelf: 'flex-end', marginBottom: 1 }}
+                // À voir tout de suite : un mot de passe généré et jamais
+                // relevé (parce que caché derrière des points) est perdu
+                // dès la fermeture du formulaire.
+                onClick={() => { setNouvelEleve({ ...nouvelEleve, motDePasse: motDePasseAleatoire() }); setMotDePasseVisible(true); }}
               >
                 Générer
               </button>
@@ -354,10 +401,23 @@ export default function ElevesClasses() {
                     <label>E-mail du parent</label>
                     <input type="email" autoComplete="off" value={nouvelEleve.parentEmail} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentEmail: e.target.value })} required />
                   </div>
-                  <div className="champ">
+                  <div className="champ" style={{ flex: 1 }}>
                     <label>Mot de passe (si nouveau compte)</label>
-                    <input type="password" autoComplete="new-password" value={nouvelEleve.parentMotDePasse} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentMotDePasse: e.target.value })} minLength={6} />
+                    <input
+                      type={parentMotDePasseVisible ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={nouvelEleve.parentMotDePasse}
+                      onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentMotDePasse: e.target.value })}
+                      minLength={6}
+                    />
                   </div>
+                  <button
+                    type="button" className="secondaire"
+                    style={{ alignSelf: 'flex-end', marginBottom: 1 }}
+                    onClick={() => setParentMotDePasseVisible((v) => !v)}
+                  >
+                    {parentMotDePasseVisible ? 'Masquer' : 'Afficher'}
+                  </button>
                 </div>
               </>
             )}
@@ -365,6 +425,30 @@ export default function ElevesClasses() {
             <button className="primaire" type="submit">Inscrire l'élève</button>
             {message && <div className={message.includes('ajouté') ? 'message-succes' : 'message-erreur'}>{message}</div>}
           </form>
+        )}
+        {dernierCompteCree && (
+          <div className="message-succes" style={{ marginTop: 12, lineHeight: 1.7 }}>
+            Élève ajouté — identifiants à relever maintenant, ils ne seront plus jamais affichés en clair :
+            <br />
+            Compte étudiant : <strong style={{ fontFamily: 'var(--police-mono)' }}>{dernierCompteCree.etudiant.email} / {dernierCompteCree.etudiant.motDePasse}</strong>
+            {dernierCompteCree.parent && (
+              <>
+                <br />
+                Compte parent : <strong style={{ fontFamily: 'var(--police-mono)' }}>{dernierCompteCree.parent.email} / {dernierCompteCree.parent.motDePasse}</strong>
+              </>
+            )}
+            {dernierCompteCree.parentReutilise && (
+              <>
+                <br />
+                Compte parent rattaché à un compte existant — son mot de passe reste celui déjà en place, inchangé.
+              </>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="secondaire" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setDernierCompteCree(null)}>
+                Compris, masquer
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="entete-section" style={{ marginTop: 18 }}>
@@ -431,6 +515,16 @@ export default function ElevesClasses() {
           </div>
         )}
       </div>
+
+      {eleveASupprimer && (
+        <ConfirmModal
+          titre="Retirer cet élève ?"
+          onAnnuler={() => setEleveASupprimer(null)}
+          onConfirmer={confirmerSuppressionEleve}
+        >
+          Retirer {eleveASupprimer.prenom} {eleveASupprimer.nom} ? Son compte étudiant sera aussi supprimé.
+        </ConfirmModal>
+      )}
     </div>
   );
 }

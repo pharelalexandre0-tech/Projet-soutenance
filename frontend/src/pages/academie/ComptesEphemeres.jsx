@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import ConfirmModal from '../../components/ConfirmModal';
 
 // Diagramme 4 : l'Académie génère un compte éphémère (portée + durée),
 // reçoit un lien à transmettre au Professeur.
@@ -15,6 +16,7 @@ export default function ComptesEphemeres() {
   const [lienGenere, setLienGenere] = useState(null);
   const [erreur, setErreur] = useState('');
   const [profFormOuvert, setProfFormOuvert] = useState(false);
+  const [professeurASupprimer, setProfesseurASupprimer] = useState(null);
 
   function chargerReferences() {
     client.get('/professeurs').then((res) => setProfesseurs(res.data.professeurs));
@@ -45,9 +47,9 @@ export default function ComptesEphemeres() {
     chargerReferences();
   }
 
-  async function supprimerProfesseurAction(p) {
-    if (!window.confirm(`Retirer ${p.prenom} ${p.nom} de la liste des professeurs ?`)) return;
-    await client.delete(`/professeurs/${p.id}`);
+  async function confirmerSuppressionProfesseur() {
+    await client.delete(`/professeurs/${professeurASupprimer.id}`);
+    setProfesseurASupprimer(null);
     chargerReferences();
   }
 
@@ -181,7 +183,7 @@ export default function ComptesEphemeres() {
                 <td>{p.matiere || '—'}</td>
                 <td>{p.email}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => supprimerProfesseurAction(p)}>
+                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setProfesseurASupprimer(p)}>
                     Retirer
                   </button>
                 </td>
@@ -211,6 +213,16 @@ export default function ComptesEphemeres() {
           </form>
         )}
       </div>
+
+      {professeurASupprimer && (
+        <ConfirmModal
+          titre="Retirer ce professeur ?"
+          onAnnuler={() => setProfesseurASupprimer(null)}
+          onConfirmer={confirmerSuppressionProfesseur}
+        >
+          Retirer {professeurASupprimer.prenom} {professeurASupprimer.nom} de la liste des professeurs ?
+        </ConfirmModal>
+      )}
     </div>
   );
 }

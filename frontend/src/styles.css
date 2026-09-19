@@ -677,18 +677,30 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 .formulaire-connexion .champ-icone:focus-within > svg { background: var(--edu-bleu); color: #FFFFFF; }
 
-/* Un message inline (puce + texte), pas un bandeau plein rouge — l'encadré
-   était trop lourd pour une simple erreur de saisie entre les champs et le
-   bouton. */
+/* "identifiants incorrects" ne dit jamais lequel des deux champs est en
+   cause (sinon la connexion devient un moyen de deviner quels e-mails ont
+   un compte) — les DEUX champs se teintent donc en rouge ensemble, jamais
+   un seul, pour montrer où regarder sans révéler quoi corriger. Efface dès
+   que l'utilisateur retouche un champ : voir Login.jsx (onChange). */
+.formulaire-connexion .champ-icone.champ-icone--erreur {
+  border-color: var(--erreur);
+}
+.formulaire-connexion .champ-icone.champ-icone--erreur > svg {
+  background: var(--erreur-fond); color: var(--erreur);
+}
+
+/* Bandeau plein (icône + fond teinté + liseré), pas la puce discrète
+   d'avant — trop facile à manquer pour l'erreur qui bloque l'accès. */
 .connexion-erreur {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.85rem; color: var(--erreur);
-  animation: entree-connexion 0.3s ease both;
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 0.85rem; font-weight: 500; line-height: 1.45;
+  color: var(--erreur); background: var(--erreur-fond);
+  border: 1px solid color-mix(in srgb, var(--erreur) 25%, transparent);
+  border-left: 3px solid var(--erreur);
+  border-radius: 8px; padding: 12px 14px;
+  animation: entree-connexion 0.3s cubic-bezier(.22,1,.36,1) both;
 }
-.connexion-erreur::before {
-  content: ""; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--erreur); flex: none;
-}
+.connexion-erreur svg { flex: none; width: 17px; height: 17px; margin-top: 1px; }
 
 .bouton-connexion {
   display: flex; align-items: center; justify-content: center; gap: 9px;
@@ -996,6 +1008,9 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 .modale-fermer:hover { background: var(--erreur-fond); color: var(--erreur); }
 .modale-corps { padding: 22px 24px 24px; overflow-y: auto; }
+
+.confirmation-texte { margin: 0 0 20px; color: var(--texte); line-height: 1.55; }
+.confirmation-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
 /* Toast — confirmation transitoire, jamais liée à l'URL */
 .toast {

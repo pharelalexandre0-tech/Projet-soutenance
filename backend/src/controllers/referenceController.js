@@ -142,6 +142,11 @@ async function creerEleve(req, res) {
   }
 
   let compteParent = null;
+  // Rapporté dans la réponse : le frontend ne doit jamais réafficher le mot
+  // de passe qu'on vient de saisir comme si c'était le sien quand le compte
+  // parent existait déjà (donc gardé son ANCIEN mot de passe, pas le
+  // nouveau tapé ici).
+  let parentReutilise = false;
   if (parentEmail) {
     compteParent = await Utilisateur.findOne({ where: { email: parentEmail } });
     if (compteParent) {
@@ -150,6 +155,7 @@ async function creerEleve(req, res) {
       }
       // Compte parent déjà existant (ex. un deuxième enfant) : juste
       // rattaché, pas besoin d'un nouveau mot de passe.
+      parentReutilise = true;
     } else {
       if (!parentNom || !parentPrenom || !parentMotDePasse) {
         return res.status(400).json({ erreur: 'nom, prénom et mot de passe du parent sont obligatoires pour créer son compte' });
@@ -184,7 +190,12 @@ async function creerEleve(req, res) {
     parentId: compteParent?.id || null,
     etablissementId: req.utilisateur.etablissementId,
   });
-  return res.status(201).json({ eleve, compteEtudiant: compteEtudiant.toPublicJSON(), compteParent: compteParent?.toPublicJSON() || null });
+  return res.status(201).json({
+    eleve,
+    compteEtudiant: compteEtudiant.toPublicJSON(),
+    compteParent: compteParent?.toPublicJSON() || null,
+    parentReutilise,
+  });
 }
 async function listerEleves(req, res) {
   const where = { etablissementId: req.utilisateur.etablissementId };
@@ -193,7 +204,14 @@ async function listerEleves(req, res) {
   // Un Parent peut avoir plusieurs enfants — where.parentId filtre déjà sur
   // tous ses Eleve liés, pas un seul comme pour compteEtudiantId ci-dessus.
   if (req.utilisateur.role === 'parent') where.parentId = req.utilisateur.id;
-  const eleves = await Eleve.findAll({ where, include: [Classe] });
+  // Le parent lié (nom/prénom/e-mail seulement) pour que l'écran Académie
+  // affiche l'affiliation sans requête séparée — le scope par défaut
+  // d'Utilisateur exclut déjà motDePasse et les jetons, mais on ne
+  // sélectionne que le strict nécessaire plutôt que tout le profil.
+  const eleves = await Eleve.findAll({
+    where,
+    include: [Classe, { model: Utilisateur, as: 'parent', attributes: ['id', 'nom', 'prenom', 'email'] }],
+  });
   return res.json({ eleves });
 }
 // Supprime la fiche élève ET son compte étudiant (login) — un élève retiré
