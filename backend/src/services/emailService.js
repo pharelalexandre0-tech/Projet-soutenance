@@ -40,11 +40,17 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, piecesJointes) {
       from: { email: process.env.SENDGRID_FROM, name: 'EduSphere' },
       subject: sujet,
       content: [{ type: 'text/plain', value: corps }],
-      attachments: piecesJointes.map((p) => ({
-        content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
-        filename: p.nomFichier,
-        disposition: 'attachment',
-      })),
+      // SendGrid refuse la requête entière si `attachments` est présent
+      // mais vide ("must have at least one attachment") — la clé ne doit
+      // apparaître que lorsqu'il y a vraiment une pièce jointe, jamais en
+      // tableau vide comme pour Resend (qui l'accepte sans problème).
+      ...(piecesJointes.length > 0 && {
+        attachments: piecesJointes.map((p) => ({
+          content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
+          filename: p.nomFichier,
+          disposition: 'attachment',
+        })),
+      }),
     }),
     signal: AbortSignal.timeout(8000),
   });
