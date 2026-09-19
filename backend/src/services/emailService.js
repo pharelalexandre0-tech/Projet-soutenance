@@ -5,27 +5,48 @@ function echapperHtml(texte) {
   return texte.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// Gabarit HTML minimal et volontairement sobre — première version (fond
-// gris pleine page, bandeau dégradé, texte joint par <br>) jugée "bizarre"
-// à l'usage : le dégradé passe mal selon les clients, et une couleur
-// posée sur le <td> plutôt que sur chaque ligne peut se perdre en route
-// (Gmail retouche parfois les styles en ligne). Repris plus près des
-// e-mails transactionnels standards (fond blanc uni, liseré de couleur
-// sous le nom plutôt qu'un bandeau, couleur redéclarée sur CHAQUE
-// paragraphe) pour rester lisible partout sans surprise.
+// Troisième passe. V1 (fond gris pleine page, bandeau dégradé) : "bizarre"
+// — rendu incohérent d'un client à l'autre. V2 (fond blanc, nom en gras +
+// liseré, paragraphes gris uniformes) : "trop IA" — exactement le gabarit
+// que produirait n'importe quel générateur générique, aucune identité
+// propre. Ce qui manquait aux deux : un vrai point focal. Un e-mail de
+// code n'est lu que pour UNE information — le code — le reste n'est que
+// contexte ; la mise en avant du code (grand, espacé, encadré) EST le
+// design, pas une paragraphe parmi d'autres. Le petit sceau "ES" reprend
+// la marque du logo réel sans dépendre d'une image hébergée (fragile par
+// e-mail — beaucoup de clients bloquent les images distantes par défaut).
+const RE_CODE = /\b(\d{6})\b/;
+
 function versHtml(corps) {
-  const paragraphes = echapperHtml(corps)
+  const blocs = echapperHtml(corps)
     .split('\n')
-    .map((l) => `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.7; font-family:Arial,Helvetica,sans-serif;">${l || '&nbsp;'}</p>`)
+    .map((ligne) => {
+      const trouve = ligne.match(RE_CODE);
+      if (!trouve) {
+        return `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${ligne || '&nbsp;'}</p>`;
+      }
+      const avant = ligne.slice(0, trouve.index);
+      const apres = ligne.slice(trouve.index + trouve[0].length);
+      return (
+        (avant ? `<p style="margin:0 0 6px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${avant}</p>` : '') +
+        `<p style="margin:6px 0 16px; padding:16px 0; background-color:#E3ECF6; border-radius:8px; text-align:center; color:#164A85; font-size:30px; font-weight:bold; letter-spacing:0.3em; font-family:'Courier New',Courier,monospace;">${trouve[1]}</p>` +
+        (apres ? `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${apres}</p>` : '')
+      );
+    })
     .join('');
   return `<!DOCTYPE html>
 <html lang="fr"><body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial,Helvetica,sans-serif;">
 <table role="presentation" width="100%" style="max-width:480px; margin:0 auto; border-collapse:collapse;">
-<tr><td style="padding:24px 28px 16px; border-bottom:3px solid #1D5FA8;">
-<span style="color:#1D5FA8; font-size:18px; font-weight:bold; font-family:Arial,Helvetica,sans-serif;">EduSphere</span>
+<tr><td style="padding:28px 28px 18px;">
+<table role="presentation" style="border-collapse:collapse;"><tr>
+<td style="width:34px; height:34px; background-color:#1D5FA8; border-radius:50%; text-align:center; vertical-align:middle; font-size:0;">
+<span style="color:#ffffff; font-size:13px; font-weight:bold; font-family:Arial,Helvetica,sans-serif; line-height:34px;">ES</span>
+</td>
+<td style="padding-left:10px; color:#0B1E3D; font-size:17px; font-weight:bold; font-family:Arial,Helvetica,sans-serif;">EduSphere</td>
+</tr></table>
 </td></tr>
-<tr><td style="padding:22px 28px 6px;">${paragraphes}</td></tr>
-<tr><td style="padding:14px 28px 22px; color:#6B7370; font-size:12px; font-family:Arial,Helvetica,sans-serif; border-top:1px solid #E2E5E1;">EduSphere — plateforme de gestion scolaire</td></tr>
+<tr><td style="padding:2px 28px 8px;">${blocs}</td></tr>
+<tr><td style="padding:18px 28px 26px; color:#6B7370; font-size:12px; font-family:Arial,Helvetica,sans-serif; border-top:1px solid #E2E5E1;">EduSphere — plateforme de gestion scolaire</td></tr>
 </table>
 </body></html>`;
 }
