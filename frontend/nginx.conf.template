@@ -11,6 +11,13 @@ server {
     }
 
     location /api/ {
+        # Défaut nginx (1m) trop bas pour un logo d'établissement envoyé en
+        # base64 (~1,4x sa taille binaire, jusqu'à 1 Mo côté frontend) — sans
+        # ça, nginx rejette la requête AVANT le backend (dont la limite à
+        # lui, dans app.js, est déjà à 3mb) avec une page d'erreur HTML, pas
+        # le JSON {erreur:...} que le frontend sait afficher : d'où un
+        # "échec de la mise à jour" générique qui ne disait pas pourquoi.
+        client_max_body_size 4m;
         proxy_pass ${BACKEND_SCHEME}://${BACKEND_HOST}/api/;
         proxy_ssl_server_name on;
         proxy_set_header Host ${BACKEND_HOST};
