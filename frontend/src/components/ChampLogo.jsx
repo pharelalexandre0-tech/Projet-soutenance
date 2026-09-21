@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 const TAILLE_LOGO_MAX = 1024 * 1024;
 
@@ -8,6 +8,11 @@ const TAILLE_LOGO_MAX = 1024 * 1024;
 // jamais trois copies qui finissent par diverger.
 export default function ChampLogo({ valeur, onChange, label = "Logo de l'établissement" }) {
   const [erreur, setErreur] = useState('');
+  // Le déclencheur visible doit être un <button> — la classe "secondaire"
+  // ne cible QUE la balise button en CSS (button.secondaire), un <label>
+  // stylé pareil resterait sans bordure ni fond, comme si aucun style ne
+  // s'appliquait. L'input file reste caché, ouvert via ce bouton.
+  const inputRef = useRef(null);
 
   function choisir(e) {
     const fichier = e.target.files[0];
@@ -41,10 +46,10 @@ export default function ChampLogo({ valeur, onChange, label = "Logo de l'établi
             <span className="note-secondaire" style={{ fontSize: '0.65rem', textAlign: 'center' }}>Aucun<br />logo</span>
           )}
         </div>
-        <label className="secondaire" style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem' }}>
+        <button type="button" className="secondaire" onClick={() => inputRef.current?.click()}>
           {valeur ? 'Changer' : 'Choisir un fichier'}
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={choisir} style={{ display: 'none' }} />
-        </label>
+        </button>
+        <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={choisir} style={{ display: 'none' }} />
         {valeur && (
           <button type="button" className="secondaire" style={{ padding: '7px 14px', fontSize: '0.85rem' }} onClick={() => onChange('')}>
             Retirer

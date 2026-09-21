@@ -67,7 +67,13 @@ export default function Etablissements() {
           {etablissements.map((etab) => (
             <button key={etab.id} type="button" className="carte-etablissement" onClick={() => setEtablissementSelectionneId(etab.id)}>
               <div className="carte-etablissement-entete">
-                <span className="puce-icone petite"><IconBuilding width={16} height={16} /></span>
+                {etab.logo ? (
+                  <span className="puce-icone petite" style={{ background: 'var(--carte)', border: '1px solid var(--bordure)', padding: 3, overflow: 'hidden' }}>
+                    <img src={etab.logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </span>
+                ) : (
+                  <span className="puce-icone petite"><IconBuilding width={16} height={16} /></span>
+                )}
                 <span className={`badge ${etab.statut === 'actif' ? 'vert' : 'rouge'}`}>{etab.statut === 'actif' ? 'active' : 'verrouillée'}</span>
               </div>
               <strong>{etab.nom}</strong>
