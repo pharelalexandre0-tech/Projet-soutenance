@@ -26,6 +26,7 @@ const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 const { genererEmploiDuTempsPDF } = require('../services/pdfService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
+const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { calculerBulletin } = require('../services/moyenneService');
 
@@ -128,9 +129,8 @@ async function configurerEtablissement(req, res) {
   if (!nom || !ville) {
     return res.status(400).json({ erreur: 'le nom et la ville sont obligatoires' });
   }
-  if (logo && !/^data:image\/(png|jpeg|jpg|webp);base64,/.test(logo)) {
-    return res.status(400).json({ erreur: 'format de logo non reconnu (PNG, JPEG ou WebP attendu)' });
-  }
+  const erreurLogo = erreurLogoInvalide(logo);
+  if (erreurLogo) return res.status(400).json({ erreur: erreurLogo });
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
   // logo undefined (champ absent du payload) => inchangé ; logo explicitement

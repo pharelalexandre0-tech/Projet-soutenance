@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
+const { erreurLogoInvalide } = require('../utils/logo');
 const {
   Etablissement, Utilisateur, Classe, Eleve, Semestre, Professeur, Personnel,
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
@@ -42,7 +43,7 @@ async function obtenirEtablissement(req, res) {
 // ce compte, personne ne pourrait entrer dans la nouvelle école ensuite.
 async function creerEtablissement(req, res) {
   const {
-    nom, sigle, devise, ville, pays, boitePostale, telephone, email,
+    nom, sigle, devise, ville, pays, boitePostale, telephone, email, logo,
     academieNom, academiePrenom, academieEmail, academieMotDePasse,
   } = req.body;
 
@@ -56,6 +57,8 @@ async function creerEtablissement(req, res) {
   if (erreurMotDePasse) {
     return res.status(400).json({ erreur: erreurMotDePasse });
   }
+  const erreurLogo = erreurLogoInvalide(logo);
+  if (erreurLogo) return res.status(400).json({ erreur: erreurLogo });
 
   const emailExistant = await Utilisateur.findOne({ where: { email: academieEmail } });
   if (emailExistant) {
@@ -65,7 +68,7 @@ async function creerEtablissement(req, res) {
   const etablissement = await Etablissement.create({
     nom, sigle: sigle || null, devise: devise || null, ville,
     pays: pays || 'République Gabonaise', boitePostale: boitePostale || null,
-    telephone: telephone || null, email: email || null,
+    telephone: telephone || null, email: email || null, logo: logo || null,
   });
 
   const motDePasseHache = await bcrypt.hash(academieMotDePasse, 10);
@@ -87,11 +90,18 @@ async function modifierEtablissement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id);
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
 
-  const { nom, sigle, devise, ville, pays, boitePostale, telephone, email } = req.body;
+  const { nom, sigle, devise, ville, pays, boitePostale, telephone, email, logo } = req.body;
   if (!nom || !ville) {
     return res.status(400).json({ erreur: 'le nom et la ville sont obligatoires' });
   }
-  await etablissement.update({ nom, sigle, devise, ville, pays, boitePostale, telephone, email });
+  const erreurLogo = erreurLogoInvalide(logo);
+  if (erreurLogo) return res.status(400).json({ erreur: erreurLogo });
+  // logo undefined (champ absent du payload) => inchangé ; '' ou null =>
+  // retiré — même distinction que côté Académie (configurerEtablissement).
+  await etablissement.update({
+    nom, sigle, devise, ville, pays, boitePostale, telephone, email,
+    ...(logo !== undefined && { logo: logo || null }),
+  });
   return res.json({ etablissement });
 }
 

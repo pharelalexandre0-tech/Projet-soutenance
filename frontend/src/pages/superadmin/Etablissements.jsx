@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
+import ChampLogo from '../../components/ChampLogo';
 import { IconBuilding, IconKey, IconAlertTriangle } from '../../components/icons';
 
 export default function Etablissements() {
@@ -96,7 +97,7 @@ export default function Etablissements() {
 
 function FormulaireCreationEcole({ onFermer, onReussi }) {
   const [form, setForm] = useState({
-    nom: '', sigle: '', devise: '', ville: '', pays: 'République Gabonaise', boitePostale: '', telephone: '', email: '',
+    nom: '', sigle: '', devise: '', ville: '', pays: 'République Gabonaise', boitePostale: '', telephone: '', email: '', logo: '',
     academieNom: '', academiePrenom: '', academieEmail: '', academieMotDePasse: '',
   });
   const [enCours, setEnCours] = useState(false);
@@ -120,6 +121,7 @@ function FormulaireCreationEcole({ onFermer, onReussi }) {
     <Modal titre="Insérer une nouvelle école" onFermer={onFermer} largeur={560}>
       <form className="formulaire" onSubmit={soumettre} autoComplete="off">
         <h3 style={{ marginBottom: -6 }}>Identité de l'établissement</h3>
+        <ChampLogo valeur={form.logo} onChange={(logo) => setForm({ ...form, logo })} />
         <div className="ligne-champs">
           <div className="champ"><label>Nom de l'établissement</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
           <div className="champ" style={{ maxWidth: 120 }}><label>Sigle</label><input value={form.sigle} onChange={(e) => setForm({ ...form, sigle: e.target.value })} /></div>
@@ -168,6 +170,7 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
       setForm({
         nom: e.nom || '', sigle: e.sigle || '', devise: e.devise || '', ville: e.ville || '',
         pays: e.pays || '', boitePostale: e.boitePostale || '', telephone: e.telephone || '', email: e.email || '',
+        logo: e.logo || '',
       });
     });
   }
@@ -240,6 +243,7 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
       {erreurSuppression && <div className="message-erreur" style={{ marginBottom: 18 }}>{erreurSuppression}</div>}
 
       <form className="formulaire" onSubmit={enregistrer}>
+        <ChampLogo valeur={form.logo} onChange={(logo) => setForm({ ...form, logo })} />
         <div className="ligne-champs">
           <div className="champ"><label>Nom</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
           <div className="champ" style={{ maxWidth: 120 }}><label>Sigle</label><input value={form.sigle} onChange={(e) => setForm({ ...form, sigle: e.target.value })} /></div>
