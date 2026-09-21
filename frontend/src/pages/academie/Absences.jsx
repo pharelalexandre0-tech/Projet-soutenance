@@ -2,15 +2,13 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 
 export default function Absences() {
-  const [onglet, setOnglet] = useState('appel');
+  const [onglet, setOnglet] = useState('brief');
   return (
     <div>
       <div className="onglets-secondaires">
-        <button className={onglet === 'appel' ? 'actif' : ''} onClick={() => setOnglet('appel')}>Faire l'appel</button>
         <button className={onglet === 'brief' ? 'actif' : ''} onClick={() => setOnglet('brief')}>Brief d'absentéisme</button>
         <button className={onglet === 'comportement' ? 'actif' : ''} onClick={() => setOnglet('comportement')}>Comportement</button>
       </div>
-      {onglet === 'appel' && <Appel />}
       {onglet === 'brief' && <Brief />}
       {onglet === 'comportement' && <Comportement />}
     </div>
@@ -58,7 +56,7 @@ function Comportement() {
             <label>Classe</label>
             <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
               <option value="">—</option>
-              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
             </select>
           </div>
           <div className="champ">
@@ -109,98 +107,6 @@ function Comportement() {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// "Liste numérique à cocher" : on affiche la classe entière, numérotée, et on
-// coche uniquement les élèves absents ce jour-là pour ce cours.
-function Appel() {
-  const [classes, setClasses] = useState([]);
-  const [classeId, setClasseId] = useState('');
-  const [eleves, setEleves] = useState([]);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [cours, setCours] = useState('');
-  // Par élève : undefined (présent, rien à saisir), 'absence' ou 'retard'.
-  const [statuts, setStatuts] = useState({});
-  const [message, setMessage] = useState('');
-
-  useEffect(() => { client.get('/classes').then((res) => setClasses(res.data.classes)); }, []);
-  useEffect(() => {
-    if (classeId) client.get(`/eleves?classeId=${classeId}`).then((res) => { setEleves(res.data.eleves); setStatuts({}); });
-    else setEleves([]);
-  }, [classeId]);
-
-  // Un clic fait cycler présent -> absent -> retard -> présent, pour rester
-  // aussi rapide qu'une simple case à cocher tout en couvrant les 3 états.
-  function cycler(eleveId) {
-    const suivant = { present: 'absence', absence: 'retard', retard: 'present' };
-    const actuel = statuts[eleveId] || 'present';
-    setStatuts({ ...statuts, [eleveId]: suivant[actuel] });
-  }
-
-  async function envoyerAppel(e) {
-    e.preventDefault();
-    setMessage('');
-    const absentEleveIds = Object.entries(statuts).filter(([, s]) => s === 'absence').map(([id]) => Number(id));
-    const retardEleveIds = Object.entries(statuts).filter(([, s]) => s === 'retard').map(([id]) => Number(id));
-    const res = await client.post('/absences/appel', { classeId: Number(classeId), date, cours, absentEleveIds, retardEleveIds });
-    setMessage(res.data.message);
-    setStatuts({});
-  }
-
-  return (
-    <div className="carte">
-      <h2>Faire l'appel</h2>
-      <form className="formulaire" onSubmit={envoyerAppel}>
-        <div className="ligne-champs">
-          <div className="champ">
-            <label>Classe</label>
-            <select value={classeId} onChange={(e) => setClasseId(e.target.value)} required>
-              <option value="">—</option>
-              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-            </select>
-          </div>
-          <div className="champ">
-            <label>Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-          </div>
-          <div className="champ">
-            <label>Cours</label>
-            <input value={cours} onChange={(e) => setCours(e.target.value)} placeholder="ex. Mathématiques" />
-          </div>
-        </div>
-
-        {classeId && eleves.length > 0 && (
-          <>
-            <p className="note-secondaire" style={{ marginTop: -4 }}>Clique un élève pour faire défiler présent → absent → retard.</p>
-            <div className="liste-notifications">
-              {eleves.map((el, i) => {
-                const statut = statuts[el.id] || 'present';
-                const fond = statut === 'absence' ? 'var(--erreur-fond)' : statut === 'retard' ? 'var(--alerte-fond)' : undefined;
-                return (
-                  <button
-                    type="button"
-                    key={el.id}
-                    className="notification-item"
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', background: fond, width: '100%', textAlign: 'left', border: 'none' }}
-                    onClick={() => cycler(el.id)}
-                  >
-                    <span style={{ fontFamily: 'var(--police-mono)', color: 'var(--texte-clair)', width: 24 }}>{i + 1}.</span>
-                    <span>{el.prenom} {el.nom}</span>
-                    {statut === 'absence' && <span className="badge rouge" style={{ marginLeft: 'auto' }}>absent</span>}
-                    {statut === 'retard' && <span className="badge or" style={{ marginLeft: 'auto' }}>retard</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </>
-        )}
-        {classeId && eleves.length === 0 && <div className="vide">Aucun élève dans cette classe</div>}
-
-        <button className="primaire" type="submit" disabled={!classeId}>Enregistrer l'appel</button>
-        {message && <div className="message-succes">{message}</div>}
-      </form>
     </div>
   );
 }

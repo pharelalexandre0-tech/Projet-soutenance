@@ -1,8 +1,19 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import ConfirmModal from '../../components/ConfirmModal';
 
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const CRENEAU_VIDE = { jour: 'Lundi', heureDebut: '', heureFin: '', matiere: '', salle: '' };
+// Bornes par défaut de la grille — élargies automatiquement si un créneau
+// déborde (ex. un cours du soir après 19h), jamais rétrécies en dessous.
+const GRILLE_DEBUT_DEFAUT = 7 * 60;
+const GRILLE_FIN_DEFAUT = 19 * 60;
+const HAUTEUR_GRILLE = 640;
+
+function versMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+}
 
 export default function EmploisDuTemps() {
   const [classes, setClasses] = useState([]);
@@ -13,6 +24,7 @@ export default function EmploisDuTemps() {
   const [formOuvert, setFormOuvert] = useState(false);
   const [nouveauCreneau, setNouveauCreneau] = useState(CRENEAU_VIDE);
   const [erreur, setErreur] = useState('');
+  const [creneauASupprimer, setCreneauASupprimer] = useState(null);
 
   useEffect(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -39,8 +51,9 @@ export default function EmploisDuTemps() {
     }
   }
 
-  async function supprimer(id) {
-    await client.delete(`/emplois-du-temps/${id}`);
+  async function confirmerSuppression() {
+    await client.delete(`/emplois-du-temps/${creneauASupprimer.id}`);
+    setCreneauASupprimer(null);
     charger(classeId);
   }
 
@@ -49,6 +62,12 @@ export default function EmploisDuTemps() {
     if (!parJour.has(e.jour)) parJour.set(e.jour, []);
     parJour.get(e.jour).push(e);
   });
+
+  const bornes = emplois.flatMap((e) => [versMinutes(e.heureDebut), versMinutes(e.heureFin)]);
+  const grilleDebut = Math.floor(Math.min(GRILLE_DEBUT_DEFAUT, ...(bornes.length ? bornes : [GRILLE_DEBUT_DEFAUT])) / 60) * 60;
+  const grilleFin = Math.ceil(Math.max(GRILLE_FIN_DEFAUT, ...(bornes.length ? bornes : [GRILLE_FIN_DEFAUT])) / 60) * 60;
+  const reperesHeure = [];
+  for (let h = grilleDebut; h <= grilleFin; h += 60) reperesHeure.push(h);
 
   return (
     <div className="carte">
@@ -64,7 +83,7 @@ export default function EmploisDuTemps() {
           <label>Classe</label>
           <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
             <option value="">—</option>
-            {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
           </select>
         </div>
         <div className="champ">
@@ -99,27 +118,66 @@ export default function EmploisDuTemps() {
         </form>
       )}
 
-      {classeId && JOURS.filter((j) => parJour.has(j)).map((jour) => (
-        <div key={jour} style={{ marginBottom: 16 }}>
-          <h3 style={{ fontSize: '0.9rem', marginBottom: 8 }}>{jour}</h3>
-          <table>
-            <thead><tr><th>Horaire</th><th>Matière</th><th>Salle</th><th></th></tr></thead>
-            <tbody>
-              {parJour.get(jour).map((e) => (
-                <tr key={e.id}>
-                  <td style={{ fontFamily: 'var(--police-mono)' }}>{e.heureDebut} – {e.heureFin}</td>
-                  <td>{e.matiere || '—'}</td>
-                  <td>{e.salle || '—'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => supprimer(e.id)}>Retirer</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
       {classeId && emplois.length === 0 && <div className="vide">Aucun créneau renseigné pour cette classe</div>}
+
+      {classeId && emplois.length > 0 && (
+        <div className="table-scroll">
+          <div className="grille-emploi">
+            <div className="grille-emploi-coin" />
+            {JOURS.map((j) => <div key={j} className="grille-emploi-jour-titre">{j}</div>)}
+
+            <div className="grille-emploi-heures" style={{ height: HAUTEUR_GRILLE }}>
+              {reperesHeure.map((h) => (
+                <span
+                  key={h}
+                  className="grille-emploi-repere"
+                  style={{ top: `${((h - grilleDebut) / (grilleFin - grilleDebut)) * 100}%` }}
+                >
+                  {String(Math.floor(h / 60)).padStart(2, '0')}h
+                </span>
+              ))}
+            </div>
+
+            {JOURS.map((jour) => (
+              <div key={jour} className="grille-emploi-colonne" style={{ height: HAUTEUR_GRILLE }}>
+                {reperesHeure.map((h) => (
+                  <span key={h} className="grille-emploi-ligne" style={{ top: `${((h - grilleDebut) / (grilleFin - grilleDebut)) * 100}%` }} />
+                ))}
+                {(parJour.get(jour) || []).map((e) => {
+                  const debut = versMinutes(e.heureDebut);
+                  const fin = Math.max(versMinutes(e.heureFin), debut + 15);
+                  const top = ((debut - grilleDebut) / (grilleFin - grilleDebut)) * 100;
+                  const hauteur = ((fin - debut) / (grilleFin - grilleDebut)) * 100;
+                  return (
+                    <div key={e.id} className="grille-emploi-creneau" style={{ top: `${top}%`, height: `${hauteur}%` }}>
+                      <button
+                        type="button" className="grille-emploi-retirer"
+                        title="Retirer ce créneau"
+                        onClick={() => setCreneauASupprimer(e)}
+                      >
+                        ×
+                      </button>
+                      <strong>{e.matiere || '—'}</strong>
+                      <span>{e.heureDebut} – {e.heureFin}</span>
+                      {e.salle && <span>{e.salle}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {creneauASupprimer && (
+        <ConfirmModal
+          titre="Retirer ce créneau ?"
+          onAnnuler={() => setCreneauASupprimer(null)}
+          onConfirmer={confirmerSuppression}
+        >
+          Retirer {creneauASupprimer.matiere || 'ce cours'} ({creneauASupprimer.jour} {creneauASupprimer.heureDebut}–{creneauASupprimer.heureFin}) de l'emploi du temps ?
+        </ConfirmModal>
+      )}
     </div>
   );
 }

@@ -9,6 +9,12 @@ const ELEVE_VIDE = {
   parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '',
 };
 const RATTACHER_PARENT_VIDE = { parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
+// Deux classes peuvent partager le même nom avec un niveau différent (ex.
+// deux promotions "IA & Big Data") — le niveau doit toujours accompagner le
+// nom partout où une classe s'affiche, sinon impossible de les distinguer.
+function nomClasse(c) {
+  return c ? `${c.nom} (${c.niveau})` : '—';
+}
 // Un établissement peut compter des milliers d'élèves — rendre tout d'un
 // coup alourdit le navigateur pour rien, alors que l'API renvoie déjà tout
 // (le filtrage par classe reste instantané côté client). Fenêtrage de
@@ -63,6 +69,7 @@ export default function ElevesClasses() {
   const [erreurClasse, setErreurClasse] = useState('');
 
   const [filtreClasse, setFiltreClasse] = useState('');
+  const [rechercheNom, setRechercheNom] = useState('');
   const [pageEleves, setPageEleves] = useState(0);
 
   const [eleveASupprimer, setEleveASupprimer] = useState(null);
@@ -123,7 +130,7 @@ export default function ElevesClasses() {
       // servi à rien côté serveur, donc jamais l'ajouter comme si c'était
       // le sien — seulement pour un compte fraîchement créé.
       if (res.data.compteParent && !res.data.parentReutilise) {
-        const classeNom = classes.find((c) => String(c.id) === String(eleveParentCible.classeId))?.nom ?? '—';
+        const classeNom = nomClasse(classes.find((c) => String(c.id) === String(eleveParentCible.classeId)));
         setIdentifiantsCrees((prev) => [...prev, {
           id: `p-${res.data.compteParent.id}`, classeId: eleveParentCible.classeId, classeNom, role: 'Parent',
           prenom: formRattacherParent.parentPrenom, nom: formRattacherParent.parentNom,
@@ -157,7 +164,7 @@ export default function ElevesClasses() {
     // Figé dès maintenant : si l'Académie change le sélecteur "Classe
     // cible" après coup, le récap déjà affiché ne doit pas se mettre à
     // mentir sur la classe dans laquelle l'import a réellement eu lieu.
-    const classeImportNom = classes.find((c) => String(c.id) === classeImportId)?.nom ?? '—';
+    const classeImportNom = nomClasse(classes.find((c) => String(c.id) === classeImportId));
     setImportEnCours(true);
     setResultatImport(null);
     const lignes = await lireFichierExcel(fichier);
@@ -216,7 +223,7 @@ export default function ElevesClasses() {
         ? nouvelEleve
         : { ...nouvelEleve, parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
       const res = await client.post('/eleves', payload);
-      const classeNom = classes.find((c) => String(c.id) === String(nouvelEleve.classeId))?.nom ?? '—';
+      const classeNom = nomClasse(classes.find((c) => String(c.id) === String(nouvelEleve.classeId)));
       const nouveaux = [{
         id: `e-${res.data.eleve.id}`, classeId: nouvelEleve.classeId, classeNom, role: 'Étudiant',
         prenom: nouvelEleve.prenom, nom: nouvelEleve.nom, email: nouvelEleve.email, motDePasse: nouvelEleve.motDePasse,
@@ -243,13 +250,16 @@ export default function ElevesClasses() {
     }
   }
 
-  const elevesAffiches = filtreClasse ? eleves.filter((e) => String(e.classeId) === filtreClasse) : eleves;
+  const rechercheNettoyee = rechercheNom.trim().toLowerCase();
+  const elevesAffiches = eleves
+    .filter((e) => !filtreClasse || String(e.classeId) === filtreClasse)
+    .filter((e) => !rechercheNettoyee || `${e.prenom} ${e.nom}`.toLowerCase().includes(rechercheNettoyee));
   // Regroupement par classe sur la liste COMPLÈTE filtrée, trié par nom —
   // c'est seulement APRÈS ce groupement qu'on pagine (par classe entière,
   // pas par ligne), pour qu'une classe ne soit jamais coupée en deux pages.
   const groupesEleves = [...elevesAffiches.reduce((groupes, e) => {
     const cle = e.classeId;
-    if (!groupes.has(cle)) groupes.set(cle, { classeId: cle, nom: e.Classe?.nom ?? '—', eleves: [] });
+    if (!groupes.has(cle)) groupes.set(cle, { classeId: cle, nom: nomClasse(e.Classe), eleves: [] });
     groupes.get(cle).eleves.push(e);
     return groupes;
   }, new Map()).values()].sort((a, b) => a.nom.localeCompare(b.nom));
@@ -366,12 +376,21 @@ export default function ElevesClasses() {
       <div className="carte">
         <h2>Élèves</h2>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0 }}>Liste ({elevesAffiches.length})</h3>
-          <select value={filtreClasse} onChange={(e) => { setFiltreClasse(e.target.value); setPageEleves(0); }} style={{ maxWidth: 200 }}>
-            <option value="">Toutes les classes</option>
-            {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="search"
+              placeholder="Rechercher un nom…"
+              value={rechercheNom}
+              onChange={(e) => { setRechercheNom(e.target.value); setPageEleves(0); }}
+              style={{ maxWidth: 170 }}
+            />
+            <select value={filtreClasse} onChange={(e) => { setFiltreClasse(e.target.value); setPageEleves(0); }} style={{ maxWidth: 200 }}>
+              <option value="">Toutes les classes</option>
+              {classes.map((c) => <option key={c.id} value={c.id}>{nomClasse(c)}</option>)}
+            </select>
+          </div>
         </div>
         {/* Un tableau par classe plutôt qu'une liste à plat avec une colonne
             "Classe" répétée à chaque ligne — la classe se voit déjà dans le
@@ -460,7 +479,7 @@ export default function ElevesClasses() {
                 <label>Classe</label>
                 <select value={nouvelEleve.classeId} onChange={(e) => setNouvelEleve({ ...nouvelEleve, classeId: e.target.value })} required>
                   <option value="">—</option>
-                  {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                  {classes.map((c) => <option key={c.id} value={c.id}>{nomClasse(c)}</option>)}
                 </select>
               </div>
               <div className="champ">
@@ -567,7 +586,7 @@ export default function ElevesClasses() {
                   <label>Classe cible</label>
                   <select value={classeImportId} onChange={(e) => setClasseImportId(e.target.value)} required>
                     <option value="">—</option>
-                    {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                    {classes.map((c) => <option key={c.id} value={c.id}>{nomClasse(c)}</option>)}
                   </select>
                 </div>
                 <div className="champ">

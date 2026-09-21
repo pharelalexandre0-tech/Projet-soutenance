@@ -3,7 +3,13 @@ import client from '../../api/client';
 
 const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '' };
 const MATIERE_VIDE = { code: '', intitule: '', coefficient: '1' };
-const SEMESTRE_VIDE = { libelle: '', anneeScolaire: '' };
+const SEMESTRE_VIDE = { cycle: 'licence', numero: '1', anneeScolaire: '' };
+const CYCLES = [
+  { valeur: 'licence', libelle: 'Licence' },
+  { valeur: 'master', libelle: 'Master' },
+  { valeur: 'doctorat', libelle: 'Doctorat' },
+];
+const NUMEROS_SEMESTRE = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function UnitesEnseignement() {
   const [ues, setUes] = useState([]);
@@ -141,13 +147,22 @@ export default function UnitesEnseignement() {
             onSubmit={creerSemestre}
           >
             <div className="champ">
-              <label>Libellé du semestre</label>
-              <input
-                placeholder="ex. Semestre 1"
-                value={nouveauSemestre.libelle}
-                onChange={(e) => setNouveauSemestre({ ...nouveauSemestre, libelle: e.target.value })}
-                required
-              />
+              <label>Cycle</label>
+              <select
+                value={nouveauSemestre.cycle}
+                onChange={(e) => setNouveauSemestre({ ...nouveauSemestre, cycle: e.target.value })}
+              >
+                {CYCLES.map((c) => <option key={c.valeur} value={c.valeur}>{c.libelle}</option>)}
+              </select>
+            </div>
+            <div className="champ">
+              <label>Semestre</label>
+              <select
+                value={nouveauSemestre.numero}
+                onChange={(e) => setNouveauSemestre({ ...nouveauSemestre, numero: e.target.value })}
+              >
+                {NUMEROS_SEMESTRE.map((n) => <option key={n} value={n}>Semestre {n}</option>)}
+              </select>
             </div>
             <div className="champ">
               <label>Année scolaire</label>

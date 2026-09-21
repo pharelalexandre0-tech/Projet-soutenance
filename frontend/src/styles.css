@@ -304,6 +304,42 @@ a { color: var(--primaire); }
 .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -2px; }
 .table-scroll table { min-width: 400px; }
 
+/* Grille hebdomadaire des emplois du temps — les créneaux sont positionnés
+   proportionnellement à leur horaire (top/height en %), pas listés à plat
+   jour par jour, pour ressembler à un vrai emploi du temps. */
+.grille-emploi { display: grid; grid-template-columns: 44px repeat(6, minmax(122px, 1fr)); gap: 6px; min-width: 780px; }
+.grille-emploi-jour-titre {
+  text-align: center; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--texte-clair); padding-bottom: 8px;
+}
+.grille-emploi-heures { position: relative; }
+.grille-emploi-repere {
+  position: absolute; right: 6px; transform: translateY(-50%);
+  font-size: 0.66rem; font-family: var(--police-mono); color: var(--texte-clair);
+}
+.grille-emploi-colonne { position: relative; background: var(--gris-fond); border-radius: 8px; border: 1px solid var(--bordure); }
+.grille-emploi-ligne { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--bordure); }
+.grille-emploi-creneau {
+  position: absolute; left: 4px; right: 4px; min-height: 22px; overflow: hidden;
+  display: flex; flex-direction: column; gap: 1px; padding: 5px 7px;
+  background: var(--primaire-clair); border-left: 3px solid var(--primaire); border-radius: 6px;
+}
+.grille-emploi-creneau strong {
+  font-size: 0.76rem; color: var(--primaire-fonce); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.grille-emploi-creneau span {
+  font-size: 0.66rem; font-family: var(--police-mono); color: var(--texte-clair);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.grille-emploi-retirer {
+  position: absolute; top: 2px; right: 2px; width: 17px; height: 17px; padding: 0; border-radius: 4px;
+  border: none; background: transparent; color: var(--texte-clair); cursor: pointer;
+  font-size: 0.85rem; line-height: 1; opacity: 0; transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.grille-emploi-creneau:hover .grille-emploi-retirer { opacity: 1; }
+.grille-emploi-retirer:hover { background: var(--erreur-fond); color: var(--erreur); }
+@media (max-width: 860px) { .grille-emploi { min-width: 680px; } }
+
 @media (max-width: 860px) {
   /* Indique qu'il reste du contenu à droite tant qu'on n'a pas tout défilé —
      sans ça, une table coupée en plein milieu d'une colonne passe pour un

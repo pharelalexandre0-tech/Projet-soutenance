@@ -348,8 +348,23 @@ async function supprimerEleve(req, res) {
   return res.status(204).send();
 }
 
+const CYCLE_LABEL = { licence: 'Licence', master: 'Master', doctorat: 'Doctorat' };
 async function creerSemestre(req, res) {
-  const semestre = await Semestre.create({ ...req.body, etablissementId: req.utilisateur.etablissementId });
+  const { cycle, numero, anneeScolaire } = req.body;
+  if (!CYCLE_LABEL[cycle]) {
+    return res.status(400).json({ erreur: 'cycle invalide (licence, master ou doctorat)' });
+  }
+  const numeroInt = Number(numero);
+  if (!Number.isInteger(numeroInt) || numeroInt < 1 || numeroInt > 8) {
+    return res.status(400).json({ erreur: 'numéro de semestre invalide (1 à 8)' });
+  }
+  // Libellé toujours dérivé de cycle+numero, jamais saisi à la main — deux
+  // cycles peuvent chacun avoir leur "Semestre 1" sans se confondre.
+  const semestre = await Semestre.create({
+    cycle, numero: numeroInt, anneeScolaire,
+    libelle: `${CYCLE_LABEL[cycle]} — Semestre ${numeroInt}`,
+    etablissementId: req.utilisateur.etablissementId,
+  });
   return res.status(201).json({ semestre });
 }
 async function listerSemestres(req, res) {

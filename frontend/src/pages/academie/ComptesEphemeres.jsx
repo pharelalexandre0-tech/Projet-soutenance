@@ -108,7 +108,7 @@ export default function ComptesEphemeres() {
               <label>Classe</label>
               <select value={form.classeId} onChange={(e) => setForm({ ...form, classeId: e.target.value })} required>
                 <option value="">—</option>
-                {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
               </select>
             </div>
             {form.tache === 'saisie_notes' && semestres.length > 1 && (

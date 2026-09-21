@@ -84,7 +84,7 @@ export default function TableauDeBord({ onNaviguer }) {
               const effectif = c.Eleves?.length ?? 0;
               return (
                 <div className="barre-ligne" key={c.id}>
-                  <span>{c.nom}</span>
+                  <span>{c.nom} ({c.niveau})</span>
                   <div className="barre-piste">
                     <div className="barre-remplissage" style={{ width: `${(effectif / maxEffectif) * 100}%` }} />
                   </div>

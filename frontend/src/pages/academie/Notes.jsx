@@ -129,7 +129,7 @@ export default function Notes() {
             <label>Classe</label>
             <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
               <option value="">—</option>
-              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
+              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
             </select>
           </div>
           <div className="champ">
