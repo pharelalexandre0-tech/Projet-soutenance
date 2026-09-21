@@ -2,11 +2,13 @@ import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
 import ConfirmModal from '../../components/ConfirmModal';
+import Modal from '../../components/Modal';
 
 const ELEVE_VIDE = {
   nom: '', prenom: '', classeId: '', email: '', motDePasse: '',
   parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '',
 };
+const RATTACHER_PARENT_VIDE = { parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
 // Un établissement peut compter des milliers d'élèves — rendre 7000 lignes
 // d'un coup alourdit le navigateur pour rien, alors que l'API renvoie déjà
 // tout (le filtrage par classe reste instantané côté client). Fenêtrage de
@@ -43,6 +45,16 @@ export default function ElevesClasses() {
   const [classeOuverte, setClasseOuverte] = useState(null);
   const [statsClasse, setStatsClasse] = useState(null);
   const [editionClasse, setEditionClasse] = useState({ nom: '', niveau: '' });
+  const [classeASupprimer, setClasseASupprimer] = useState(null);
+
+  // Rattacher un parent à un élève déjà inscrit (import en masse, ou
+  // affiliation oubliée à l'inscription) — même logique "réutilise si
+  // l'e-mail existe déjà, sinon crée" que le formulaire d'inscription.
+  const [eleveParentCible, setEleveParentCible] = useState(null);
+  const [formRattacherParent, setFormRattacherParent] = useState(RATTACHER_PARENT_VIDE);
+  const [rattacherParentMotDePasseVisible, setRattacherParentMotDePasseVisible] = useState(false);
+  const [erreurRattacherParent, setErreurRattacherParent] = useState('');
+  const [enCoursRattacherParent, setEnCoursRattacherParent] = useState(false);
   const [erreurClasse, setErreurClasse] = useState('');
 
   const [filtreClasse, setFiltreClasse] = useState('');
@@ -76,20 +88,43 @@ export default function ElevesClasses() {
     }
   }
 
-  async function supprimerClasseAction(id) {
-    setErreurClasse('');
-    try {
-      await client.delete(`/classes/${id}`);
-      setClasseOuverte(null);
-      charger();
-    } catch (err) {
-      setErreurClasse(err.response?.data?.erreur || 'erreur');
-    }
+  async function confirmerSuppressionClasse() {
+    await client.delete(`/classes/${classeASupprimer.id}`);
+    setClasseASupprimer(null);
+    setClasseOuverte(null);
+    charger();
   }
 
   async function confirmerSuppressionEleve() {
     await client.delete(`/eleves/${eleveASupprimer.id}`);
     setEleveASupprimer(null);
+    charger();
+  }
+
+  function ouvrirRattacherParent(eleve) {
+    setEleveParentCible(eleve);
+    setFormRattacherParent(RATTACHER_PARENT_VIDE);
+    setRattacherParentMotDePasseVisible(false);
+    setErreurRattacherParent('');
+  }
+
+  async function soumettreRattacherParent(e) {
+    e.preventDefault();
+    setErreurRattacherParent('');
+    setEnCoursRattacherParent(true);
+    try {
+      await client.put(`/eleves/${eleveParentCible.id}/parent`, formRattacherParent);
+      setEleveParentCible(null);
+      charger();
+    } catch (err) {
+      setErreurRattacherParent(err.response?.data?.erreur || 'erreur');
+    } finally {
+      setEnCoursRattacherParent(false);
+    }
+  }
+
+  async function detacherParentAction(eleve) {
+    await client.delete(`/eleves/${eleve.id}/parent`);
     charger();
   }
 
@@ -240,7 +275,7 @@ export default function ElevesClasses() {
                         {erreurClasse && <div className="message-erreur" style={{ marginTop: 10 }}>{erreurClasse}</div>}
                         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                           <button className="secondaire succes" onClick={() => enregistrerClasse(c.id)}>Enregistrer</button>
-                          <button className="secondaire danger" onClick={() => supprimerClasseAction(c.id)}>Supprimer</button>
+                          <button className="secondaire danger" onClick={() => setClasseASupprimer(c)}>Supprimer</button>
                         </div>
                       </div>
                     </td>
@@ -303,9 +338,25 @@ export default function ElevesClasses() {
                         <>
                           {e.parent.prenom} {e.parent.nom}
                           <div className="note-secondaire" style={{ fontSize: '0.74rem' }}>{e.parent.email}</div>
+                          <button
+                            type="button" className="secondaire"
+                            style={{ padding: '1px 8px', fontSize: '0.7rem', marginTop: 4 }}
+                            onClick={() => detacherParentAction(e)}
+                          >
+                            Détacher
+                          </button>
                         </>
                       ) : (
-                        <span className="note-secondaire">— aucun</span>
+                        <>
+                          <span className="note-secondaire">— aucun</span>{' '}
+                          <button
+                            type="button" className="secondaire"
+                            style={{ padding: '1px 8px', fontSize: '0.7rem' }}
+                            onClick={() => ouvrirRattacherParent(e)}
+                          >
+                            + Parent
+                          </button>
+                        </>
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
@@ -542,6 +593,63 @@ export default function ElevesClasses() {
         >
           Retirer {eleveASupprimer.prenom} {eleveASupprimer.nom} ? Son compte étudiant sera aussi supprimé.
         </ConfirmModal>
+      )}
+      {classeASupprimer && (
+        <ConfirmModal
+          titre="Supprimer cette classe ?"
+          onAnnuler={() => setClasseASupprimer(null)}
+          onConfirmer={confirmerSuppressionClasse}
+        >
+          Supprimer "{classeASupprimer.nom}" — {classeASupprimer.Eleves?.length ?? 0} élève(s), avec leurs comptes,
+          notes, absences, bulletins et frais ? Cette action est irréversible.
+        </ConfirmModal>
+      )}
+      {eleveParentCible && (
+        <Modal titre={`Rattacher un parent à ${eleveParentCible.prenom} ${eleveParentCible.nom}`} onFermer={() => setEleveParentCible(null)}>
+          <p className="note-secondaire" style={{ margin: '0 0 14px', fontSize: '0.83rem' }}>
+            Un même parent peut être rattaché à plusieurs enfants — s'il a déjà un compte, son e-mail suffit,
+            pas besoin de renseigner à nouveau nom/prénom/mot de passe.
+          </p>
+          <form className="formulaire" onSubmit={soumettreRattacherParent}>
+            <div className="ligne-champs">
+              <div className="champ">
+                <label>Prénom du parent</label>
+                <input value={formRattacherParent.parentPrenom} onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentPrenom: e.target.value })} />
+              </div>
+              <div className="champ">
+                <label>Nom du parent</label>
+                <input value={formRattacherParent.parentNom} onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentNom: e.target.value })} />
+              </div>
+            </div>
+            <div className="champ">
+              <label>E-mail du parent</label>
+              <input
+                type="email" autoComplete="off" required
+                value={formRattacherParent.parentEmail}
+                onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentEmail: e.target.value })}
+              />
+            </div>
+            <div className="ligne-champs">
+              <div className="champ" style={{ flex: 1 }}>
+                <label>Mot de passe (si nouveau compte)</label>
+                <input
+                  type={rattacherParentMotDePasseVisible ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  minLength={6}
+                  value={formRattacherParent.parentMotDePasse}
+                  onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentMotDePasse: e.target.value })}
+                />
+              </div>
+              <button type="button" className="secondaire" style={{ alignSelf: 'flex-end', marginBottom: 1 }} onClick={() => setRattacherParentMotDePasseVisible((v) => !v)}>
+                {rattacherParentMotDePasseVisible ? 'Masquer' : 'Afficher'}
+              </button>
+            </div>
+            <button className="primaire" type="submit" disabled={enCoursRattacherParent}>
+              {enCoursRattacherParent ? 'Rattachement…' : 'Rattacher'}
+            </button>
+            {erreurRattacherParent && <div className="message-erreur">{erreurRattacherParent}</div>}
+          </form>
+        </Modal>
       )}
     </div>
   );
