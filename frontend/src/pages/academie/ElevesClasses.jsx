@@ -26,10 +26,12 @@ export default function ElevesClasses() {
   const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [parentMotDePasseVisible, setParentMotDePasseVisible] = useState(false);
   const [message, setMessage] = useState('');
-  // Recap des identifiants juste créés (l'académie doit pouvoir les
-  // relever/communiquer — le mot de passe redevient irrécupérable dès que
-  // le formulaire se vide, il n'existe plus qu'en haché côté serveur).
-  const [dernierCompteCree, setDernierCompteCree] = useState(null);
+  // Tous les identifiants générés pendant CETTE session (inscription
+  // manuelle, import, rattachement de parent) — accumulés dans un tableau
+  // à part, jamais mélangés à la liste des élèves, tant que la page reste
+  // ouverte : le mot de passe redevient irrécupérable dès qu'on la quitte,
+  // il n'existe plus qu'en haché côté serveur.
+  const [identifiantsCrees, setIdentifiantsCrees] = useState([]);
   const [classeImportId, setClasseImportId] = useState('');
   const [importEnCours, setImportEnCours] = useState(false);
   const [resultatImport, setResultatImport] = useState(null);
@@ -116,7 +118,18 @@ export default function ElevesClasses() {
     setErreurRattacherParent('');
     setEnCoursRattacherParent(true);
     try {
-      await client.put(`/eleves/${eleveParentCible.id}/parent`, formRattacherParent);
+      const res = await client.put(`/eleves/${eleveParentCible.id}/parent`, formRattacherParent);
+      // Compte réutilisé (déjà existant) : le mot de passe tapé ici n'a
+      // servi à rien côté serveur, donc jamais l'ajouter comme si c'était
+      // le sien — seulement pour un compte fraîchement créé.
+      if (res.data.compteParent && !res.data.parentReutilise) {
+        const classeNom = classes.find((c) => String(c.id) === String(eleveParentCible.classeId))?.nom ?? '—';
+        setIdentifiantsCrees((prev) => [...prev, {
+          id: `p-${res.data.compteParent.id}`, classeId: eleveParentCible.classeId, classeNom, role: 'Parent',
+          prenom: formRattacherParent.parentPrenom, nom: formRattacherParent.parentNom,
+          email: formRattacherParent.parentEmail, motDePasse: formRattacherParent.parentMotDePasse,
+        }]);
+      }
       setEleveParentCible(null);
       charger();
     } catch (err) {
@@ -172,6 +185,13 @@ export default function ElevesClasses() {
         echecs.push({ ligne: i + 2, raison: err.response?.data?.erreur || 'erreur inconnue' });
       }
     }
+    if (reussis.length > 0) {
+      const horodatage = Date.now();
+      setIdentifiantsCrees((prev) => [...prev, ...reussis.map((r, i) => ({
+        id: `i-${horodatage}-${i}`, classeId: classeImportId, classeNom: classeImportNom, role: 'Étudiant',
+        prenom: r.prenom, nom: r.nom, email: r.email, motDePasse: r.motDePasse,
+      }))]);
+    }
     setResultatImport({ reussis, echecs, classeNom: classeImportNom });
     setImportEnCours(false);
     e.target.reset();
@@ -189,7 +209,6 @@ export default function ElevesClasses() {
   async function creerEleve(e) {
     e.preventDefault();
     setMessage('');
-    setDernierCompteCree(null);
     try {
       // Champs parent ignorés si la case n'est pas cochée, même si
       // l'académie y avait tapé quelque chose puis décoché.
@@ -197,16 +216,23 @@ export default function ElevesClasses() {
         ? nouvelEleve
         : { ...nouvelEleve, parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
       const res = await client.post('/eleves', payload);
-      setDernierCompteCree({
-        etudiant: { email: nouvelEleve.email, motDePasse: nouvelEleve.motDePasse },
-        // Compte parent réutilisé (déjà existant) : le mot de passe tapé ici
-        // n'a servi à rien côté serveur, donc jamais le réafficher comme si
-        // c'était le sien — seulement pour un compte fraîchement créé.
-        parent: res.data.compteParent && !res.data.parentReutilise
-          ? { email: nouvelEleve.parentEmail, motDePasse: nouvelEleve.parentMotDePasse }
-          : null,
-        parentReutilise: Boolean(res.data.compteParent) && res.data.parentReutilise,
-      });
+      const classeNom = classes.find((c) => String(c.id) === String(nouvelEleve.classeId))?.nom ?? '—';
+      const nouveaux = [{
+        id: `e-${res.data.eleve.id}`, classeId: nouvelEleve.classeId, classeNom, role: 'Étudiant',
+        prenom: nouvelEleve.prenom, nom: nouvelEleve.nom, email: nouvelEleve.email, motDePasse: nouvelEleve.motDePasse,
+      }];
+      // Compte parent réutilisé (déjà existant) : le mot de passe tapé ici
+      // n'a servi à rien côté serveur, donc jamais l'ajouter comme si
+      // c'était le sien — seulement pour un compte fraîchement créé.
+      if (res.data.compteParent && !res.data.parentReutilise) {
+        nouveaux.push({
+          id: `p-${res.data.compteParent.id}`, classeId: nouvelEleve.classeId, classeNom, role: 'Parent',
+          prenom: nouvelEleve.parentPrenom, nom: nouvelEleve.parentNom,
+          email: nouvelEleve.parentEmail, motDePasse: nouvelEleve.parentMotDePasse,
+        });
+      }
+      setIdentifiantsCrees((prev) => [...prev, ...nouveaux]);
+      setMessage('Élève ajouté — identifiants dans le tableau « Identifiants de connexion » ci-dessous.');
       setNouvelEleve(ELEVE_VIDE);
       setAvecParent(false);
       setMotDePasseVisible(false);
@@ -233,7 +259,26 @@ export default function ElevesClasses() {
     .slice(pageEleveActuelle * CLASSES_PAR_PAGE, (pageEleveActuelle + 1) * CLASSES_PAR_PAGE)
     .map((g) => [g.classeId, g]);
 
+  // Même logique de groupement que la liste des élèves, appliquée au journal
+  // des identifiants — jamais une liste à plat non plus.
+  const identifiantsParClasse = [...identifiantsCrees.reduce((groupes, id) => {
+    const cle = id.classeId;
+    if (!groupes.has(cle)) groupes.set(cle, { classeId: cle, nom: id.classeNom, entrees: [] });
+    groupes.get(cle).entrees.push(id);
+    return groupes;
+  }, new Map()).values()].sort((a, b) => a.nom.localeCompare(b.nom));
+
+  async function copierIdentifiant(entree) {
+    try {
+      await navigator.clipboard.writeText(`${entree.email} / ${entree.motDePasse}`);
+    } catch {
+      // Presse-papiers indisponible (contexte non sécurisé, permission
+      // refusée) — l'académie peut toujours sélectionner le texte à la main.
+    }
+  }
+
   return (
+    <>
     <div className="grille-2">
       <div className="carte">
         <h2>Classes</h2>
@@ -504,31 +549,6 @@ export default function ElevesClasses() {
             {message && <div className={message.includes('ajouté') ? 'message-succes' : 'message-erreur'}>{message}</div>}
           </form>
         )}
-        {dernierCompteCree && (
-          <div className="message-succes" style={{ marginTop: 12, lineHeight: 1.7 }}>
-            Élève ajouté — identifiants à relever maintenant, ils ne seront plus jamais affichés en clair :
-            <br />
-            Compte étudiant : <strong style={{ fontFamily: 'var(--police-mono)' }}>{dernierCompteCree.etudiant.email} / {dernierCompteCree.etudiant.motDePasse}</strong>
-            {dernierCompteCree.parent && (
-              <>
-                <br />
-                Compte parent : <strong style={{ fontFamily: 'var(--police-mono)' }}>{dernierCompteCree.parent.email} / {dernierCompteCree.parent.motDePasse}</strong>
-              </>
-            )}
-            {dernierCompteCree.parentReutilise && (
-              <>
-                <br />
-                Compte parent rattaché à un compte existant — son mot de passe reste celui déjà en place, inchangé.
-              </>
-            )}
-            <div style={{ marginTop: 8 }}>
-              <button type="button" className="secondaire" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setDernierCompteCree(null)}>
-                Compris, masquer
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="entete-section" style={{ marginTop: 18 }}>
           <h3>Importer une liste (Excel/CSV)</h3>
           <button type="button" className={importFormOuvert ? 'secondaire' : 'primaire'} onClick={() => setImportFormOuvert((v) => !v)}>
@@ -565,22 +585,9 @@ export default function ElevesClasses() {
           <div style={{ marginTop: 12 }}>
             {resultatImport.reussis.length > 0 && (
               <div className="message-succes" style={{ marginBottom: 8 }}>
-                {resultatImport.reussis.length} élève(s) importé(s) dans « {resultatImport.classeNom} ».
+                {resultatImport.reussis.length} élève(s) importé(s) dans « {resultatImport.classeNom} » —
+                identifiants dans le tableau « Identifiants de connexion » ci-dessous.
               </div>
-            )}
-            {resultatImport.reussis.length > 0 && (
-              <table style={{ marginBottom: 8 }}>
-                <thead><tr><th>Élève</th><th>E-mail</th><th>Mot de passe</th></tr></thead>
-                <tbody>
-                  {resultatImport.reussis.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.prenom} {r.nom}</td>
-                      <td style={{ fontFamily: 'var(--police-mono)' }}>{r.email}</td>
-                      <td style={{ fontFamily: 'var(--police-mono)' }}>{r.motDePasse}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             )}
             {resultatImport.echecs.length > 0 && (
               <div className="message-erreur">
@@ -593,6 +600,52 @@ export default function ElevesClasses() {
           </div>
         )}
       </div>
+    </div>
+
+    <div className="carte" style={{ marginTop: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <h2 style={{ margin: 0 }}>Identifiants de connexion ({identifiantsCrees.length})</h2>
+        {identifiantsCrees.length > 0 && (
+          <button type="button" className="secondaire" style={{ padding: '4px 12px', fontSize: '0.78rem' }} onClick={() => setIdentifiantsCrees([])}>
+            Vider
+          </button>
+        )}
+      </div>
+      <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 16 }}>
+        Comptes créés pendant cette visite (inscription, import, rattachement de parent) — à relever ou copier
+        maintenant, ils ne seront plus jamais affichés en clair une fois la page quittée.
+      </p>
+      {identifiantsParClasse.length === 0 && <div className="vide">Aucun identifiant créé pour l'instant</div>}
+      {identifiantsParClasse.map((groupe) => (
+        <div key={groupe.classeId} style={{ marginBottom: 20 }}>
+          <h4 style={{ margin: '0 0 8px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--texte-clair)' }}>
+            {groupe.nom} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>({groupe.entrees.length})</span>
+          </h4>
+          <table>
+            <thead><tr><th>Rôle</th><th>Nom</th><th>E-mail</th><th>Mot de passe</th><th></th></tr></thead>
+            <tbody>
+              {groupe.entrees.map((entree) => (
+                <tr key={entree.id}>
+                  <td>{entree.role}</td>
+                  <td>{entree.prenom} {entree.nom}</td>
+                  <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.email}</td>
+                  <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.motDePasse}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button
+                      type="button" className="secondaire"
+                      style={{ padding: '1px 8px', fontSize: '0.7rem' }}
+                      onClick={() => copierIdentifiant(entree)}
+                    >
+                      Copier
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
 
       {eleveASupprimer && (
         <ConfirmModal
@@ -660,6 +713,6 @@ export default function ElevesClasses() {
           </form>
         </Modal>
       )}
-    </div>
+    </>
   );
 }
