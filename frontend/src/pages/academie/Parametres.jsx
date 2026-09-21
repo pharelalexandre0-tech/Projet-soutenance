@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
+import { messageErreur } from '../../utils/erreurs';
 import { IconDocument, IconKey } from '../../components/icons';
 import { motDePasseAleatoire } from '../../utils/excel';
 
@@ -47,7 +48,7 @@ export default function Parametres() {
       await client.put('/etablissement', form);
       setToast({ message: 'Établissement mis à jour — le bulletin, le relevé et les reçus utilisent désormais cette identité.', type: 'succes' });
     } catch (err) {
-      setToast({ message: err.response?.data?.erreur || 'échec de la mise à jour', type: 'erreur' });
+      setToast({ message: messageErreur(err, 'échec de la mise à jour'), type: 'erreur' });
     } finally {
       setEnCours(false);
     }

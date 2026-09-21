@@ -3,6 +3,7 @@ import client from '../../api/client';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
+import { messageErreur } from '../../utils/erreurs';
 import { IconBuilding, IconKey, IconAlertTriangle } from '../../components/icons';
 
 export default function Etablissements() {
@@ -111,7 +112,7 @@ function FormulaireCreationEcole({ onFermer, onReussi }) {
       const res = await client.post('/superadmin/etablissements', form);
       onReussi(res.data.etablissement);
     } catch (err) {
-      setErreur(err.response?.data?.erreur || "impossible d'insérer cette école");
+      setErreur(messageErreur(err, "impossible d'insérer cette école"));
     } finally {
       setEnCours(false);
     }
@@ -185,7 +186,7 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
       onModifie('Établissement mis à jour.');
       onFermer();
     } catch (err) {
-      setErreur(err.response?.data?.erreur || 'échec de la mise à jour');
+      setErreur(messageErreur(err, 'échec de la mise à jour'));
     } finally {
       setEnCours(false);
     }
