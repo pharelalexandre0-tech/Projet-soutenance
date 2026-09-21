@@ -9,11 +9,14 @@ const ELEVE_VIDE = {
   parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '',
 };
 const RATTACHER_PARENT_VIDE = { parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
-// Un établissement peut compter des milliers d'élèves — rendre 7000 lignes
-// d'un coup alourdit le navigateur pour rien, alors que l'API renvoie déjà
-// tout (le filtrage par classe reste instantané côté client). Fenêtrage de
-// l'affichage seulement, pas de la requête.
-const TAILLE_PAGE = 50;
+// Un établissement peut compter des milliers d'élèves — rendre tout d'un
+// coup alourdit le navigateur pour rien, alors que l'API renvoie déjà tout
+// (le filtrage par classe reste instantané côté client). Fenêtrage de
+// l'affichage seulement, pas de la requête — et par CLASSE, jamais par
+// ligne brute : paginer les lignes avant de grouper coupait une classe
+// nombreuse en deux pages, son groupe réapparaissant plus loin entrecoupé
+// d'autres classes.
+const CLASSES_PAR_PAGE = 8;
 
 export default function ElevesClasses() {
   const [classes, setClasses] = useState([]);
@@ -138,6 +141,10 @@ export default function ElevesClasses() {
     if (!classeImportId) return;
     const fichier = e.target.elements.fichierEleves.files[0];
     if (!fichier) return;
+    // Figé dès maintenant : si l'Académie change le sélecteur "Classe
+    // cible" après coup, le récap déjà affiché ne doit pas se mettre à
+    // mentir sur la classe dans laquelle l'import a réellement eu lieu.
+    const classeImportNom = classes.find((c) => String(c.id) === classeImportId)?.nom ?? '—';
     setImportEnCours(true);
     setResultatImport(null);
     const lignes = await lireFichierExcel(fichier);
@@ -165,7 +172,7 @@ export default function ElevesClasses() {
         echecs.push({ ligne: i + 2, raison: err.response?.data?.erreur || 'erreur inconnue' });
       }
     }
-    setResultatImport({ reussis, echecs });
+    setResultatImport({ reussis, echecs, classeNom: classeImportNom });
     setImportEnCours(false);
     e.target.reset();
     charger();
@@ -211,18 +218,20 @@ export default function ElevesClasses() {
   }
 
   const elevesAffiches = filtreClasse ? eleves.filter((e) => String(e.classeId) === filtreClasse) : eleves;
-  const totalPagesEleves = Math.max(1, Math.ceil(elevesAffiches.length / TAILLE_PAGE));
-  const pageEleveActuelle = Math.min(pageEleves, totalPagesEleves - 1);
-  const elevesPage = elevesAffiches.slice(pageEleveActuelle * TAILLE_PAGE, (pageEleveActuelle + 1) * TAILLE_PAGE);
-  // Un tableau par classe — la pagination porte toujours sur la liste à
-  // plat (elevesPage) pour rester bornée sur un grand établissement, le
-  // groupement ne fait que réorganiser l'affichage de cette page-là.
-  const elevesParClasse = [...elevesPage.reduce((groupes, e) => {
+  // Regroupement par classe sur la liste COMPLÈTE filtrée, trié par nom —
+  // c'est seulement APRÈS ce groupement qu'on pagine (par classe entière,
+  // pas par ligne), pour qu'une classe ne soit jamais coupée en deux pages.
+  const groupesEleves = [...elevesAffiches.reduce((groupes, e) => {
     const cle = e.classeId;
-    if (!groupes.has(cle)) groupes.set(cle, { nom: e.Classe?.nom ?? '—', eleves: [] });
+    if (!groupes.has(cle)) groupes.set(cle, { classeId: cle, nom: e.Classe?.nom ?? '—', eleves: [] });
     groupes.get(cle).eleves.push(e);
     return groupes;
-  }, new Map())];
+  }, new Map()).values()].sort((a, b) => a.nom.localeCompare(b.nom));
+  const totalPagesEleves = Math.max(1, Math.ceil(groupesEleves.length / CLASSES_PAR_PAGE));
+  const pageEleveActuelle = Math.min(pageEleves, totalPagesEleves - 1);
+  const elevesParClasse = groupesEleves
+    .slice(pageEleveActuelle * CLASSES_PAR_PAGE, (pageEleveActuelle + 1) * CLASSES_PAR_PAGE)
+    .map((g) => [g.classeId, g]);
 
   return (
     <div className="grille-2">
@@ -556,7 +565,7 @@ export default function ElevesClasses() {
           <div style={{ marginTop: 12 }}>
             {resultatImport.reussis.length > 0 && (
               <div className="message-succes" style={{ marginBottom: 8 }}>
-                {resultatImport.reussis.length} élève(s) importé(s).
+                {resultatImport.reussis.length} élève(s) importé(s) dans « {resultatImport.classeNom} ».
               </div>
             )}
             {resultatImport.reussis.length > 0 && (
