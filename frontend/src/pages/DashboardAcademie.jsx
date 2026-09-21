@@ -1,6 +1,6 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconCalendarAlert, IconBrain, IconMessage, IconSettings } from '../components/icons';
+import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconCalendarAlert, IconAlertTriangle, IconMessage, IconSettings } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
 // que tout téléchargé d'un bloc à la connexion — un compte Académie qui ne
@@ -28,7 +28,7 @@ const ONGLETS = [
   { id: 'comptes', label: 'Comptes éphémères (Professeurs)', composant: ComptesEphemeres, icone: IconKey },
   { id: 'absences', label: 'Absences', composant: Absences, icone: IconCalendarAlert },
   { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage },
-  { id: 'prediction', label: 'Prédiction IA', composant: PredictionIA, icone: IconBrain },
+  { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconAlertTriangle },
   { id: 'parametres', label: 'Paramètres', composant: Parametres, icone: IconSettings },
 ];
 
