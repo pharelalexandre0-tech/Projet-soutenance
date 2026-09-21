@@ -143,9 +143,9 @@ export default function TableauDeBord({ onNaviguer }) {
               <span className="puce-icone petite"><IconPencil width={16} height={16} /></span>
               Saisir des notes
             </button>
-            <button className="action-rapide" onClick={() => onNaviguer?.('absences')}>
-              <span className="puce-icone petite"><IconCalendarAlert width={16} height={16} /></span>
-              Signaler une absence
+            <button className="action-rapide" onClick={() => onNaviguer?.('comptes')}>
+              <span className="puce-icone petite"><IconKey width={16} height={16} /></span>
+              Générer un accès professeur
             </button>
             <button className="action-rapide" onClick={() => onNaviguer?.('prediction')}>
               <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>

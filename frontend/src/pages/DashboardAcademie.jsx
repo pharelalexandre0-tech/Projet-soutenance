@@ -1,6 +1,6 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconCalendarAlert, IconAlertTriangle, IconMessage, IconSettings } from '../components/icons';
+import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconAlertTriangle, IconMessage, IconSettings } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
 // que tout téléchargé d'un bloc à la connexion — un compte Académie qui ne
@@ -13,7 +13,6 @@ const EmploisDuTemps = lazy(() => import('./academie/EmploisDuTemps'));
 const Notes = lazy(() => import('./academie/Notes'));
 const Bulletins = lazy(() => import('./academie/Bulletins'));
 const ComptesEphemeres = lazy(() => import('./academie/ComptesEphemeres'));
-const Absences = lazy(() => import('./academie/Absences'));
 const PredictionIA = lazy(() => import('./academie/PredictionIA'));
 const Communication = lazy(() => import('./academie/Communication'));
 const Parametres = lazy(() => import('./academie/Parametres'));
@@ -26,7 +25,6 @@ const ONGLETS = [
   { id: 'notes', label: 'Notes', composant: Notes, icone: IconPencil },
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument },
   { id: 'comptes', label: 'Comptes éphémères (Professeurs)', composant: ComptesEphemeres, icone: IconKey },
-  { id: 'absences', label: 'Absences', composant: Absences, icone: IconCalendarAlert },
   { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage },
   { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconAlertTriangle },
   { id: 'parametres', label: 'Paramètres', composant: Parametres, icone: IconSettings },

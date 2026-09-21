@@ -1,5 +1,6 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import client from '../api/client';
 import { IconLogout, IconMenu, IconClose, IconSettings } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
 import logoIcon from '../assets/logo-icon.png';
@@ -23,6 +24,17 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   // Le superadmin a déjà son propre onglet "Mon profil" dédié — pas besoin
   // de ce second accès qui ferait doublon pour lui seul.
   const [compteOuvert, setCompteOuvert] = useState(false);
+  // Logo/nom de l'établissement dans la marque latérale, à la place de la
+  // marque EduSphere — jamais pour le Superadmin, qui n'appartient à aucun
+  // établissement en particulier (etablissementId est null pour ce rôle).
+  const [etablissement, setEtablissement] = useState(null);
+  useEffect(() => {
+    if (profil?.role && profil.role !== 'superadmin') {
+      client.get('/etablissement').then((res) => setEtablissement(res.data.etablissement)).catch(() => {});
+    }
+  }, [profil?.role]);
+  const logoAffiche = etablissement?.logo || logoIcon;
+  const nomAffiche = etablissement?.nom || 'EduSphere';
 
   function choisirOnglet(id) {
     onChange(id);
@@ -35,7 +47,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
         <button className="bouton-menu-mobile" onClick={() => setMenuOuvert(true)} aria-label="Ouvrir le menu">
           <IconMenu width={20} height={20} />
         </button>
-        <span className="marque-pastille petite"><img src={logoIcon} alt="" /></span>
+        <span className="marque-pastille petite"><img src={logoAffiche} alt="" /></span>
         <div className="avatar" title={`${profil?.prenom} ${profil?.nom}`}>{initiales(profil?.prenom, profil?.nom)}</div>
       </div>
 
@@ -43,9 +55,9 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
 
       <aside className={`panneau-lateral ${menuOuvert ? 'ouvert' : ''}`}>
         <div className="marque-laterale">
-          <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+          <span className="marque-pastille"><img src={logoAffiche} alt="" /></span>
           <div className="marque-texte">
-            <strong>EduSphere</strong>
+            <strong>{nomAffiche}</strong>
             <small>{LIBELLES_ROLE[profil?.role] || 'Espace'}</small>
           </div>
           <button className="bouton-fermer-menu" onClick={() => setMenuOuvert(false)} aria-label="Fermer le menu">
