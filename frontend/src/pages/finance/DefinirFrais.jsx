@@ -8,10 +8,10 @@ const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge'
 const LIBELLE_STATUT = { du: 'dû', partiel: 'partiel', solde: 'à jour', impaye: 'impayé', sans_frais: 'sans frais' };
 
 // Dès qu'un étudiant est inscrit, la Finance doit voir son frais sans avoir
-// à le créer élève par élève : la classe entière se règle en un geste
-// ("Définir pour une classe"), jamais élève par élève depuis la liste — qui
-// ne sert qu'à consulter net à payer / versé / reste et à encaisser
-// directement quand un frais actif existe.
+// à le créer élève par élève : une classe, tout un niveau ou l'établissement
+// entier se règle en un geste ("+ Définir un frais"), jamais élève par élève
+// depuis la liste — qui ne sert qu'à consulter net à payer / versé / reste
+// et à encaisser directement quand un frais actif existe.
 export default function DefinirFrais() {
   const [niveaux, setNiveaux] = useState([]);
   const [chargement, setChargement] = useState(true);
@@ -72,7 +72,7 @@ export default function DefinirFrais() {
             <span className="puce-icone petite"><IconBanknote width={16} height={16} /></span>
             <h2>Frais de scolarité — {totalEleves} étudiant{totalEleves > 1 ? 's' : ''}</h2>
           </div>
-          <button className="primaire" onClick={() => setModaleClasseOuverte(true)}>+ Définir pour une classe</button>
+          <button className="primaire" onClick={() => setModaleClasseOuverte(true)}>+ Définir un frais</button>
         </div>
 
         <input
@@ -144,10 +144,12 @@ export default function DefinirFrais() {
   );
 }
 
+const LIBELLE_PORTEE = { classe: 'à cette classe', niveau: 'à ce niveau', etablissement: "à l'établissement" };
+
 function FormulaireFraisClasse({ onFermer, onReussi }) {
   const [classes, setClasses] = useState([]);
   const [semestres, setSemestres] = useState([]);
-  const [form, setForm] = useState({ classeId: '', semestreId: '', libelle: '', montant: '', dateEcheance: '' });
+  const [form, setForm] = useState({ portee: 'classe', classeId: '', niveau: '', semestreId: '', libelle: '', montant: '', dateEcheance: '' });
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
 
@@ -156,19 +158,27 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
     client.get('/semestres').then((res) => setSemestres(res.data.semestres));
   }, []);
 
+  // Ordre d'apparition des classes, sans doublon — pas triés alphabétiquement
+  // pour rester lisible même si deux niveaux partagent un préfixe.
+  const niveaux = [...new Set(classes.map((c) => c.niveau))];
+
   async function soumettre(e) {
     e.preventDefault();
     setEnCours(true);
     setErreur('');
     try {
       const res = await client.post('/finance/frais/classe', {
-        ...form, classeId: Number(form.classeId), semestreId: Number(form.semestreId), montant: Number(form.montant),
+        portee: form.portee,
+        classeId: form.portee === 'classe' ? Number(form.classeId) : undefined,
+        niveau: form.portee === 'niveau' ? form.niveau : undefined,
+        semestreId: Number(form.semestreId), libelle: form.libelle, montant: Number(form.montant), dateEcheance: form.dateEcheance,
       });
       const { nombreCrees, nombreDejaExistants } = res.data;
+      const cible = LIBELLE_PORTEE[form.portee];
       onReussi(
         nombreDejaExistants > 0
-          ? `Frais défini pour ${nombreCrees} étudiant(s) — ${nombreDejaExistants} en avaient déjà un pour ce libellé.`
-          : `Frais défini pour ${nombreCrees} étudiant(s).`
+          ? `Frais défini pour ${nombreCrees} étudiant(s) ${cible} — ${nombreDejaExistants} en avaient déjà un pour ce libellé.`
+          : `Frais défini pour ${nombreCrees} étudiant(s) ${cible}.`
       );
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'impossible de définir ce frais');
@@ -178,16 +188,35 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
   }
 
   return (
-    <Modal titre="Définir un frais pour toute une classe" onFermer={onFermer} largeur={520}>
+    <Modal titre="Définir un frais de scolarité" onFermer={onFermer} largeur={520}>
       <form className="formulaire" onSubmit={soumettre}>
+        <div className="champ">
+          <label>Portée</label>
+          <select value={form.portee} onChange={(e) => setForm({ ...form, portee: e.target.value, classeId: '', niveau: '' })}>
+            <option value="classe">Une classe précise</option>
+            <option value="niveau">Tout un niveau (plusieurs classes)</option>
+            <option value="etablissement">Tout l'établissement</option>
+          </select>
+        </div>
         <div className="ligne-champs">
-          <div className="champ">
-            <label>Classe</label>
-            <select value={form.classeId} onChange={(e) => setForm({ ...form, classeId: e.target.value })} required>
-              <option value="">—</option>
-              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
-            </select>
-          </div>
+          {form.portee === 'classe' && (
+            <div className="champ">
+              <label>Classe</label>
+              <select value={form.classeId} onChange={(e) => setForm({ ...form, classeId: e.target.value })} required>
+                <option value="">—</option>
+                {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
+              </select>
+            </div>
+          )}
+          {form.portee === 'niveau' && (
+            <div className="champ">
+              <label>Niveau</label>
+              <select value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })} required>
+                <option value="">—</option>
+                {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          )}
           <div className="champ">
             <label>Semestre</label>
             <select value={form.semestreId} onChange={(e) => setForm({ ...form, semestreId: e.target.value })} required>
@@ -205,7 +234,9 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
           <div className="champ"><label>Échéance</label><input type="date" value={form.dateEcheance} onChange={(e) => setForm({ ...form, dateEcheance: e.target.value })} required /></div>
         </div>
         {erreur && <div className="message-erreur">{erreur}</div>}
-        <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Application…' : 'Appliquer à la classe'}</button>
+        <button className="primaire" type="submit" disabled={enCours}>
+          {enCours ? 'Application…' : `Appliquer ${LIBELLE_PORTEE[form.portee]}`}
+        </button>
       </form>
     </Modal>
   );

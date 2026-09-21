@@ -19,24 +19,43 @@ async function definirFrais(req, res) {
   return res.status(201).json({ frais });
 }
 
-// "Définir pour toute la classe" : dès qu'un étudiant est inscrit, il doit
-// avoir son frais sans que la Finance ne le crée un par un — un seul geste
-// couvre toute la classe. Un élève qui a déjà un frais du même libellé pour
-// ce semestre n'est pas dupliqué (utile si on relance l'action après avoir
-// inscrit de nouveaux étudiants en cours de semestre).
+// "Définir pour une classe / tout un niveau / tout l'établissement" : dès
+// qu'un étudiant est inscrit, il doit avoir son frais sans que la Finance
+// ne le crée un par un — un seul geste couvre toute la portée choisie, pas
+// seulement une classe à la fois (un niveau réparti sur plusieurs classes,
+// ou l'établissement entier pour un frais commun à tous). Un élève qui a
+// déjà un frais du même libellé pour ce semestre n'est jamais dupliqué —
+// utile aussi bien pour relancer l'action après une nouvelle inscription
+// que pour élargir la portée après un premier passage classe par classe.
 async function definirFraisClasse(req, res) {
-  const { classeId, semestreId, libelle, montant, dateEcheance } = req.body;
-  if (!classeId || !semestreId || !libelle || !montant || !dateEcheance) {
+  const { portee, classeId, niveau, semestreId, libelle, montant, dateEcheance } = req.body;
+  if (!semestreId || !libelle || !montant || !dateEcheance) {
     return res.status(400).json({ erreur: 'champs manquants' });
   }
-  const classe = await Classe.findByPk(classeId);
-  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
-    return res.status(404).json({ erreur: 'classe introuvable' });
+
+  let classeIds;
+  if (portee === 'niveau') {
+    if (!niveau) return res.status(400).json({ erreur: 'niveau manquant' });
+    const classes = await Classe.findAll({ where: { etablissementId: req.utilisateur.etablissementId, niveau }, attributes: ['id'] });
+    classeIds = classes.map((c) => c.id);
+  } else if (portee === 'etablissement') {
+    const classes = await Classe.findAll({ where: { etablissementId: req.utilisateur.etablissementId }, attributes: ['id'] });
+    classeIds = classes.map((c) => c.id);
+  } else {
+    if (!classeId) return res.status(400).json({ erreur: 'classe manquante' });
+    const classe = await Classe.findByPk(classeId);
+    if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+      return res.status(404).json({ erreur: 'classe introuvable' });
+    }
+    classeIds = [classe.id];
+  }
+  if (classeIds.length === 0) {
+    return res.status(400).json({ erreur: 'aucune classe ne correspond à cette portée' });
   }
 
-  const eleves = await Eleve.findAll({ where: { classeId }, attributes: ['id'] });
+  const eleves = await Eleve.findAll({ where: { classeId: classeIds }, attributes: ['id'] });
   if (eleves.length === 0) {
-    return res.status(400).json({ erreur: 'aucun élève dans cette classe' });
+    return res.status(400).json({ erreur: 'aucun élève dans cette portée' });
   }
 
   const dejaDefinis = await FraisScolarite.findAll({
