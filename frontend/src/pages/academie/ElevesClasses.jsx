@@ -9,6 +9,20 @@ const ELEVE_VIDE = {
   parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '',
 };
 const RATTACHER_PARENT_VIDE = { parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
+// sessionStorage (pas useState seul) : changer d'onglet du tableau de bord
+// démonte ce composant, ce qui vidait le journal des identifiants même si
+// l'Académie n'avait fait que jeter un œil ailleurs entre-temps. Un vrai
+// mot de passe ne remonte jamais du serveur — seule cette copie tenue en
+// mémoire par l'onglet du navigateur existe, perdue à la fermeture.
+const CLE_IDENTIFIANTS = 'es_identifiants_session';
+function chargerIdentifiantsSession() {
+  try {
+    const brut = JSON.parse(sessionStorage.getItem(CLE_IDENTIFIANTS) || '[]');
+    return Array.isArray(brut) ? brut : [];
+  } catch {
+    return [];
+  }
+}
 // Deux classes peuvent partager le même nom avec un niveau différent (ex.
 // deux promotions "IA & Big Data") — le niveau doit toujours accompagner le
 // nom partout où une classe s'affiche, sinon impossible de les distinguer.
@@ -37,7 +51,12 @@ export default function ElevesClasses() {
   // à part, jamais mélangés à la liste des élèves, tant que la page reste
   // ouverte : le mot de passe redevient irrécupérable dès qu'on la quitte,
   // il n'existe plus qu'en haché côté serveur.
-  const [identifiantsCrees, setIdentifiantsCrees] = useState([]);
+  const [identifiantsCrees, setIdentifiantsCrees] = useState(chargerIdentifiantsSession);
+  const [rechercheIdentifiants, setRechercheIdentifiants] = useState('');
+  const [compteAReinitialiser, setCompteAReinitialiser] = useState(null);
+  useEffect(() => {
+    try { sessionStorage.setItem(CLE_IDENTIFIANTS, JSON.stringify(identifiantsCrees)); } catch { /* stockage indisponible (navigation privée…) — tant pis, reste en mémoire pour cette page */ }
+  }, [identifiantsCrees]);
   const [classeImportId, setClasseImportId] = useState('');
   const [importEnCours, setImportEnCours] = useState(false);
   const [resultatImport, setResultatImport] = useState(null);
@@ -132,7 +151,8 @@ export default function ElevesClasses() {
       if (res.data.compteParent && !res.data.parentReutilise) {
         const classeNom = nomClasse(classes.find((c) => String(c.id) === String(eleveParentCible.classeId)));
         setIdentifiantsCrees((prev) => [...prev, {
-          id: `p-${res.data.compteParent.id}`, classeId: eleveParentCible.classeId, classeNom, role: 'Parent',
+          id: `p-${res.data.compteParent.id}`, compteId: res.data.compteParent.id,
+          classeId: eleveParentCible.classeId, classeNom, role: 'Parent',
           prenom: formRattacherParent.parentPrenom, nom: formRattacherParent.parentNom,
           email: formRattacherParent.parentEmail, motDePasse: formRattacherParent.parentMotDePasse,
         }]);
@@ -181,13 +201,13 @@ export default function ElevesClasses() {
       }
       const motDePasse = ligne.motdepasse || ligne.mdp || ligne.password || motDePasseAleatoire();
       try {
-        await client.post('/eleves', {
+        const res = await client.post('/eleves', {
           nom, prenom, email,
           motDePasse: String(motDePasse),
           classeId: classeImportId,
           dateNaissance: ligne.datenaissance || undefined,
         });
-        reussis.push({ nom, prenom, email, motDePasse });
+        reussis.push({ nom, prenom, email, motDePasse, compteId: res.data.compteEtudiant.id });
       } catch (err) {
         echecs.push({ ligne: i + 2, raison: err.response?.data?.erreur || 'erreur inconnue' });
       }
@@ -195,7 +215,8 @@ export default function ElevesClasses() {
     if (reussis.length > 0) {
       const horodatage = Date.now();
       setIdentifiantsCrees((prev) => [...prev, ...reussis.map((r, i) => ({
-        id: `i-${horodatage}-${i}`, classeId: classeImportId, classeNom: classeImportNom, role: 'Étudiant',
+        id: `i-${horodatage}-${i}`, compteId: r.compteId,
+        classeId: classeImportId, classeNom: classeImportNom, role: 'Étudiant',
         prenom: r.prenom, nom: r.nom, email: r.email, motDePasse: r.motDePasse,
       }))]);
     }
@@ -225,7 +246,8 @@ export default function ElevesClasses() {
       const res = await client.post('/eleves', payload);
       const classeNom = nomClasse(classes.find((c) => String(c.id) === String(nouvelEleve.classeId)));
       const nouveaux = [{
-        id: `e-${res.data.eleve.id}`, classeId: nouvelEleve.classeId, classeNom, role: 'Étudiant',
+        id: `e-${res.data.eleve.id}`, compteId: res.data.compteEtudiant.id,
+        classeId: nouvelEleve.classeId, classeNom, role: 'Étudiant',
         prenom: nouvelEleve.prenom, nom: nouvelEleve.nom, email: nouvelEleve.email, motDePasse: nouvelEleve.motDePasse,
       }];
       // Compte parent réutilisé (déjà existant) : le mot de passe tapé ici
@@ -233,7 +255,8 @@ export default function ElevesClasses() {
       // c'était le sien — seulement pour un compte fraîchement créé.
       if (res.data.compteParent && !res.data.parentReutilise) {
         nouveaux.push({
-          id: `p-${res.data.compteParent.id}`, classeId: nouvelEleve.classeId, classeNom, role: 'Parent',
+          id: `p-${res.data.compteParent.id}`, compteId: res.data.compteParent.id,
+          classeId: nouvelEleve.classeId, classeNom, role: 'Parent',
           prenom: nouvelEleve.parentPrenom, nom: nouvelEleve.parentNom,
           email: nouvelEleve.parentEmail, motDePasse: nouvelEleve.parentMotDePasse,
         });
@@ -269,10 +292,18 @@ export default function ElevesClasses() {
     .slice(pageEleveActuelle * CLASSES_PAR_PAGE, (pageEleveActuelle + 1) * CLASSES_PAR_PAGE)
     .map((g) => [g.classeId, g]);
 
+  const rechercheIdentifiantsNettoyee = rechercheIdentifiants.trim().toLowerCase();
+  const identifiantsAffiches = identifiantsCrees.filter((it) => (
+    !rechercheIdentifiantsNettoyee || `${it.prenom} ${it.nom} ${it.email}`.toLowerCase().includes(rechercheIdentifiantsNettoyee)
+  ));
   // Même logique de groupement que la liste des élèves, appliquée au journal
   // des identifiants — jamais une liste à plat non plus.
-  const identifiantsParClasse = [...identifiantsCrees.reduce((groupes, id) => {
-    const cle = id.classeId;
+  const identifiantsParClasse = [...identifiantsAffiches.reduce((groupes, id) => {
+    // classeId arrive tantôt en string (valeur d'un <select>), tantôt en
+    // nombre (champ e.classeId déjà typé par l'API) selon l'endroit d'où
+    // vient l'entrée — sans String(), "2" et 2 formaient deux groupes
+    // séparés pour la même classe.
+    const cle = String(id.classeId);
     if (!groupes.has(cle)) groupes.set(cle, { classeId: cle, nom: id.classeNom, entrees: [] });
     groupes.get(cle).entrees.push(id);
     return groupes;
@@ -285,6 +316,25 @@ export default function ElevesClasses() {
       // Presse-papiers indisponible (contexte non sécurisé, permission
       // refusée) — l'académie peut toujours sélectionner le texte à la main.
     }
+  }
+
+  // Déclenchable depuis le journal des identifiants (compte déjà présent)
+  // OU directement depuis la liste des élèves pour un compte plus ancien,
+  // jamais passé par ce journal — dans les deux cas, on retrouve/complète
+  // sa ligne par compteId (la vraie identité du compte), pas par l'id
+  // synthétique de rendu qui, lui, dépend de comment l'entrée est née.
+  async function confirmerReinitialisation() {
+    const res = await client.put(`/comptes/${compteAReinitialiser.compteId}/mot-de-passe`);
+    setIdentifiantsCrees((prev) => {
+      const existe = prev.some((it) => it.compteId === compteAReinitialiser.compteId);
+      if (existe) {
+        return prev.map((it) => (
+          it.compteId === compteAReinitialiser.compteId ? { ...it, motDePasse: res.data.motDePasse } : it
+        ));
+      }
+      return [...prev, { ...compteAReinitialiser, id: `r-${compteAReinitialiser.compteId}`, motDePasse: res.data.motDePasse }];
+    });
+    setCompteAReinitialiser(null);
   }
 
   return (
@@ -313,12 +363,16 @@ export default function ElevesClasses() {
                           <div className="vide">Chargement…</div>
                         ) : (
                           <div className="detail-classe-stats">
+                            {/* Effectif/statut viennent de "classes" (c), pas de statsClasse : c'est déjà
+                                réactualisé par charger() après chaque inscription/import/retrait, alors que
+                                statsClasse n'est chargé qu'une fois à l'ouverture du panneau et restait
+                                bloqué sur un ancien total tant qu'on ne le refermait/rouvrait pas. */}
                             <div className="detail-classe-chiffre">
-                              <strong>{statsClasse.effectif}</strong>
+                              <strong>{c.Eleves?.length ?? 0}</strong>
                               <span>élève(s)</span>
                             </div>
-                            <span className={`badge ${statsClasse.statut === 'active' ? 'vert' : 'gris'}`}>
-                              {statsClasse.statut === 'active' ? 'Active' : 'Vide'}
+                            <span className={`badge ${(c.Eleves?.length ?? 0) > 0 ? 'vert' : 'gris'}`}>
+                              {(c.Eleves?.length ?? 0) > 0 ? 'Active' : 'Vide'}
                             </span>
                             <div className="detail-classe-chiffre">
                               <strong>{statsClasse.absences.total}</strong>
@@ -405,12 +459,36 @@ export default function ElevesClasses() {
               <tbody>
                 {groupe.eleves.map((e) => (
                   <tr key={e.id}>
-                    <td>{e.prenom} {e.nom}</td>
+                    <td>
+                      {e.prenom} {e.nom}
+                      <div>
+                        <button
+                          type="button" className="secondaire"
+                          style={{ padding: '1px 8px', fontSize: '0.7rem', marginTop: 4 }}
+                          onClick={() => setCompteAReinitialiser({
+                            compteId: e.compteEtudiantId, role: 'Étudiant', prenom: e.prenom, nom: e.nom,
+                            email: e.compteEtudiant?.email ?? null, classeId: e.classeId, classeNom: groupe.nom,
+                          })}
+                        >
+                          Mot de passe
+                        </button>
+                      </div>
+                    </td>
                     <td>
                       {e.parent ? (
                         <>
                           {e.parent.prenom} {e.parent.nom}
                           <div className="note-secondaire" style={{ fontSize: '0.74rem' }}>{e.parent.email}</div>
+                          <button
+                            type="button" className="secondaire"
+                            style={{ padding: '1px 8px', fontSize: '0.7rem', marginTop: 4 }}
+                            onClick={() => setCompteAReinitialiser({
+                              compteId: e.parent.id, role: 'Parent', prenom: e.parent.prenom, nom: e.parent.nom,
+                              email: e.parent.email, classeId: e.classeId, classeNom: groupe.nom,
+                            })}
+                          >
+                            Mot de passe
+                          </button>{' '}
                           <button
                             type="button" className="secondaire"
                             style={{ padding: '1px 8px', fontSize: '0.7rem', marginTop: 4 }}
@@ -622,19 +700,33 @@ export default function ElevesClasses() {
     </div>
 
     <div className="carte" style={{ marginTop: 18 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0 }}>Identifiants de connexion ({identifiantsCrees.length})</h2>
-        {identifiantsCrees.length > 0 && (
-          <button type="button" className="secondaire" style={{ padding: '4px 12px', fontSize: '0.78rem' }} onClick={() => setIdentifiantsCrees([])}>
-            Vider
-          </button>
-        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="search"
+            placeholder="Rechercher un nom, un e-mail…"
+            value={rechercheIdentifiants}
+            onChange={(e) => setRechercheIdentifiants(e.target.value)}
+            style={{ maxWidth: 200 }}
+          />
+          {identifiantsCrees.length > 0 && (
+            <button type="button" className="secondaire" style={{ padding: '4px 12px', fontSize: '0.78rem' }} onClick={() => setIdentifiantsCrees([])}>
+              Vider
+            </button>
+          )}
+        </div>
       </div>
       <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 16 }}>
         Comptes créés pendant cette visite (inscription, import, rattachement de parent) — à relever ou copier
-        maintenant, ils ne seront plus jamais affichés en clair une fois la page quittée.
+        maintenant, ils ne seront plus jamais affichés en clair une fois l'onglet du navigateur fermé. Mot de passe
+        oublié ou perdu de vue ? Réinitialise-le pour en obtenir un nouveau, y compris pour un compte plus ancien.
       </p>
-      {identifiantsParClasse.length === 0 && <div className="vide">Aucun identifiant créé pour l'instant</div>}
+      {identifiantsParClasse.length === 0 && (
+        <div className="vide">
+          {identifiantsCrees.length === 0 ? 'Aucun identifiant créé pour l’instant' : 'Aucun résultat pour cette recherche'}
+        </div>
+      )}
       {identifiantsParClasse.map((groupe) => (
         <div key={groupe.classeId} style={{ marginBottom: 20 }}>
           <h4 style={{ margin: '0 0 8px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--texte-clair)' }}>
@@ -649,14 +741,23 @@ export default function ElevesClasses() {
                   <td>{entree.prenom} {entree.nom}</td>
                   <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.email}</td>
                   <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.motDePasse}</td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button
                       type="button" className="secondaire"
                       style={{ padding: '1px 8px', fontSize: '0.7rem' }}
                       onClick={() => copierIdentifiant(entree)}
                     >
                       Copier
-                    </button>
+                    </button>{' '}
+                    {entree.compteId && (
+                      <button
+                        type="button" className="secondaire"
+                        style={{ padding: '1px 8px', fontSize: '0.7rem' }}
+                        onClick={() => setCompteAReinitialiser(entree)}
+                      >
+                        Réinitialiser
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -673,6 +774,19 @@ export default function ElevesClasses() {
           onConfirmer={confirmerSuppressionEleve}
         >
           Retirer {eleveASupprimer.prenom} {eleveASupprimer.nom} ? Son compte étudiant sera aussi supprimé.
+        </ConfirmModal>
+      )}
+      {compteAReinitialiser && (
+        <ConfirmModal
+          titre="Réinitialiser ce mot de passe ?"
+          onAnnuler={() => setCompteAReinitialiser(null)}
+          onConfirmer={confirmerReinitialisation}
+          boutonConfirmer="Réinitialiser"
+          boutonEnCours="Réinitialisation…"
+        >
+          Réinitialiser le mot de passe de {compteAReinitialiser.prenom} {compteAReinitialiser.nom}{' '}
+          ({compteAReinitialiser.role.toLowerCase()}) ? L'ancien mot de passe cessera immédiatement de fonctionner —
+          le nouveau apparaîtra dans le tableau « Identifiants de connexion ».
         </ConfirmModal>
       )}
       {classeASupprimer && (

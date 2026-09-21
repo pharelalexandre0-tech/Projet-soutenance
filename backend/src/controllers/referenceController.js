@@ -25,6 +25,7 @@ const {
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
+const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { calculerBulletin } = require('../services/moyenneService');
 
 // Restreint étudiant/parent à LEUR(S) propre(s) classe(s) sur les listes
@@ -317,6 +318,24 @@ async function detacherParent(req, res) {
   return res.status(204).send();
 }
 
+// Réinitialise le mot de passe d'un compte Étudiant ou Parent que
+// l'Académie gère déjà — jamais un compte Académie/Finance/Superadmin,
+// même dans son propre établissement : cette route ne doit pas devenir un
+// moyen détourné de prendre la main sur un collègue ou un autre admin.
+async function reinitialiserMotDePasseCompte(req, res) {
+  const compte = await Utilisateur.findByPk(req.params.id);
+  if (!compte || compte.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'compte introuvable' });
+  }
+  if (!['etudiant', 'parent'].includes(compte.role)) {
+    return res.status(403).json({ erreur: 'seuls les comptes étudiant ou parent peuvent être réinitialisés ici' });
+  }
+  const nouveauMotDePasse = motDePasseAleatoire();
+  compte.motDePasse = await bcrypt.hash(nouveauMotDePasse, 10);
+  await compte.save();
+  return res.json({ email: compte.email, motDePasse: nouveauMotDePasse });
+}
+
 async function listerEleves(req, res) {
   const where = { etablissementId: req.utilisateur.etablissementId };
   if (req.query.classeId) where.classeId = req.query.classeId;
@@ -330,7 +349,11 @@ async function listerEleves(req, res) {
   // sélectionne que le strict nécessaire plutôt que tout le profil.
   const eleves = await Eleve.findAll({
     where,
-    include: [Classe, { model: Utilisateur, as: 'parent', attributes: ['id', 'nom', 'prenom', 'email'] }],
+    include: [
+      Classe,
+      { model: Utilisateur, as: 'parent', attributes: ['id', 'nom', 'prenom', 'email'] },
+      { model: Utilisateur, as: 'compteEtudiant', attributes: ['id', 'email'] },
+    ],
   });
   return res.json({ eleves });
 }
@@ -573,6 +596,7 @@ module.exports = {
   supprimerEleve,
   rattacherParent,
   detacherParent,
+  reinitialiserMotDePasseCompte,
   creerSemestre,
   listerSemestres,
   creerUE,
