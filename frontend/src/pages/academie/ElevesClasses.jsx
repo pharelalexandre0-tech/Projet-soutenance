@@ -179,6 +179,15 @@ export default function ElevesClasses() {
   const totalPagesEleves = Math.max(1, Math.ceil(elevesAffiches.length / TAILLE_PAGE));
   const pageEleveActuelle = Math.min(pageEleves, totalPagesEleves - 1);
   const elevesPage = elevesAffiches.slice(pageEleveActuelle * TAILLE_PAGE, (pageEleveActuelle + 1) * TAILLE_PAGE);
+  // Un tableau par classe — la pagination porte toujours sur la liste à
+  // plat (elevesPage) pour rester bornée sur un grand établissement, le
+  // groupement ne fait que réorganiser l'affichage de cette page-là.
+  const elevesParClasse = [...elevesPage.reduce((groupes, e) => {
+    const cle = e.classeId;
+    if (!groupes.has(cle)) groupes.set(cle, { nom: e.Classe?.nom ?? '—', eleves: [] });
+    groupes.get(cle).eleves.push(e);
+    return groupes;
+  }, new Map())];
 
   return (
     <div className="grille-2">
@@ -275,33 +284,42 @@ export default function ElevesClasses() {
             {classes.map((c) => <option key={c.id} value={c.id}>{c.nom}</option>)}
           </select>
         </div>
-        <table>
-          <thead><tr><th>Élève</th><th>Classe</th><th>Parent</th><th></th></tr></thead>
-          <tbody>
-            {elevesPage.map((e) => (
-              <tr key={e.id}>
-                <td>{e.prenom} {e.nom}</td>
-                <td>{e.Classe?.nom ?? '—'}</td>
-                <td>
-                  {e.parent ? (
-                    <>
-                      {e.parent.prenom} {e.parent.nom}
-                      <div className="note-secondaire" style={{ fontSize: '0.74rem' }}>{e.parent.email}</div>
-                    </>
-                  ) : (
-                    <span className="note-secondaire">— aucun</span>
-                  )}
-                </td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setEleveASupprimer(e)}>
-                    Retirer
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {elevesAffiches.length === 0 && <tr><td colSpan={4} className="vide">Aucun élève</td></tr>}
-          </tbody>
-        </table>
+        {/* Un tableau par classe plutôt qu'une liste à plat avec une colonne
+            "Classe" répétée à chaque ligne — la classe se voit déjà dans le
+            titre du groupe, pas besoin de la redire 50 fois. */}
+        {elevesParClasse.map(([classeId, groupe]) => (
+          <div key={classeId} style={{ marginBottom: 20 }}>
+            <h4 style={{ margin: '0 0 8px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--texte-clair)' }}>
+              {groupe.nom} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>({groupe.eleves.length})</span>
+            </h4>
+            <table>
+              <thead><tr><th>Élève</th><th>Parent</th><th></th></tr></thead>
+              <tbody>
+                {groupe.eleves.map((e) => (
+                  <tr key={e.id}>
+                    <td>{e.prenom} {e.nom}</td>
+                    <td>
+                      {e.parent ? (
+                        <>
+                          {e.parent.prenom} {e.parent.nom}
+                          <div className="note-secondaire" style={{ fontSize: '0.74rem' }}>{e.parent.email}</div>
+                        </>
+                      ) : (
+                        <span className="note-secondaire">— aucun</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setEleveASupprimer(e)}>
+                        Retirer
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+        {elevesParClasse.length === 0 && <div className="vide">Aucun élève</div>}
         {totalPagesEleves > 1 && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 12 }}>
             <button className="secondaire" style={{ padding: '4px 12px' }} disabled={pageEleveActuelle === 0} onClick={() => setPageEleves(pageEleveActuelle - 1)}>
