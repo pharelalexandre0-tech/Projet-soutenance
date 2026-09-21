@@ -31,6 +31,20 @@ function libelleResultatUE(ligneUE) {
   return { texte: 'Passe en rattrapage', couleur: COULEUR_ERREUR };
 }
 
+// Logo de l'établissement, dessiné en haut à gauche de chaque document
+// officiel — absent si non renseigné ou illisible, jamais un document qui
+// échoue pour autant (un logo cassé ne doit jamais empêcher un reçu ou un
+// bulletin de sortir).
+function dessinerLogo(doc, etablissement, x, y, taille = 40) {
+  if (!etablissement.logo) return;
+  try {
+    const base64 = etablissement.logo.split(',')[1];
+    doc.image(Buffer.from(base64, 'base64'), x, y, { fit: [taille, taille] });
+  } catch {
+    // Logo corrompu/illisible : le document part sans lui plutôt que d'échouer entièrement.
+  }
+}
+
 function nouveauDocument(nomFichier, options = {}) {
   const cheminAbsolu = path.join(DOSSIER_STOCKAGE, nomFichier);
   const doc = new PDFDocument({ margin: 50, size: 'A4', ...options });
@@ -98,6 +112,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   const largeurTotale = LARGEURS_COLONNES.reduce((a, b) => a + b, 0);
 
   doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
+  dessinerLogo(doc, etablissement, margeGauche, 26);
 
   doc.y = 34;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
@@ -258,6 +273,7 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
   const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
 
   doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_SUCCES);
+  dessinerLogo(doc, etablissement, margeGauche, 26);
 
   doc.y = 34;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
@@ -353,6 +369,7 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
   const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
 
   doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
+  dessinerLogo(doc, etablissement, margeGauche, 26);
 
   doc.y = 34;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
@@ -450,14 +467,7 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
   doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
 
   const yEntete = 26;
-  if (etablissement.logo) {
-    try {
-      const base64 = etablissement.logo.split(',')[1];
-      doc.image(Buffer.from(base64, 'base64'), margeGauche, yEntete, { fit: [46, 46] });
-    } catch {
-      // Logo corrompu/illisible : le document part sans lui plutôt que d'échouer entièrement.
-    }
-  }
+  dessinerLogo(doc, etablissement, margeGauche, yEntete, 46);
 
   doc.y = yEntete;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)

@@ -135,8 +135,11 @@ export default function DefinirFrais() {
       {eleveEnPaiement && (
         <FormulairePaiementRapide
           eleve={eleveEnPaiement}
-          onFermer={() => setEleveEnPaiement(null)}
-          onReussi={() => { setEleveEnPaiement(null); charger(); setToast({ message: 'Paiement enregistré.', type: 'succes' }); }}
+          // La liste doit refléter le nouveau statut dès l'encaissement, pas
+          // seulement à la fermeture — la Finance regarde souvent le reçu un
+          // moment avant de fermer la fenêtre.
+          onPaye={charger}
+          onFermer={() => { setEleveEnPaiement(null); charger(); }}
         />
       )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
@@ -242,23 +245,53 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
   );
 }
 
-function FormulairePaiementRapide({ eleve, onFermer, onReussi }) {
+function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
   const [form, setForm] = useState({ montant: '', modePaiement: 'especes' });
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
+  // Non null une fois le paiement encaissé — le formulaire cède alors la
+  // place au reçu, dans la même fenêtre : la Finance encaisse en personne
+  // (souvent en espèces) et doit pouvoir l'imprimer/le montrer tout de
+  // suite, pas seulement compter sur l'e-mail envoyé à l'étudiant.
+  const [confirmation, setConfirmation] = useState(null);
 
   async function soumettre(e) {
     e.preventDefault();
     setEnCours(true);
     setErreur('');
     try {
-      await client.post('/finance/paiements', { fraisId: eleve.fraisActifId, montant: Number(form.montant), modePaiement: form.modePaiement });
-      onReussi();
+      const res = await client.post('/finance/paiements', { fraisId: eleve.fraisActifId, montant: Number(form.montant), modePaiement: form.modePaiement });
+      setConfirmation({ montant: Number(form.montant), recu: res.data.recu, recuEnvoyeA: res.data.recuEnvoyeA });
+      onPaye();
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'erreur (montant incorrect)');
     } finally {
       setEnCours(false);
     }
+  }
+
+  if (confirmation) {
+    return (
+      <Modal titre="Paiement encaissé" onFermer={onFermer} largeur={440}>
+        <div className="message-succes" style={{ marginBottom: 16 }}>
+          {confirmation.montant.toLocaleString('fr-FR')} FCFA encaissé pour {eleve.prenom} {eleve.nom}.
+        </div>
+        <a
+          href={confirmation.recu.fichierPDF}
+          target="_blank"
+          rel="noreferrer"
+          className="primaire"
+          style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '11px 16px', borderRadius: 8 }}
+        >
+          Télécharger le reçu — {confirmation.recu.numero}
+        </a>
+        {confirmation.recuEnvoyeA && (
+          <p className="note-secondaire" style={{ marginTop: 12, marginBottom: 0 }}>
+            Un exemplaire a aussi été envoyé par e-mail à {confirmation.recuEnvoyeA}.
+          </p>
+        )}
+      </Modal>
+    );
   }
 
   return (
