@@ -43,7 +43,10 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(compression());
-app.use(express.json());
+// Limite par défaut (100kb) trop basse pour le logo d'établissement,
+// envoyé en base64 dans le JSON (~1,4x sa taille binaire) — 3mb laisse une
+// marge confortable sur une image déjà bridée à 1mb côté frontend.
+app.use(express.json({ limit: '3mb' }));
 
 // Un formulaire de connexion mal protégé accepte des centaines d'essais
 // par seconde — large marge (les cold starts Render peuvent multiplier

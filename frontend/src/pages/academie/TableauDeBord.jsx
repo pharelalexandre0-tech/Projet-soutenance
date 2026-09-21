@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
-import { IconDashboard, IconUsers, IconKey, IconPencil, IconCalendarAlert, IconBrain, IconDocument } from '../../components/icons';
+import { IconDashboard, IconUsers, IconKey, IconPencil, IconCalendarAlert, IconAlertTriangle, IconDocument } from '../../components/icons';
 
 function niveauAbsenteisme(taux) {
   if (taux <= 5) return 'vert';
@@ -148,8 +148,8 @@ export default function TableauDeBord({ onNaviguer }) {
               Signaler une absence
             </button>
             <button className="action-rapide" onClick={() => onNaviguer?.('prediction')}>
-              <span className="puce-icone petite"><IconBrain width={16} height={16} /></span>
-              Lancer la prédiction IA
+              <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
+              Voir les alertes décrochage
             </button>
           </div>
         </div>

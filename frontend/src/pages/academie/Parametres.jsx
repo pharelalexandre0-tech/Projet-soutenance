@@ -4,7 +4,8 @@ import Toast from '../../components/Toast';
 import { IconDocument, IconKey } from '../../components/icons';
 import { motDePasseAleatoire } from '../../utils/excel';
 
-const CHAMPS_VIDES = { nom: '', sigle: '', devise: '', ville: '', pays: '', boitePostale: '', telephone: '', email: '' };
+const CHAMPS_VIDES = { nom: '', sigle: '', devise: '', ville: '', pays: '', boitePostale: '', telephone: '', email: '', logo: '' };
+const TAILLE_LOGO_MAX = 1024 * 1024;
 const COMPTE_VIDE = { nom: '', prenom: '', email: '', motDePasse: '', role: 'finance', service: '', fonction: '' };
 
 // EduSphere s'adapte à n'importe quel établissement : cette page est le
@@ -33,10 +34,28 @@ export default function Parametres() {
         nom: e.nom || '', sigle: e.sigle || '', devise: e.devise || '',
         ville: e.ville || '', pays: e.pays || 'République Gabonaise',
         boitePostale: e.boitePostale || '', telephone: e.telephone || '', email: e.email || '',
+        logo: e.logo || '',
       });
       setChargement(false);
     });
   }, []);
+
+  function choisirLogo(e) {
+    const fichier = e.target.files[0];
+    e.target.value = '';
+    if (!fichier) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(fichier.type)) {
+      setToast({ message: 'format non pris en charge — PNG, JPEG ou WebP', type: 'erreur' });
+      return;
+    }
+    if (fichier.size > TAILLE_LOGO_MAX) {
+      setToast({ message: 'le logo doit faire moins de 1 Mo', type: 'erreur' });
+      return;
+    }
+    const lecteur = new FileReader();
+    lecteur.onload = () => setForm((f) => ({ ...f, logo: lecteur.result }));
+    lecteur.readAsDataURL(fichier);
+  }
 
   async function enregistrer(e) {
     e.preventDefault();
@@ -85,11 +104,38 @@ export default function Parametres() {
       </div>
       <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
         EduSphere est conçu pour être déployé sur n'importe quel établissement. Ces informations — jamais codées en dur —
-        apparaissent sur le bulletin, le relevé de notes et les reçus de paiement.
+        apparaissent sur le bulletin, le relevé de notes, les reçus de paiement et l'emploi du temps téléchargeable.
       </p>
       {chargement && <div className="chargement">Chargement…</div>}
       {!chargement && (
         <form className="formulaire" onSubmit={enregistrer}>
+          <div className="champ">
+            <label>Logo de l'établissement</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 10, border: '1px solid var(--bordure)',
+                background: 'var(--gris-fond)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0,
+              }}>
+                {form.logo ? (
+                  <img src={form.logo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <span className="note-secondaire" style={{ fontSize: '0.65rem', textAlign: 'center' }}>Aucun<br />logo</span>
+                )}
+              </div>
+              <label className="secondaire" style={{ display: 'inline-block', padding: '7px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.85rem' }}>
+                {form.logo ? 'Changer' : 'Choisir un fichier'}
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={choisirLogo} style={{ display: 'none' }} />
+              </label>
+              {form.logo && (
+                <button type="button" className="secondaire" style={{ padding: '7px 14px', fontSize: '0.85rem' }} onClick={() => setForm({ ...form, logo: '' })}>
+                  Retirer
+                </button>
+              )}
+            </div>
+            <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem' }}>
+              PNG, JPEG ou WebP, 1 Mo maximum — un fond transparent (PNG) rend mieux sur les documents.
+            </p>
+          </div>
           <div className="ligne-champs">
             <div className="champ"><label>Nom de l'établissement</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
             <div className="champ" style={{ maxWidth: 140 }}><label>Sigle</label><input value={form.sigle} onChange={(e) => setForm({ ...form, sigle: e.target.value })} placeholder="ex. IUP" /></div>

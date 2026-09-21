@@ -37,6 +37,7 @@ router.get('/matieres', authentifier, ctrl.listerMatieres);
 
 router.post('/emplois-du-temps', authentifier, academie, ctrl.creerEmploiDuTemps);
 router.get('/emplois-du-temps', authentifier, ctrl.listerEmploisDuTemps);
+router.get('/emplois-du-temps/pdf', authentifier, academie, ctrl.genererEmploiDuTempsPDFRoute);
 router.delete('/emplois-du-temps/:id', authentifier, academie, ctrl.supprimerEmploiDuTemps);
 
 router.get('/cahier-de-textes', authentifier, ctrl.listerCahierDeTextes);

@@ -25,6 +25,7 @@ export default function EmploisDuTemps() {
   const [nouveauCreneau, setNouveauCreneau] = useState(CRENEAU_VIDE);
   const [erreur, setErreur] = useState('');
   const [creneauASupprimer, setCreneauASupprimer] = useState(null);
+  const [telechargementEnCours, setTelechargementEnCours] = useState(false);
 
   useEffect(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -57,6 +58,19 @@ export default function EmploisDuTemps() {
     charger(classeId);
   }
 
+  // Grille brandée (logo établissement inclus s'il est renseigné) générée
+  // côté serveur — un fichier téléchargé s'attache tel quel à un message
+  // WhatsApp ou un e-mail, contrairement à une capture de cette page.
+  async function telechargerPDF() {
+    setTelechargementEnCours(true);
+    try {
+      const res = await client.get('/emplois-du-temps/pdf', { params: { classeId, semestreId } });
+      window.open(res.data.url, '_blank');
+    } finally {
+      setTelechargementEnCours(false);
+    }
+  }
+
   const parJour = new Map();
   emplois.forEach((e) => {
     if (!parJour.has(e.jour)) parJour.set(e.jour, []);
@@ -73,9 +87,16 @@ export default function EmploisDuTemps() {
     <div className="carte">
       <div className="entete-section">
         <h2>Emplois du temps</h2>
-        <button type="button" className={formOuvert ? 'secondaire' : 'primaire'} onClick={() => setFormOuvert((v) => !v)} disabled={!classeId || !semestreId}>
-          {formOuvert ? 'Annuler' : '+ Ajouter un créneau'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {emplois.length > 0 && (
+            <button type="button" className="secondaire" onClick={telechargerPDF} disabled={telechargementEnCours}>
+              {telechargementEnCours ? 'Génération…' : 'Télécharger (PDF)'}
+            </button>
+          )}
+          <button type="button" className={formOuvert ? 'secondaire' : 'primaire'} onClick={() => setFormOuvert((v) => !v)} disabled={!classeId || !semestreId}>
+            {formOuvert ? 'Annuler' : '+ Ajouter un créneau'}
+          </button>
+        </div>
       </div>
 
       <div className="ligne-champs" style={{ marginBottom: 18 }}>

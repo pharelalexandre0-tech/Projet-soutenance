@@ -24,6 +24,7 @@ const {
 } = require('../models');
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
+const { genererEmploiDuTempsPDF } = require('../services/pdfService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { calculerBulletin } = require('../services/moyenneService');
@@ -123,13 +124,22 @@ async function obtenirEtablissement(req, res) {
 // "Paramètres" (Académie) : renseigner/mettre à jour la fiche de son propre
 // établissement — jamais celui d'une autre école.
 async function configurerEtablissement(req, res) {
-  const { nom, sigle, devise, ville, pays, boitePostale, telephone, email } = req.body;
+  const { nom, sigle, devise, ville, pays, boitePostale, telephone, email, logo } = req.body;
   if (!nom || !ville) {
     return res.status(400).json({ erreur: 'le nom et la ville sont obligatoires' });
   }
+  if (logo && !/^data:image\/(png|jpeg|jpg|webp);base64,/.test(logo)) {
+    return res.status(400).json({ erreur: 'format de logo non reconnu (PNG, JPEG ou WebP attendu)' });
+  }
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
-  await etablissement.update({ nom, sigle, devise, ville, pays, boitePostale, telephone, email });
+  // logo undefined (champ absent du payload) => inchangé ; logo explicitement
+  // '' ou null => retiré. Distinction utile car le formulaire ne renvoie pas
+  // toujours le logo (image déjà en place, pas retouchée à cet enregistrement).
+  await etablissement.update({
+    nom, sigle, devise, ville, pays, boitePostale, telephone, email,
+    ...(logo !== undefined && { logo: logo || null }),
+  });
   return res.json({ etablissement });
 }
 
@@ -467,6 +477,26 @@ async function supprimerEmploiDuTemps(req, res) {
   return res.status(204).send();
 }
 
+// Grille hebdomadaire brandée (logo, identité) prête à être téléchargée puis
+// partagée telle quelle (WhatsApp, e-mail) — même principe que le bulletin
+// ou le reçu, généré à la demande plutôt que persisté : rien à invalider
+// quand un créneau change, la prochaine génération reflète juste l'état actuel.
+async function genererEmploiDuTempsPDFRoute(req, res) {
+  const { classeId, semestreId } = req.query;
+  const classe = await Classe.findByPk(classeId);
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+  const semestre = await Semestre.findByPk(semestreId);
+  if (!semestre || semestre.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'semestre introuvable' });
+  }
+  const creneaux = await EmploiDuTemps.findAll({ where: { classeId }, order: [['jour', 'ASC'], ['heureDebut', 'ASC']] });
+  const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
+  const { cheminRelatif } = await genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement });
+  return res.json({ url: cheminRelatif });
+}
+
 async function listerCahierDeTextes(req, res) {
   const { classeId } = req.query;
   const where = classeId ? { classeId } : {};
@@ -606,6 +636,7 @@ module.exports = {
   creerEmploiDuTemps,
   listerEmploisDuTemps,
   supprimerEmploiDuTemps,
+  genererEmploiDuTempsPDFRoute,
   listerCahierDeTextes,
   ajouterCahierDeTextes,
   envoyerMessage,

@@ -31,9 +31,9 @@ function libelleResultatUE(ligneUE) {
   return { texte: 'Passe en rattrapage', couleur: COULEUR_ERREUR };
 }
 
-function nouveauDocument(nomFichier) {
+function nouveauDocument(nomFichier, options = {}) {
   const cheminAbsolu = path.join(DOSSIER_STOCKAGE, nomFichier);
-  const doc = new PDFDocument({ margin: 50, size: 'A4' });
+  const doc = new PDFDocument({ margin: 50, size: 'A4', ...options });
   const stream = fs.createWriteStream(cheminAbsolu);
   doc.pipe(stream);
   const termine = new Promise((resolve, reject) => {
@@ -428,4 +428,109 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
   return { cheminAbsolu: chemin, cheminRelatif };
 }
 
-module.exports = { genererBulletinPDF, genererRecuPDF, genererFichePaiePDF, DOSSIER_STOCKAGE };
+const JOURS_EMPLOI = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+function versMinutesEmploi(hhmm) {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  return h * 60 + m;
+}
+
+// genererEmploiDuTempsPDF(créneaux d'une classe) — même traitement "document
+// officiel" que le bulletin/reçu (bandeau, identité établissement, logo si
+// renseigné), mais en paysage et sous forme de grille hebdomadaire
+// proportionnelle aux horaires plutôt qu'un tableau — pensé pour rester
+// lisible partagé tel quel (WhatsApp, e-mail) sans repasser par l'appli.
+async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement }) {
+  const nomFichier = `emploi_du_temps_${classe.id}_${semestre.id}_${Date.now()}.pdf`;
+  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { layout: 'landscape' });
+
+  const margeGauche = doc.page.margins.left;
+  const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
+
+  doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
+
+  const yEntete = 26;
+  if (etablissement.logo) {
+    try {
+      const base64 = etablissement.logo.split(',')[1];
+      doc.image(Buffer.from(base64, 'base64'), margeGauche, yEntete, { fit: [46, 46] });
+    } catch {
+      // Logo corrompu/illisible : le document part sans lui plutôt que d'échouer entièrement.
+    }
+  }
+
+  doc.y = yEntete;
+  doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
+    .text(`${etablissement.nom.toUpperCase()} — ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
+  doc.moveDown(0.4);
+  doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
+    .text('EMPLOI DU TEMPS', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+  doc.moveDown(0.3);
+  doc.fontSize(9.5).font('Helvetica-Bold').fillColor(COULEUR_PRIMAIRE)
+    .text(`${classe.nom} (${classe.niveau}) — ${semestre.libelle} (${semestre.anneeScolaire})`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+  doc.moveDown(0.6);
+  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
+  doc.moveDown(0.9);
+
+  const largeurGouttiere = 34;
+  const largeurJour = (largeurTotale - largeurGouttiere) / JOURS_EMPLOI.length;
+  const yGrilleDebut = doc.y;
+  const hauteurGrille = doc.page.height - doc.page.margins.bottom - yGrilleDebut - 26;
+  const yColonnes = yGrilleDebut + 16;
+  const hauteurColonnes = hauteurGrille - 16;
+
+  const bornes = creneaux.flatMap((c) => [versMinutesEmploi(c.heureDebut), versMinutesEmploi(c.heureFin)]);
+  const grilleDebutDefaut = 7 * 60;
+  const grilleFinDefaut = 19 * 60;
+  const grilleDebut = Math.floor(Math.min(grilleDebutDefaut, ...(bornes.length ? bornes : [grilleDebutDefaut])) / 60) * 60;
+  const grilleFin = Math.ceil(Math.max(grilleFinDefaut, ...(bornes.length ? bornes : [grilleFinDefaut])) / 60) * 60;
+
+  JOURS_EMPLOI.forEach((jour, i) => {
+    const x = margeGauche + largeurGouttiere + i * largeurJour;
+    doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
+      .text(jour.toUpperCase(), x, yGrilleDebut, { width: largeurJour - 4, align: 'center', characterSpacing: 0.4 });
+    doc.rect(x, yColonnes, largeurJour - 4, hauteurColonnes).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
+  });
+
+  for (let h = grilleDebut; h <= grilleFin; h += 60) {
+    const y = yColonnes + ((h - grilleDebut) / (grilleFin - grilleDebut)) * hauteurColonnes;
+    doc.fontSize(6.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+      .text(`${String(Math.floor(h / 60)).padStart(2, '0')}h`, margeGauche, Math.max(yColonnes, y - 4), { width: largeurGouttiere - 4, align: 'right' });
+    doc.moveTo(margeGauche + largeurGouttiere, y).lineTo(margeGauche + largeurTotale - 4, y)
+      .lineWidth(0.5).dash(1, { space: 2 }).strokeColor(COULEUR_BORDURE).stroke();
+    doc.undash();
+  }
+
+  creneaux.forEach((c) => {
+    const iJour = JOURS_EMPLOI.indexOf(c.jour);
+    if (iJour === -1) return;
+    const x = margeGauche + largeurGouttiere + iJour * largeurJour;
+    const debut = versMinutesEmploi(c.heureDebut);
+    const fin = Math.max(versMinutesEmploi(c.heureFin), debut + 15);
+    const y = yColonnes + ((debut - grilleDebut) / (grilleFin - grilleDebut)) * hauteurColonnes;
+    const hauteur = Math.max(((fin - debut) / (grilleFin - grilleDebut)) * hauteurColonnes, 14);
+
+    doc.roundedRect(x + 2, y, largeurJour - 8, hauteur, 3).fill(COULEUR_UE_FOND);
+    doc.roundedRect(x + 2, y, largeurJour - 8, hauteur, 3).lineWidth(1).strokeColor(COULEUR_PRIMAIRE).stroke();
+    doc.fontSize(7).font('Helvetica-Bold').fillColor(COULEUR_PRIMAIRE)
+      .text(c.matiere || '—', x + 6, y + 3, { width: largeurJour - 16, lineBreak: false, ellipsis: true });
+    doc.fontSize(6).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+      .text(`${c.heureDebut}–${c.heureFin}`, x + 6, y + 13, { width: largeurJour - 16, lineBreak: false, ellipsis: true });
+    if (c.salle && hauteur > 28) {
+      doc.fontSize(6).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+        .text(c.salle, x + 6, y + 22, { width: largeurJour - 16, lineBreak: false, ellipsis: true });
+    }
+  });
+
+  doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
+    .text(
+      `${etablissement.nom} — ${etablissement.boitePostale || ''} — ${etablissement.telephone || ''} — ${etablissement.email || ''}`,
+      margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' }
+    );
+
+  doc.end();
+  const chemin = await termine;
+  return { cheminAbsolu: chemin, cheminRelatif };
+}
+
+module.exports = { genererBulletinPDF, genererRecuPDF, genererFichePaiePDF, genererEmploiDuTempsPDF, DOSSIER_STOCKAGE };

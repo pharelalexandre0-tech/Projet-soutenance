@@ -736,7 +736,7 @@ export default function ElevesClasses() {
             <thead><tr><th>Rôle</th><th>Nom</th><th>E-mail</th><th>Mot de passe</th><th></th></tr></thead>
             <tbody>
               {groupe.entrees.map((entree) => (
-                <tr key={entree.id}>
+                <tr key={entree.compteId ?? entree.id}>
                   <td>{entree.role}</td>
                   <td>{entree.prenom} {entree.nom}</td>
                   <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.email}</td>

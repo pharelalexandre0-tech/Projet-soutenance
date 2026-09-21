@@ -18,6 +18,11 @@ Etablissement.init(
     boitePostale: { type: DataTypes.STRING, allowNull: true },
     telephone: { type: DataTypes.STRING, allowNull: true },
     email: { type: DataTypes.STRING, allowNull: true },
+    // Stocké en data URI base64 directement en base (pas de stockage
+    // fichier séparé à gérer) — un logo d'école reste petit (quelques
+    // dizaines de Ko), jamais un flux qui justifierait un vrai stockage
+    // objet. Réutilisé sur le bulletin, les reçus et l'emploi du temps PDF.
+    logo: { type: DataTypes.TEXT, allowNull: true },
     statut: { type: DataTypes.ENUM('actif', 'suspendu'), allowNull: false, defaultValue: 'actif' },
   },
   { sequelize, modelName: 'Etablissement', tableName: 'etablissements' }
