@@ -3,6 +3,7 @@ import client from '../../api/client';
 import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconDashboard, IconUsers, IconKey, IconPencil, IconCalendarAlert, IconAlertTriangle, IconDocument } from '../../components/icons';
+import { totalElevesParClasses } from '../../utils/totaux';
 
 function niveauAbsenteisme(taux) {
   if (taux <= 5) return 'vert';
@@ -28,7 +29,7 @@ export default function TableauDeBord({ onNaviguer }) {
     client.get('/tableau-de-bord/academique').then((res) => setAcademique(res.data));
   }, []);
 
-  const totalEleves = classes.reduce((acc, c) => acc + (c.Eleves?.length ?? 0), 0);
+  const totalEleves = totalElevesParClasses(classes);
   const maxEffectif = Math.max(1, ...classes.map((c) => c.Eleves?.length ?? 0));
   const tauxNonJustifie = absences?.tauxNonJustifie ?? 0;
   const tauxJustifie = absences && absences.total > 0 ? Math.round((absences.justifiees / absences.total) * 100) : null;

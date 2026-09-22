@@ -1,6 +1,5 @@
 const express = require('express');
 const {
-  definirFrais,
   definirFraisClasse,
   listerFraisEleve,
   enregistrerPaiement,
@@ -17,7 +16,9 @@ const { authentifier, autoriserRoles } = require('../middlewares/auth');
 const router = express.Router();
 const finance = autoriserRoles('finance');
 
-router.post('/frais', authentifier, finance, definirFrais);
+// Un frais ne se définit plus pour un seul élève à la fois (definirFrais a
+// été retiré) — toujours pour une classe, un niveau ou l'établissement
+// entier, jamais élève par élève.
 router.post('/frais/classe', authentifier, finance, definirFraisClasse);
 router.get('/frais/eleve/:eleveId', authentifier, listerFraisEleve);
 

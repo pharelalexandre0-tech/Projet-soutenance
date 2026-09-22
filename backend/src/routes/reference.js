@@ -33,7 +33,6 @@ router.post('/unites-enseignement', authentifier, academie, ctrl.creerUE);
 router.get('/unites-enseignement', authentifier, ctrl.listerUE);
 
 router.post('/matieres', authentifier, academie, ctrl.creerMatiere);
-router.get('/matieres', authentifier, ctrl.listerMatieres);
 
 router.post('/emplois-du-temps', authentifier, academie, ctrl.creerEmploiDuTemps);
 router.get('/emplois-du-temps', authentifier, ctrl.listerEmploisDuTemps);

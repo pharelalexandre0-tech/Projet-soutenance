@@ -3,6 +3,7 @@ import client from '../../api/client';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import { IconBanknote } from '../../components/icons';
+import { totalElevesParNiveaux } from '../../utils/totaux';
 
 const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge', sans_frais: 'gris' };
 const LIBELLE_STATUT = { du: 'dû', partiel: 'partiel', solde: 'à jour', impaye: 'impayé', sans_frais: 'sans frais' };
@@ -29,7 +30,7 @@ export default function DefinirFrais() {
   }
   useEffect(charger, []);
 
-  const totalEleves = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.length, 0), 0);
+  const totalEleves = totalElevesParNiveaux(niveaux);
   const totalNetAPayer = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.reduce((s3, e) => s3 + e.totalDu, 0), 0), 0);
   const totalVerse = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.reduce((s3, e) => s3 + e.totalRegle, 0), 0), 0);
 

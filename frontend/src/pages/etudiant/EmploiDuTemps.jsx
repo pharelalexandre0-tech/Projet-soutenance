@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
-
-const ORDRE_JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+import { JOURS } from '../../utils/jours';
 
 export default function EmploiDuTemps({ classeId }) {
   const [emplois, setEmplois] = useState([]);
@@ -18,11 +17,10 @@ export default function EmploiDuTemps({ classeId }) {
 
   const parJour = new Map();
   emplois.forEach((e) => {
-    const cle = e.jour.toLowerCase();
-    if (!parJour.has(cle)) parJour.set(cle, []);
-    parJour.get(cle).push(e);
+    if (!parJour.has(e.jour)) parJour.set(e.jour, []);
+    parJour.get(e.jour).push(e);
   });
-  const jours = [...parJour.keys()].sort((a, b) => ORDRE_JOURS.indexOf(a) - ORDRE_JOURS.indexOf(b));
+  const jours = [...parJour.keys()].sort((a, b) => JOURS.indexOf(a) - JOURS.indexOf(b));
 
   return (
     <div className="carte">
@@ -31,7 +29,7 @@ export default function EmploiDuTemps({ classeId }) {
       {!chargement && emplois.length === 0 && <div className="vide">Aucun créneau renseigné pour le moment</div>}
       {!chargement && jours.map((jour) => (
         <div key={jour} style={{ marginBottom: 18 }}>
-          <h3 style={{ textTransform: 'capitalize', fontSize: '0.9rem', marginBottom: 8 }}>{jour}</h3>
+          <h3 style={{ fontSize: '0.9rem', marginBottom: 8 }}>{jour}</h3>
           <div className="liste-notifications">
             {parJour.get(jour).map((e) => (
               <div className="notification-item" key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

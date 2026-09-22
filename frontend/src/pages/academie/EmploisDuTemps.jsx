@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import ConfirmModal from '../../components/ConfirmModal';
+import { JOURS } from '../../utils/jours';
 
-const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const CRENEAU_VIDE = { jour: 'Lundi', heureDebut: '', heureFin: '', matiere: '', salle: '' };
 // Bornes par défaut de la grille — élargies automatiquement si un créneau
 // déborde (ex. un cours du soir après 19h), jamais rétrécies en dessous.

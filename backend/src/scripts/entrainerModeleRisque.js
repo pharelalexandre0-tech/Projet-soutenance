@@ -15,7 +15,7 @@
 // données labellisées.
 const fs = require('fs');
 const path = require('path');
-const { entrainer, evaluer } = require('../services/logisticRegression');
+const { entrainer, evaluer, sigmoide } = require('../services/logisticRegression');
 
 const N_EXEMPLES = 1200;
 const FRACTION_TEST = 0.3;
@@ -26,10 +26,6 @@ const FRACTION_TEST = 0.3;
 // vrai jeu de données. Toutes les caractéristiques sont orientées "plus
 // haut = plus à risque", pour que des poids positifs restent lisibles.
 const POIDS_VERITE = { notes: 3.5, absences: 2.5, comportement: 2.0, biais: -3.0 };
-
-function sigmoide(z) {
-  return 1 / (1 + Math.exp(-z));
-}
 
 function alea(min, max) {
   return min + Math.random() * (max - min);

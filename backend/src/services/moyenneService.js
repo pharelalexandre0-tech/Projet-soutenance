@@ -63,12 +63,6 @@ async function obtenirResultatMatiere(eleveId, matiereId) {
   return { normale, rattrapage, retenue, sessionRetenue };
 }
 
-// obtenirNoteMatiere : conservé pour compatibilité — ne regarde que la
-// session normale (utilisé nulle part d'important en dehors des tests).
-async function obtenirNoteMatiere(eleveId, matiereId) {
-  return obtenirNoteSession(eleveId, matiereId, 'normale');
-}
-
 // Utilisé par le diagramme 5 (Bulletin) et par le relevé de notes de l'Étudiant :
 // moyenne générale pondérée par le coefficient de chaque UE (chaque UE étant
 // elle-même la moyenne de ses matières pondérée par leur propre coefficient).
@@ -166,7 +160,6 @@ async function calculerBulletin(eleveId, semestreId) {
 
 module.exports = {
   calculerNoteFinale,
-  obtenirNoteMatiere,
   obtenirResultatMatiere,
   calculerBulletin,
   SEUIL_VALIDATION_UE,

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
+import { messageErreur } from '../../utils/erreurs';
+import { totalElevesParNiveaux } from '../../utils/totaux';
 
 const STYLE_STATUT = { impaye: 'rouge', partiel: 'or', du: 'gris', solde: 'vert', sans_frais: 'gris' };
 const LIBELLE_STATUT = { impaye: 'impayé', partiel: 'partiel', du: 'dû', solde: 'à jour', sans_frais: 'sans frais' };
@@ -36,14 +38,14 @@ export default function Impayes() {
     try {
       await client.post(`/finance/impayes/${eleve.fraisARelancerId}/relance`);
       setToast({ message: `Relance envoyée pour ${eleve.prenom} ${eleve.nom}.`, type: 'succes' });
-    } catch {
-      setToast({ message: 'Échec de l\'envoi de la relance.', type: 'erreur' });
+    } catch (err) {
+      setToast({ message: messageErreur(err, "échec de l'envoi de la relance"), type: 'erreur' });
     } finally {
       setEnRelance(null);
     }
   }
 
-  const totalEleves = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.length, 0), 0);
+  const totalEleves = totalElevesParNiveaux(niveaux);
   const totalImpayes = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.filter((e) => e.statutGlobal === 'impaye').length, 0), 0);
 
   return (

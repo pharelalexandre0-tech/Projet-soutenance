@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
 import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle } from '../components/icons';
+import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
 
 // Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
@@ -65,20 +66,6 @@ function AlerteErreur({ children }) {
   );
 }
 
-// axios ne renseigne `err.response` que si une réponse est arrivée — un
-// serveur injoignable (backend Render en veille, coupure réseau) laisse
-// `err.response` indéfini. Mais un 502/503/504 EST une réponse : c'est la
-// passerelle Render qui répond à la place du backend pas encore réveillé,
-// pas l'application qui rejette le mot de passe — sans ce deuxième cas,
-// ce genre de réponse s'affichait aussi comme "identifiants incorrects",
-// trompeur puisque le mot de passe est en fait le bon.
-function messageErreurConnexion(err, messageParDefaut) {
-  if (!err.response || err.response.status >= 500) {
-    return "Impossible de joindre le serveur — réessaie dans quelques secondes.";
-  }
-  return err.response.data?.erreur || messageParDefaut;
-}
-
 // Diagramme 3 : saisie identifiants -> demanderConnexion -> alt [valides]/[invalides].
 export default function Login() {
   const { profil, seConnecter, verifierDoubleFacteur } = useAuth();
@@ -125,7 +112,7 @@ export default function Login() {
       }
       ouvrirSession();
     } catch (err) {
-      setErreur(messageErreurConnexion(err, 'identifiants incorrects'));
+      setErreur(messageErreur(err, 'identifiants incorrects'));
       setEnCours(false);
     }
   }
@@ -138,7 +125,7 @@ export default function Login() {
       await verifierDoubleFacteur(attenteCode.utilisateurId, code);
       ouvrirSession();
     } catch (err) {
-      setErreur(messageErreurConnexion(err, 'code incorrect'));
+      setErreur(messageErreur(err, 'code incorrect'));
       setEnCours(false);
     }
   }
@@ -160,7 +147,7 @@ export default function Login() {
       setMessageOubli(res.data.message);
     } catch (err) {
       setErreurOubli(true);
-      setMessageOubli(messageErreurConnexion(err, "impossible d'envoyer l'e-mail pour le moment"));
+      setMessageOubli(messageErreur(err, "impossible d'envoyer l'e-mail pour le moment"));
     } finally {
       setEnCoursOubli(false);
     }

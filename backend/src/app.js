@@ -16,7 +16,6 @@ const incidentsRoutes = require('./routes/incidents');
 const financeRoutes = require('./routes/finance');
 const predictionsRoutes = require('./routes/predictions');
 const referenceRoutes = require('./routes/reference');
-const notificationsRoutes = require('./routes/notifications');
 const superadminRoutes = require('./routes/superadmin');
 const { DOSSIER_STOCKAGE } = require('./services/pdfService');
 
@@ -77,7 +76,6 @@ app.use('/api/incidents', incidentsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/predictions', predictionsRoutes);
 app.use('/api', referenceRoutes);
-app.use('/api/notifications', notificationsRoutes);
 app.use('/api/superadmin', superadminRoutes);
 
 // Gestion d'erreurs générique. `err.status` n'est posé que par du code

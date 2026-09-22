@@ -3,6 +3,7 @@ import client from '../../api/client';
 import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconBanknote, IconCard, IconAlertTriangle, IconWallet } from '../../components/icons';
+import { totalElevesParClasses } from '../../utils/totaux';
 
 export default function TableauDeBord({ onNaviguer }) {
   const [impayes, setImpayes] = useState([]);
@@ -11,7 +12,7 @@ export default function TableauDeBord({ onNaviguer }) {
   useEffect(() => {
     client.get('/finance/impayes').then((res) => setImpayes(res.data.impayes));
     client.get('/classes').then((res) => {
-      setTotalEleves(res.data.classes.reduce((acc, c) => acc + (c.Eleves?.length ?? 0), 0));
+      setTotalEleves(totalElevesParClasses(res.data.classes));
     });
   }, []);
 

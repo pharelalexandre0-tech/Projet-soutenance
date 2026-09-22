@@ -4,20 +4,6 @@ const { envoyerEmail } = require('../services/emailService');
 const { verifierImpayesService } = require('../services/impayesService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 
-// "Définir les frais de scolarité (par semestre)" - diagramme 1 (Espace
-// Finance).
-async function definirFrais(req, res) {
-  const { eleveId, semestreId, libelle, montant, dateEcheance } = req.body;
-  if (!eleveId || !semestreId || !libelle || !montant || !dateEcheance) {
-    return res.status(400).json({ erreur: 'champs manquants' });
-  }
-  const eleve = await Eleve.findByPk(eleveId);
-  if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
-    return res.status(404).json({ erreur: 'élève introuvable' });
-  }
-  const frais = await FraisScolarite.create({ eleveId, semestreId, libelle, montant, dateEcheance });
-  return res.status(201).json({ frais });
-}
 
 // "Définir pour une classe / tout un niveau / tout l'établissement" : dès
 // qu'un étudiant est inscrit, il doit avoir son frais sans que la Finance
@@ -313,7 +299,6 @@ async function verserSalaire(req, res) {
 }
 
 module.exports = {
-  definirFrais,
   definirFraisClasse,
   roulementFraisParClasse,
   listerFraisEleve,

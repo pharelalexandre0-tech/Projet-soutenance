@@ -858,28 +858,9 @@ button.danger:hover { background: var(--erreur-fond); }
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
 }
 .notification-item:hover { transform: translateX(2px); border-color: var(--texte-clair); }
-.notification-item.non-lue {
-  border-color: color-mix(in srgb, var(--primaire) 30%, var(--bordure));
-  background: var(--primaire-clair);
-}
-.notification-icone {
-  width: 34px; height: 34px; flex: none; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--gris-fond); color: var(--texte-clair);
-}
-.notification-item.alerte .notification-icone { background: var(--erreur-fond); color: var(--erreur); }
-.notification-item.info .notification-icone { background: var(--primaire-clair); color: var(--primaire); }
-.notification-corps { flex: 1; min-width: 0; }
-.notification-texte { line-height: 1.45; color: var(--texte); }
-.notification-item.non-lue .notification-texte { font-weight: 600; }
-.notification-pied { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 7px; }
 .notification-date {
   font-family: var(--police-mono); font-size: 0.68rem; color: var(--texte-clair);
   letter-spacing: 0.02em; white-space: nowrap;
-}
-.notification-point-neuf {
-  width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 5px;
-  background: var(--primaire); box-shadow: 0 0 0 3px var(--primaire-clair);
 }
 
 .chargement { color: var(--texte-clair); font-size: 0.87rem; padding: 12px 0; }

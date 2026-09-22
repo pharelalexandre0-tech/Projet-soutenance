@@ -434,15 +434,6 @@ async function creerMatiere(req, res) {
   const matiere = await Matiere.create(req.body);
   return res.status(201).json({ matiere });
 }
-async function listerMatieres(req, res) {
-  const where = {};
-  if (req.query.uniteEnseignementId) where.uniteEnseignementId = req.query.uniteEnseignementId;
-  const matieres = await Matiere.findAll({
-    where,
-    include: [{ model: UniteEnseignement, include: [{ model: Semestre, where: { etablissementId: req.utilisateur.etablissementId } }] }],
-  });
-  return res.json({ matieres });
-}
 
 async function creerEmploiDuTemps(req, res) {
   const { classeId } = req.body;
@@ -632,7 +623,6 @@ module.exports = {
   creerUE,
   listerUE,
   creerMatiere,
-  listerMatieres,
   creerEmploiDuTemps,
   listerEmploisDuTemps,
   supprimerEmploiDuTemps,

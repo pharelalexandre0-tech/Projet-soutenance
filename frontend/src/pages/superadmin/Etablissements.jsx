@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
+import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
 import { messageErreur } from '../../utils/erreurs';
@@ -167,8 +168,6 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
   const [confirmationSuppression, setConfirmationSuppression] = useState(false);
-  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
-  const [erreurSuppression, setErreurSuppression] = useState('');
 
   function charger() {
     client.get(`/superadmin/etablissements/${etablissementId}`).then((res) => {
@@ -206,16 +205,9 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
   }
 
   async function confirmerSuppression() {
-    setSuppressionEnCours(true);
-    setErreurSuppression('');
-    try {
-      await client.delete(`/superadmin/etablissements/${etablissementId}`);
-      onModifie(`"${donnees.etablissement.nom}" a été supprimé du système.`);
-      onFermer();
-    } catch (err) {
-      setErreurSuppression(err.response?.data?.erreur || 'échec de la suppression');
-      setSuppressionEnCours(false);
-    }
+    await client.delete(`/superadmin/etablissements/${etablissementId}`);
+    onModifie(`"${donnees.etablissement.nom}" a été supprimé du système.`);
+    onFermer();
   }
 
   if (!donnees || !form) {
@@ -223,6 +215,7 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
   }
 
   return (
+    <>
     <Modal titre={donnees.etablissement.nom} onFermer={onFermer} largeur={640}>
       <div className="ligne-champs" style={{ marginBottom: 18, alignItems: 'center' }}>
         <span className={`badge ${donnees.etablissement.statut === 'actif' ? 'vert' : 'rouge'}`}>
@@ -235,19 +228,6 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
           <button type="button" className="danger secondaire" onClick={() => setConfirmationSuppression(true)}>Supprimer cette école</button>
         </div>
       </div>
-
-      {confirmationSuppression && (
-        <div className="message-erreur" style={{ marginBottom: 18, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span>Supprimer définitivement "{donnees.etablissement.nom}" — classes, élèves, notes, absences, frais et tous ses comptes compris ? Cette action est irréversible.</span>
-          <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-            <button type="button" className="secondaire" onClick={() => setConfirmationSuppression(false)} disabled={suppressionEnCours}>Annuler</button>
-            <button type="button" className="danger secondaire" onClick={confirmerSuppression} disabled={suppressionEnCours}>
-              {suppressionEnCours ? 'Suppression…' : 'Confirmer la suppression'}
-            </button>
-          </div>
-        </div>
-      )}
-      {erreurSuppression && <div className="message-erreur" style={{ marginBottom: 18 }}>{erreurSuppression}</div>}
 
       <form className="formulaire" onSubmit={enregistrer}>
         <ChampLogo valeur={form.logo} onChange={(logo) => setForm({ ...form, logo })} />
@@ -263,5 +243,18 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
         <button className="primaire" type="submit" disabled={enCours} style={{ alignSelf: 'flex-start' }}>{enCours ? 'Enregistrement…' : 'Enregistrer la mise à jour'}</button>
       </form>
     </Modal>
+    {confirmationSuppression && (
+      <ConfirmModal
+        titre="Supprimer cette école ?"
+        onAnnuler={() => setConfirmationSuppression(false)}
+        onConfirmer={confirmerSuppression}
+        boutonConfirmer="Confirmer la suppression"
+        boutonEnCours="Suppression…"
+      >
+        Supprimer définitivement "{donnees.etablissement.nom}" — classes, élèves, notes, absences, frais et tous ses
+        comptes compris ? Cette action est irréversible.
+      </ConfirmModal>
+    )}
+    </>
   );
 }

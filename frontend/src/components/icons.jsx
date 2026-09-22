@@ -82,31 +82,6 @@ export function IconCalendarAlert(props) {
   );
 }
 
-export function IconBrain(props) {
-  return (
-    <svg {...base} {...props}>
-      <circle cx="12" cy="12" r="2.4" />
-      <circle cx="4.5" cy="6" r="1.6" />
-      <circle cx="19.5" cy="6" r="1.6" />
-      <circle cx="4.5" cy="18" r="1.6" />
-      <circle cx="19.5" cy="18" r="1.6" />
-      <line x1="6" y1="7.1" x2="10.3" y2="10.4" />
-      <line x1="18" y1="7.1" x2="13.7" y2="10.4" />
-      <line x1="6" y1="16.9" x2="10.3" y2="13.6" />
-      <line x1="18" y1="16.9" x2="13.7" y2="13.6" />
-    </svg>
-  );
-}
-
-export function IconBell(props) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M6 10a6 6 0 0 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z" />
-      <path d="M10 18.5a2 2 0 0 0 4 0" />
-    </svg>
-  );
-}
-
 export function IconBanknote(props) {
   return (
     <svg {...base} {...props}>

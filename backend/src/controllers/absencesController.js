@@ -1,4 +1,4 @@
-const { Absence, Eleve, Classe, Utilisateur, Notification } = require('../models');
+const { Absence, Eleve, Utilisateur, Notification } = require('../models');
 const { envoyerEmail } = require('../services/emailService');
 
 // Coeur du diagramme d'activité 6 : enregistrer l'absence, la classer
@@ -51,20 +51,11 @@ async function enregistrerAbsence({ eleveId, date, cours, type, justifie, motif,
   return absence;
 }
 
-// Saisie par l'Académie (cas nominal du diagramme 1).
-async function saisirAbsenceAcademie(req, res) {
-  try {
-    const absence = await enregistrerAbsence({ ...req.body, saisiParAcademieId: req.utilisateur.id, etablissementId: req.utilisateur.etablissementId });
-    return res.status(201).json({ absence });
-  } catch (err) {
-    return res.status(err.status || 500).json({ erreur: err.message });
-  }
-}
-
 // Saisie par un Professeur via compte éphémère (tache = saisie_absences) —
-// même "appel" que celui de l'Académie (saisirAppelClasse), borné à la
-// classe du lien. Un seul geste pour toute la classe plutôt qu'un appel
-// par élève, puis le compte se révoque (tâche terminée).
+// un seul geste pour toute la classe du lien plutôt qu'un appel par élève,
+// puis le compte se révoque (tâche terminée). Seul point d'entrée pour
+// l'appel désormais : l'Académie ne le fait plus elle-même (onglet
+// "Absences" retiré), elle génère le lien via Comptes éphémères.
 async function saisirAppelEphemere(req, res) {
   const compte = req.compteEphemere;
   if (compte.tache !== 'saisie_absences') {
@@ -111,80 +102,6 @@ async function saisirAppelEphemere(req, res) {
     absences,
     compte: { statut: compte.statut },
   });
-}
-
-// "Faire l'appel" : liste numérotée d'une classe pour une date/un cours
-// donné, où l'Académie coche simplement les élèves absents (les autres sont
-// considérés présents — rien à saisir pour eux).
-async function saisirAppelClasse(req, res) {
-  const { classeId, date, cours, absentEleveIds = [], retardEleveIds = [] } = req.body;
-  if (!classeId || !date || !Array.isArray(absentEleveIds) || !Array.isArray(retardEleveIds)) {
-    return res.status(400).json({ erreur: 'classe, date et liste des absents/retards requises' });
-  }
-  const classe = await Classe.findByPk(classeId);
-  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
-    return res.status(404).json({ erreur: 'classe introuvable' });
-  }
-
-  const absences = [];
-  const marques = [
-    ...absentEleveIds.map((eleveId) => ({ eleveId, type: 'absence' })),
-    ...retardEleveIds.map((eleveId) => ({ eleveId, type: 'retard' })),
-  ];
-  for (const { eleveId, type } of marques) {
-    try {
-      const absence = await enregistrerAbsence({
-        eleveId,
-        date,
-        cours,
-        type,
-        justifie: false,
-        saisiParAcademieId: req.utilisateur.id,
-        etablissementId: req.utilisateur.etablissementId,
-      });
-      absences.push(absence);
-    } catch (err) {
-      // Seul "élève introuvable" ne doit pas bloquer le reste de l'appel —
-      // une vraie erreur BD ne doit jamais se taire derrière un message qui
-      // annonce quand même un succès total.
-      if (err.status !== 404) throw err;
-    }
-  }
-
-  const nbAbsences = absences.filter((a) => a.type === 'absence').length;
-  const nbRetards = absences.filter((a) => a.type === 'retard').length;
-  return res.status(201).json({
-    message: `Appel enregistré — ${nbAbsences} absence(s), ${nbRetards} retard(s) sur ${marques.length} coché(es).`,
-    absences,
-  });
-}
-
-// "Brief" par élève : total d'absences, non justifiées, taux d'absentéisme
-// — pour repérer d'un coup d'œil les enfants à surveiller.
-async function briefAbsenteisme(req, res) {
-  const { classeId } = req.query;
-  const whereEleve = { etablissementId: req.utilisateur.etablissementId };
-  if (classeId) whereEleve.classeId = classeId;
-  const eleves = await Eleve.findAll({ where: whereEleve, include: [Classe], order: [['nom', 'ASC']] });
-
-  const brief = await Promise.all(
-    eleves.map(async (eleve) => {
-      const total = await Absence.count({ where: { eleveId: eleve.id } });
-      const nonJustifiees = await Absence.count({ where: { eleveId: eleve.id, justifie: false } });
-      return {
-        eleveId: eleve.id,
-        nom: eleve.nom,
-        prenom: eleve.prenom,
-        classe: eleve.Classe?.nom,
-        total,
-        justifiees: total - nonJustifiees,
-        nonJustifiees,
-        tauxAbsenteisme: total > 0 ? Math.round((nonJustifiees / total) * 1000) / 10 : 0,
-      };
-    })
-  );
-
-  return res.json({ brief });
 }
 
 // Étudiant : "Transmettre le justificatif à l'Académie" -> mise à jour du
@@ -237,22 +154,9 @@ async function statistiquesAbsences(req, res) {
   });
 }
 
-async function supprimerAbsence(req, res) {
-  const absence = await Absence.findByPk(req.params.id, { include: [Eleve] });
-  if (!absence || absence.Eleve.etablissementId !== req.utilisateur.etablissementId) {
-    return res.status(404).json({ erreur: 'absence introuvable' });
-  }
-  await absence.destroy();
-  return res.status(204).send();
-}
-
 module.exports = {
-  saisirAbsenceAcademie,
   saisirAppelEphemere,
-  saisirAppelClasse,
-  briefAbsenteisme,
   justifierAbsence,
   listerAbsencesEleve,
   statistiquesAbsences,
-  supprimerAbsence,
 };

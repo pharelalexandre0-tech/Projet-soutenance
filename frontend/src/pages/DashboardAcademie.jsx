@@ -4,8 +4,8 @@ import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconAlertT
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
 // que tout téléchargé d'un bloc à la connexion — un compte Académie qui ne
-// touche jamais "Prédiction IA" ou "Communication" pendant sa session n'en
-// télécharge alors jamais le code.
+// touche jamais "Alertes décrochage" ou "Communication" pendant sa session
+// n'en télécharge alors jamais le code.
 const TableauDeBord = lazy(() => import('./academie/TableauDeBord'));
 const ElevesClasses = lazy(() => import('./academie/ElevesClasses'));
 const UnitesEnseignement = lazy(() => import('./academie/UnitesEnseignement'));
