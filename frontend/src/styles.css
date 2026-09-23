@@ -531,8 +531,13 @@ button.danger:hover { background: var(--erreur-fond); }
   background: var(--carte); border-radius: 20px; padding: 1px 9px; font-size: 0.7rem;
 }
 .tableau-defilant-corps { max-height: 280px; overflow-y: auto; }
-.tableau-defilant-corps table { margin: 0; }
-.tableau-defilant-corps thead th { position: sticky; top: 0; background: var(--carte); }
+.tableau-defilant-corps table { margin: 0; border-collapse: separate; border-spacing: 0; }
+/* Un <th> en position:sticky ne se place pas au-dessus du <tbody> par
+   défaut dans le modèle d'empilement des tableaux (les cellules de
+   tbody restaient peintes par-dessus, texte des deux lignes mélangé
+   pendant le défilement) — il lui faut un z-index explicite pour
+   vraiment rester au-dessus, sticky seul ne suffit pas ici. */
+.tableau-defilant-corps thead th { position: sticky; top: 0; z-index: 1; background: var(--carte); }
 
 .message-erreur, .message-succes {
   font-size: 0.85rem;
