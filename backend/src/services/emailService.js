@@ -16,11 +16,21 @@ function echapperHtml(texte) {
 // la marque du logo réel sans dépendre d'une image hébergée (fragile par
 // e-mail — beaucoup de clients bloquent les images distantes par défaut).
 const RE_CODE = /\b(\d{6})\b/;
+// Un lien d'accès (compte éphémère, réinitialisation...) mérite le même
+// traitement que le code à 6 chiffres : isolé sur sa propre ligne dans le
+// texte source, il devient ici un vrai bouton plutôt qu'une URL brute
+// perdue au milieu d'un paragraphe — c'est justement ce qui manquait pour
+// que l'e-mail ait l'air d'un produit fini plutôt que d'un log technique.
+const RE_LIEN = /^(https?:\/\/\S+)$/;
 
 function versHtml(corps) {
   const blocs = echapperHtml(corps)
     .split('\n')
     .map((ligne) => {
+      const lienTrouve = ligne.trim().match(RE_LIEN);
+      if (lienTrouve) {
+        return `<p style="margin:6px 0 18px; text-align:center;"><a href="${lienTrouve[1]}" style="display:inline-block; padding:13px 30px; background-color:#1D5FA8; color:#ffffff; font-size:15px; font-weight:bold; font-family:Arial,Helvetica,sans-serif; text-decoration:none; border-radius:8px;">Ouvrir l'accès</a></p>`;
+      }
       const trouve = ligne.match(RE_CODE);
       if (!trouve) {
         return `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${ligne || '&nbsp;'}</p>`;
@@ -35,7 +45,7 @@ function versHtml(corps) {
     })
     .join('');
   return `<!DOCTYPE html>
-<html lang="fr"><body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial,Helvetica,sans-serif;">
+<html lang="fr"><head><meta charset="utf-8"></head><body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial,Helvetica,sans-serif;">
 <table role="presentation" width="100%" style="max-width:480px; margin:0 auto; border-collapse:collapse;">
 <tr><td style="padding:28px 28px 18px;">
 <table role="presentation" style="border-collapse:collapse;"><tr>

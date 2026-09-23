@@ -19,6 +19,8 @@ router.post('/professeurs', authentifier, academie, ctrl.creerProfesseur);
 router.get('/professeurs', authentifier, academie, ctrl.listerProfesseurs);
 router.delete('/professeurs/:id', authentifier, academie, ctrl.supprimerProfesseur);
 
+router.get('/parents', authentifier, academie, ctrl.listerParents);
+
 router.post('/eleves', authentifier, academie, ctrl.creerEleve);
 router.get('/eleves', authentifier, ctrl.listerEleves);
 router.delete('/eleves/:id', authentifier, academie, ctrl.supprimerEleve);

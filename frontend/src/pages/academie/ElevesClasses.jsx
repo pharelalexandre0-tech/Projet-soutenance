@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
+import { NIVEAUX } from '../../utils/niveaux';
 import ConfirmModal from '../../components/ConfirmModal';
 import Modal from '../../components/Modal';
-import GroupeDeroulant from '../../components/GroupeDeroulant';
+import TableauDefilant from '../../components/TableauDefilant';
+import ChampParent from '../../components/ChampParent';
 
 const ELEVE_VIDE = {
   nom: '', prenom: '', classeId: '', email: '', motDePasse: '',
@@ -93,10 +95,12 @@ export default function ElevesClasses() {
   const [pageEleves, setPageEleves] = useState(0);
 
   const [eleveASupprimer, setEleveASupprimer] = useState(null);
+  const [parents, setParents] = useState([]);
 
   function charger() {
     client.get('/classes').then((res) => setClasses(res.data.classes));
     client.get('/eleves').then((res) => setEleves(res.data.eleves));
+    client.get('/parents').then((res) => setParents(res.data.parents));
   }
   useEffect(charger, []);
 
@@ -393,7 +397,16 @@ export default function ElevesClasses() {
                           </div>
                           <div className="champ">
                             <label>Niveau</label>
-                            <input value={editionClasse.niveau} onChange={(e) => setEditionClasse({ ...editionClasse, niveau: e.target.value })} />
+                            <select value={editionClasse.niveau} onChange={(e) => setEditionClasse({ ...editionClasse, niveau: e.target.value })}>
+                              {/* Une classe plus ancienne peut porter un niveau hors de la liste
+                                  actuelle (ex. saisi librement avant ce formulaire) — on le garde
+                                  comme option tant qu'elle n'est pas explicitement changée, plutôt
+                                  que de le faire disparaître silencieusement du champ. */}
+                              {editionClasse.niveau && !NIVEAUX.includes(editionClasse.niveau) && (
+                                <option value={editionClasse.niveau}>{editionClasse.niveau}</option>
+                              )}
+                              {NIVEAUX.map((n) => <option key={n} value={n}>{n}</option>)}
+                            </select>
                           </div>
                         </div>
                         {erreurClasse && <div className="message-erreur" style={{ marginTop: 10 }}>{erreurClasse}</div>}
@@ -425,7 +438,10 @@ export default function ElevesClasses() {
               </div>
               <div className="champ">
                 <label>Niveau</label>
-                <input value={nouvelleClasse.niveau} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, niveau: e.target.value })} required />
+                <select value={nouvelleClasse.niveau} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, niveau: e.target.value })} required>
+                  <option value="">—</option>
+                  {NIVEAUX.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
               </div>
             </div>
             <button className="primaire" type="submit">Ajouter la classe</button>
@@ -458,7 +474,7 @@ export default function ElevesClasses() {
             est replié par défaut : sinon une classe à 50 élèves étire la
             page indéfiniment avant même d'atteindre la suivante. */}
         {elevesParClasse.map(([classeId, groupe]) => (
-          <GroupeDeroulant key={classeId} titre={groupe.nom} compte={groupe.eleves.length} ouvertParDefaut={Boolean(rechercheNettoyee) || Boolean(filtreClasse)}>
+          <TableauDefilant key={classeId} titre={groupe.nom} compte={groupe.eleves.length}>
             <table>
               <thead><tr><th>Élève</th><th>Parent</th><th></th></tr></thead>
               <tbody>
@@ -524,7 +540,7 @@ export default function ElevesClasses() {
                 ))}
               </tbody>
             </table>
-          </GroupeDeroulant>
+          </TableauDefilant>
         ))}
         {elevesParClasse.length === 0 && <div className="vide">Aucun élève</div>}
         {totalPagesEleves > 1 && (
@@ -606,45 +622,13 @@ export default function ElevesClasses() {
               Rattacher un compte Parent (consultation des notes, absences, bulletins…)
             </label>
             {avecParent && (
-              <>
-                <p className="note-secondaire" style={{ margin: '-4px 0 0' }}>
-                  Un même parent peut être rattaché à plusieurs enfants — s'il a déjà un compte, son e-mail suffit,
-                  pas besoin de renseigner à nouveau nom/prénom/mot de passe.
-                </p>
-                <div className="ligne-champs">
-                  <div className="champ">
-                    <label>Prénom du parent</label>
-                    <input value={nouvelEleve.parentPrenom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentPrenom: e.target.value })} />
-                  </div>
-                  <div className="champ">
-                    <label>Nom du parent</label>
-                    <input value={nouvelEleve.parentNom} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentNom: e.target.value })} />
-                  </div>
-                </div>
-                <div className="ligne-champs">
-                  <div className="champ">
-                    <label>E-mail du parent</label>
-                    <input type="email" autoComplete="off" value={nouvelEleve.parentEmail} onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentEmail: e.target.value })} required />
-                  </div>
-                  <div className="champ" style={{ flex: 1 }}>
-                    <label>Mot de passe (si nouveau compte)</label>
-                    <input
-                      type={parentMotDePasseVisible ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      value={nouvelEleve.parentMotDePasse}
-                      onChange={(e) => setNouvelEleve({ ...nouvelEleve, parentMotDePasse: e.target.value })}
-                      minLength={6}
-                    />
-                  </div>
-                  <button
-                    type="button" className="secondaire"
-                    style={{ alignSelf: 'flex-end', marginBottom: 1 }}
-                    onClick={() => setParentMotDePasseVisible((v) => !v)}
-                  >
-                    {parentMotDePasseVisible ? 'Masquer' : 'Afficher'}
-                  </button>
-                </div>
-              </>
+              <ChampParent
+                parents={parents}
+                valeur={nouvelEleve}
+                onChange={(champs) => setNouvelEleve((v) => ({ ...v, ...champs }))}
+                motDePasseVisible={parentMotDePasseVisible}
+                onBasculerMotDePasseVisible={() => setParentMotDePasseVisible((v) => !v)}
+              />
             )}
 
             <button className="primaire" type="submit">Inscrire l'élève</button>
@@ -734,7 +718,7 @@ export default function ElevesClasses() {
         </div>
       )}
       {identifiantsParClasse.map((groupe) => (
-        <GroupeDeroulant key={groupe.classeId} titre={groupe.nom} compte={groupe.entrees.length} ouvertParDefaut={Boolean(rechercheIdentifiantsNettoyee)}>
+        <TableauDefilant key={groupe.classeId} titre={groupe.nom} compte={groupe.entrees.length}>
           <table>
             <thead><tr><th>Rôle</th><th>Nom</th><th>E-mail</th><th>Mot de passe</th><th></th></tr></thead>
             <tbody>
@@ -766,7 +750,7 @@ export default function ElevesClasses() {
               ))}
             </tbody>
           </table>
-        </GroupeDeroulant>
+        </TableauDefilant>
       ))}
     </div>
 
@@ -805,43 +789,17 @@ export default function ElevesClasses() {
       {eleveParentCible && (
         <Modal titre={`Rattacher un parent à ${eleveParentCible.prenom} ${eleveParentCible.nom}`} onFermer={() => setEleveParentCible(null)}>
           <p className="note-secondaire" style={{ margin: '0 0 14px', fontSize: '0.83rem' }}>
-            Un même parent peut être rattaché à plusieurs enfants — s'il a déjà un compte, son e-mail suffit,
-            pas besoin de renseigner à nouveau nom/prénom/mot de passe.
+            Un même parent peut suivre plusieurs enfants — choisis-le dans la liste s'il a déjà un compte,
+            ou renseigne un nouveau parent ci-dessous.
           </p>
           <form className="formulaire" onSubmit={soumettreRattacherParent}>
-            <div className="ligne-champs">
-              <div className="champ">
-                <label>Prénom du parent</label>
-                <input value={formRattacherParent.parentPrenom} onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentPrenom: e.target.value })} />
-              </div>
-              <div className="champ">
-                <label>Nom du parent</label>
-                <input value={formRattacherParent.parentNom} onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentNom: e.target.value })} />
-              </div>
-            </div>
-            <div className="champ">
-              <label>E-mail du parent</label>
-              <input
-                type="email" autoComplete="off" required
-                value={formRattacherParent.parentEmail}
-                onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentEmail: e.target.value })}
-              />
-            </div>
-            <div className="ligne-champs">
-              <div className="champ" style={{ flex: 1 }}>
-                <label>Mot de passe (si nouveau compte)</label>
-                <input
-                  type={rattacherParentMotDePasseVisible ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  minLength={6}
-                  value={formRattacherParent.parentMotDePasse}
-                  onChange={(e) => setFormRattacherParent({ ...formRattacherParent, parentMotDePasse: e.target.value })}
-                />
-              </div>
-              <button type="button" className="secondaire" style={{ alignSelf: 'flex-end', marginBottom: 1 }} onClick={() => setRattacherParentMotDePasseVisible((v) => !v)}>
-                {rattacherParentMotDePasseVisible ? 'Masquer' : 'Afficher'}
-              </button>
-            </div>
+            <ChampParent
+              parents={parents}
+              valeur={formRattacherParent}
+              onChange={(champs) => setFormRattacherParent((v) => ({ ...v, ...champs }))}
+              motDePasseVisible={rattacherParentMotDePasseVisible}
+              onBasculerMotDePasseVisible={() => setRattacherParentMotDePasseVisible((v) => !v)}
+            />
             <button className="primaire" type="submit" disabled={enCoursRattacherParent}>
               {enCoursRattacherParent ? 'Rattachement…' : 'Rattacher'}
             </button>

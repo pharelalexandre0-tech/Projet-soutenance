@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
-import GroupeDeroulant from '../../components/GroupeDeroulant';
+import TableauDefilant from '../../components/TableauDefilant';
 import { messageErreur } from '../../utils/erreurs';
 import { totalElevesParNiveaux } from '../../utils/totaux';
 
@@ -78,40 +78,36 @@ export default function Impayes() {
         {niveaux.map(({ niveau, classes }) => (
           <div className="roster-niveau" key={niveau}>
             <h3 className="roster-niveau-titre">{niveau}</h3>
-            {classes.map((classe) => {
-              const aSurveiller = classe.eleves.some((e) => e.statutGlobal === 'impaye' || e.statutGlobal === 'partiel');
-              return (
-                <GroupeDeroulant
-                  key={classe.id}
-                  titre={classe.nom}
-                  compte={`${classe.eleves.length} élève${classe.eleves.length > 1 ? 's' : ''}`}
-                  ouvertParDefaut={aSurveiller}
-                >
-                  <div className="table-scroll">
-                    <table>
-                      <thead><tr><th>Élève</th><th>Reste dû</th><th className="chiffre">Statut</th><th></th></tr></thead>
-                      <tbody>
-                        {classe.eleves.map((eleve) => (
-                          <tr key={eleve.id}>
-                            <td>{eleve.prenom} {eleve.nom}</td>
-                            <td className="note-secondaire">{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : '—'}</td>
-                            <td className="chiffre"><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
-                            <td className="chiffre">
-                              {eleve.fraisARelancerId && (
-                                <button className="secondaire" disabled={enRelance === eleve.id} onClick={() => relancer(eleve)}>
-                                  {enRelance === eleve.id ? 'Envoi…' : 'Relancer'}
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {classe.eleves.length === 0 && <tr><td colSpan={4} className="vide">Aucun élève dans cette classe</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </GroupeDeroulant>
-              );
-            })}
+            {classes.map((classe) => (
+              <TableauDefilant
+                key={classe.id}
+                titre={classe.nom}
+                compte={`${classe.eleves.length} élève${classe.eleves.length > 1 ? 's' : ''}`}
+              >
+                <div className="table-scroll">
+                  <table>
+                    <thead><tr><th>Élève</th><th>Reste dû</th><th className="chiffre">Statut</th><th></th></tr></thead>
+                    <tbody>
+                      {classe.eleves.map((eleve) => (
+                        <tr key={eleve.id}>
+                          <td>{eleve.prenom} {eleve.nom}</td>
+                          <td className="note-secondaire">{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : '—'}</td>
+                          <td className="chiffre"><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
+                          <td className="chiffre">
+                            {eleve.fraisARelancerId && (
+                              <button className="secondaire" disabled={enRelance === eleve.id} onClick={() => relancer(eleve)}>
+                                {enRelance === eleve.id ? 'Envoi…' : 'Relancer'}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {classe.eleves.length === 0 && <tr><td colSpan={4} className="vide">Aucun élève dans cette classe</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </TableauDefilant>
+            ))}
           </div>
         ))}
       </div>

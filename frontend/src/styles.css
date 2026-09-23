@@ -515,23 +515,24 @@ button.danger:hover { background: var(--erreur-fond); }
 .case-statut.absence.actif { background: var(--erreur-fond); color: var(--erreur); border-color: var(--erreur); }
 .case-statut.retard.actif { background: var(--alerte-fond); color: var(--alerte); border-color: var(--alerte); }
 
-/* Groupe repliable (classe par classe) : un tableau long ne s'étire plus à
-   l'écran d'office, il se déplie seulement quand on clique son en-tête. */
-.groupe-deroulant { border: 1px solid var(--bordure); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
-.groupe-deroulant-entete {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  background: var(--gris-fond); border: none; padding: 10px 14px; cursor: pointer;
+/* Groupe défilant (classe par classe) : le tableau reste visible tel quel,
+   juste borné en hauteur — on le fait défiler pour voir la suite, jamais
+   besoin d'un clic pour le déplier. L'en-tête de colonnes reste collé en
+   haut pendant le défilement. */
+.tableau-defilant { border: 1px solid var(--bordure); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.tableau-defilant-entete {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--gris-fond); padding: 10px 14px;
   font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texte-clair);
-  text-align: left;
 }
-.groupe-deroulant-entete:hover { color: var(--primaire); }
-.groupe-deroulant-titre { flex: 1; }
-.groupe-deroulant-compte {
+.tableau-defilant-titre { flex: 1; }
+.tableau-defilant-compte {
   font-weight: 400; letter-spacing: 0; text-transform: none;
   background: var(--carte); border-radius: 20px; padding: 1px 9px; font-size: 0.7rem;
 }
-.groupe-deroulant-corps { padding: 10px 14px 14px; }
-.groupe-deroulant-corps table { margin: 0; }
+.tableau-defilant-corps { max-height: 280px; overflow-y: auto; }
+.tableau-defilant-corps table { margin: 0; }
+.tableau-defilant-corps thead th { position: sticky; top: 0; background: var(--carte); }
 
 .message-erreur, .message-succes {
   font-size: 0.85rem;

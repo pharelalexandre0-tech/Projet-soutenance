@@ -225,6 +225,18 @@ async function listerProfesseurs(req, res) {
   const professeurs = await Professeur.findAll({ where: { etablissementId: req.utilisateur.etablissementId } });
   return res.json({ professeurs });
 }
+// Pour le sélecteur "parent existant" à l'inscription/rattachement : évite
+// de faire taper l'e-mail à l'aveugle en espérant une correspondance exacte
+// avec un compte déjà créé (la moindre faute de frappe passait alors
+// inaperçue et créait un second compte parent au lieu de réutiliser le bon).
+async function listerParents(req, res) {
+  const parents = await Utilisateur.findAll({
+    where: { etablissementId: req.utilisateur.etablissementId, role: 'parent' },
+    attributes: ['id', 'nom', 'prenom', 'email'],
+    order: [['nom', 'ASC']],
+  });
+  return res.json({ parents });
+}
 async function supprimerProfesseur(req, res) {
   const professeur = await Professeur.findByPk(req.params.id);
   if (!professeur || professeur.etablissementId !== req.utilisateur.etablissementId) {
@@ -612,6 +624,7 @@ module.exports = {
   creerProfesseur,
   listerProfesseurs,
   supprimerProfesseur,
+  listerParents,
   creerEleve,
   listerEleves,
   supprimerEleve,

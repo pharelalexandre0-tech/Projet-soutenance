@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
-import GroupeDeroulant from '../../components/GroupeDeroulant';
+import TableauDefilant from '../../components/TableauDefilant';
 import { IconBanknote } from '../../components/icons';
 import { totalElevesParNiveaux } from '../../utils/totaux';
 
@@ -95,11 +95,10 @@ export default function DefinirFrais() {
           <div className="roster-niveau" key={niveau}>
             <h3 className="roster-niveau-titre">{niveau}</h3>
             {classes.map((classe) => (
-              <GroupeDeroulant
+              <TableauDefilant
                 key={classe.id}
                 titre={classe.nom}
                 compte={`${classe.eleves.length} élève${classe.eleves.length > 1 ? 's' : ''}`}
-                ouvertParDefaut={Boolean(termeRecherche)}
               >
                 <div className="table-scroll">
                   <table>
@@ -123,7 +122,7 @@ export default function DefinirFrais() {
                     </tbody>
                   </table>
                 </div>
-              </GroupeDeroulant>
+              </TableauDefilant>
             ))}
           </div>
         ))}
