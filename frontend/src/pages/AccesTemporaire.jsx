@@ -119,18 +119,20 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
   );
 }
 
-// Même principe que l'appel de l'Académie (Absences.jsx) : un clic par
-// élève fait défiler présent -> absent -> retard.
+const OPTIONS_STATUT = [
+  { valeur: 'present', libelle: 'Présent' },
+  { valeur: 'absence', libelle: 'Absent' },
+  { valeur: 'retard', libelle: 'Retard' },
+];
+
 function FormulaireAppel({ jeton, session, onEnvoye }) {
   const [statuts, setStatuts] = useState({});
   const [date] = useState(() => new Date().toISOString().slice(0, 10));
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
 
-  function cycler(eleveId) {
-    const suivant = { present: 'absence', absence: 'retard', retard: 'present' };
-    const actuel = statuts[eleveId] || 'present';
-    setStatuts({ ...statuts, [eleveId]: suivant[actuel] });
+  function definir(eleveId, statut) {
+    setStatuts({ ...statuts, [eleveId]: statut });
   }
 
   async function onSubmit(e) {
@@ -158,30 +160,38 @@ function FormulaireAppel({ jeton, session, onEnvoye }) {
           {session.professeur.prenom} {session.professeur.nom} — {session.portee.classe} — {new Date(date).toLocaleDateString('fr-FR')}
         </p>
         <form className="formulaire" onSubmit={onSubmit}>
-          <p className="note-secondaire" style={{ marginTop: -4 }}>Clique un élève pour faire défiler présent → absent → retard.</p>
-          <div className="liste-notifications">
+          <p className="note-secondaire" style={{ marginTop: -4 }}>
+            Coche le statut de chaque élève (présent par défaut).
+          </p>
+          <div className="liste-appel">
             {session.eleves.map((eleve, i) => {
               const statut = statuts[eleve.id] || 'present';
-              const fond = statut === 'absence' ? 'var(--erreur-fond)' : statut === 'retard' ? 'var(--alerte-fond)' : undefined;
               return (
-                <button
-                  type="button"
-                  key={eleve.id}
-                  className="notification-item"
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', background: fond, width: '100%', textAlign: 'left', border: 'none' }}
-                  onClick={() => cycler(eleve.id)}
-                >
-                  <span style={{ fontFamily: 'var(--police-mono)', color: 'var(--texte-clair)', width: 24 }}>{i + 1}.</span>
-                  <span>{eleve.prenom} {eleve.nom}</span>
-                  {statut === 'absence' && <span className="badge rouge" style={{ marginLeft: 'auto' }}>absent</span>}
-                  {statut === 'retard' && <span className="badge or" style={{ marginLeft: 'auto' }}>retard</span>}
-                </button>
+                <div className="ligne-appel" key={eleve.id}>
+                  <span className="ligne-appel-nom">
+                    <span style={{ fontFamily: 'var(--police-mono)', color: 'var(--texte-clair)', marginRight: 8 }}>{i + 1}.</span>
+                    {eleve.prenom} {eleve.nom}
+                  </span>
+                  <div className="ligne-appel-options">
+                    {OPTIONS_STATUT.map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.valeur}
+                        className={`case-statut ${opt.valeur}${statut === opt.valeur ? ' actif' : ''}`}
+                        aria-pressed={statut === opt.valeur}
+                        onClick={() => definir(eleve.id, opt.valeur)}
+                      >
+                        {opt.libelle}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               );
             })}
             {session.eleves.length === 0 && <div className="vide">Aucun élève dans cette classe</div>}
           </div>
           {erreur && <div className="message-erreur">{erreur}</div>}
-          <button className="primaire" type="submit" disabled={enCours}>
+          <button className="primaire" type="submit" disabled={enCours || session.eleves.length === 0}>
             {enCours ? 'Enregistrement…' : "Enregistrer l'appel"}
           </button>
         </form>

@@ -1,6 +1,7 @@
 const { CompteEphemere, Professeur, Classe, Matiere, UniteEnseignement, Semestre, Eleve } = require('../models');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
 const { enregistrerMoyenne } = require('./notesController');
+const { envoyerEmail } = require('../services/emailService');
 
 // Diagramme 4 : Academie -> creer un compte ephemere (portee, duree de
 // validite) -> genererCompteEphemere -> enregistrer -> envoyer le lien
@@ -49,9 +50,13 @@ async function creerCompteEphemere(req, res) {
   });
 
   const lien = `${process.env.EPHEMERE_LIEN_BASE_URL}/${compte.jeton}`;
-  // "envoyer le lien / jeton" au Professeur : log serveur en environnement
-  // de demo (remplacer par un vrai service e-mail en production).
-  console.log(`[Service E-mail] Lien d'accès temporaire envoyé à ${professeur.email} : ${lien}`);
+  const libelleTache = tacheFinale === 'saisie_absences' ? "faire l'appel" : 'saisir les notes';
+  const expirationFormatee = dateExpiration.toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
+  await envoyerEmail(
+    professeur.email,
+    `Accès temporaire — ${libelleTache} pour ${classe.nom}`,
+    `Bonjour ${professeur.prenom},\n\nUn accès temporaire vous permet de ${libelleTache} pour la classe ${classe.nom}${matiere ? ` (${matiere.intitule})` : ''}.\n\nOuvrez ce lien pour commencer : ${lien}\n\nCe lien expire le ${expirationFormatee} et se révoque automatiquement une fois la saisie envoyée.`
+  );
 
   return res.status(201).json({
     compte: {

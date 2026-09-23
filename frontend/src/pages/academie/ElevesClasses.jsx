@@ -3,6 +3,7 @@ import client from '../../api/client';
 import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
 import ConfirmModal from '../../components/ConfirmModal';
 import Modal from '../../components/Modal';
+import GroupeDeroulant from '../../components/GroupeDeroulant';
 
 const ELEVE_VIDE = {
   nom: '', prenom: '', classeId: '', email: '', motDePasse: '',
@@ -190,6 +191,11 @@ export default function ElevesClasses() {
     const lignes = await lireFichierExcel(fichier);
     const reussis = [];
     const echecs = [];
+    // Un seul mot de passe généré pour tout le lot plutôt qu'un par élève :
+    // seul l'e-mail distingue chaque compte (et sert à la vérification), le
+    // mot de passe se communique à la classe entière en une seule fois. Le
+    // fichier peut toujours en imposer un différent ligne par ligne.
+    const motDePasseLot = motDePasseAleatoire();
     for (let i = 0; i < lignes.length; i += 1) {
       const ligne = lignes[i];
       const prenom = ligne.prenom || ligne.prenoms;
@@ -199,7 +205,7 @@ export default function ElevesClasses() {
         echecs.push({ ligne: i + 2, raison: 'prénom, nom ou e-mail manquant' });
         continue;
       }
-      const motDePasse = ligne.motdepasse || ligne.mdp || ligne.password || motDePasseAleatoire();
+      const motDePasse = ligne.motdepasse || ligne.mdp || ligne.password || motDePasseLot;
       try {
         const res = await client.post('/eleves', {
           nom, prenom, email,
@@ -448,12 +454,11 @@ export default function ElevesClasses() {
         </div>
         {/* Un tableau par classe plutôt qu'une liste à plat avec une colonne
             "Classe" répétée à chaque ligne — la classe se voit déjà dans le
-            titre du groupe, pas besoin de la redire 50 fois. */}
+            titre du groupe, pas besoin de la redire 50 fois. Chaque groupe
+            est replié par défaut : sinon une classe à 50 élèves étire la
+            page indéfiniment avant même d'atteindre la suivante. */}
         {elevesParClasse.map(([classeId, groupe]) => (
-          <div key={classeId} style={{ marginBottom: 20 }}>
-            <h4 style={{ margin: '0 0 8px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--texte-clair)' }}>
-              {groupe.nom} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>({groupe.eleves.length})</span>
-            </h4>
+          <GroupeDeroulant key={classeId} titre={groupe.nom} compte={groupe.eleves.length} ouvertParDefaut={Boolean(rechercheNettoyee) || Boolean(filtreClasse)}>
             <table>
               <thead><tr><th>Élève</th><th>Parent</th><th></th></tr></thead>
               <tbody>
@@ -519,7 +524,7 @@ export default function ElevesClasses() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </GroupeDeroulant>
         ))}
         {elevesParClasse.length === 0 && <div className="vide">Aucun élève</div>}
         {totalPagesEleves > 1 && (
@@ -656,7 +661,8 @@ export default function ElevesClasses() {
           <>
             <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 14 }}>
               Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong> — et en
-              option date de naissance, mot de passe (sinon généré automatiquement).
+              option date de naissance, mot de passe. Sans colonne mot de passe, un seul mot de passe est généré et
+              partagé par tous les élèves du fichier : seul l'e-mail distingue chaque compte.
             </p>
             <form className="formulaire" onSubmit={importerEleves}>
               <div className="ligne-champs">
@@ -728,10 +734,7 @@ export default function ElevesClasses() {
         </div>
       )}
       {identifiantsParClasse.map((groupe) => (
-        <div key={groupe.classeId} style={{ marginBottom: 20 }}>
-          <h4 style={{ margin: '0 0 8px', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--texte-clair)' }}>
-            {groupe.nom} <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>({groupe.entrees.length})</span>
-          </h4>
+        <GroupeDeroulant key={groupe.classeId} titre={groupe.nom} compte={groupe.entrees.length} ouvertParDefaut={Boolean(rechercheIdentifiantsNettoyee)}>
           <table>
             <thead><tr><th>Rôle</th><th>Nom</th><th>E-mail</th><th>Mot de passe</th><th></th></tr></thead>
             <tbody>
@@ -763,7 +766,7 @@ export default function ElevesClasses() {
               ))}
             </tbody>
           </table>
-        </div>
+        </GroupeDeroulant>
       ))}
     </div>
 

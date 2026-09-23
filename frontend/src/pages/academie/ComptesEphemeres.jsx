@@ -166,7 +166,12 @@ export default function ComptesEphemeres() {
 
         {lienGenere && (
           <div className="carte" style={{ marginTop: 16, background: '#fbf3df' }}>
-            <strong>Lien à transmettre au Professeur :</strong>
+            <strong>
+              E-mail envoyé à {professeurs.find((p) => String(p.id) === form.professeurId)?.email || 'ce professeur'}.
+            </strong>
+            <p className="note-secondaire" style={{ margin: '4px 0 0' }}>
+              Le lien ci-dessous n'est qu'une copie de secours si jamais l'e-mail n'arrive pas.
+            </p>
             <div style={{ wordBreak: 'break-all', marginTop: 6 }}>
               <a href={lienGenere.lien} target="_blank" rel="noreferrer">{lienGenere.lien}</a>
             </div>

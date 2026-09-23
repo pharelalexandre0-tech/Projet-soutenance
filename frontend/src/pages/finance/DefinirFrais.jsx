@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
+import GroupeDeroulant from '../../components/GroupeDeroulant';
 import { IconBanknote } from '../../components/icons';
 import { totalElevesParNiveaux } from '../../utils/totaux';
 
@@ -94,11 +95,12 @@ export default function DefinirFrais() {
           <div className="roster-niveau" key={niveau}>
             <h3 className="roster-niveau-titre">{niveau}</h3>
             {classes.map((classe) => (
-              <div className="roster-classe" key={classe.id}>
-                <div className="roster-classe-entete">
-                  <span>{classe.nom}</span>
-                  <span className="roster-classe-compteur">{classe.eleves.length} élève{classe.eleves.length > 1 ? 's' : ''}</span>
-                </div>
+              <GroupeDeroulant
+                key={classe.id}
+                titre={classe.nom}
+                compte={`${classe.eleves.length} élève${classe.eleves.length > 1 ? 's' : ''}`}
+                ouvertParDefaut={Boolean(termeRecherche)}
+              >
                 <div className="table-scroll">
                   <table>
                     <thead><tr><th>Étudiant</th><th>Net à payer</th><th>Versé</th><th>Reste</th><th>Statut</th><th></th></tr></thead>
@@ -121,7 +123,7 @@ export default function DefinirFrais() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </GroupeDeroulant>
             ))}
           </div>
         ))}

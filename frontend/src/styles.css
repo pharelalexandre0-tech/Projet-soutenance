@@ -492,6 +492,47 @@ button.danger:hover { background: var(--erreur-fond); }
   50% { box-shadow: 0 0 0 4px transparent; }
 }
 
+/* Appel (accès temporaire) : un statut par élève, trois boutons explicites
+   plutôt qu'un clic qui fait défiler des états invisibles à l'écran. */
+.liste-appel {
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 420px; overflow-y: auto;
+  border: 1px solid var(--bordure); border-radius: 10px; padding: 8px;
+}
+.ligne-appel {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 6px 8px; border-radius: 8px;
+}
+.ligne-appel-nom { font-size: 0.88rem; color: var(--texte); }
+.ligne-appel-options { display: flex; gap: 6px; flex: none; }
+.case-statut {
+  border: 1px solid var(--bordure); background: var(--carte); color: var(--texte-clair);
+  border-radius: 20px; padding: 5px 12px; font-size: 0.74rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.case-statut:hover { border-color: var(--primaire); color: var(--primaire); }
+.case-statut.present.actif { background: var(--succes-fond); color: var(--succes); border-color: var(--succes); }
+.case-statut.absence.actif { background: var(--erreur-fond); color: var(--erreur); border-color: var(--erreur); }
+.case-statut.retard.actif { background: var(--alerte-fond); color: var(--alerte); border-color: var(--alerte); }
+
+/* Groupe repliable (classe par classe) : un tableau long ne s'étire plus à
+   l'écran d'office, il se déplie seulement quand on clique son en-tête. */
+.groupe-deroulant { border: 1px solid var(--bordure); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.groupe-deroulant-entete {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--gris-fond); border: none; padding: 10px 14px; cursor: pointer;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texte-clair);
+  text-align: left;
+}
+.groupe-deroulant-entete:hover { color: var(--primaire); }
+.groupe-deroulant-titre { flex: 1; }
+.groupe-deroulant-compte {
+  font-weight: 400; letter-spacing: 0; text-transform: none;
+  background: var(--carte); border-radius: 20px; padding: 1px 9px; font-size: 0.7rem;
+}
+.groupe-deroulant-corps { padding: 10px 14px 14px; }
+.groupe-deroulant-corps table { margin: 0; }
+
 .message-erreur, .message-succes {
   font-size: 0.85rem;
   padding: 11px 15px;
@@ -1100,12 +1141,6 @@ button.danger:hover { background: var(--erreur-fond); }
   font-family: var(--police-mono); font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--primaire); margin: 0 0 10px; padding-bottom: 8px; border-bottom: 2px solid var(--primaire-clair);
 }
-.roster-classe { border: 1px solid var(--bordure); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
-.roster-classe-entete {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px; background: var(--gris-fond); font-weight: 600; font-size: 0.86rem;
-}
-.roster-classe-compteur { font-family: var(--police-mono); font-size: 0.72rem; color: var(--texte-clair); font-weight: 500; }
 
 .releve-signature .cachet {
   width: 92px; height: 92px; border: 1.5px dashed var(--bordure); border-radius: 50%;
