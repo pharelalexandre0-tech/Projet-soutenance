@@ -25,7 +25,7 @@ export default function ChampParent({ parents, valeur, onChange, motDePasseVisib
 
   return (
     <>
-      {parents.length > 0 && (
+      {parents.length > 0 ? (
         <div className="champ">
           <label>Parent</label>
           <select value={modeNouveau ? '' : (parentExistant?.id ?? '')} onChange={(e) => choisir(e.target.value)}>
@@ -33,6 +33,15 @@ export default function ChampParent({ parents, valeur, onChange, motDePasseVisib
             {parents.map((p) => <option key={p.id} value={p.id}>{p.prenom} {p.nom} ({p.email})</option>)}
           </select>
         </div>
+      ) : (
+        // Sans ça, ce cas (premier élève de l'établissement, donc aucun
+        // parent encore connu) rend EXACTEMENT le même formulaire que
+        // l'ancienne version — impossible de distinguer "la fonctionnalité
+        // n'existe pas" de "il n'y a simplement encore personne à choisir".
+        <p className="note-secondaire" style={{ margin: 0 }}>
+          Aucun parent existant pour l'instant dans cet établissement — renseigne-le ci-dessous, il pourra ensuite
+          être choisi directement dans la liste pour un autre enfant.
+        </p>
       )}
       {!modeNouveau && parentExistant ? (
         <p className="note-secondaire" style={{ margin: 0 }}>
