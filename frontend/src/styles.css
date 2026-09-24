@@ -357,7 +357,7 @@ a { color: var(--primaire); }
 }
 
 table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--bordure); }
+th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--bordure); }
 th {
   color: var(--texte-clair); font-weight: 600; font-size: 0.68rem;
   text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--police-mono);
@@ -532,6 +532,16 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 .tableau-defilant-corps { max-height: 280px; overflow-y: auto; }
 .tableau-defilant-corps table { margin: 0; border-collapse: separate; border-spacing: 0; }
+.tableau-defilant-corps tbody tr:last-child td { border-bottom: none; }
+
+/* Même encadré que .tableau-defilant (bordure, coins arrondis, en-tête
+   grisé) mais pour une liste courte qui n'a pas besoin de défiler — pour
+   qu'une table "à plat" ne détonne plus à côté d'un tableau défilant dans
+   la carte voisine. */
+.table-cadre { border: 1px solid var(--bordure); border-radius: 10px; overflow: hidden; }
+.table-cadre table { margin: 0; border-collapse: separate; border-spacing: 0; }
+.table-cadre thead th { background: var(--gris-fond); }
+.table-cadre tbody tr:last-child td { border-bottom: none; }
 /* Un <th> en position:sticky ne se place pas au-dessus du <tbody> par
    défaut dans le modèle d'empilement des tableaux (les cellules de
    tbody restaient peintes par-dessus, texte des deux lignes mélangé
@@ -914,7 +924,7 @@ button.danger:hover { background: var(--erreur-fond); }
 .vide {
   color: var(--texte-clair);
   font-size: 0.84rem;
-  padding: 18px 16px;
+  padding: 26px 16px;
   text-align: center;
   border: 1px dashed var(--bordure);
   border-radius: 10px;

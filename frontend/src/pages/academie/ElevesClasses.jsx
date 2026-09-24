@@ -355,6 +355,7 @@ export default function ElevesClasses() {
         <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -8, marginBottom: 16 }}>
           Clique une classe pour voir son effectif, ses statistiques, la modifier ou la supprimer.
         </p>
+        <div className="table-cadre">
         <table>
           <thead><tr><th>Nom</th><th>Niveau</th><th>Effectif</th></tr></thead>
           <tbody>
@@ -423,6 +424,7 @@ export default function ElevesClasses() {
             {classes.length === 0 && <tr><td colSpan={3} className="vide">Aucune classe</td></tr>}
           </tbody>
         </table>
+        </div>
         <div className="entete-section">
           <h3>Créer une classe</h3>
           <button type="button" className={classeFormOuvert ? 'secondaire' : 'primaire'} onClick={() => setClasseFormOuvert((v) => !v)}>
