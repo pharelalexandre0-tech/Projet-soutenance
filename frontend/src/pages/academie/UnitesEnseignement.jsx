@@ -200,7 +200,7 @@ export default function UnitesEnseignement() {
                 </button>
               </label>
               <select value={nouvelleUE.semestreId} onChange={(e) => setNouvelleUE({ ...nouvelleUE, semestreId: e.target.value })} required>
-                <option value="">—</option>
+                <option value="">Choisir un semestre</option>
                 {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
               </select>
             </div>

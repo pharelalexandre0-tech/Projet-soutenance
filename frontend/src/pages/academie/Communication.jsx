@@ -58,7 +58,7 @@ function Messages({ classes }) {
             <div className="champ">
               <label>Classe</label>
               <select value={form.classeId} onChange={(e) => setForm({ ...form, classeId: e.target.value })} required>
-                <option value="">—</option>
+                <option value="">Choisir une classe</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
               </select>
             </div>
@@ -134,7 +134,7 @@ function CahierDeTextes({ classes }) {
         <div className="champ" style={{ marginBottom: 16 }}>
           <label>Classe</label>
           <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
-            <option value="">—</option>
+            <option value="">Choisir une classe</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
           </select>
         </div>

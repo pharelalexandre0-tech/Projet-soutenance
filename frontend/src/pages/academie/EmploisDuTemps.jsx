@@ -103,14 +103,14 @@ export default function EmploisDuTemps() {
         <div className="champ">
           <label>Classe</label>
           <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
-            <option value="">—</option>
+            <option value="">Choisir une classe</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
           </select>
         </div>
         <div className="champ">
           <label>Semestre</label>
           <select value={semestreId} onChange={(e) => setSemestreId(e.target.value)}>
-            <option value="">—</option>
+            <option value="">Choisir un semestre</option>
             {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
           </select>
         </div>
@@ -178,7 +178,7 @@ export default function EmploisDuTemps() {
                       >
                         ×
                       </button>
-                      <strong>{e.matiere || '—'}</strong>
+                      <strong>{e.matiere || 'Non renseignée'}</strong>
                       <span>{e.heureDebut} – {e.heureFin}</span>
                       {e.salle && <span>{e.salle}</span>}
                     </div>

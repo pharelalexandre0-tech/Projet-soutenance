@@ -29,7 +29,7 @@ export default function ChampParent({ parents, valeur, onChange, motDePasseVisib
         <div className="champ">
           <label>Parent</label>
           <select value={modeNouveau ? '' : (parentExistant?.id ?? '')} onChange={(e) => choisir(e.target.value)}>
-            <option value="">— Nouveau parent —</option>
+            <option value="">+ Nouveau parent</option>
             {parents.map((p) => <option key={p.id} value={p.id}>{p.prenom} {p.nom} ({p.email})</option>)}
           </select>
         </div>

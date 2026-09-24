@@ -154,14 +154,14 @@ function Comportement() {
           <div className="champ">
             <label>Classe</label>
             <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
-              <option value="">—</option>
+              <option value="">Choisir une classe</option>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
             </select>
           </div>
           <div className="champ">
             <label>Élève</label>
             <select value={eleveId} onChange={(e) => { setEleveId(e.target.value); if (e.target.value) chargerIncidents(e.target.value); }} disabled={!classeId}>
-              <option value="">—</option>
+              <option value="">Choisir un élève</option>
               {eleves.map((el) => <option key={el.id} value={el.id}>{el.prenom} {el.nom}</option>)}
             </select>
           </div>

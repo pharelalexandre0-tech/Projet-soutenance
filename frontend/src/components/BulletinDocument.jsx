@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import client from '../api/client';
 
 function mention(moyenne) {
-  if (moyenne == null) return '—';
+  if (moyenne == null) return 'Non noté';
   if (moyenne >= 18) return 'Excellent';
   if (moyenne >= 16) return 'Très bien';
   if (moyenne >= 14) return 'Bien';
@@ -48,8 +48,8 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
       <div className="releve-identite">
         <div><span>Étudiant</span><strong>{eleve ? `${eleve.prenom} ${eleve.nom}` : `#${eleveId}`}</strong></div>
         <div><span>Matricule</span><strong>ETU-{String(eleveId).padStart(5, '0')}</strong></div>
-        <div><span>Filière</span><strong>{eleve?.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : '—'}</strong></div>
-        <div><span>Semestre</span><strong>{semestre ? `${semestre.libelle} (${semestre.anneeScolaire})` : '—'}</strong></div>
+        <div><span>Filière</span><strong>{eleve?.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'}</strong></div>
+        <div><span>Semestre</span><strong>{semestre ? `${semestre.libelle} (${semestre.anneeScolaire})` : 'Non renseigné'}</strong></div>
       </div>
 
       {resume.sessionGlobale === 'rattrapage' && (
@@ -86,11 +86,11 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
                     const badgeMatiere = m.eliminatoire ? { texte: 'éliminatoire', classe: 'rouge' } : m.noteFinale >= 10 ? { texte: 'validé', classe: 'vert' } : { texte: 'non validé', classe: 'rouge' };
                     return (
                       <tr className="ligne-matiere" key={m.matiere}>
-                        <td>{m.code ?? '—'}</td>
+                        <td>{m.code ?? 'N/A'}</td>
                         <td>{m.matiere}{m.session === 'rattrapage' && <span className="note-secondaire"> (rattrapage)</span>}</td>
                         <td className="chiffre">{m.coefficient}</td>
-                        <td className="chiffre">{m.moyenneCC ?? '—'}</td>
-                        <td className="chiffre">{m.moyenneExamen ?? '—'}</td>
+                        <td className="chiffre">{m.moyenneCC ?? 'N/A'}</td>
+                        <td className="chiffre">{m.moyenneExamen ?? 'N/A'}</td>
                         <td className="chiffre"><span className={`note-finale ${m.noteFinale >= 10 && !m.eliminatoire ? 'reussite' : 'echec'}`}>{m.noteFinale}</span></td>
                         <td className="chiffre"><span className={`badge ${badgeMatiere.classe}`}>{badgeMatiere.texte}</span></td>
                       </tr>

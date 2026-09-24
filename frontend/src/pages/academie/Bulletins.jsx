@@ -67,21 +67,21 @@ export default function Bulletins() {
         <div className="champ">
           <label>Classe</label>
           <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
-            <option value="">—</option>
+            <option value="">Choisir une classe</option>
             {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
           </select>
         </div>
         <div className="champ">
           <label>Élève</label>
           <select value={eleveId} onChange={(e) => setEleveId(e.target.value)} disabled={!classeId}>
-            <option value="">—</option>
+            <option value="">Choisir un élève</option>
             {eleves.map((el) => <option key={el.id} value={el.id}>{el.prenom} {el.nom}</option>)}
           </select>
         </div>
         <div className="champ">
           <label>Semestre</label>
           <select value={semestreId} onChange={(e) => setSemestreId(e.target.value)}>
-            <option value="">—</option>
+            <option value="">Choisir un semestre</option>
             {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
           </select>
         </div>

@@ -52,7 +52,7 @@ export default function Bulletin({ eleveId, eleve }) {
         <div className="champ">
           <label>Semestre</label>
           <select value={semestreId} onChange={(e) => setSemestreId(e.target.value)}>
-            <option value="">—</option>
+            <option value="">Choisir un semestre</option>
             {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
           </select>
         </div>

@@ -91,7 +91,7 @@ export default function Impayes() {
                       {classe.eleves.map((eleve) => (
                         <tr key={eleve.id}>
                           <td>{eleve.prenom} {eleve.nom}</td>
-                          <td className="note-secondaire">{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : '—'}</td>
+                          <td className="note-secondaire">{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : 'Soldé'}</td>
                           <td className="chiffre"><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
                           <td className="chiffre">
                             {eleve.fraisARelancerId && (

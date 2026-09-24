@@ -100,14 +100,14 @@ export default function ComptesEphemeres() {
             <div className="champ">
               <label>Professeur</label>
               <select value={form.professeurId} onChange={(e) => setForm({ ...form, professeurId: e.target.value })} required>
-                <option value="">—</option>
+                <option value="">Choisir un professeur</option>
                 {professeurs.map((p) => <option key={p.id} value={p.id}>{p.prenom} {p.nom} ({p.matiere})</option>)}
               </select>
             </div>
             <div className="champ">
               <label>Classe</label>
               <select value={form.classeId} onChange={(e) => setForm({ ...form, classeId: e.target.value })} required>
-                <option value="">—</option>
+                <option value="">Choisir une classe</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
               </select>
             </div>
@@ -115,7 +115,7 @@ export default function ComptesEphemeres() {
               <div className="champ">
                 <label>Semestre</label>
                 <select value={form.semestreId} onChange={(e) => setForm({ ...form, semestreId: e.target.value })} required>
-                  <option value="">—</option>
+                  <option value="">Choisir un semestre</option>
                   {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle}</option>)}
                 </select>
               </div>
@@ -126,14 +126,14 @@ export default function ComptesEphemeres() {
               <div className="champ">
                 <label>UE</label>
                 <select value={form.ueId} onChange={(e) => setForm({ ...form, ueId: e.target.value, matiereId: '' })} required disabled={!form.semestreId}>
-                  <option value="">—</option>
+                  <option value="">Choisir une UE</option>
                   {ues.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.intitule}</option>)}
                 </select>
               </div>
               <div className="champ">
                 <label>Matière</label>
                 <select value={form.matiereId} onChange={(e) => setForm({ ...form, matiereId: e.target.value })} required disabled={!form.ueId}>
-                  <option value="">—</option>
+                  <option value="">Choisir une matière</option>
                   {(ues.find((u) => String(u.id) === form.ueId)?.Matieres || []).map((m) => (
                     <option key={m.id} value={m.id}>{m.code} — {m.intitule}</option>
                   ))}
@@ -190,7 +190,7 @@ export default function ComptesEphemeres() {
             {professeurs.map((p) => (
               <tr key={p.id}>
                 <td>{p.prenom} {p.nom}</td>
-                <td>{p.matiere || '—'}</td>
+                <td>{p.matiere || 'Non renseignée'}</td>
                 <td>{p.email}</td>
                 <td style={{ textAlign: 'right' }}>
                   <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setProfesseurASupprimer(p)}>

@@ -50,8 +50,8 @@ export default function RelevesNotes({ eleveId, eleve }) {
         <div className="releve-identite">
           <div><span>Étudiant</span><strong>{eleve.prenom} {eleve.nom}</strong></div>
           <div><span>Matricule</span><strong>ETU-{String(eleveId).padStart(5, '0')}</strong></div>
-          <div><span>Filière</span><strong>{eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : '—'}</strong></div>
-          <div><span>Semestre en cours</span><strong>{semestreLibelle ? `${semestreLibelle.libelle} (${semestreLibelle.anneeScolaire})` : '—'}</strong></div>
+          <div><span>Filière</span><strong>{eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'}</strong></div>
+          <div><span>Semestre en cours</span><strong>{semestreLibelle ? `${semestreLibelle.libelle} (${semestreLibelle.anneeScolaire})` : 'Non renseigné'}</strong></div>
         </div>
       )}
 
@@ -110,7 +110,7 @@ export default function RelevesNotes({ eleveId, eleve }) {
                   <tr className="ligne-ue">
                     <td colSpan={4}>{ue ? `${ue.code} — ${ue.intitule}` : 'Autre'}</td>
                     <td className="chiffre" />
-                    <td className="chiffre">{moyenneUE != null ? `${moyenneUE}/20` : '—'}</td>
+                    <td className="chiffre">{moyenneUE != null ? `${moyenneUE}/20` : 'N/A'}</td>
                     <td className="chiffre">{resultatUE && <span className={`badge ${resultatUE.classe}`}>{resultatUE.texte}</span>}</td>
                   </tr>
                   {matieres.map((n) => {
@@ -119,14 +119,14 @@ export default function RelevesNotes({ eleveId, eleve }) {
                       : n.eliminatoire ? { texte: 'éliminatoire', classe: 'rouge' } : n.noteFinale >= SEUIL_VALIDATION_UE ? { texte: 'validé', classe: 'vert' } : { texte: 'non validé', classe: 'rouge' };
                     return (
                       <tr className="ligne-matiere" key={n.matiereId}>
-                        <td>{n.Matiere?.code ?? '—'}</td>
+                        <td>{n.Matiere?.code ?? 'N/A'}</td>
                         <td>{n.Matiere?.intitule}{n.session === 'rattrapage' && <span className="note-secondaire"> (rattrapage)</span>}</td>
                         <td className="chiffre">{n.Matiere?.coefficient ?? 1}</td>
-                        <td className="chiffre">{n.moyenneCC ?? '—'}</td>
-                        <td className="chiffre">{n.moyenneExamen ?? '—'}</td>
+                        <td className="chiffre">{n.moyenneCC ?? 'N/A'}</td>
+                        <td className="chiffre">{n.moyenneExamen ?? 'N/A'}</td>
                         <td className="chiffre">
                           <span className={`note-finale ${n.noteFinale != null && n.noteFinale >= SEUIL_VALIDATION_UE && !n.eliminatoire ? 'reussite' : 'echec'}`}>
-                            {n.noteFinale ?? '—'}
+                            {n.noteFinale ?? 'N/A'}
                           </span>
                         </td>
                         <td className="chiffre">{badgeMatiere && <span className={`badge ${badgeMatiere.classe}`}>{badgeMatiere.texte}</span>}</td>

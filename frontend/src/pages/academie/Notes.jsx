@@ -128,28 +128,28 @@ export default function Notes() {
           <div className="champ">
             <label>Classe</label>
             <select value={classeId} onChange={(e) => setClasseId(e.target.value)}>
-              <option value="">—</option>
+              <option value="">Choisir une classe</option>
               {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
             </select>
           </div>
           <div className="champ">
             <label>Semestre</label>
             <select value={semestreId} onChange={(e) => setSemestreId(e.target.value)}>
-              <option value="">—</option>
+              <option value="">Choisir un semestre</option>
               {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle}</option>)}
             </select>
           </div>
           <div className="champ">
             <label>UE</label>
             <select value={ueId} onChange={(e) => { setUeId(e.target.value); setMatiereId(''); }}>
-              <option value="">—</option>
+              <option value="">Choisir une UE</option>
               {ues.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.intitule}</option>)}
             </select>
           </div>
           <div className="champ">
             <label>Matière</label>
             <select value={matiereId} onChange={(e) => setMatiereId(e.target.value)} disabled={!ueId}>
-              <option value="">—</option>
+              <option value="">Choisir une matière</option>
               {matieres.map((m) => <option key={m.id} value={m.id}>{m.code} — {m.intitule}</option>)}
             </select>
           </div>

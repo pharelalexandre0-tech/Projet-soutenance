@@ -109,7 +109,7 @@ export default function DefinirFrais() {
                           <td>{eleve.prenom} {eleve.nom}</td>
                           <td className="note-secondaire">{eleve.totalDu.toLocaleString('fr-FR')} FCFA</td>
                           <td className="note-secondaire">{eleve.totalRegle.toLocaleString('fr-FR')} FCFA</td>
-                          <td>{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : '—'}</td>
+                          <td>{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : 'Soldé'}</td>
                           <td><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
                           <td>
                             {eleve.fraisActifId && (
@@ -208,7 +208,7 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
             <div className="champ">
               <label>Classe</label>
               <select value={form.classeId} onChange={(e) => setForm({ ...form, classeId: e.target.value })} required>
-                <option value="">—</option>
+                <option value="">Choisir une classe</option>
                 {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
               </select>
             </div>
@@ -217,7 +217,7 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
             <div className="champ">
               <label>Niveau</label>
               <select value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })} required>
-                <option value="">—</option>
+                <option value="">Choisir un niveau</option>
                 {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
@@ -225,7 +225,7 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
           <div className="champ">
             <label>Semestre</label>
             <select value={form.semestreId} onChange={(e) => setForm({ ...form, semestreId: e.target.value })} required>
-              <option value="">—</option>
+              <option value="">Choisir un semestre</option>
               {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
             </select>
           </div>

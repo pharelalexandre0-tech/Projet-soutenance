@@ -30,7 +30,7 @@ function chargerIdentifiantsSession() {
 // deux promotions "IA & Big Data") — le niveau doit toujours accompagner le
 // nom partout où une classe s'affiche, sinon impossible de les distinguer.
 function nomClasse(c) {
-  return c ? `${c.nom} (${c.niveau})` : '—';
+  return c ? `${c.nom} (${c.niveau})` : 'Classe inconnue';
 }
 // Un établissement peut compter des milliers d'élèves — rendre tout d'un
 // coup alourdit le navigateur pour rien, alors que l'API renvoie déjà tout
@@ -441,7 +441,7 @@ export default function ElevesClasses() {
               <div className="champ">
                 <label>Niveau</label>
                 <select value={nouvelleClasse.niveau} onChange={(e) => setNouvelleClasse({ ...nouvelleClasse, niveau: e.target.value })} required>
-                  <option value="">—</option>
+                  <option value="">Choisir un niveau</option>
                   {NIVEAUX.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
@@ -522,7 +522,7 @@ export default function ElevesClasses() {
                         </>
                       ) : (
                         <>
-                          <span className="note-secondaire">— aucun</span>{' '}
+                          <span className="note-secondaire">Aucun</span>{' '}
                           <button
                             type="button" className="secondaire"
                             style={{ padding: '1px 8px', fontSize: '0.7rem' }}
@@ -579,7 +579,7 @@ export default function ElevesClasses() {
               <div className="champ">
                 <label>Classe</label>
                 <select value={nouvelEleve.classeId} onChange={(e) => setNouvelEleve({ ...nouvelEleve, classeId: e.target.value })} required>
-                  <option value="">—</option>
+                  <option value="">Choisir une classe</option>
                   {classes.map((c) => <option key={c.id} value={c.id}>{nomClasse(c)}</option>)}
                 </select>
               </div>
@@ -655,7 +655,7 @@ export default function ElevesClasses() {
                 <div className="champ">
                   <label>Classe cible</label>
                   <select value={classeImportId} onChange={(e) => setClasseImportId(e.target.value)} required>
-                    <option value="">—</option>
+                    <option value="">Choisir une classe</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{nomClasse(c)}</option>)}
                   </select>
                 </div>

@@ -61,7 +61,7 @@ export default function AbsencesEtudiant({ eleveId }) {
                 {absences.map((a) => (
                   <tr key={a.id}>
                     <td>{new Date(a.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td>{a.cours || '—'}</td>
+                    <td>{a.cours || 'Non renseigné'}</td>
                     <td>{a.type === 'retard' ? <span className="badge or">retard</span> : <span className="badge gris">absence</span>}</td>
                     <td>{a.justifie ? <span className="badge vert">justifiée</span> : <span className="badge rouge">non justifiée</span>}</td>
                     <td>

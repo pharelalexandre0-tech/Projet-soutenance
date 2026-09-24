@@ -86,7 +86,7 @@ export default function FraisEtudiant({ eleveId }) {
                     <td>
                       {p.Recu?.fichierPDF
                         ? <a href={p.Recu.fichierPDF} target="_blank" rel="noreferrer" className="secondaire" style={{ display: 'inline-block', textDecoration: 'none', padding: '5px 12px' }}>Télécharger</a>
-                        : <span className="note-secondaire">—</span>}
+                        : <span className="note-secondaire">Indisponible</span>}
                     </td>
                   </tr>
                 ))}

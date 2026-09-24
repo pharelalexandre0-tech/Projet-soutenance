@@ -64,7 +64,7 @@ export default function TableauDeBord({ onNaviguer }) {
             <span className="puce-icone petite"><IconDocument width={16} height={16} /></span>
           </div>
           <div className="valeur">
-            {academique?.moyenneGenerale != null ? <ChiffreAnime valeur={academique.moyenneGenerale} suffixe="/20" /> : '—'}
+            {academique?.moyenneGenerale != null ? <ChiffreAnime valeur={academique.moyenneGenerale} suffixe="/20" /> : 'N/A'}
           </div>
         </div>
         <div className={`stat-tile tile-${niveauAbsenteisme(tauxNonJustifie)}`}>

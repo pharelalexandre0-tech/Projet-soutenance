@@ -100,7 +100,7 @@ export default function Salaires() {
                       <td>{s.periode}</td>
                       <td>{s.montant.toLocaleString('fr-FR')} FCFA</td>
                       <td><span className={`badge ${s.statut === 'verse' ? 'vert' : 'gris'}`}>{s.statut === 'verse' ? 'versé' : 'prévu'}</span></td>
-                      <td>{s.dateVersement ?? '—'}</td>
+                      <td>{s.dateVersement ?? 'Non versé'}</td>
                       <td>
                         {s.fichierPDF && (
                           <a href={s.fichierPDF} target="_blank" rel="noreferrer" className="secondaire" style={{ display: 'inline-block', textDecoration: 'none', padding: '5px 12px' }}>
