@@ -42,8 +42,8 @@
   --alerte: #9C6B12;
   --alerte-fond: #FAF0DC;
 
-  --radius: 12px;
-  --ombre: 0 1px 2px rgba(28, 35, 33, 0.05), 0 8px 24px rgba(28, 35, 33, 0.06);
+  --radius: 16px;
+  --ombre: 0 1px 3px rgba(28, 35, 33, 0.06), 0 14px 34px -6px rgba(28, 35, 33, 0.12);
 
   --police: 'Public Sans', -apple-system, 'Segoe UI', system-ui, sans-serif;
   --police-serif: 'Source Serif 4', Georgia, serif;
@@ -284,20 +284,20 @@ a { color: var(--primaire); }
   border: none;
   border-radius: var(--radius);
   box-shadow: var(--ombre);
-  padding: 22px 24px;
-  margin-bottom: 18px;
+  padding: 28px 30px;
+  margin-bottom: 20px;
   position: relative;
 }
 .carte h2 {
-  margin-top: 0; font-family: var(--police-serif); font-size: 1.12rem; font-weight: 600;
-  letter-spacing: -0.005em;
-  padding-bottom: 13px; margin-bottom: 17px; border-bottom: 1px solid var(--bordure);
+  margin-top: 0; font-family: var(--police-serif); font-size: 1.24rem; font-weight: 600;
+  letter-spacing: -0.008em;
+  padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--bordure);
   color: var(--texte);
 }
 .carte h3 { font-size: 0.76rem; color: var(--texte-clair); margin-bottom: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--police-mono); }
 
-.grille-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.grille-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grille-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grille-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .grille-2 > *, .grille-3 > * { min-width: 0; }
 @media (max-width: 860px) { .grille-2, .grille-3 { grid-template-columns: 1fr; } }
 
@@ -416,9 +416,9 @@ td:has(.badge), td { font-variant-numeric: tabular-nums; }
   color: var(--texte-clair); text-transform: uppercase; letter-spacing: 0.06em;
 }
 input, select, textarea {
-  padding: 9px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--bordure);
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 0.88rem;
   font-family: inherit;
   background: var(--gris-fond);
@@ -440,8 +440,8 @@ button.primaire {
   background: var(--degrade-plein-ecran);
   color: #fff;
   border: none;
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 11px 22px;
+  border-radius: 10px;
   cursor: pointer;
   font-size: 0.86rem;
   font-weight: 600;
@@ -464,7 +464,7 @@ button.secondaire {
   background: var(--carte);
   border: 1px solid var(--bordure);
   padding: 6px 13px;
-  border-radius: 8px;
+  border-radius: 9px;
   cursor: pointer;
   font-size: 0.83rem;
   font-weight: 500;
@@ -519,10 +519,10 @@ button.danger:hover { background: var(--erreur-fond); }
    juste borné en hauteur — on le fait défiler pour voir la suite, jamais
    besoin d'un clic pour le déplier. L'en-tête de colonnes reste collé en
    haut pendant le défilement. */
-.tableau-defilant { border: 1px solid var(--bordure); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.tableau-defilant { border: 1px solid var(--bordure); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
 .tableau-defilant-entete {
   display: flex; align-items: center; gap: 8px;
-  background: var(--gris-fond); padding: 10px 14px;
+  background: var(--gris-fond); padding: 12px 16px;
   font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--texte-clair);
 }
 .tableau-defilant-titre { flex: 1; }
@@ -538,7 +538,7 @@ button.danger:hover { background: var(--erreur-fond); }
    grisé) mais pour une liste courte qui n'a pas besoin de défiler — pour
    qu'une table "à plat" ne détonne plus à côté d'un tableau défilant dans
    la carte voisine. */
-.table-cadre { border: 1px solid var(--bordure); border-radius: 10px; overflow: hidden; }
+.table-cadre { border: 1px solid var(--bordure); border-radius: 12px; overflow: hidden; }
 .table-cadre table { margin: 0; border-collapse: separate; border-spacing: 0; }
 .table-cadre thead th { background: var(--gris-fond); }
 .table-cadre tbody tr:last-child td { border-bottom: none; }
@@ -1059,7 +1059,7 @@ button.danger:hover { background: var(--erreur-fond); }
 }
 @keyframes fondu-entree { from { opacity: 0; } to { opacity: 1; } }
 .modale-carte {
-  background: var(--carte); border-radius: 10px; width: 100%;
+  background: var(--carte); border-radius: 14px; width: 100%;
   box-shadow: 0 30px 70px rgba(6, 20, 34, 0.35);
   animation: entree 0.22s cubic-bezier(.22,1,.36,1) both;
   max-height: 88vh; display: flex; flex-direction: column;
