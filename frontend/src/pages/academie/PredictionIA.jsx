@@ -57,7 +57,7 @@ function Alertes() {
       <div className="stats-grid">
         <div className="stat-tile">
           <div className="stat-tile-haut">
-            <span className="libelle">Alertes actives</span>
+            <span className="libelle">Élèves analysés</span>
             <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
           </div>
           <div className="valeur"><ChiffreAnime valeur={alertes.length} /></div>
@@ -106,7 +106,7 @@ function Alertes() {
                 <td>{new Date(a.dateCalcul).toLocaleDateString('fr-FR')}</td>
               </tr>
             ))}
-            {alertes.length === 0 && <tr><td colSpan={5} className="vide">Aucune alerte active pour l'instant</td></tr>}
+            {alertes.length === 0 && <tr><td colSpan={5} className="vide">Aucun élève analysé pour l'instant, lance l'analyse ci-dessus</td></tr>}
           </tbody>
         </table>
       </div>

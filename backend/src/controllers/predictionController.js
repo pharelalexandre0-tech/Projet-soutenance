@@ -43,15 +43,25 @@ async function lancerAnalyse(req, res) {
   return res.status(201).json(resultat);
 }
 
-// "Consulter le dossier de l'élève concerné" : tableau de bord des alertes
-// actives pour l'Académie.
+// "Consulter le dossier de l'élève concerné" : tableau de bord des risques
+// pour l'Académie. Filtrer sur alerteGeneree=true laissait ce tableau
+// (et les tuiles risque moyen/faible, qui ne comptent que ce qu'il reçoit)
+// vides dès qu'aucun élève ne franchissait le seuil — alors que l'analyse
+// avait bien tourné et calculé un score pour chacun. On renvoie plutôt le
+// dernier résultat de CHAQUE élève, quel que soit son niveau : l'Académie
+// voit toujours ce que l'analyse a trouvé, pas seulement les cas les plus graves.
 async function listerAlertes(req, res) {
   const predictions = await PredictionIA.findAll({
-    where: { alerteGeneree: true },
     include: [{ model: Eleve, where: { etablissementId: req.utilisateur.etablissementId } }],
     order: [['dateCalcul', 'DESC']],
   });
-  return res.json({ alertes: predictions });
+  const vus = new Set();
+  const dernieresParEleve = predictions.filter((p) => {
+    if (vus.has(p.eleveId)) return false;
+    vus.add(p.eleveId);
+    return true;
+  });
+  return res.json({ alertes: dernieresParEleve });
 }
 
 async function historiqueEleve(req, res) {
