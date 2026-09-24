@@ -8,7 +8,7 @@ export function AuthProvider({ children }) {
   const [chargement, setChargement] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('pgs_token');
+    const token = sessionStorage.getItem('pgs_token');
     if (!token) {
       setChargement(false);
       return;
@@ -16,7 +16,7 @@ export function AuthProvider({ children }) {
     client
       .get('/auth/moi')
       .then((res) => setProfil(res.data.profil))
-      .catch(() => localStorage.removeItem('pgs_token'))
+      .catch(() => sessionStorage.removeItem('pgs_token'))
       .finally(() => setChargement(false));
   }, []);
 
@@ -29,20 +29,20 @@ export function AuthProvider({ children }) {
     if (res.data.doubleFacteurRequis) {
       return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId };
     }
-    localStorage.setItem('pgs_token', res.data.token);
+    sessionStorage.setItem('pgs_token', res.data.token);
     setProfil(res.data.profil);
     return { profil: res.data.profil };
   }
 
   async function verifierDoubleFacteur(utilisateurId, code) {
     const res = await client.post('/auth/connexion/double-facteur', { utilisateurId, code });
-    localStorage.setItem('pgs_token', res.data.token);
+    sessionStorage.setItem('pgs_token', res.data.token);
     setProfil(res.data.profil);
     return res.data.profil;
   }
 
   function seDeconnecter() {
-    localStorage.removeItem('pgs_token');
+    sessionStorage.removeItem('pgs_token');
     setProfil(null);
   }
 
