@@ -99,7 +99,7 @@ async function envoyerBulletinParEmail(req, res) {
     Bulletin.findOne({ where: { eleveId, semestreId } }),
   ]);
   if (!eleve || !semestre || !bulletin || eleve.etablissementId !== req.utilisateur.etablissementId) {
-    return res.status(404).json({ erreur: 'bulletin introuvable — consulte-le au moins une fois avant de l\'envoyer' });
+    return res.status(404).json({ erreur: 'bulletin introuvable, consulte-le au moins une fois avant de l\'envoyer' });
   }
   const destinataires = [eleve.compteEtudiant, eleve.parent].filter(Boolean);
   if (destinataires.length === 0) {
@@ -109,7 +109,7 @@ async function envoyerBulletinParEmail(req, res) {
   for (const destinataire of destinataires) {
     await envoyerEmail(
       destinataire.email,
-      `Bulletin de ${eleve.prenom} ${eleve.nom} — ${semestre.libelle}`,
+      `Bulletin de ${eleve.prenom} ${eleve.nom} : ${semestre.libelle}`,
       `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
       [{ cheminAbsolu: path.join(DOSSIER_STOCKAGE, path.basename(bulletin.fichierPDF)), nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
     );

@@ -42,12 +42,12 @@ async function seConnecter(req, res) {
   }
 
   if (utilisateur.statut === 'verrouille') {
-    return res.status(403).json({ erreur: 'compte verrouillé — contactez votre administrateur' });
+    return res.status(403).json({ erreur: 'compte verrouillé, contactez votre administrateur' });
   }
   if (utilisateur.etablissementId) {
     const etablissement = await Etablissement.findByPk(utilisateur.etablissementId);
     if (!etablissement || etablissement.statut === 'suspendu') {
-      return res.status(403).json({ erreur: 'établissement suspendu — contactez le support' });
+      return res.status(403).json({ erreur: 'établissement suspendu, contactez le support' });
     }
   }
 
@@ -84,7 +84,7 @@ async function verifierDoubleFacteur(req, res) {
     return res.status(400).json({ erreur: 'aucune vérification en cours pour ce compte' });
   }
   if (new Date() > utilisateur.codeDoubleFacteurExpire) {
-    return res.status(400).json({ erreur: 'code expiré — reconnecte-toi pour en recevoir un nouveau' });
+    return res.status(400).json({ erreur: 'code expiré, reconnecte-toi pour en recevoir un nouveau' });
   }
   if (code !== utilisateur.codeDoubleFacteur) {
     return res.status(401).json({ erreur: 'code incorrect' });
@@ -166,7 +166,7 @@ async function demanderReinitialisation(req, res) {
     'Réinitialisation de votre mot de passe EduSphere',
     `Une réinitialisation de mot de passe a été demandée pour ce compte.\n` +
     `Si c'est bien toi, clique sur ce lien (valable ${DUREE_RESET_MIN} minutes) :\n${lien}\n\n` +
-    `Si tu n'es pas à l'origine de cette demande, ignore cet e-mail — ton mot de passe reste inchangé.`
+    `Si tu n'es pas à l'origine de cette demande, ignore cet e-mail. Ton mot de passe reste inchangé.`
   );
 
   return res.json(MESSAGE_GENERIQUE_RESET);
@@ -184,7 +184,7 @@ async function reinitialiserMotDePasse(req, res) {
 
   const utilisateur = await Utilisateur.scope('avecMotDePasse').findOne({ where: { tokenReinitialisation: token } });
   if (!utilisateur || !utilisateur.tokenReinitialisationExpire || new Date() > utilisateur.tokenReinitialisationExpire) {
-    return res.status(400).json({ erreur: 'lien invalide ou expiré — refais une demande de réinitialisation' });
+    return res.status(400).json({ erreur: 'lien invalide ou expiré, refais une demande de réinitialisation' });
   }
 
   utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
@@ -192,7 +192,7 @@ async function reinitialiserMotDePasse(req, res) {
   utilisateur.tokenReinitialisationExpire = null;
   await utilisateur.save();
 
-  return res.json({ message: 'mot de passe mis à jour — tu peux te connecter' });
+  return res.json({ message: 'mot de passe mis à jour, tu peux te connecter' });
 }
 
 async function monProfil(req, res) {

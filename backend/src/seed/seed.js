@@ -207,14 +207,14 @@ const professeur = await Professeur.create({
   await FraisScolarite.create({
     eleveId: eleve1.id,
     semestreId: semestre.id,
-    libelle: 'Frais de scolarité — Semestre 1',
+    libelle: 'Frais de scolarité, Semestre 1',
     montant: 150000,
     dateEcheance: '2026-08-01',
   });
   await FraisScolarite.create({
     eleveId: eleve2.id,
     semestreId: semestre.id,
-    libelle: 'Frais de scolarité — Semestre 1',
+    libelle: 'Frais de scolarité, Semestre 1',
     montant: 150000,
     dateEcheance: '2026-12-01',
   });

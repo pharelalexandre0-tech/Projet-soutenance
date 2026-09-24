@@ -34,7 +34,7 @@ export default class LimiteErreurChargement extends Component {
         alignItems: 'center', justifyContent: 'center', gap: 14,
         textAlign: 'center', padding: 24, fontFamily: 'var(--police)',
       }}>
-        <p style={{ fontSize: '1rem', color: 'var(--texte)' }}>Une mise à jour a eu lieu — cette page a besoin d'être rechargée.</p>
+        <p style={{ fontSize: '1rem', color: 'var(--texte)' }}>Une mise à jour a eu lieu. Cette page a besoin d'être rechargée.</p>
         <button
           className="bouton-connexion"
           style={{ maxWidth: 220 }}

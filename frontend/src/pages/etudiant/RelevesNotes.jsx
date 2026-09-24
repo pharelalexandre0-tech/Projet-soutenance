@@ -42,7 +42,7 @@ export default function RelevesNotes({ eleveId, eleve }) {
   return (
     <div className="carte document-academique document-suivi">
       <div className="releve-entete">
-        <div className="releve-etablissement">{etablissement ? `${etablissement.nom} — ${etablissement.ville}, ${etablissement.pays}` : '…'}</div>
+        <div className="releve-etablissement">{etablissement ? `${etablissement.nom}, ${etablissement.ville}, ${etablissement.pays}` : '…'}</div>
         <h2 className="releve-titre">Relevé de notes</h2>
       </div>
 
@@ -108,7 +108,7 @@ export default function RelevesNotes({ eleveId, eleve }) {
               return (
                 <Fragment key={ue?.id ?? 'sans-ue'}>
                   <tr className="ligne-ue">
-                    <td colSpan={4}>{ue ? `${ue.code} — ${ue.intitule}` : 'Autre'}</td>
+                    <td colSpan={4}>{ue ? `${ue.code} : ${ue.intitule}` : 'Autre'}</td>
                     <td className="chiffre" />
                     <td className="chiffre">{moyenneUE != null ? `${moyenneUE}/20` : 'N/A'}</td>
                     <td className="chiffre">{resultatUE && <span className={`badge ${resultatUE.classe}`}>{resultatUE.texte}</span>}</td>

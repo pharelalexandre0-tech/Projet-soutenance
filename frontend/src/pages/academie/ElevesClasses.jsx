@@ -272,7 +272,7 @@ export default function ElevesClasses() {
         });
       }
       setIdentifiantsCrees((prev) => [...prev, ...nouveaux]);
-      setMessage('Élève ajouté — identifiants dans le tableau « Identifiants de connexion » ci-dessous.');
+      setMessage('Élève ajouté. Identifiants dans le tableau « Identifiants de connexion » ci-dessous.');
       setNouvelEleve(ELEVE_VIDE);
       setAvecParent(false);
       setMotDePasseVisible(false);
@@ -387,7 +387,7 @@ export default function ElevesClasses() {
                             </span>
                             <div className="detail-classe-chiffre">
                               <strong>{statsClasse.absences.total}</strong>
-                              <span>absence(s) — {statsClasse.absences.justifiees} justifiée(s), {statsClasse.absences.nonJustifiees} non justifiée(s)</span>
+                              <span>absence(s) : {statsClasse.absences.justifiees} justifiée(s), {statsClasse.absences.nonJustifiees} non justifiée(s)</span>
                             </div>
                           </div>
                         )}
@@ -646,7 +646,7 @@ export default function ElevesClasses() {
         {importFormOuvert && (
           <>
             <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 14 }}>
-              Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong> — et en
+              Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong>, et en
               option date de naissance, mot de passe. Sans colonne mot de passe, un seul mot de passe est généré et
               partagé par tous les élèves du fichier : seul l'e-mail distingue chaque compte.
             </p>
@@ -674,8 +674,8 @@ export default function ElevesClasses() {
           <div style={{ marginTop: 12 }}>
             {resultatImport.reussis.length > 0 && (
               <div className="message-succes" style={{ marginBottom: 8 }}>
-                {resultatImport.reussis.length} élève(s) importé(s) dans « {resultatImport.classeNom} » —
-                identifiants dans le tableau « Identifiants de connexion » ci-dessous.
+                {resultatImport.reussis.length} élève(s) importé(s) dans « {resultatImport.classeNom} ».
+                Identifiants dans le tableau « Identifiants de connexion » ci-dessous.
               </div>
             )}
             {resultatImport.echecs.length > 0 && (
@@ -710,7 +710,7 @@ export default function ElevesClasses() {
         </div>
       </div>
       <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 16 }}>
-        Comptes créés pendant cette visite (inscription, import, rattachement de parent) — à relever ou copier
+        Comptes créés pendant cette visite (inscription, import, rattachement de parent), à relever ou copier
         maintenant, ils ne seront plus jamais affichés en clair une fois l'onglet du navigateur fermé. Mot de passe
         oublié ou perdu de vue ? Réinitialise-le pour en obtenir un nouveau, y compris pour un compte plus ancien.
       </p>
@@ -774,7 +774,7 @@ export default function ElevesClasses() {
           boutonEnCours="Réinitialisation…"
         >
           Réinitialiser le mot de passe de {compteAReinitialiser.prenom} {compteAReinitialiser.nom}{' '}
-          ({compteAReinitialiser.role.toLowerCase()}) ? L'ancien mot de passe cessera immédiatement de fonctionner —
+          ({compteAReinitialiser.role.toLowerCase()}) ? L'ancien mot de passe cessera immédiatement de fonctionner,
           le nouveau apparaîtra dans le tableau « Identifiants de connexion ».
         </ConfirmModal>
       )}
@@ -784,14 +784,14 @@ export default function ElevesClasses() {
           onAnnuler={() => setClasseASupprimer(null)}
           onConfirmer={confirmerSuppressionClasse}
         >
-          Supprimer "{classeASupprimer.nom}" — {classeASupprimer.Eleves?.length ?? 0} élève(s), avec leurs comptes,
+          Supprimer "{classeASupprimer.nom}" : {classeASupprimer.Eleves?.length ?? 0} élève(s), avec leurs comptes,
           notes, absences, bulletins et frais ? Cette action est irréversible.
         </ConfirmModal>
       )}
       {eleveParentCible && (
         <Modal titre={`Rattacher un parent à ${eleveParentCible.prenom} ${eleveParentCible.nom}`} onFermer={() => setEleveParentCible(null)}>
           <p className="note-secondaire" style={{ margin: '0 0 14px', fontSize: '0.83rem' }}>
-            Un même parent peut suivre plusieurs enfants — choisis-le dans la liste s'il a déjà un compte,
+            Un même parent peut suivre plusieurs enfants. Choisis-le dans la liste s'il a déjà un compte,
             ou renseigne un nouveau parent ci-dessous.
           </p>
           <form className="formulaire" onSubmit={soumettreRattacherParent}>

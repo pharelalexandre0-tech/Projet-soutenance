@@ -127,7 +127,7 @@ export default function ComptesEphemeres() {
                 <label>UE</label>
                 <select value={form.ueId} onChange={(e) => setForm({ ...form, ueId: e.target.value, matiereId: '' })} required disabled={!form.semestreId}>
                   <option value="">Choisir une UE</option>
-                  {ues.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.intitule}</option>)}
+                  {ues.map((u) => <option key={u.id} value={u.id}>{u.code} : {u.intitule}</option>)}
                 </select>
               </div>
               <div className="champ">
@@ -135,7 +135,7 @@ export default function ComptesEphemeres() {
                 <select value={form.matiereId} onChange={(e) => setForm({ ...form, matiereId: e.target.value })} required disabled={!form.ueId}>
                   <option value="">Choisir une matière</option>
                   {(ues.find((u) => String(u.id) === form.ueId)?.Matieres || []).map((m) => (
-                    <option key={m.id} value={m.id}>{m.code} — {m.intitule}</option>
+                    <option key={m.id} value={m.id}>{m.code} : {m.intitule}</option>
                   ))}
                 </select>
               </div>

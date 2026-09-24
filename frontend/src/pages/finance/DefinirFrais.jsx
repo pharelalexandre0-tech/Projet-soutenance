@@ -72,7 +72,7 @@ export default function DefinirFrais() {
         <div className="entete-carte">
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span className="puce-icone petite"><IconBanknote width={16} height={16} /></span>
-            <h2>Frais de scolarité — {totalEleves} étudiant{totalEleves > 1 ? 's' : ''}</h2>
+            <h2>Frais de scolarité ({totalEleves} étudiant{totalEleves > 1 ? 's' : ''})</h2>
           </div>
           <button className="primaire" onClick={() => setModaleClasseOuverte(true)}>+ Définir un frais</button>
         </div>
@@ -182,7 +182,7 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
       const cible = LIBELLE_PORTEE[form.portee];
       onReussi(
         nombreDejaExistants > 0
-          ? `Frais défini pour ${nombreCrees} étudiant(s) ${cible} — ${nombreDejaExistants} en avaient déjà un pour ce libellé.`
+          ? `Frais défini pour ${nombreCrees} étudiant(s) ${cible}. ${nombreDejaExistants} en avaient déjà un pour ce libellé.`
           : `Frais défini pour ${nombreCrees} étudiant(s) ${cible}.`
       );
     } catch (err) {
@@ -232,7 +232,7 @@ function FormulaireFraisClasse({ onFermer, onReussi }) {
         </div>
         <div className="champ">
           <label>Libellé</label>
-          <input placeholder="ex. Frais de scolarité — Semestre 1" value={form.libelle} onChange={(e) => setForm({ ...form, libelle: e.target.value })} required />
+          <input placeholder="ex. Frais de scolarité, Semestre 1" value={form.libelle} onChange={(e) => setForm({ ...form, libelle: e.target.value })} required />
         </div>
         <div className="ligne-champs">
           <div className="champ"><label>Montant par étudiant (FCFA)</label><input type="number" min="0" placeholder="150 000" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} required /></div>
@@ -285,7 +285,7 @@ function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
           className="primaire"
           style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '11px 16px', borderRadius: 8 }}
         >
-          Télécharger le reçu — {confirmation.recu.numero}
+          Télécharger le reçu n° {confirmation.recu.numero}
         </a>
         {confirmation.recuEnvoyeA && (
           <p className="note-secondaire" style={{ marginTop: 12, marginBottom: 0 }}>
@@ -297,8 +297,8 @@ function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
   }
 
   return (
-    <Modal titre={`Encaisser — ${eleve.prenom} ${eleve.nom}`} onFermer={onFermer} largeur={440}>
-      <p className="note-secondaire" style={{ marginTop: -8 }}>{eleve.classeNom} — reste dû {eleve.resteDu.toLocaleString('fr-FR')} FCFA</p>
+    <Modal titre={`Encaisser : ${eleve.prenom} ${eleve.nom}`} onFermer={onFermer} largeur={440}>
+      <p className="note-secondaire" style={{ marginTop: -8 }}>{eleve.classeNom}, reste dû {eleve.resteDu.toLocaleString('fr-FR')} FCFA</p>
       <form className="formulaire" onSubmit={soumettre}>
         <div className="ligne-champs">
           <div className="champ"><label>Montant (FCFA)</label><input type="number" min="0" max={eleve.resteDu} value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} required /></div>

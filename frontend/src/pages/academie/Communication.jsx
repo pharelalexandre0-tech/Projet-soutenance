@@ -37,7 +37,7 @@ function Messages({ classes }) {
     e.preventDefault();
     setResultat('');
     const res = await client.post('/messages', { ...form, classeId: Number(form.classeId) });
-    setResultat(`Envoyé — ${res.data.etudiantsNotifies} étudiant(s) notifié(s) par notification et e-mail.`);
+    setResultat(`Envoyé. ${res.data.etudiantsNotifies} étudiant(s) notifié(s) par notification et e-mail.`);
     setForm({ classeId: form.classeId, type: 'message', titre: '', contenu: '' });
     setFormOuvert(false);
     charger();
@@ -97,7 +97,7 @@ function Messages({ classes }) {
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--texte-clair)', margin: '4px 0' }}>{m.contenu}</div>
               <span className="vide" style={{ border: 'none', background: 'none', padding: 0, textAlign: 'left' }}>
-                {m.Classe?.nom} — {new Date(m.dateEnvoi).toLocaleString('fr-FR')}
+                {m.Classe?.nom}, {new Date(m.dateEnvoi).toLocaleString('fr-FR')}
               </span>
             </div>
           ))}

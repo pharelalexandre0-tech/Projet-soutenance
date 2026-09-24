@@ -54,7 +54,7 @@ async function creerCompteEphemere(req, res) {
   const expirationFormatee = dateExpiration.toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
   await envoyerEmail(
     professeur.email,
-    `Accès temporaire — ${libelleTache} pour ${classe.nom}`,
+    `Accès temporaire : ${libelleTache} pour ${classe.nom}`,
     `Bonjour ${professeur.prenom},\n\nUn accès temporaire vous permet de ${libelleTache} pour la classe ${classe.nom}${matiere ? ` (${matiere.intitule})` : ''}.\n\n${lien}\n\nCe lien expire le ${expirationFormatee} et se révoque automatiquement une fois la saisie envoyée.`
   );
 

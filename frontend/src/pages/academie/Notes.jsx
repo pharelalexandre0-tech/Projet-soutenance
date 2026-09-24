@@ -143,14 +143,14 @@ export default function Notes() {
             <label>UE</label>
             <select value={ueId} onChange={(e) => { setUeId(e.target.value); setMatiereId(''); }}>
               <option value="">Choisir une UE</option>
-              {ues.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.intitule}</option>)}
+              {ues.map((u) => <option key={u.id} value={u.id}>{u.code} : {u.intitule}</option>)}
             </select>
           </div>
           <div className="champ">
             <label>Matière</label>
             <select value={matiereId} onChange={(e) => setMatiereId(e.target.value)} disabled={!ueId}>
               <option value="">Choisir une matière</option>
-              {matieres.map((m) => <option key={m.id} value={m.id}>{m.code} — {m.intitule}</option>)}
+              {matieres.map((m) => <option key={m.id} value={m.id}>{m.code} : {m.intitule}</option>)}
             </select>
           </div>
           <div className="champ">
@@ -170,7 +170,7 @@ export default function Notes() {
         {matiereId && eleves.length > 0 && (
           <div className="encart-import">
             <div className="encart-import-titre">Import rapide (recommandé pour une classe nombreuse)</div>
-            <p>Téléverse un fichier avec les colonnes <strong>prénom</strong>, <strong>nom</strong>, <strong>cc</strong>, <strong>examen</strong> — chaque ligne remplit automatiquement le tableau ci-dessous par correspondance de nom, sans rien saisir à la main.</p>
+            <p>Téléverse un fichier avec les colonnes <strong>prénom</strong>, <strong>nom</strong>, <strong>cc</strong>, <strong>examen</strong>. Chaque ligne remplit automatiquement le tableau ci-dessous par correspondance de nom, sans rien saisir à la main.</p>
             <input type="file" accept=".xlsx,.xls,.csv" onChange={importerNotes} />
             {importMessage && <div style={{ fontSize: '0.82rem', color: 'var(--texte-clair)', marginTop: 8 }}>{importMessage}</div>}
           </div>
@@ -212,7 +212,7 @@ export default function Notes() {
         {!matiereId && (
           <div className="vide">
             Choisis une UE puis une matière pour saisir des moyennes.
-            <br />Une classe nombreuse ? Un import depuis un fichier Excel/CSV sera proposé juste après — pas besoin de tout saisir à la main.
+            <br />Une classe nombreuse ? Un import depuis un fichier Excel/CSV sera proposé juste après, pas besoin de tout saisir à la main.
           </div>
         )}
 

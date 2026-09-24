@@ -200,7 +200,7 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
   async function basculerStatutEcole() {
     const nouveauStatut = donnees.etablissement.statut === 'actif' ? 'suspendu' : 'actif';
     await client.patch(`/superadmin/etablissements/${etablissementId}/statut`, { statut: nouveauStatut });
-    onModifie(nouveauStatut === 'suspendu' ? 'École verrouillée — tous ses comptes ont perdu l\'accès.' : 'École réactivée.');
+    onModifie(nouveauStatut === 'suspendu' ? 'École verrouillée. Tous ses comptes ont perdu l\'accès.' : 'École réactivée.');
     onFermer();
   }
 
@@ -251,7 +251,7 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
         boutonConfirmer="Confirmer la suppression"
         boutonEnCours="Suppression…"
       >
-        Supprimer définitivement "{donnees.etablissement.nom}" — classes, élèves, notes, absences, frais et tous ses
+        Supprimer définitivement "{donnees.etablissement.nom}" : classes, élèves, notes, absences, frais et tous ses
         comptes compris ? Cette action est irréversible.
       </ConfirmModal>
     )}

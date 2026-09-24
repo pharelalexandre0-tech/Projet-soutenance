@@ -29,7 +29,7 @@ async function verifierImpayesService(etablissementId) {
         });
         await envoyerEmail(
           frais.Eleve.compteEtudiant.email,
-          `Frais de scolarité impayé — ${frais.libelle}`,
+          `Frais de scolarité impayé : ${frais.libelle}`,
           `L'échéance du ${frais.dateEcheance} est dépassée sans paiement complet.`
         );
       }

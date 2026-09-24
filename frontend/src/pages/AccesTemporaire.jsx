@@ -85,10 +85,10 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
   return (
     <div className="page-connexion">
       <div className="carte-connexion" style={{ maxWidth: 520 }}>
-        <h1>Saisie des moyennes — accès temporaire</h1>
+        <h1>Saisie des moyennes (accès temporaire)</h1>
         <p className="sous-titre">
-          {session.professeur.prenom} {session.professeur.nom} — {session.portee.classe} —{' '}
-          {session.portee.ue} / {session.portee.matiere} — Moyenne {session.portee.categorie === 'examen' ? "d'examen" : 'de CC'}
+          {session.professeur.prenom} {session.professeur.nom}, {session.portee.classe},{' '}
+          {session.portee.ue} / {session.portee.matiere}, Moyenne {session.portee.categorie === 'examen' ? "d'examen" : 'de CC'}
           {session.portee.evaluation ? ` (${session.portee.evaluation})` : ''}
         </p>
         <form className="formulaire" onSubmit={onSubmit}>
@@ -155,9 +155,9 @@ function FormulaireAppel({ jeton, session, onEnvoye }) {
   return (
     <div className="page-connexion">
       <div className="carte-connexion" style={{ maxWidth: 520 }}>
-        <h1>Faire l'appel — accès temporaire</h1>
+        <h1>Faire l'appel (accès temporaire)</h1>
         <p className="sous-titre">
-          {session.professeur.prenom} {session.professeur.nom} — {session.portee.classe} — {new Date(date).toLocaleDateString('fr-FR')}
+          {session.professeur.prenom} {session.professeur.nom}, {session.portee.classe}, {new Date(date).toLocaleDateString('fr-FR')}
         </p>
         <form className="formulaire" onSubmit={onSubmit}>
           <p className="note-secondaire" style={{ marginTop: -4 }}>

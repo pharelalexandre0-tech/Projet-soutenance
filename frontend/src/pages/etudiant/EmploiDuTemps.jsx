@@ -35,7 +35,7 @@ export default function EmploiDuTemps({ classeId }) {
               <div className="notification-item" key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <strong>{e.matiere || 'Cours'}</strong>
-                  {e.salle && <span className="note-secondaire"> — {e.salle}</span>}
+                  {e.salle && <span className="note-secondaire"> ({e.salle})</span>}
                 </div>
                 <span style={{ fontFamily: 'var(--police-mono)', fontSize: '0.8rem', color: 'var(--texte-clair)' }}>
                   {e.heureDebut} – {e.heureFin}

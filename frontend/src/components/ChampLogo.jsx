@@ -20,7 +20,7 @@ export default function ChampLogo({ valeur, onChange, label = "Logo de l'établi
     if (!fichier) return;
     setErreur('');
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(fichier.type)) {
-      setErreur('format non pris en charge — PNG, JPEG ou WebP');
+      setErreur('format non pris en charge : PNG, JPEG ou WebP');
       return;
     }
     if (fichier.size > TAILLE_LOGO_MAX) {
@@ -58,7 +58,7 @@ export default function ChampLogo({ valeur, onChange, label = "Logo de l'établi
       </div>
       {erreur
         ? <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem', color: 'var(--erreur)' }}>{erreur}</p>
-        : <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem' }}>PNG, JPEG ou WebP, 1 Mo maximum — un fond transparent (PNG) rend mieux sur les documents.</p>}
+        : <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem' }}>PNG, JPEG ou WebP, 1 Mo maximum. Un fond transparent (PNG) rend mieux sur les documents.</p>}
     </div>
   );
 }

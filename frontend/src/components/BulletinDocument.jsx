@@ -38,7 +38,7 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
   return (
     <div className="document-academique document-officiel" style={{ marginTop: 22 }}>
       <div className="releve-entete">
-        <div className="releve-etablissement">{etablissement ? `${etablissement.nom} — ${etablissement.ville}, ${etablissement.pays}` : '…'}</div>
+        <div className="releve-etablissement">{etablissement ? `${etablissement.nom}, ${etablissement.ville}, ${etablissement.pays}` : '…'}</div>
         <h2 className="releve-titre">Bulletin de notes</h2>
       </div>
       <div className="releve-reference">
@@ -77,7 +77,7 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
               return (
                 <Fragment key={ligneUE.ue}>
                   <tr className="ligne-ue">
-                    <td colSpan={4}>{ligneUE.code ? `${ligneUE.code} — ` : ''}{ligneUE.ue} · {ligneUE.credits} crédits</td>
+                    <td colSpan={4}>{ligneUE.code ? `${ligneUE.code} : ` : ''}{ligneUE.ue} · {ligneUE.credits} crédits</td>
                     <td className="chiffre" />
                     <td className="chiffre">{ligneUE.moyenne}/20</td>
                     <td className="chiffre"><span className={`badge ${resUE.classe}`}>{resUE.texte}</span></td>

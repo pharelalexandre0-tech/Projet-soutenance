@@ -37,7 +37,7 @@ export default function Superadmins() {
           <button className="primaire" onClick={() => setModaleAjoutOuverte(true)}>+ Ajouter un superadmin</button>
         </div>
         <p className="note-secondaire" style={{ marginTop: -8, marginBottom: 18 }}>
-          Les comptes des établissements (académie, finance, étudiant) restent internes à leur école — le superadmin ne les consulte jamais, seulement l'existence et le statut de chaque établissement dans l'onglet "Établissements".
+          Les comptes des établissements (académie, finance, étudiant) restent internes à leur école. Le superadmin ne les consulte jamais, seulement l'existence et le statut de chaque établissement dans l'onglet "Établissements".
         </p>
 
         {chargement && <div className="chargement">Chargement…</div>}

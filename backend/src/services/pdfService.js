@@ -116,13 +116,13 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
 
   doc.y = 34;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()} — ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
+    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
   doc.moveDown(0.4);
   doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
     .text('BULLETIN DE NOTES', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
   doc.moveDown(0.3);
   doc.fontSize(7.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`N° BUL-${String(semestre.id).padStart(2, '0')}${String(eleve.id).padStart(4, '0')} — document officiel de fin de semestre`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+    .text(`N° BUL-${String(semestre.id).padStart(2, '0')}${String(eleve.id).padStart(4, '0')}, document officiel de fin de semestre`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
   doc.moveDown(0.6);
   doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
   doc.moveDown(0.7);
@@ -134,7 +134,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   const identite = [
     ['Étudiant', `${eleve.prenom} ${eleve.nom}`],
     ['Matricule', `ETU-${String(eleve.id).padStart(5, '0')}`],
-    ['Filière', eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : '—'],
+    ['Filière', eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'],
     ['Semestre', `${semestre.libelle} (${semestre.anneeScolaire})`],
   ];
   const yIdentite = doc.y;
@@ -170,7 +170,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
     doc.rect(margeGauche, y, largeurLabel, hauteurUE).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
     doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COULEUR_PRIMAIRE)
       .text(
-        `${ligneUE.code ? ligneUE.code + ' — ' : ''}${ligneUE.ue} · ${ligneUE.credits} crédits${ligneUE.session === 'rattrapage' ? ' · session de rattrapage' : ''}`,
+        `${ligneUE.code ? ligneUE.code + ' : ' : ''}${ligneUE.ue} · ${ligneUE.credits} crédits${ligneUE.session === 'rattrapage' ? ' · session de rattrapage' : ''}`,
         margeGauche + 6, y + 5, { width: largeurLabel - 10, lineBreak: false, ellipsis: true }
       );
 
@@ -193,11 +193,11 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
       y = dessinerLigne(
         doc, margeGauche, y, LARGEURS_COLONNES,
         [
-          { texte: m.code || '—', couleur: COULEUR_TEXTE_CLAIR, taille: 7.5 },
+          { texte: m.code || 'N/A', couleur: COULEUR_TEXTE_CLAIR, taille: 7.5 },
           { texte: `${m.matiere}${m.session === 'rattrapage' ? ' (rattrapage)' : ''}` },
           { texte: String(m.coefficient), align: 'center' },
-          { texte: m.moyenneCC ?? '—', align: 'center', couleur: COULEUR_TEXTE_CLAIR },
-          { texte: m.moyenneExamen ?? '—', align: 'center', couleur: COULEUR_TEXTE_CLAIR },
+          { texte: m.moyenneCC ?? 'N/A', align: 'center', couleur: COULEUR_TEXTE_CLAIR },
+          { texte: m.moyenneExamen ?? 'N/A', align: 'center', couleur: COULEUR_TEXTE_CLAIR },
           { texte: `${m.noteFinale}`, align: 'center', gras: true, couleur: m.noteFinale >= 10 ? COULEUR_SUCCES : COULEUR_ERREUR },
           { texte: badge, align: 'center', gras: true, couleur: couleurBadge, taille: 6.8 },
         ]
@@ -235,7 +235,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
     .text(`Fait à ${etablissement.ville}, le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, margeGauche, y);
 
   doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom} — ${etablissement.boitePostale} — ${etablissement.telephone} — ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
+    .text(`${etablissement.nom}, ${etablissement.boitePostale}, ${etablissement.telephone}, ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
 
   doc.end();
   const chemin = await termine;
@@ -243,7 +243,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
 }
 
 function mention(moyenne) {
-  if (moyenne == null) return '—';
+  if (moyenne == null) return 'Non noté';
   if (moyenne >= 18) return 'Excellent';
   if (moyenne >= 16) return 'Très bien';
   if (moyenne >= 14) return 'Bien';
@@ -277,7 +277,7 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
 
   doc.y = 34;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()} — ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
+    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
   doc.moveDown(0.4);
   doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
     .text('REÇU DE PAIEMENT', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
@@ -351,7 +351,7 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
     .text('CACHET &\nSIGNATURE', margeGauche + largeurTotale - 46 - 30, y + 22, { width: 60, align: 'center' });
 
   doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom} — ${etablissement.boitePostale} — ${etablissement.telephone} — ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
+    .text(`${etablissement.nom}, ${etablissement.boitePostale}, ${etablissement.telephone}, ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
 
   doc.end();
   const chemin = await termine;
@@ -373,13 +373,13 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
 
   doc.y = 34;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()} — ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
+    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
   doc.moveDown(0.4);
   doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
     .text('FICHE DE PAIE', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
   doc.moveDown(0.3);
   doc.fontSize(7.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`N° FP-${new Date().getFullYear()}-${String(salaire.id).padStart(5, '0')} — ${salaire.periode}`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+    .text(`N° FP-${new Date().getFullYear()}-${String(salaire.id).padStart(5, '0')}, ${salaire.periode}`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
   doc.moveDown(0.6);
   doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
   doc.moveDown(0.7);
@@ -416,7 +416,7 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
     [
       { texte: 'Salaire net versé' },
       { texte: `${formaterFCFA(salaire.montant)} FCFA`, align: 'center', gras: true, couleur: COULEUR_SUCCES },
-      { texte: salaire.dateVersement ? new Date(salaire.dateVersement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : '—', align: 'center' },
+      { texte: salaire.dateVersement ? new Date(salaire.dateVersement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Non versé', align: 'center' },
     ],
     { hauteur: 22 }
   );
@@ -438,7 +438,7 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
     .text('CACHET &\nSIGNATURE', margeGauche + largeurTotale - 46 - 30, y + 22, { width: 60, align: 'center' });
 
   doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom} — ${etablissement.boitePostale} — ${etablissement.telephone} — ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
+    .text(`${etablissement.nom}, ${etablissement.boitePostale}, ${etablissement.telephone}, ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
 
   doc.end();
   const chemin = await termine;
@@ -471,13 +471,13 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
 
   doc.y = yEntete;
   doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()} — ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
+    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
   doc.moveDown(0.4);
   doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
     .text('EMPLOI DU TEMPS', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
   doc.moveDown(0.3);
   doc.fontSize(9.5).font('Helvetica-Bold').fillColor(COULEUR_PRIMAIRE)
-    .text(`${classe.nom} (${classe.niveau}) — ${semestre.libelle} (${semestre.anneeScolaire})`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
+    .text(`${classe.nom} (${classe.niveau}), ${semestre.libelle} (${semestre.anneeScolaire})`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
   doc.moveDown(0.6);
   doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
   doc.moveDown(0.9);
@@ -523,7 +523,7 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
     doc.roundedRect(x + 2, y, largeurJour - 8, hauteur, 3).fill(COULEUR_UE_FOND);
     doc.roundedRect(x + 2, y, largeurJour - 8, hauteur, 3).lineWidth(1).strokeColor(COULEUR_PRIMAIRE).stroke();
     doc.fontSize(7).font('Helvetica-Bold').fillColor(COULEUR_PRIMAIRE)
-      .text(c.matiere || '—', x + 6, y + 3, { width: largeurJour - 16, lineBreak: false, ellipsis: true });
+      .text(c.matiere || 'N/A', x + 6, y + 3, { width: largeurJour - 16, lineBreak: false, ellipsis: true });
     doc.fontSize(6).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
       .text(`${c.heureDebut}–${c.heureFin}`, x + 6, y + 13, { width: largeurJour - 16, lineBreak: false, ellipsis: true });
     if (c.salle && hauteur > 28) {
@@ -534,7 +534,7 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
 
   doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
     .text(
-      `${etablissement.nom} — ${etablissement.boitePostale || ''} — ${etablissement.telephone || ''} — ${etablissement.email || ''}`,
+      `${etablissement.nom}, ${etablissement.boitePostale || ''}, ${etablissement.telephone || ''}, ${etablissement.email || ''}`,
       margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' }
     );
 

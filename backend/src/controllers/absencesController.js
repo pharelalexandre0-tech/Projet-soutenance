@@ -98,7 +98,7 @@ async function saisirAppelEphemere(req, res) {
   const nbAbsences = absences.filter((a) => a.type === 'absence').length;
   const nbRetards = absences.filter((a) => a.type === 'retard').length;
   return res.status(201).json({
-    message: `Appel enregistré — ${nbAbsences} absence(s), ${nbRetards} retard(s).`,
+    message: `Appel enregistré. ${nbAbsences} absence(s), ${nbRetards} retard(s).`,
     absences,
     compte: { statut: compte.statut },
   });

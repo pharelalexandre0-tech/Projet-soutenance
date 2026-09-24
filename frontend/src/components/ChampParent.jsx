@@ -39,7 +39,7 @@ export default function ChampParent({ parents, valeur, onChange, motDePasseVisib
         // l'ancienne version — impossible de distinguer "la fonctionnalité
         // n'existe pas" de "il n'y a simplement encore personne à choisir".
         <p className="note-secondaire" style={{ margin: 0 }}>
-          Aucun parent existant pour l'instant dans cet établissement — renseigne-le ci-dessous, il pourra ensuite
+          Aucun parent existant pour l'instant dans cet établissement. Renseigne-le ci-dessous, il pourra ensuite
           être choisi directement dans la liste pour un autre enfant.
         </p>
       )}

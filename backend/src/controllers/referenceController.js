@@ -407,7 +407,7 @@ async function creerSemestre(req, res) {
   // cycles peuvent chacun avoir leur "Semestre 1" sans se confondre.
   const semestre = await Semestre.create({
     cycle, numero: numeroInt, anneeScolaire,
-    libelle: `${CYCLE_LABEL[cycle]} — Semestre ${numeroInt}`,
+    libelle: `${CYCLE_LABEL[cycle]}, Semestre ${numeroInt}`,
     etablissementId: req.utilisateur.etablissementId,
   });
   return res.status(201).json({ semestre });

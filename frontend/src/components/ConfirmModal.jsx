@@ -14,7 +14,7 @@ export default function ConfirmModal({ titre, children, boutonConfirmer = 'Confi
     try {
       await onConfirmer();
     } catch (err) {
-      setErreur(err.response?.data?.erreur || 'erreur — réessaie');
+      setErreur(err.response?.data?.erreur || 'erreur, réessaie');
       setEnCours(false);
     }
   }

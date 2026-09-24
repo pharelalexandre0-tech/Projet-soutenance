@@ -52,7 +52,7 @@ export default function DashboardParent() {
         <div className="champ" style={{ maxWidth: 280, marginBottom: 18 }}>
           <label>Enfant</label>
           <select value={eleveId} onChange={(e) => setEleveId(e.target.value)}>
-            {enfants.map((e) => <option key={e.id} value={e.id}>{e.prenom} {e.nom} — {e.Classe?.nom}</option>)}
+            {enfants.map((e) => <option key={e.id} value={e.id}>{e.prenom} {e.nom} ({e.Classe?.nom})</option>)}
           </select>
         </div>
       )}

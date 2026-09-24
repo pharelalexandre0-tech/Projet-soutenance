@@ -56,7 +56,7 @@ function versHtml(corps) {
 </tr></table>
 </td></tr>
 <tr><td style="padding:2px 28px 8px;">${blocs}</td></tr>
-<tr><td style="padding:18px 28px 26px; color:#6B7370; font-size:12px; font-family:Arial,Helvetica,sans-serif; border-top:1px solid #E2E5E1;">EduSphere — plateforme de gestion scolaire</td></tr>
+<tr><td style="padding:18px 28px 26px; color:#6B7370; font-size:12px; font-family:Arial,Helvetica,sans-serif; border-top:1px solid #E2E5E1;">EduSphere, plateforme de gestion scolaire</td></tr>
 </table>
 </body></html>`;
 }

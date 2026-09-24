@@ -91,7 +91,7 @@ export default function UnitesEnseignement() {
             >
               <span>
                 <strong style={{ fontFamily: 'var(--police-mono)', fontSize: '0.8rem' }}>{ue.code}</strong>
-                {' — '}{ue.intitule} <span style={{ color: 'var(--texte-clair)' }}>({ue.Semestre?.libelle}, coef. {ue.coefficient}, {ue.credits} crédits)</span>
+                {' : '}{ue.intitule} <span style={{ color: 'var(--texte-clair)' }}>({ue.Semestre?.libelle}, coef. {ue.coefficient}, {ue.credits} crédits)</span>
               </span>
               <span style={{ fontSize: '0.78rem', color: 'var(--texte-clair)' }}>{ue.Matieres?.length ?? 0} matière(s)</span>
             </button>
@@ -137,7 +137,7 @@ export default function UnitesEnseignement() {
         <h2>Créer une UE</h2>
         {semestres.length === 0 && (
           <div className="message-erreur" style={{ marginBottom: 14 }}>
-            Aucun semestre n'existe encore pour cet établissement — crée-en un avant de pouvoir créer une UE.
+            Aucun semestre n'existe encore pour cet établissement. Crée-en un avant de pouvoir créer une UE.
           </div>
         )}
         {(formSemestreOuvert || semestres.length === 0) && (

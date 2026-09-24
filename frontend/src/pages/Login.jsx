@@ -161,7 +161,7 @@ export default function Login() {
           <div className="carte-formulaire-acces">
             <p className="acces-eyebrow">Mot de passe oublié</p>
             <h2>Réinitialiser l'accès</h2>
-            <p className="connexion-aide">Saisis ton e-mail — si un compte existe, un lien de réinitialisation t'est envoyé.</p>
+            <p className="connexion-aide">Saisis ton e-mail. Si un compte existe, un lien de réinitialisation t'est envoyé.</p>
             <form className="formulaire-connexion" onSubmit={demanderReinitialisation}>
               <Champ label="Adresse e-mail" icone={IconMail}>
                 <input
@@ -201,7 +201,7 @@ export default function Login() {
           <div className="carte-formulaire-acces">
             <p className="acces-eyebrow">Étape 2</p>
             <h2>Vérification</h2>
-            <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail — saisis-le pour continuer.</p>
+            <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail. Saisis-le pour continuer.</p>
             <form className="formulaire-connexion" onSubmit={validerCode}>
               <Champ label="Code de vérification" icone={IconLock} erreur={Boolean(erreur)}>
                 <input

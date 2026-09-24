@@ -19,12 +19,12 @@ async function authentifier(req, res, next) {
     // entière -> perte d'accès immédiate, pas seulement à la prochaine
     // connexion (le token déjà émis ne doit plus suffire).
     if (utilisateur.statut === 'verrouille') {
-      return res.status(403).json({ erreur: 'compte verrouillé — contactez votre administrateur' });
+      return res.status(403).json({ erreur: 'compte verrouillé, contactez votre administrateur' });
     }
     if (utilisateur.etablissementId) {
       const etablissement = await Etablissement.findByPk(utilisateur.etablissementId);
       if (!etablissement || etablissement.statut === 'suspendu') {
-        return res.status(403).json({ erreur: 'établissement suspendu — contactez le support' });
+        return res.status(403).json({ erreur: 'établissement suspendu, contactez le support' });
       }
     }
     req.utilisateur = utilisateur;

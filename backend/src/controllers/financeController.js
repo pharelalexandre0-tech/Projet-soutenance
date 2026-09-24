@@ -125,7 +125,7 @@ async function enregistrerPaiement(req, res) {
   if (frais.Eleve.compteEtudiant) {
     await envoyerEmail(
       frais.Eleve.compteEtudiant.email,
-      `Reçu de paiement — ${frais.libelle}`,
+      `Reçu de paiement : ${frais.libelle}`,
       `Votre paiement de ${montant} FCFA a été enregistré. Vous trouverez le reçu ${recuNumero} en pièce jointe.`,
       [{ cheminAbsolu, nomFichier: `${recuNumero}.pdf` }]
     );
@@ -240,7 +240,7 @@ async function envoyerRelance(req, res) {
 
   await envoyerEmail(
     frais.Eleve.compteEtudiant.email,
-    `Relance — ${frais.libelle}`,
+    `Relance : ${frais.libelle}`,
     `Merci de régulariser le paiement de "${frais.libelle}" (${frais.montant - frais.montantRegle} FCFA restants) dans les meilleurs délais.`
   );
   await Notification.create({
@@ -288,7 +288,7 @@ async function verserSalaire(req, res) {
   if (personne.email) {
     await envoyerEmail(
       personne.email,
-      `Fiche de paie — ${periode}`,
+      `Fiche de paie : ${periode}`,
       `Votre salaire de ${montant} FCFA pour la période "${periode}" a été versé. Vous trouverez votre fiche de paie en pièce jointe.`,
       [{ cheminAbsolu, nomFichier: `fiche_paie_${periode.replace(/\s+/g, '_')}.pdf` }]
     );

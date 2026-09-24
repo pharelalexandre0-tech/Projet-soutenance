@@ -46,7 +46,7 @@ export default function Parametres() {
     setEnCours(true);
     try {
       await client.put('/etablissement', form);
-      setToast({ message: 'Établissement mis à jour — le bulletin, le relevé et les reçus utilisent désormais cette identité.', type: 'succes' });
+      setToast({ message: 'Établissement mis à jour. Le bulletin, le relevé et les reçus utilisent désormais cette identité.', type: 'succes' });
     } catch (err) {
       setToast({ message: messageErreur(err, 'échec de la mise à jour'), type: 'erreur' });
     } finally {
@@ -87,7 +87,7 @@ export default function Parametres() {
         </div>
       </div>
       <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
-        EduSphere est conçu pour être déployé sur n'importe quel établissement. Ces informations — jamais codées en dur —
+        EduSphere est conçu pour être déployé sur n'importe quel établissement. Ces informations (jamais codées en dur)
         apparaissent sur le bulletin, le relevé de notes, les reçus de paiement et l'emploi du temps téléchargeable.
       </p>
       {chargement && <div className="chargement">Chargement…</div>}
@@ -129,7 +129,7 @@ export default function Parametres() {
       </div>
       <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
         Crée un compte Académie (un collègue) ou Finance pour cet établissement. L'Étudiant, lui, se crée
-        toujours via l'inscription d'un élève — jamais isolément ici.
+        toujours via l'inscription d'un élève, jamais isolément ici.
       </p>
 
       <div className="entete-section" style={{ marginTop: 14 }}>
@@ -203,7 +203,7 @@ export default function Parametres() {
 
       {dernierCompteCree && (
         <div className="message-succes" style={{ marginTop: 12, lineHeight: 1.7 }}>
-          Compte {dernierCompteCree.role === 'academie' ? 'Académie' : 'Finance'} créé — identifiants à relever maintenant, ils ne seront plus jamais affichés en clair :
+          Compte {dernierCompteCree.role === 'academie' ? 'Académie' : 'Finance'} créé. Identifiants à relever maintenant, ils ne seront plus jamais affichés en clair :
           <br />
           <strong style={{ fontFamily: 'var(--police-mono)' }}>{dernierCompteCree.email} / {dernierCompteCree.motDePasse}</strong>
           <div style={{ marginTop: 8 }}>

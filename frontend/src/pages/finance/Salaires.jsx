@@ -33,7 +33,7 @@ export default function Salaires() {
     setModaleOuverte(false);
     chargerFiche(personnelId);
     setToast({
-      message: ficheEnvoyeeA ? `Versement enregistré — fiche de paie envoyée à ${ficheEnvoyeeA}.` : 'Versement enregistré.',
+      message: ficheEnvoyeeA ? `Versement enregistré. Fiche de paie envoyée à ${ficheEnvoyeeA}.` : 'Versement enregistré.',
       type: 'succes',
     });
   }
@@ -84,7 +84,7 @@ export default function Salaires() {
                   <h3>{personne.prenom} {personne.nom}</h3>
                   <p>
                     {personne.poste}{personne.salaireBase ? ` · salaire de base ${personne.salaireBase.toLocaleString('fr-FR')} FCFA` : ''}
-                    {!personne.email && <span style={{ color: 'var(--alerte)' }}> · aucun e-mail — la fiche de paie ne pourra pas être envoyée</span>}
+                    {!personne.email && <span style={{ color: 'var(--alerte)' }}> · aucun e-mail, la fiche de paie ne pourra pas être envoyée</span>}
                   </p>
                 </div>
               </div>
@@ -194,7 +194,7 @@ function FormulaireVersement({ personne, onFermer, onReussi }) {
   }
 
   return (
-    <Modal titre={`Nouveau versement — ${personne.prenom} ${personne.nom}`} onFermer={onFermer}>
+    <Modal titre={`Nouveau versement : ${personne.prenom} ${personne.nom}`} onFermer={onFermer}>
       <form className="formulaire" onSubmit={soumettre}>
         <div className="champ">
           <label>Période</label>

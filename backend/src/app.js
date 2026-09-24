@@ -58,7 +58,7 @@ const limiteurConnexion = rateLimit({
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { erreur: 'trop de tentatives — réessaie dans quelques minutes' },
+  message: { erreur: 'trop de tentatives, réessaie dans quelques minutes' },
 });
 app.use(['/api/auth/connexion', '/api/auth/mot-de-passe-oublie', '/api/auth/reinitialiser-mot-de-passe'], limiteurConnexion);
 
