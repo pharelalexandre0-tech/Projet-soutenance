@@ -7,6 +7,13 @@ const DUREE_AFFICHAGE_MS = 2300;
 const DUREE_TRANSITION_MS = 850;
 const COURBE = 'cubic-bezier(.65, 0, .35, 1)';
 
+// Une animation ne progresse pas dans un onglet caché : on n'attend jamais
+// sa fin plus longtemps que prévu, l'écran de démarrage ne peut pas rester
+// bloqué devant la connexion.
+function auPlusTard(promesse, ms) {
+  return Promise.race([promesse.catch(() => {}), new Promise((r) => setTimeout(r, ms))]);
+}
+
 // À afficher une seule fois par onglet, à l'ouverture de l'application.
 // Pose aussi, tout de suite, la classe qui retient les animations de
 // l'écran de connexion rendu dessous (voir .demarrage-en-cours en CSS).
@@ -52,7 +59,7 @@ export default function EcranDemarrage({ onTermine }) {
 
       if (!cible || reduit || typeof racine.animate !== 'function') {
         const fondu = racine.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease', fill: 'forwards' });
-        if (fondu) await fondu.finished.catch(() => {});
+        if (fondu) await auPlusTard(fondu.finished, 600);
         terminer();
         return;
       }
@@ -79,10 +86,10 @@ export default function EcranDemarrage({ onTermine }) {
         ));
       });
 
-      await Promise.all(animations.map((a) => a.finished.catch(() => {})));
+      await auPlusTard(Promise.all(animations.map((a) => a.finished)), DUREE_TRANSITION_MS + 400);
       // Sceau et nom sont maintenant pile sur ceux de la carte : un court
       // fondu laisse apparaître le reste de la carte (texte, formes).
-      await racine.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out', fill: 'forwards' }).finished.catch(() => {});
+      await auPlusTard(racine.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out', fill: 'forwards' }).finished, 600);
       terminer();
     }
 
