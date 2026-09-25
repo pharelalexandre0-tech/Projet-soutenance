@@ -19,6 +19,7 @@ const referenceRoutes = require('./routes/reference');
 const superadminRoutes = require('./routes/superadmin');
 const plateformeRoutes = require('./routes/plateforme');
 const { DOSSIER_STOCKAGE, lireDocument } = require('./services/pdfService');
+const { regenererDocument } = require('./services/regenerationService');
 
 const app = express();
 
@@ -68,7 +69,10 @@ app.use(['/api/auth/connexion', '/api/auth/mot-de-passe-oublie', '/api/auth/rein
 // repli pour d'anciens fichiers pas encore importés.
 app.get('/fichiers/:nomFichier', async (req, res, next) => {
   try {
-    const contenu = await lireDocument(req.params.nomFichier);
+    const { nomFichier } = req.params;
+    // Absent de la base (ancien fichier perdu avec le disque) : reçus et
+    // fiches de paie sont reconstruits à partir des données enregistrées.
+    const contenu = (await lireDocument(nomFichier)) || (await regenererDocument(nomFichier));
     if (!contenu) return next();
     res.set('Content-Type', 'application/pdf');
     res.set('Content-Disposition', `inline; filename="${req.params.nomFichier.replace(/"/g, '')}"`);
