@@ -93,6 +93,7 @@ async function saisirAppelEphemere(req, res) {
   }
 
   compte.statut = 'revoque';
+  compte.saisieEnvoyeeLe = new Date();
   await compte.save();
 
   const nbAbsences = absences.filter((a) => a.type === 'absence').length;

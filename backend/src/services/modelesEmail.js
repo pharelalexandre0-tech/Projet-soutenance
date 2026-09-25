@@ -205,6 +205,51 @@ function emailRappelMatricule({ prenom, matricule, etablissement }) {
   return { sujet, texte, html };
 }
 
+// Lien d'accès temporaire envoyé à un professeur (saisie des notes ou appel).
+function emailAccesTemporaire({ prenom, tache, classe, matiere, evaluation, categorie, lien, expiration, etablissement }) {
+  const action = tache === 'saisie_absences' ? "faire l'appel" : 'saisir les notes';
+  const titre = tache === 'saisie_absences' ? "Accès temporaire : faire l'appel" : 'Accès temporaire : saisie des notes';
+  const sujet = `${titre} (${classe})`;
+  const lignesPortee = [
+    ['Classe', classe],
+    ...(matiere ? [['Matière', matiere]] : []),
+    ...(tache !== 'saisie_absences' ? [['Évaluation', `${categorie === 'examen' ? 'Examen' : 'Contrôle continu'}${evaluation ? `, ${evaluation}` : ''}`]] : []),
+    ['Valable jusqu\'au', expiration],
+  ];
+  const texte = [
+    salutation(prenom),
+    '',
+    `${etablissement || 'Votre établissement'} vous a ouvert un accès temporaire pour ${action} :`,
+    ...lignesPortee.map(([cle, valeur]) => `- ${cle} : ${valeur}`),
+    '',
+    'Ouvrez ce lien pour commencer (aucun mot de passe n\'est nécessaire) :',
+    lien,
+    '',
+    "L'accès se ferme automatiquement dès que votre saisie est envoyée, ou à l'heure indiquée ci-dessus.",
+    '',
+    'Cordialement,',
+    "L'équipe EduSphere",
+  ].join('\n');
+  const tableau = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 22px; border:1px solid ${COULEURS.bordure}; border-radius:10px; border-collapse:separate;">${
+    lignesPortee.map(([cle, valeur], i) => `<tr><td style="padding:11px 16px; ${POLICE} font-size:13.5px; color:${COULEURS.texteClair}; ${i ? `border-top:1px solid ${COULEURS.bordure};` : ''} width:40%;">${echapper(cle)}</td><td style="padding:11px 16px; ${POLICE} font-size:14px; font-weight:bold; color:${COULEURS.texte}; ${i ? `border-top:1px solid ${COULEURS.bordure};` : ''}">${echapper(valeur)}</td></tr>`).join('')
+  }</table>`;
+  const html = cadre({
+    titre,
+    etablissement,
+    preEntete: `Accès pour ${action} en ${classe}, valable jusqu'au ${expiration}.`,
+    contenu: [
+      paragraphe(salutation(prenom)),
+      paragraphe(`${echapper(etablissement || 'Votre établissement')} vous a ouvert un accès temporaire pour <strong>${action}</strong> :`),
+      tableau,
+      bouton(tache === 'saisie_absences' ? "Faire l'appel" : 'Saisir les notes', lien),
+      paragraphe("Aucun mot de passe n'est nécessaire : ce lien vous est personnel, ne le transférez pas.", '0 0 12px'),
+      lienDeSecours(lien),
+      encadreSecurite("<strong>Bon à savoir :</strong> l'accès se ferme automatiquement dès que votre saisie est envoyée, ou à l'heure indiquée ci-dessus. Si vous avez besoin de plus de temps, demandez un nouvel accès au service Académie."),
+    ].join(''),
+  });
+  return { sujet, texte, html };
+}
+
 // Tous les autres e-mails (accès temporaire d'un professeur, bulletin,
 // relance, reçu...) : leur texte brut, mis en forme dans le même cadre. Un
 // code à 6 chiffres devient un bloc de code, une ligne qui n'est qu'un lien
@@ -227,4 +272,4 @@ function emailGenerique(corps, { titre, etablissement } = {}) {
   return cadre({ titre, contenu, etablissement });
 }
 
-module.exports = { emailCodeConnexion, emailReinitialisation, emailRappelMatricule, emailGenerique };
+module.exports = { emailCodeConnexion, emailReinitialisation, emailRappelMatricule, emailAccesTemporaire, emailGenerique };

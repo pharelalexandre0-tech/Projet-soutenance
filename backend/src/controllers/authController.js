@@ -5,18 +5,11 @@ const { envoyerEmail } = require('../services/emailService');
 const { emailCodeConnexion, emailReinitialisation, emailRappelMatricule } = require('../services/modelesEmail');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
+const { lienReinitialisation } = require('../utils/liens');
 const { maintenanceEnCours, repondreMaintenance, journaliser } = require('../services/plateformeService');
 
 const DUREE_CODE_2FA_MIN = 10;
 const DUREE_RESET_MIN = 30;
-
-// Même origine que le lien d'accès temporaire professeur (déjà configuré,
-// en local comme sur Render — voir EPHEMERE_LIEN_BASE_URL) : seul le
-// dernier segment de chemin change, pas besoin d'une variable d'environnement
-// de plus à synchroniser sur les deux hébergements.
-function baseUrlReinitialisation() {
-  return (process.env.EPHEMERE_LIEN_BASE_URL || '').replace(/\/[^/]*$/, '/reinitialiser-mot-de-passe');
-}
 
 const ROLES_AVEC_2FA = ['etudiant', 'parent'];
 
@@ -191,7 +184,7 @@ async function demanderReinitialisation(req, res) {
   utilisateur.tokenReinitialisationExpire = new Date(Date.now() + DUREE_RESET_MIN * 60 * 1000);
   await utilisateur.save();
 
-  const lien = `${baseUrlReinitialisation()}/${token}`;
+  const lien = lienReinitialisation(token);
   const message = emailReinitialisation({
     prenom: utilisateur.prenom, email: utilisateur.email, lien, minutes: DUREE_RESET_MIN, etablissement: etablissement?.nom,
   });

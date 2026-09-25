@@ -11,7 +11,7 @@ async function verifierCompteEphemere(req, res, next) {
   }
 
   if (compte.statut === 'revoque') {
-    return res.status(403).json({ erreur: "accès refusé : ce lien a déjà été utilisé" });
+    return res.status(403).json({ erreur: "ce lien n'est plus actif : la saisie a déjà été envoyée ou l'établissement a fermé l'accès" });
   }
 
   if (new Date() >= new Date(compte.dateExpiration)) {

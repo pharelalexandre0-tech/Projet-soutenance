@@ -1688,3 +1688,172 @@ button.bouton-fort { padding: 0 16px; min-height: var(--hauteur-controle); font-
 .liste-envois .erreur-envoi { color: var(--erreur); overflow-wrap: anywhere; margin-top: 2px; }
 
 @media (max-width: 760px) { .astuce-grille { display: none; } }
+
+/* ==========================================================================
+   Accès temporaires (comptes éphémères des professeurs)
+   ========================================================================== */
+
+.grille-principale { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 24px; align-items: start; }
+.grille-principale > .carte { margin-bottom: 0; }
+@media (max-width: 1240px) { .grille-principale { grid-template-columns: minmax(0, 1fr); } }
+
+.avatar-initiales {
+  width: 40px; height: 40px; flex: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primaire-clair); color: var(--primaire);
+  font-size: 13.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+.cellule-mission { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14.5px; color: var(--texte); }
+.cellule-mission > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.cellule-mission .badge { flex: none; }
+.temps-restant { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--succes); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.temps-restant svg { width: 15px; height: 15px; }
+
+.actions-ligne { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+button.bouton-icone-texte {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 0 10px;
+  border: 1px solid var(--bordure); border-radius: var(--rayon-controle);
+  background: var(--carte); color: var(--texte);
+  font: 500 13.5px/1 var(--police); white-space: nowrap; cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+button.bouton-icone-texte svg { width: 15px; height: 15px; flex: none; }
+button.bouton-icone-texte:hover { background: var(--gris-fond); border-color: var(--bordure-controle); }
+button.bouton-icone-texte.danger { color: var(--erreur); }
+button.bouton-icone-texte.danger:hover { background: var(--erreur-fond); border-color: color-mix(in srgb, var(--erreur) 35%, var(--bordure)); }
+button.bouton-icone-texte:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.liste-professeurs { list-style: none; margin: -22px -30px -26px; padding: 0; max-height: 640px; overflow-y: auto; }
+.liste-professeurs li { display: flex; align-items: center; gap: 12px; padding: 14px 30px; border-bottom: 1px solid var(--bordure); }
+.liste-professeurs li:last-child { border-bottom: none; }
+.liste-professeurs .textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.liste-professeurs strong { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-professeurs small { font-size: 13px; color: var(--texte-clair); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-professeurs .actions-ligne { flex: none; flex-wrap: nowrap; }
+
+.resultat-acces-temporaire { text-align: center; padding: 4px 0 22px; }
+.resultat-acces-temporaire h3 { margin: 14px 0 6px; font-size: 18px; font-weight: 600; color: var(--texte); text-wrap: balance; }
+.resultat-acces-temporaire p { margin: 0 auto; max-width: 44ch; font-size: 14.5px; line-height: 1.55; color: var(--texte-clair); }
+.resultat-icone { width: 56px; height: 56px; margin: 0 auto; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.resultat-icone svg { width: 26px; height: 26px; }
+.resultat-icone.ok { background: var(--succes-fond); color: var(--succes); }
+.resultat-icone.attention { background: var(--alerte-fond); color: var(--alerte); }
+.lien-copiable { display: flex; gap: 8px; }
+.lien-copiable input { flex: 1; min-width: 0; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 13.5px; }
+.lien-copiable button { flex: none; }
+
+.case-choix.sans-coche { padding: 0 16px; }
+
+/* Page du professeur (lien reçu par e-mail) */
+.page-acces { min-height: 100vh; background: var(--fond); display: flex; flex-direction: column; }
+.acces-entete {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 14px clamp(16px, 4vw, 40px);
+  background: var(--degrade-plateforme); color: #fff;
+}
+.acces-marque { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.acces-logo { width: 40px; height: 40px; flex: none; border-radius: 10px; background: #fff; padding: 5px; display: flex; }
+.acces-logo img { width: 100%; height: 100%; object-fit: contain; }
+.acces-marque-textes { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.acces-marque-textes strong { font-size: 15.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acces-marque-textes small { font-size: 12.5px; color: rgba(255, 255, 255, 0.72); }
+.acces-minuteur {
+  display: inline-flex; align-items: center; gap: 7px; flex: none;
+  padding: 7px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.14);
+  font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.acces-minuteur svg { width: 16px; height: 16px; }
+.acces-minuteur.bientot { background: var(--edu-or); color: var(--edu-marine); }
+
+.acces-contenu { width: 100%; max-width: 980px; margin: 0 auto; padding: 32px clamp(16px, 4vw, 32px) 0; display: flex; flex-direction: column; gap: 24px; flex: 1; }
+.acces-mission {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 18px;
+  padding: 26px 30px; background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--radius);
+}
+.acces-mission-icone { grid-row: span 1; width: 52px; height: 52px; border-radius: 13px; background: var(--primaire-clair); color: var(--primaire); display: flex; align-items: center; justify-content: center; }
+.acces-mission-icone svg { width: 24px; height: 24px; }
+.acces-mission-texte { min-width: 0; }
+.acces-surtitre { font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--primaire); }
+.acces-mission h1 { margin: 4px 0 6px; font-size: 22px; font-weight: 600; line-height: 1.3; color: var(--texte); text-wrap: balance; }
+.acces-mission p { margin: 0; max-width: 62ch; color: var(--texte-clair); line-height: 1.6; }
+.acces-portee {
+  grid-column: 1 / -1; margin: 18px 0 0; padding-top: 18px; border-top: 1px solid var(--bordure);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 24px;
+}
+.acces-portee dt { font-size: 12.5px; font-weight: 600; color: var(--texte-clair); margin-bottom: 2px; }
+.acces-portee dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--texte); overflow-wrap: anywhere; }
+.acces-portee dd::first-letter { text-transform: uppercase; }
+.acces-portee dd small { display: block; font-size: 13px; font-weight: 400; color: var(--texte-clair); }
+
+.acces-formulaire { display: flex; flex-direction: column; }
+.acces-liste { margin-bottom: 0; }
+.acces-compteurs { display: flex; gap: 6px; flex-wrap: wrap; }
+.acces-eleves { list-style: none; margin: -22px -30px -26px; padding: 0; }
+.acces-eleves li {
+  display: flex; align-items: center; gap: 14px;
+  padding: 11px 30px; border-bottom: 1px solid var(--bordure);
+}
+.acces-eleves li:last-child { border-bottom: none; }
+.acces-eleves li:hover { background: color-mix(in srgb, var(--gris-fond) 55%, var(--carte)); }
+.acces-eleves li.statut-absence { background: color-mix(in srgb, var(--erreur-fond) 55%, var(--carte)); }
+.acces-eleves li.statut-retard { background: color-mix(in srgb, var(--alerte-fond) 60%, var(--carte)); }
+.acces-numero { width: 28px; flex: none; font-family: var(--police-mono); font-size: 12.5px; color: var(--texte-clair); text-align: right; font-variant-numeric: tabular-nums; }
+.acces-eleve { flex: 1; min-width: 0; display: flex; flex-direction: column; cursor: inherit; }
+.acces-eleve strong { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acces-eleve small { font-family: var(--police-mono); font-size: 12px; color: var(--texte-clair); }
+.acces-note { display: flex; align-items: center; gap: 8px; flex: none; }
+.acces-note input {
+  width: 84px; height: 40px; text-align: center;
+  font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.acces-note span { font-size: 13.5px; color: var(--texte-clair); }
+.acces-eleves li.invalide .acces-note input { border-color: var(--erreur); background: var(--erreur-fond); }
+
+.acces-barre-envoi {
+  position: sticky; bottom: 16px; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  margin: 16px 0 32px; padding: 14px 16px 14px 22px;
+  background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--radius);
+  box-shadow: var(--ombre-flottante);
+}
+.acces-barre-envoi-textes { flex: 1; min-width: 200px; font-size: 14.5px; color: var(--texte-clair); }
+.acces-erreur { color: var(--erreur); font-weight: 500; }
+.acces-barre-envoi button.primaire { align-self: auto; }
+
+.acces-etat { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
+.acces-etat-carte {
+  width: 100%; max-width: 480px; text-align: center;
+  padding: 36px 32px; background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--radius);
+  box-shadow: var(--ombre-flottante); animation: entree 0.3s cubic-bezier(.22, 1, .36, 1) both;
+}
+.acces-etat-carte h1 { margin: 16px 0 8px; font-size: 21px; font-weight: 600; text-wrap: balance; }
+.acces-etat-carte p { margin: 0 auto; max-width: 42ch; color: var(--texte-clair); line-height: 1.6; }
+.acces-etat-note { margin-top: 14px !important; padding-top: 14px; border-top: 1px solid var(--bordure); font-size: 13.5px; }
+
+@media (max-width: 640px) {
+  .acces-contenu { padding-top: 20px; gap: 18px; }
+  .acces-mission { padding: 20px 18px; grid-template-columns: minmax(0, 1fr); }
+  .acces-mission-icone { display: none; }
+  .acces-portee { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; padding-top: 14px; }
+  .acces-mission h1 { font-size: 19px; }
+  .acces-eleves li { gap: 10px; flex-wrap: wrap; }
+  .acces-numero { width: auto; }
+  .acces-eleves .ligne-appel-options { width: 100%; padding-left: 0; }
+  .acces-eleves .ligne-appel-options .case-statut { flex: 1; padding: 8px 6px; }
+  .acces-barre-envoi button.primaire { width: 100%; }
+  .acces-minuteur { font-size: 12.5px; padding: 6px 10px; }
+}
+
+@media (max-width: 760px) {
+  .liste-professeurs { margin: -18px -18px -20px; }
+  .acces-eleves { margin: -18px -18px -20px; }
+  .acces-eleves li { padding: 11px 18px; }
+  .liste-professeurs li { padding: 14px 18px; flex-wrap: wrap; }
+  .ligne-donnees > .cellule-mission { flex: 1 1 100%; }
+  .ligne-donnees > .actions-ligne { flex: 1 1 100%; justify-content: flex-start; }
+}
+@media (max-width: 480px) {
+  .lien-copiable { flex-direction: column; }
+  .liste-professeurs .actions-ligne { margin-left: 52px; }
+}

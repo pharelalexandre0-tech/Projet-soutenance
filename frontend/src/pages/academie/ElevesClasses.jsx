@@ -313,9 +313,17 @@ export default function ElevesClasses() {
     return groupes;
   }, new Map()).values()].sort((a, b) => a.nom.localeCompare(b.nom));
 
+  // Le mot de passe d'un étudiant est son matricule : on affiche toujours
+  // celui du dossier actuel, jamais un ancien mot de passe resté en mémoire.
+  const matriculeParCompte = new Map(eleves.map((e) => [e.compteEtudiantId, e.matricule]));
+  function matriculeActuel(entree) {
+    return entree.role === 'Étudiant' ? (matriculeParCompte.get(entree.compteId) || entree.matricule) : null;
+  }
+
   async function copierIdentifiant(entree) {
     try {
-      await navigator.clipboard.writeText(`${entree.email} / ${entree.motDePasse}`);
+      const motDePasse = entree.role === 'Étudiant' ? (matriculeActuel(entree) || entree.motDePasse) : entree.motDePasse;
+      await navigator.clipboard.writeText(`${entree.email} / ${motDePasse}`);
     } catch {
       // Presse-papiers indisponible (contexte non sécurisé, permission
       // refusée) — l'académie peut toujours sélectionner le texte à la main.
@@ -479,6 +487,7 @@ export default function ElevesClasses() {
                     <td className="mono" style={{ whiteSpace: 'nowrap' }}>{e.matricule || 'En attente'}</td>
                     <td>
                       {e.prenom} {e.nom}
+                      {e.compteEtudiant?.email && <div className="note-secondaire" style={{ fontSize: 13 }}>{e.compteEtudiant.email}</div>}
                       <div>
                         <button
                           type="button" className="secondaire"
@@ -585,8 +594,8 @@ export default function ElevesClasses() {
               </div>
             </div>
             <p className="note-secondaire" style={{ margin: 0, fontSize: 14 }}>
-              Le matricule de l'élève est attribué automatiquement à l'inscription (sigle de l'établissement, année,
-              numéro). Il sert aussi de mot de passe à son compte étudiant et ne se modifie pas.
+              Le matricule de l'élève est attribué automatiquement à l'inscription (sigle de l'établissement, code et
+              numéro, par exemple IUSN-2N-0001). Il sert aussi de mot de passe à son compte étudiant et ne se modifie pas.
             </p>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
@@ -698,9 +707,9 @@ export default function ElevesClasses() {
                 <tr key={entree.compteId ?? entree.id}>
                   <td>{entree.role}</td>
                   <td>{entree.prenom} {entree.nom}</td>
-                  <td className="mono">{entree.matricule || <span className="note-secondaire">Sans objet</span>}</td>
+                  <td className="mono">{matriculeActuel(entree) || <span className="note-secondaire">Sans objet</span>}</td>
                   <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.email}</td>
-                  <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.motDePasse}</td>
+                  <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.role === 'Étudiant' ? (matriculeActuel(entree) || entree.motDePasse) : entree.motDePasse}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button
                       type="button" className="secondaire"

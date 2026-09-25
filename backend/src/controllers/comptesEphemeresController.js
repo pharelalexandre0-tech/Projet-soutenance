@@ -1,7 +1,35 @@
-const { CompteEphemere, Professeur, Classe, Matiere, UniteEnseignement, Semestre, Eleve } = require('../models');
+const { fn, col } = require('sequelize');
+const {
+  CompteEphemere, Professeur, Classe, Matiere, UniteEnseignement, Semestre, Eleve, Etablissement, Note, Absence,
+} = require('../models');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
+const { lienAccesTemporaire } = require('../utils/liens');
 const { enregistrerMoyenne } = require('./notesController');
 const { envoyerEmail } = require('../services/emailService');
+const { emailAccesTemporaire } = require('../services/modelesEmail');
+
+function formaterExpiration(date) {
+  return new Date(date).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Libreville' });
+}
+
+// Envoi (ou renvoi) du lien au professeur, avec le modèle d'e-mail de
+// service. Renvoie le résultat de l'envoi pour l'afficher à l'Académie.
+async function envoyerLienProfesseur(compte, { professeur, classe, matiere }) {
+  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom'] });
+  const message = emailAccesTemporaire({
+    prenom: professeur.prenom,
+    tache: compte.tache,
+    classe: classe.nom,
+    matiere: matiere?.intitule,
+    evaluation: compte.evaluationLibelle,
+    categorie: compte.categorie,
+    lien: lienAccesTemporaire(compte.jeton),
+    expiration: formaterExpiration(compte.dateExpiration),
+    etablissement: etablissement?.nom,
+  });
+  const resultat = await envoyerEmail(professeur.email, message.sujet, message.texte, [], { html: message.html });
+  return { envoye: !resultat.simule, service: resultat.service, destinataire: professeur.email };
+}
 
 // Diagramme 4 : Academie -> creer un compte ephemere (portee, duree de
 // validite) -> genererCompteEphemere -> enregistrer -> envoyer le lien
@@ -49,14 +77,8 @@ async function creerCompteEphemere(req, res) {
     creeParAcademieId: req.utilisateur.id,
   });
 
-  const lien = `${process.env.EPHEMERE_LIEN_BASE_URL}/${compte.jeton}`;
-  const libelleTache = tacheFinale === 'saisie_absences' ? "faire l'appel" : 'saisir les notes';
-  const expirationFormatee = dateExpiration.toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
-  await envoyerEmail(
-    professeur.email,
-    `Accès temporaire : ${libelleTache} pour ${classe.nom}`,
-    `Bonjour ${professeur.prenom},\n\nUn accès temporaire vous permet de ${libelleTache} pour la classe ${classe.nom}${matiere ? ` (${matiere.intitule})` : ''}.\n\n${lien}\n\nCe lien expire le ${expirationFormatee} et se révoque automatiquement une fois la saisie envoyée.`
-  );
+  const lien = lienAccesTemporaire(compte.jeton);
+  const email = await envoyerLienProfesseur(compte, { professeur, classe, matiere });
 
   return res.status(201).json({
     compte: {
@@ -73,7 +95,95 @@ async function creerCompteEphemere(req, res) {
       },
     },
     lien,
+    email,
   });
+}
+
+// Statut réel d'un accès : "actif" dont l'heure est passée = expiré (mis à
+// jour en base au passage, comme le fait déjà le middleware du lien).
+async function statutEffectif(compte) {
+  if (compte.statut === 'actif' && new Date(compte.dateExpiration) <= new Date()) {
+    compte.statut = 'expire';
+    await compte.save();
+  }
+  return compte.statut;
+}
+
+async function compteDeLEcole(id, etablissementId) {
+  const compte = await CompteEphemere.findByPk(id, {
+    include: [
+      { model: Classe, attributes: ['id', 'nom', 'niveau', 'etablissementId'] },
+      { model: Professeur, attributes: ['id', 'nom', 'prenom', 'email'] },
+      { model: Matiere, attributes: ['id', 'code', 'intitule'] },
+    ],
+  });
+  return compte && compte.Classe?.etablissementId === etablissementId ? compte : null;
+}
+
+function presenter(compte, saisies = {}) {
+  return {
+    id: compte.id,
+    tache: compte.tache,
+    categorie: compte.categorie,
+    evaluation: compte.evaluationLibelle,
+    statut: compte.statut,
+    dateCreation: compte.dateCreation || compte.createdAt,
+    dateExpiration: compte.dateExpiration,
+    lien: lienAccesTemporaire(compte.jeton),
+    professeur: compte.Professeur ? { id: compte.Professeur.id, nom: compte.Professeur.nom, prenom: compte.Professeur.prenom, email: compte.Professeur.email } : null,
+    classe: compte.Classe ? { id: compte.Classe.id, nom: compte.Classe.nom, niveau: compte.Classe.niveau } : null,
+    matiere: compte.Matiere ? { id: compte.Matiere.id, code: compte.Matiere.code, intitule: compte.Matiere.intitule } : null,
+    saisies: (saisies.notes || 0) + (saisies.absences || 0),
+    saisieEnvoyeeLe: compte.saisieEnvoyeeLe,
+  };
+}
+
+// Tous les accès temporaires délivrés par l'école, du plus récent au plus
+// ancien, avec leur statut réel et le nombre de saisies déjà reçues.
+async function listerComptesEphemeres(req, res) {
+  const comptes = await CompteEphemere.findAll({
+    include: [
+      { model: Classe, attributes: ['id', 'nom', 'niveau', 'etablissementId'], where: { etablissementId: req.utilisateur.etablissementId } },
+      { model: Professeur, attributes: ['id', 'nom', 'prenom', 'email'] },
+      { model: Matiere, attributes: ['id', 'code', 'intitule'] },
+    ],
+    order: [['createdAt', 'DESC']],
+    limit: 300,
+  });
+  for (const compte of comptes) await statutEffectif(compte);
+
+  const ids = comptes.map((c) => c.id);
+  const saisies = {};
+  if (ids.length) {
+    const [notes, absences] = await Promise.all([
+      Note.findAll({ attributes: ['compteEphemereId', [fn('COUNT', col('id')), 'n']], where: { compteEphemereId: ids }, group: ['compteEphemereId'], raw: true }),
+      Absence.findAll({ attributes: ['compteEphemereId', [fn('COUNT', col('id')), 'n']], where: { compteEphemereId: ids }, group: ['compteEphemereId'], raw: true }),
+    ]);
+    notes.forEach((l) => { saisies[l.compteEphemereId] = { ...(saisies[l.compteEphemereId] || {}), notes: Number(l.n) }; });
+    absences.forEach((l) => { saisies[l.compteEphemereId] = { ...(saisies[l.compteEphemereId] || {}), absences: Number(l.n) }; });
+  }
+  return res.json({ comptes: comptes.map((c) => presenter(c, saisies[c.id])) });
+}
+
+// Fermer un accès avant son heure (lien envoyé par erreur, mauvaise classe...).
+async function revoquerCompteEphemere(req, res) {
+  const compte = await compteDeLEcole(req.params.id, req.utilisateur.etablissementId);
+  if (!compte) return res.status(404).json({ erreur: 'accès introuvable' });
+  compte.statut = 'revoque';
+  await compte.save();
+  return res.json({ compte: presenter(compte) });
+}
+
+// Renvoyer l'e-mail d'un accès encore ouvert (professeur qui ne le trouve pas).
+async function renvoyerCompteEphemere(req, res) {
+  const compte = await compteDeLEcole(req.params.id, req.utilisateur.etablissementId);
+  if (!compte) return res.status(404).json({ erreur: 'accès introuvable' });
+  if ((await statutEffectif(compte)) !== 'actif') {
+    return res.status(400).json({ erreur: 'cet accès est fermé, crée un nouvel accès pour ce professeur' });
+  }
+  if (!compte.Professeur) return res.status(410).json({ erreur: "le professeur de cet accès n'existe plus" });
+  const email = await envoyerLienProfesseur(compte, { professeur: compte.Professeur, classe: compte.Classe, matiere: compte.Matiere });
+  return res.json({ email });
 }
 
 // verifierJeton(jeton) : ouvre la session temporaire si le jeton est valide
@@ -92,10 +202,12 @@ async function verifierJeton(req, res) {
   if (!professeur || !classe) {
     return res.status(410).json({ erreur: 'ce lien ne correspond plus à un professeur ou une classe existant(e)' });
   }
+  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom', 'sigle', 'logo'] });
 
   return res.json({
     session: 'temporaire',
     tache: compte.tache,
+    etablissement: etablissement ? { nom: etablissement.nom, sigle: etablissement.sigle, logo: etablissement.logo } : null,
     professeur: { nom: professeur.nom, prenom: professeur.prenom },
     portee: {
       classe: classe.nom,
@@ -105,7 +217,7 @@ async function verifierJeton(req, res) {
       evaluation: compte.evaluationLibelle,
     },
     dateExpiration: compte.dateExpiration,
-    eleves: eleves.map((e) => ({ id: e.id, nom: e.nom, prenom: e.prenom })),
+    eleves: eleves.map((e) => ({ id: e.id, nom: e.nom, prenom: e.prenom, matricule: e.matricule })),
   });
 }
 
@@ -144,6 +256,7 @@ async function enregistrerNotesEphemere(req, res) {
 
   // signaler tâche terminée -> révoquer le compte éphémère (fin de tâche).
   compte.statut = 'revoque';
+  compte.saisieEnvoyeeLe = new Date();
   await compte.save();
 
   return res.status(201).json({
@@ -153,4 +266,6 @@ async function enregistrerNotesEphemere(req, res) {
   });
 }
 
-module.exports = { creerCompteEphemere, verifierJeton, enregistrerNotesEphemere };
+module.exports = {
+  creerCompteEphemere, listerComptesEphemeres, revoquerCompteEphemere, renvoyerCompteEphemere, verifierJeton, enregistrerNotesEphemere,
+};

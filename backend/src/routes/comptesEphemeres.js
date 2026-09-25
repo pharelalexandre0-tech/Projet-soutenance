@@ -1,6 +1,9 @@
 const express = require('express');
 const {
   creerCompteEphemere,
+  listerComptesEphemeres,
+  revoquerCompteEphemere,
+  renvoyerCompteEphemere,
   verifierJeton,
   enregistrerNotesEphemere,
 } = require('../controllers/comptesEphemeresController');
@@ -16,7 +19,11 @@ const router = express.Router();
 const lienProfesseur = [bloquerSiMaintenance, verifierCompteEphemere, exigerFonctionnaliteEphemere('acces-temporaires')];
 
 // Académie : créer un accès temporaire pour un Professeur.
-router.post('/', authentifier, exigerFonctionnalite('acces-temporaires'), autoriserRoles('academie'), creerCompteEphemere);
+const academieAvecModule = [authentifier, exigerFonctionnalite('acces-temporaires'), autoriserRoles('academie')];
+router.get('/', ...academieAvecModule, listerComptesEphemeres);
+router.post('/', ...academieAvecModule, creerCompteEphemere);
+router.patch('/gestion/:id/revoquer', ...academieAvecModule, revoquerCompteEphemere);
+router.post('/gestion/:id/renvoyer', ...academieAvecModule, renvoyerCompteEphemere);
 
 // Professeur : ouvrir le lien reçu, puis saisir les notes (ou les absences
 // selon la tâche du compte éphémère). Pas de session classique ici, le

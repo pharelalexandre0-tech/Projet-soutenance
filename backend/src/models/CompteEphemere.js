@@ -37,6 +37,10 @@ CompteEphemere.init(
       allowNull: false,
       defaultValue: 'actif',
     },
+    // Rempli quand le professeur envoie sa saisie : distingue un accès
+    // terminé normalement d'un accès fermé à la main par l'Académie (un
+    // appel sans aucun absent ne laisse sinon aucune trace en base).
+    saisieEnvoyeeLe: { type: DataTypes.DATE, allowNull: true },
   },
   { sequelize, modelName: 'CompteEphemere', tableName: 'comptes_ephemeres' }
 );
