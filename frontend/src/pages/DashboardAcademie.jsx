@@ -37,7 +37,7 @@ const ONGLETS = [
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument, groupe: 'Évaluation',
     description: 'Bulletins semestriels : consultation et envoi aux étudiants.' },
   { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconTrendingDown, groupe: 'Évaluation', fonctionnalite: 'prediction',
-    description: 'Élèves à risque repérés à partir des notes, des absences et du comportement.' },
+    description: 'Prédiction du risque d’échec par apprentissage automatique : notes de contrôle continu, assiduité, comportement et paiements.' },
   { id: 'comptes', label: 'Comptes éphémères', composant: ComptesEphemeres, icone: IconKey, groupe: 'Équipe & échanges', fonctionnalite: 'acces-temporaires',
     description: 'Liens d’accès temporaires envoyés aux professeurs pour saisir les notes et faire l’appel.' },
   { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage, groupe: 'Équipe & échanges', fonctionnalite: 'communication',

@@ -6,6 +6,7 @@ const { initialiserPublicationsEmplois } = require('./services/emploiDuTempsServ
 const { importerDocumentsExistants } = require('./services/pdfService');
 const { reconstituerComptesRendus } = require('./services/compteRenduService');
 const { rattacherProfesseursALaPaie } = require('./services/paieService');
+const { assurerModeleIA } = require('./services/riskService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -22,6 +23,7 @@ const PORT = process.env.PORT || 4000;
     await importerDocumentsExistants();
     await reconstituerComptesRendus();
     await rattacherProfesseursALaPaie();
+    await assurerModeleIA();
 
     app.listen(PORT, () => {
       console.log(`API Plateforme de Gestion Scolaire à l'écoute sur le port ${PORT}`);

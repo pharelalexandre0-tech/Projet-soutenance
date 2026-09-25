@@ -1,5 +1,7 @@
-const { Eleve, PredictionIA, Utilisateur, Notification } = require('../models');
-const { calculerRisqueEleve } = require('../services/riskService');
+const { Eleve, Classe, PredictionIA, Utilisateur, Notification, ModeleIA } = require('../models');
+const { calculerRisqueEleve, modeleActif, oublierModele } = require('../services/riskService');
+const { entrainerModele } = require('../services/ia/entrainement');
+const { CARACTERISTIQUES } = require('../services/ia/caracteristiques');
 
 // "Déclencher l'analyse périodique (ex. hebdomadaire)" -> collecte ->
 // calcul -> décision seuil -> alerte/archive -> notifier l'équipe
@@ -52,7 +54,7 @@ async function lancerAnalyse(req, res) {
 // voit toujours ce que l'analyse a trouvé, pas seulement les cas les plus graves.
 async function listerAlertes(req, res) {
   const predictions = await PredictionIA.findAll({
-    include: [{ model: Eleve, where: { etablissementId: req.utilisateur.etablissementId } }],
+    include: [{ model: Eleve, where: { etablissementId: req.utilisateur.etablissementId }, include: [{ model: Classe, attributes: ['id', 'nom', 'niveau'] }] }],
     order: [['dateCalcul', 'DESC']],
   });
   const vus = new Set();
@@ -84,4 +86,42 @@ async function historiqueEleve(req, res) {
   return res.json({ predictions });
 }
 
-module.exports = { lancerAnalyse, listerAlertes, historiqueEleve, executerAnalyseRisque };
+// Fiche du modèle actif (sans les paramètres appris, trop volumineux) :
+// algorithme, performances, comparaison, importance des signaux, données.
+function presenterModele(m) {
+  return {
+    version: m.version,
+    algorithme: m.algorithme,
+    entraineLe: m.entraineLe,
+    dureeMs: m.dureeMs,
+    parametres: m.parametres,
+    metriques: m.metriques,
+    comparaison: m.comparaison,
+    donnees: m.donnees,
+    importances: CARACTERISTIQUES
+      .map((c) => ({ cle: c.cle, libelle: c.libelle, importance: m.importances[c.cle] || 0 }))
+      .sort((a, b) => b.importance - a.importance),
+  };
+}
+
+async function obtenirModele(req, res) {
+  const modele = await modeleActif();
+  const versions = await ModeleIA.findAll({ attributes: ['version', 'algorithme', 'entraineLe', 'metriques', 'actif'], order: [['version', 'DESC']] });
+  return res.json({
+    modele: presenterModele(modele),
+    versions: versions.map((v) => ({ version: v.version, algorithme: v.algorithme, entraineLe: v.entraineLe, auc: v.metriques.auc, actif: v.actif })),
+  });
+}
+
+// Réentraîner : la base d'apprentissage est reconstruite (cohorte de
+// référence + semestres terminés des établissements), les deux algorithmes
+// sont comparés et le meilleur devient le modèle actif. Les scores des
+// élèves de l'école sont ensuite recalculés avec lui.
+async function reentrainerModele(req, res) {
+  const modele = await entrainerModele({ entraineParId: req.utilisateur.id });
+  oublierModele();
+  const analyse = await executerAnalyseRisque(req.utilisateur.etablissementId);
+  return res.status(201).json({ modele: presenterModele(modele.toJSON()), analyse });
+}
+
+module.exports = { lancerAnalyse, listerAlertes, historiqueEleve, executerAnalyseRisque, obtenirModele, reentrainerModele };

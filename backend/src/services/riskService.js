@@ -1,53 +1,67 @@
-const { Note, Absence, IncidentComportement } = require('../models');
-const { calculerNoteFinale } = require('./moyenneService');
-const { predireProbabilite } = require('./logisticRegression');
-const modele = require('./modeleRisque.json');
+const { ModeleIA } = require('../models');
+const { CARACTERISTIQUES, caracteristiquesEleve, versVecteur } = require('./ia/caracteristiques');
+const { predireProbabilite } = require('./ia/algorithmes');
+const { entrainerModele } = require('./ia/entrainement');
 
 const SEUIL_ALERTE = 60; // sur 100
+const SEUIL_MOYEN = 30;
 
-// "Collecter les données (notes, absences, comportement)" puis "Calculer le
-// score de risque de décrochage / échec par élève" - diagramme d'activité 7.
-// scoreRisque = probabilité prédite par une régression logistique entraînée
-// (scripts/entrainerModeleRisque.js, npm run train:risque), pas une formule
-// à poids choisis à la main — voir modeleRisque.json pour les poids appris
-// et les métriques mesurées sur le jeu de test (exactitude, précision, rappel).
-async function calculerRisqueEleve(eleveId) {
-  const [notes, absences, incidents] = await Promise.all([
-    Note.findAll({ where: { eleveId, session: 'normale' } }),
-    Absence.findAll({ where: { eleveId } }),
-    IncidentComportement.findAll({ where: { eleveId } }),
-  ]);
+// "Collecter les données puis calculer le score de risque" (diagramme
+// d'activité 7). Le score est la probabilité d'échec du semestre prédite par
+// le modèle d'apprentissage automatique actif (forêt aléatoire ou régression
+// logistique, choisi par validation croisée, voir services/ia), à partir des
+// signaux observés en cours de semestre.
+let modeleEnCache = null;
 
-  const notesFinales = notes
-    .map((n) => calculerNoteFinale(n.moyenneCC, n.moyenneExamen))
-    .filter((v) => v !== null);
-  const moyenneNotes =
-    notesFinales.length > 0 ? notesFinales.reduce((acc, v) => acc + v, 0) / notesFinales.length : null;
-  const absencesNonJustifiees = absences.filter((a) => !a.justifie).length;
-  const incidentsMajeurs = incidents.filter((i) => i.gravite === 'majeur').length;
-  const incidentsMineurs = incidents.length - incidentsMajeurs;
-
-  // Mêmes conventions de normalisation [0,1] que le jeu d'entraînement
-  // synthétique — un score ne veut dire quelque chose que si l'inférence
-  // utilise exactement les caractéristiques sur lesquelles le modèle a
-  // appris. Pas de notes = 0.5 (incertitude), ni bon ni mauvais signe.
-  const caracteristiques = [
-    moyenneNotes !== null ? (20 - moyenneNotes) / 20 : 0.5,
-    Math.min(absencesNonJustifiees / 10, 1),
-    Math.min((incidentsMineurs + 2 * incidentsMajeurs) / 6, 1),
-  ];
-
-  const probabilite = predireProbabilite(caracteristiques, modele.poids, modele.biais);
-  const scoreRisque = Math.round(probabilite * 1000) / 10; // 0-100, une décimale
-  const niveauRisque = scoreRisque >= SEUIL_ALERTE ? 'eleve' : scoreRisque >= 30 ? 'moyen' : 'faible';
-
-  const facteursCles = [
-    moyenneNotes !== null ? `moyenne ${moyenneNotes.toFixed(1)}/20` : 'pas encore de notes',
-    `${absencesNonJustifiees} absence(s) non justifiée(s)`,
-    `${incidents.length} incident(s) de comportement`,
-  ].join(' ; ');
-
-  return { scoreRisque, niveauRisque, facteursCles, alerteGeneree: scoreRisque >= SEUIL_ALERTE };
+async function modeleActif() {
+  if (modeleEnCache) return modeleEnCache;
+  let modele = await ModeleIA.findOne({ where: { actif: true } });
+  if (!modele) modele = await entrainerModele();
+  modeleEnCache = modele.toJSON();
+  return modeleEnCache;
 }
 
-module.exports = { calculerRisqueEleve, SEUIL_ALERTE };
+function oublierModele() {
+  modeleEnCache = null;
+}
+
+// Au démarrage : un modèle doit exister (entraîné à la première mise en route).
+async function assurerModeleIA() {
+  const modele = await modeleActif();
+  console.log(`Modèle de prédiction actif : v${modele.version} (${modele.algorithme}), AUC ${modele.metriques.auc}.`);
+}
+
+async function calculerRisqueEleve(eleveId) {
+  const modele = await modeleActif();
+  const caracteristiques = await caracteristiquesEleve(eleveId);
+  const x = versVecteur(caracteristiques, modele.imputation);
+  const probabilite = predireProbabilite(modele.modele, x);
+  const scoreRisque = Math.round(probabilite * 1000) / 10;
+  const niveauRisque = scoreRisque >= SEUIL_ALERTE ? 'eleve' : scoreRisque >= SEUIL_MOYEN ? 'moyen' : 'faible';
+
+  // Explication locale : pour chaque signal, de combien la probabilité
+  // baisserait si l'élève avait la valeur typique d'un élève qui réussit.
+  const facteurs = CARACTERISTIQUES.map((c, j) => {
+    if (caracteristiques[c.cle] === null || caracteristiques[c.cle] === undefined) return null;
+    const xReference = [...x];
+    xReference[j] = modele.reference[c.cle];
+    return { cle: c.cle, libelle: c.libelle, texte: c.texte(caracteristiques[c.cle]), impact: probabilite - predireProbabilite(modele.modele, xReference) };
+  })
+    .filter((f) => f && f.impact > 0.015)
+    .sort((a, b) => b.impact - a.impact)
+    .slice(0, 3)
+    .map((f) => ({ ...f, impact: Math.round(f.impact * 1000) / 10 }));
+
+  return {
+    scoreRisque,
+    niveauRisque,
+    alerteGeneree: scoreRisque >= SEUIL_ALERTE,
+    facteursCles: JSON.stringify({
+      facteurs,
+      sansNotes: caracteristiques.moyenneCC === null,
+      modele: { version: modele.version, algorithme: modele.algorithme },
+    }),
+  };
+}
+
+module.exports = { calculerRisqueEleve, modeleActif, oublierModele, assurerModeleIA, SEUIL_ALERTE };

@@ -34,6 +34,8 @@ const JournalAdministration = require('./JournalAdministration');
 const DocumentPDF = require('./DocumentPDF');
 const JournalEmail = require('./JournalEmail');
 const CompteRenduSaisie = require('./CompteRenduSaisie');
+const ModeleIA = require('./ModeleIA');
+const DonneeEntrainementIA = require('./DonneeEntrainementIA');
 
 // ---- Multi-établissement (superadmin) --------------------------------------
 // EduSphere héberge plusieurs écoles : chaque compte (hors superadmin), et
@@ -141,6 +143,10 @@ CompteRenduSaisie.belongsTo(Matiere, { foreignKey: 'matiereId' });
 Etablissement.hasMany(CompteRenduSaisie, { foreignKey: 'etablissementId' });
 CompteRenduSaisie.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
 
+// Modèle de prédiction : qui l'a entraîné.
+Utilisateur.hasMany(ModeleIA, { foreignKey: 'entraineParId' });
+ModeleIA.belongsTo(Utilisateur, { foreignKey: 'entraineParId', as: 'entrainePar' });
+
 // La paie reprend automatiquement les professeurs de l'Académie.
 Professeur.hasOne(Personnel, { foreignKey: 'professeurId' });
 Personnel.belongsTo(Professeur, { foreignKey: 'professeurId' });
@@ -219,4 +225,6 @@ module.exports = {
   DocumentPDF,
   JournalEmail,
   CompteRenduSaisie,
+  ModeleIA,
+  DonneeEntrainementIA,
 };

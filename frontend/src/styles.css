@@ -2294,3 +2294,56 @@ tbody tr.ligne-groupe:hover { background: none; }
   .puces-classes { flex-basis: 100%; order: 3; }
   .barre-classes .champ-recherche.compact { flex: 1; width: auto; }
 }
+
+/* ==========================================================================
+   Alertes décrochage : modèle d'apprentissage et élèves à suivre
+   ========================================================================== */
+
+.modele-ia { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 1100px) { .modele-ia { grid-template-columns: minmax(0, 1fr); } }
+.modele-ia-resume { margin: 0 0 16px; max-width: 72ch; font-size: 14.5px; line-height: 1.6; color: var(--texte-clair); }
+.modele-ia-resume strong { color: var(--texte); }
+.metriques-ia { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 16px; border: 1px solid var(--bordure); border-radius: 10px; }
+.metriques-ia > div { padding: 12px 14px; }
+.metriques-ia > div + div { border-left: 1px solid var(--bordure); }
+.metriques-ia span { display: block; font-size: 12.5px; font-weight: 600; color: var(--texte-clair); }
+.metriques-ia strong { display: block; margin-top: 2px; font-size: 21px; font-weight: 650; color: var(--texte); font-variant-numeric: tabular-nums; }
+.modele-ia-note { margin: 8px 0 0; font-size: 13px; }
+.modele-ia-importances h3 { margin: 0 0 12px !important; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texte-clair); }
+.modele-ia-importances ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.modele-ia-importances li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 52px; align-items: center; gap: 12px; font-size: 14px; }
+.importance-libelle { color: var(--texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.importance-piste { height: 8px; border-radius: 4px; background: var(--gris-fond); overflow: hidden; }
+.importance-piste span { display: block; height: 100%; border-radius: 4px; background: var(--primaire); }
+.importance-valeur { text-align: right; font-size: 13px; font-weight: 600; color: var(--texte-clair); font-variant-numeric: tabular-nums; }
+
+.table-alertes td { white-space: nowrap; }
+.jauge-risque { display: inline-flex; align-items: center; gap: 10px; min-width: 170px; }
+.jauge-risque-piste { width: 100px; height: 8px; border-radius: 4px; background: var(--gris-fond); overflow: hidden; }
+.jauge-risque-piste span { display: block; height: 100%; border-radius: 4px; background: var(--succes); }
+.jauge-risque.niveau-moyen .jauge-risque-piste span { background: var(--alerte); }
+.jauge-risque.niveau-eleve .jauge-risque-piste span { background: var(--erreur); }
+.jauge-risque strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.cellule-facteurs { white-space: normal !important; min-width: 280px; }
+.facteur-puce {
+  display: inline-flex; align-items: center; margin: 2px 6px 2px 0; padding: 3px 10px; border-radius: 999px;
+  background: var(--erreur-fond); color: var(--erreur); font-size: 12.5px; font-weight: 500; white-space: nowrap;
+}
+.facteur-puce.neutre { background: var(--gris-fond); color: var(--texte-clair); }
+
+.score-dossier { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px; border-radius: 10px; background: var(--succes-fond); }
+.score-dossier.niveau-moyen { background: var(--alerte-fond); }
+.score-dossier.niveau-eleve { background: var(--erreur-fond); }
+.score-dossier > span:first-child { font-size: 13.5px; color: var(--texte-clair); }
+.score-dossier strong { font-size: 34px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.facteurs-dossier, .historique-risque { list-style: none; margin: 0; padding: 0; border: 1px solid var(--bordure); border-radius: 10px; }
+.facteurs-dossier li, .historique-risque li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; font-size: 14px; }
+.facteurs-dossier li + li, .historique-risque li + li { border-top: 1px solid var(--bordure); }
+.facteurs-dossier strong { color: var(--erreur); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 760px) {
+  .metriques-ia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metriques-ia > div:nth-child(odd) { border-left: none; }
+  .metriques-ia > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
+  .modele-ia-importances li { grid-template-columns: minmax(0, 1fr) 70px 46px; }
+}
