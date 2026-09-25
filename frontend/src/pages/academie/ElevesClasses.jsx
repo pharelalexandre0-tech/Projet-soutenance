@@ -37,6 +37,12 @@ function chargerIdentifiantsSession() {
 function nomClasse(c) {
   return c ? `${c.nom} (${c.niveau})` : 'Classe inconnue';
 }
+// Abréviation du niveau sur les boutons de classe (Licence 1 -> L1).
+function abregerNiveau(niveau) {
+  const m = String(niveau || '').match(/^(Licence|Master)\s*(\d)/i);
+  if (m) return `${m[1][0].toUpperCase()}${m[2]}`;
+  return niveau === 'Doctorat' ? 'Doct.' : niveau;
+}
 // Rendu fenêtré : un établissement peut compter des milliers d'élèves, on
 // n'en dessine qu'une tranche (le filtrage reste instantané côté client).
 const TRANCHE = 150;
@@ -68,7 +74,6 @@ export default function ElevesClasses() {
   const [classeChoisie, setClasseChoisie] = useState('');
   const [recherche, setRecherche] = useState('');
   const [rechercheClasse, setRechercheClasse] = useState('');
-  const [niveauClasse, setNiveauClasse] = useState('');
   const sectionEleves = useRef(null);
   const [limite, setLimite] = useState(TRANCHE);
 
@@ -106,9 +111,7 @@ export default function ElevesClasses() {
   const elevesAffiches = elevesFiltres.slice(0, limite);
   const classeCourante = classes.find((c) => String(c.id) === classeChoisie);
   const rechercheClasseNette = rechercheClasse.trim().toLowerCase();
-  const niveauxPresents = [...new Set(classes.map((c) => c.niveau))].sort((a, b) => NIVEAUX.indexOf(a) - NIVEAUX.indexOf(b));
   const classesAffichees = classes
-    .filter((c) => !niveauClasse || c.niveau === niveauClasse)
     .filter((c) => !rechercheClasseNette || `${c.nom} ${c.niveau}`.toLowerCase().includes(rechercheClasseNette))
     .sort((a, b) => (NIVEAUX.indexOf(a.niveau) - NIVEAUX.indexOf(b.niveau)) || a.nom.localeCompare(b.nom, 'fr'));
 
@@ -191,64 +194,37 @@ export default function ElevesClasses() {
         </div>
       </div>
 
-      <section className="carte">
-        <div className="entete-carte">
+      <section className="carte carte-barre-classes">
+        <div className="barre-classes">
           <h2>Classes <span className="entete-carte-compteur">{classes.length}</span></h2>
-          <div className="actions-carte">
-            <label className="champ-recherche compact">
-              <IconSearch />
-              <input type="search" placeholder="Rechercher une classe…" value={rechercheClasse} onChange={(e) => setRechercheClasse(e.target.value)} aria-label="Rechercher une classe" />
-            </label>
-            {niveauxPresents.length > 1 && (
-              <select value={niveauClasse} onChange={(e) => setNiveauClasse(e.target.value)} aria-label="Filtrer par niveau" className="filtre-select">
-                <option value="">Tous les niveaux</option>
-                {niveauxPresents.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+          <div className="puces-classes" role="group" aria-label="Filtrer les élèves par classe">
+            {!rechercheClasseNette && (
+              <button type="button" className={`puce-classe ${!classeChoisie ? 'active' : ''}`} aria-pressed={!classeChoisie} onClick={() => choisirClasse('')}>
+                <strong>Toutes</strong>
+                <span className="puce-classe-compte">{eleves.length}</span>
+              </button>
             )}
-            <button type="button" className="primaire" onClick={() => setCreationClasse(true)}><IconPlus /> Nouvelle classe</button>
+            {classesAffichees.map((c) => {
+              const active = classeChoisie === String(c.id);
+              return (
+                <button
+                  key={c.id} type="button" className={`puce-classe ${active ? 'active' : ''}`} aria-pressed={active}
+                  onClick={() => choisirClasse(String(c.id))} title={`${c.nom} (${c.niveau})`}
+                >
+                  <strong>{c.nom}</strong>
+                  <span className="puce-classe-niveau">{abregerNiveau(c.niveau)}</span>
+                  <span className="puce-classe-compte">{c.Eleves?.length ?? 0}</span>
+                </button>
+              );
+            })}
+            {!chargement && classes.length === 0 && <span className="note-secondaire">Aucune classe pour le moment.</span>}
+            {!chargement && classes.length > 0 && classesAffichees.length === 0 && <span className="note-secondaire">Aucune classe ne correspond.</span>}
           </div>
-        </div>
-        <div className="grille-classes" role="list" aria-label="Classes de l'établissement">
-          {!rechercheClasseNette && !niveauClasse && (
-            <div
-              role="button" tabIndex={0} aria-pressed={!classeChoisie}
-              className={`tuile-classe tuile-toutes ${!classeChoisie ? 'active' : ''}`}
-              onClick={() => choisirClasse('')}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirClasse(''); } }}
-            >
-              <span className="tuile-classe-haut"><span className="tuile-classe-icone"><IconUsers /></span></span>
-              <strong className="tuile-classe-nom">Toutes les classes</strong>
-              <span className="tuile-classe-effectif"><b>{eleves.length}</b> élève{eleves.length > 1 ? 's' : ''} au total</span>
-            </div>
-          )}
-          {classesAffichees.map((c) => {
-            const effectif = c.Eleves?.length ?? 0;
-            const active = classeChoisie === String(c.id);
-            return (
-              <div
-                key={c.id} role="button" tabIndex={0} aria-pressed={active}
-                className={`tuile-classe ${active ? 'active' : ''}`}
-                onClick={() => choisirClasse(String(c.id))}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirClasse(String(c.id)); } }}
-              >
-                <span className="tuile-classe-haut">
-                  <span className="badge bleu sans-point">{c.niveau}</span>
-                  <button
-                    type="button" className="tuile-classe-gerer" title="Gérer la classe" aria-label={`Gérer la classe ${c.nom}`}
-                    onClick={(e) => { e.stopPropagation(); setClasseEditee(c); }}
-                  >
-                    <IconEdit />
-                  </button>
-                </span>
-                <strong className="tuile-classe-nom">{c.nom}</strong>
-                <span className="tuile-classe-effectif">
-                  {effectif ? <><b>{effectif}</b> élève{effectif > 1 ? 's' : ''}</> : <span className="note-secondaire">Aucun élève inscrit</span>}
-                </span>
-              </div>
-            );
-          })}
-          {!chargement && classes.length === 0 && <div className="vide grille-classes-vide">Aucune classe. Créez la première avec « Nouvelle classe ».</div>}
-          {!chargement && classes.length > 0 && classesAffichees.length === 0 && <div className="vide grille-classes-vide">Aucune classe ne correspond à cette recherche.</div>}
+          <label className="champ-recherche compact">
+            <IconSearch />
+            <input type="search" placeholder="Rechercher une classe…" value={rechercheClasse} onChange={(e) => setRechercheClasse(e.target.value)} aria-label="Rechercher une classe" />
+          </label>
+          <button type="button" className="primaire" onClick={() => setCreationClasse(true)}><IconPlus /> Nouvelle classe</button>
         </div>
       </section>
 
@@ -264,6 +240,9 @@ export default function ElevesClasses() {
             )}
           </h2>
           <div className="actions-carte">
+            {classeCourante && (
+              <button type="button" className="secondaire" onClick={() => setClasseEditee(classeCourante)}><IconEdit /> Gérer la classe</button>
+            )}
             <button type="button" className="secondaire" onClick={() => setImportation(true)} disabled={classes.length === 0}><IconUpload /> Importer</button>
             <button type="button" className="primaire" onClick={() => setInscription(true)} disabled={classes.length === 0}><IconUserPlus /> Inscrire un élève</button>
           </div>
