@@ -211,3 +211,30 @@ export function IconClose(props) {
     </svg>
   );
 }
+
+export function IconSearch(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10.8" cy="10.8" r="6.3" />
+      <path d="M19.5 19.5l-4.3-4.3" />
+    </svg>
+  );
+}
+
+export function IconDownload(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3.5v11.5M7.5 11l4.5 4.5L16.5 11" />
+      <path d="M4.5 17.5v2a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-2" />
+    </svg>
+  );
+}
+
+export function IconMapPin(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 21s7-6.4 7-12a7 7 0 1 0-14 0c0 5.6 7 12 7 12Z" />
+      <circle cx="12" cy="9" r="2.4" />
+    </svg>
+  );
+}
