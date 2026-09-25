@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle } from '../components/icons';
+import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
+import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
 
@@ -57,6 +58,24 @@ function Champ({ label, icone: Icone, erreur, children }) {
   );
 }
 
+// Maintenance en cours : prévenir AVANT la saisie, plutôt que de laisser
+// quelqu'un taper ses identifiants pour découvrir ensuite qu'il ne peut pas
+// entrer. Le formulaire reste utilisable : les superadmins, eux, passent.
+function AvisMaintenance({ maintenance }) {
+  return (
+    <div className="connexion-maintenance" role="status">
+      <IconWrench aria-hidden="true" />
+      <div>
+        <strong>Maintenance en cours</strong>
+        <span>
+          {maintenance.message || 'EduSphere est momentanément indisponible.'}
+          {maintenance.finPrevue ? ` Retour prévu : ${dateHeure(maintenance.finPrevue)}.` : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function AlerteErreur({ children }) {
   return (
     <div className="connexion-erreur" role="alert">
@@ -87,6 +106,13 @@ export default function Login() {
   const [messageOubli, setMessageOubli] = useState('');
   const [erreurOubli, setErreurOubli] = useState(false);
   const [enCoursOubli, setEnCoursOubli] = useState(false);
+  const [maintenance, setMaintenance] = useState(null);
+
+  useEffect(() => {
+    client.get('/plateforme/statut')
+      .then((res) => setMaintenance(res.data.maintenance.actif ? res.data.maintenance : null))
+      .catch(() => {});
+  }, []);
 
   if (ouverture) return <TransitionOuverture />;
   if (profil) return <Navigate to="/" replace />;
@@ -240,6 +266,7 @@ export default function Login() {
         <div className="carte-formulaire-acces">
           <p className="acces-eyebrow">Bon retour</p>
           <h2>Se connecter</h2>
+          {maintenance && <AvisMaintenance maintenance={maintenance} />}
           <form className="formulaire-connexion" onSubmit={onSubmit}>
             <Champ label="Adresse e-mail" icone={IconMail} erreur={Boolean(erreur)}>
               <input

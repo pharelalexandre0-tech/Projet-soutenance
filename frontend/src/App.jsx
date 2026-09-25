@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LimiteErreurChargement from './components/LimiteErreurChargement';
+import EcranMaintenance from './components/EcranMaintenance';
 import Login from './pages/Login';
 
 // Chaque profil ne charge jamais que son propre tableau de bord — les
@@ -58,6 +59,7 @@ export default function App() {
               />
             </Routes>
           </Suspense>
+          <EcranMaintenance />
         </LimiteErreurChargement>
       </BrowserRouter>
     </AuthProvider>

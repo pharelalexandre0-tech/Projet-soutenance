@@ -1,5 +1,6 @@
 const express = require('express');
 const ctrl = require('../controllers/superadminController');
+const pilotage = require('../controllers/pilotageController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -16,6 +17,23 @@ router.put('/etablissements/:id/reinitialiser-academie', authentifier, superadmi
 router.get('/statistiques', authentifier, superadmin, ctrl.obtenirStatistiques);
 router.get('/config-email', authentifier, superadmin, ctrl.obtenirConfigEmail);
 router.post('/email-test', authentifier, superadmin, ctrl.envoyerEmailTest);
+
+router.get('/fonctionnalites', authentifier, superadmin, pilotage.listerFonctionnalites);
+router.put('/fonctionnalites/:cle', authentifier, superadmin, pilotage.modifierFonctionnalite);
+
+router.get('/mises-a-jour', authentifier, superadmin, pilotage.listerMisesAJour);
+router.post('/mises-a-jour', authentifier, superadmin, pilotage.creerMiseAJour);
+router.put('/mises-a-jour/:id', authentifier, superadmin, pilotage.modifierMiseAJour);
+router.post('/mises-a-jour/:id/publier', authentifier, superadmin, pilotage.publierMiseAJour);
+router.delete('/mises-a-jour/:id', authentifier, superadmin, pilotage.supprimerMiseAJour);
+router.get('/systeme', authentifier, superadmin, pilotage.obtenirSysteme);
+
+router.get('/diffusion', authentifier, superadmin, pilotage.obtenirDiffusion);
+router.put('/annonce', authentifier, superadmin, pilotage.publierAnnonce);
+router.delete('/annonce', authentifier, superadmin, pilotage.retirerAnnonce);
+router.put('/maintenance', authentifier, superadmin, pilotage.definirMaintenance);
+
+router.get('/journal', authentifier, superadmin, pilotage.listerJournal);
 
 router.get('/superadmins', authentifier, superadmin, ctrl.listerSuperadmins);
 router.post('/comptes', authentifier, superadmin, ctrl.creerSuperadmin);

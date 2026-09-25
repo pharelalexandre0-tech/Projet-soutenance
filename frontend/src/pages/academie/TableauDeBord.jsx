@@ -4,6 +4,7 @@ import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconDashboard, IconUsers, IconKey, IconPencil, IconCalendarAlert, IconAlertTriangle, IconDocument } from '../../components/icons';
 import { totalElevesParClasses } from '../../utils/totaux';
+import { useFonctionnaliteOuverte } from '../../context/PlateformeContext';
 
 function niveauAbsenteisme(taux) {
   if (taux <= 5) return 'vert';
@@ -17,6 +18,7 @@ function couleurReussite(taux) {
 }
 
 export default function TableauDeBord({ onNaviguer }) {
+  const estOuverte = useFonctionnaliteOuverte();
   const [classes, setClasses] = useState([]);
   const [professeurs, setProfesseurs] = useState([]);
   const [absences, setAbsences] = useState(null);
@@ -144,14 +146,18 @@ export default function TableauDeBord({ onNaviguer }) {
               <span className="puce-icone petite"><IconPencil width={16} height={16} /></span>
               Saisir des notes
             </button>
-            <button className="action-rapide" onClick={() => onNaviguer?.('comptes')}>
-              <span className="puce-icone petite"><IconKey width={16} height={16} /></span>
-              Générer un accès professeur
-            </button>
-            <button className="action-rapide" onClick={() => onNaviguer?.('prediction')}>
-              <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
-              Voir les alertes décrochage
-            </button>
+            {estOuverte('acces-temporaires') && (
+              <button className="action-rapide" onClick={() => onNaviguer?.('comptes')}>
+                <span className="puce-icone petite"><IconKey width={16} height={16} /></span>
+                Générer un accès professeur
+              </button>
+            )}
+            {estOuverte('prediction') && (
+              <button className="action-rapide" onClick={() => onNaviguer?.('prediction')}>
+                <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
+                Voir les alertes décrochage
+              </button>
+            )}
           </div>
         </div>
       </div>

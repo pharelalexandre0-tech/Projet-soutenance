@@ -23,6 +23,12 @@ const Recu = require('./Recu');
 const Salaire = require('./Salaire');
 const Personnel = require('./Personnel');
 const Etablissement = require('./Etablissement');
+// Pilotage de la plateforme par le superadmin (modules, notes de version,
+// annonce/maintenance, journal) — sans lien avec le contenu d'une école.
+const Fonctionnalite = require('./Fonctionnalite');
+const ParametrePlateforme = require('./ParametrePlateforme');
+const MiseAJour = require('./MiseAJour');
+const JournalAdministration = require('./JournalAdministration');
 
 // ---- Multi-établissement (superadmin) --------------------------------------
 // EduSphere héberge plusieurs écoles : chaque compte (hors superadmin), et
@@ -176,4 +182,8 @@ module.exports = {
   Salaire,
   Personnel,
   Etablissement,
+  Fonctionnalite,
+  ParametrePlateforme,
+  MiseAJour,
+  JournalAdministration,
 };

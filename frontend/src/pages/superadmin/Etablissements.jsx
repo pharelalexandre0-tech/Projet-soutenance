@@ -5,7 +5,7 @@ import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
 import { messageErreur } from '../../utils/erreurs';
-import { IconBuilding, IconKey, IconAlertTriangle, IconDownload } from '../../components/icons';
+import { IconBuilding, IconKey, IconAlertTriangle, IconDownload, IconCheck, IconClose } from '../../components/icons';
 
 const TRIS = {
   recent: { libelle: 'Plus récentes', fn: (a, b) => new Date(b.createdAt) - new Date(a.createdAt) },
@@ -247,6 +247,11 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
   const [reinitEnCours, setReinitEnCours] = useState(false);
   const [reinitResultat, setReinitResultat] = useState(null);
   const [erreurReinit, setErreurReinit] = useState('');
+  const [modules, setModules] = useState(null);
+
+  useEffect(() => {
+    client.get('/superadmin/fonctionnalites').then((res) => setModules(res.data.fonctionnalites)).catch(() => {});
+  }, []);
 
   function charger() {
     client.get(`/superadmin/etablissements/${etablissementId}`).then((res) => {
@@ -339,6 +344,24 @@ function DetailEtablissement({ etablissementId, onFermer, onModifie }) {
           <div style={{ fontFamily: 'var(--police-mono)', fontSize: '0.95rem' }}>
             {reinitResultat.email} / {reinitResultat.motDePasse}
           </div>
+        </div>
+      )}
+
+      {modules && (
+        <div className="modules-ecole">
+          <span className="modules-ecole-titre">Modules ouverts pour cette école</span>
+          <div className="modules-ecole-liste">
+            {modules.map((m) => {
+              const ouvert = m.portee === 'toutes' || (m.portee === 'selection' && m.ecoles.includes(etablissementId));
+              return (
+                <span key={m.cle} className={`puce-module ${ouvert ? 'ouvert' : 'ferme'}`} title={m.portee === 'selection' ? 'Module en déploiement pilote' : undefined}>
+                  {ouvert ? <IconCheck width={12} height={12} /> : <IconClose width={11} height={11} />}
+                  {m.nom}{m.portee === 'selection' && ouvert ? ' (pilote)' : ''}
+                </span>
+              );
+            })}
+          </div>
+          <small className="note-secondaire">Réglage depuis l'onglet « Fonctionnalités ».</small>
         </div>
       )}
 

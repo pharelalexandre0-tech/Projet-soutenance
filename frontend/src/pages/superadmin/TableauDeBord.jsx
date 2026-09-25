@@ -3,7 +3,9 @@ import client from '../../api/client';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
-import { IconBuilding, IconGraduationCap, IconUsers, IconLock, IconMapPin, IconMail } from '../../components/icons';
+import {
+  IconBuilding, IconGraduationCap, IconUsers, IconLock, IconMapPin, IconMail, IconRocket, IconToggle, IconMegaphone, IconWrench,
+} from '../../components/icons';
 
 const LIBELLE_SERVICE = { sendgrid: 'SendGrid', resend: 'Resend', smtp: 'SMTP' };
 
@@ -11,15 +13,19 @@ const LIBELLE_SERVICE = { sendgrid: 'SendGrid', resend: 'Resend', smtp: 'SMTP' }
 // des totaux additionnés sur tous les établissements affiliés, la tendance
 // d'adoption dans le temps, et l'état de la configuration technique
 // (envoi d'e-mail) — le pouls du système, pas le regard sur une école.
-export default function TableauDeBord() {
+export default function TableauDeBord({ onNaviguer }) {
   const [stats, setStats] = useState(null);
   const [configEmail, setConfigEmail] = useState(null);
+  const [pilotage, setPilotage] = useState({ systeme: null, fonctionnalites: null, diffusion: null });
   const [testEnCours, setTestEnCours] = useState(false);
   const [toast, setToast] = useState(null);
 
   function charger() {
     client.get('/superadmin/statistiques').then((res) => setStats(res.data));
     client.get('/superadmin/config-email').then((res) => setConfigEmail(res.data));
+    client.get('/superadmin/systeme').then((res) => setPilotage((p) => ({ ...p, systeme: res.data }))).catch(() => {});
+    client.get('/superadmin/fonctionnalites').then((res) => setPilotage((p) => ({ ...p, fonctionnalites: res.data.fonctionnalites }))).catch(() => {});
+    client.get('/superadmin/diffusion').then((res) => setPilotage((p) => ({ ...p, diffusion: res.data }))).catch(() => {});
   }
   useEffect(charger, []);
 
@@ -48,25 +54,27 @@ export default function TableauDeBord() {
       <div className="stats-grid">
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Écoles affiliées</span><span className="puce-icone petite"><IconBuilding width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEcoles} /> : '—'}</div>
+          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEcoles} /> : '…'}</div>
         </div>
         <div className="stat-tile tile-vert">
           <div className="stat-tile-haut"><span className="libelle">Écoles actives</span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalActives} /> : '—'}</div>
+          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalActives} /> : '…'}</div>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Élèves (toutes écoles)</span><span className="puce-icone petite"><IconGraduationCap width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEleves} /> : '—'}</div>
+          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEleves} /> : '…'}</div>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Professeurs (toutes écoles)</span><span className="puce-icone petite"><IconUsers width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalProfesseurs} /> : '—'}</div>
+          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalProfesseurs} /> : '…'}</div>
         </div>
         <div className={`stat-tile ${stats?.totalComptesVerrouilles > 0 ? 'tile-or' : 'tile-vert'}`}>
           <div className="stat-tile-haut"><span className="libelle">Comptes verrouillés</span><span className="puce-icone petite"><IconLock width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalComptesVerrouilles} /> : '—'}</div>
+          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalComptesVerrouilles} /> : '…'}</div>
         </div>
       </div>
+
+      <EtatPlateforme pilotage={pilotage} onNaviguer={onNaviguer} />
 
       <div className="grille-2">
         <div className="carte">
@@ -146,6 +154,57 @@ export default function TableauDeBord() {
       </div>
 
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
+    </div>
+  );
+}
+
+// Où en est la plateforme en un coup d'œil (version, modules, annonce,
+// maintenance), chaque case menant à la page qui permet d'agir dessus.
+function EtatPlateforme({ pilotage, onNaviguer }) {
+  const { systeme, fonctionnalites, diffusion } = pilotage;
+  const ouvertes = fonctionnalites?.filter((f) => f.portee === 'toutes').length ?? 0;
+  const pilotes = fonctionnalites?.filter((f) => f.portee === 'selection').length ?? 0;
+  const maintenance = diffusion?.maintenance?.actif;
+  const annonce = diffusion?.annonce?.actif;
+
+  const cases = [
+    {
+      id: 'mises-a-jour', icone: IconRocket, libelle: 'Version en production',
+      valeur: systeme ? `v${systeme.version}` : '…',
+      detail: systeme?.commit ? `Commit ${systeme.commit}` : 'Voir les notes de version',
+    },
+    {
+      id: 'fonctionnalites', icone: IconToggle, libelle: 'Fonctionnalités',
+      valeur: fonctionnalites ? `${ouvertes} sur ${fonctionnalites.length}` : '…',
+      detail: fonctionnalites ? (pilotes ? `ouvertes partout, ${pilotes} en pilote` : 'ouvertes à toutes les écoles') : '',
+    },
+    {
+      id: 'annonces', icone: IconMegaphone, libelle: 'Annonce',
+      valeur: diffusion ? (annonce ? 'En ligne' : 'Aucune') : '…',
+      detail: annonce ? diffusion.annonce.message : 'Informer toutes les écoles',
+      ton: annonce ? 'info' : '',
+    },
+    {
+      id: 'annonces', icone: IconWrench, libelle: 'Maintenance',
+      valeur: diffusion ? (maintenance ? 'En cours' : 'Plateforme ouverte') : '…',
+      detail: maintenance ? 'Accès des écoles suspendu' : 'Tous les accès fonctionnent',
+      ton: maintenance ? 'alerte' : 'ok',
+    },
+  ];
+
+  return (
+    <div className="etat-plateforme">
+      {cases.map((c) => {
+        const Icone = c.icone;
+        return (
+          <button key={c.libelle} type="button" className={`etat-plateforme-case ${c.ton ? `ton-${c.ton}` : ''}`} onClick={() => onNaviguer?.(c.id)}>
+            <span className="puce-icone petite"><Icone width={15} height={15} /></span>
+            <span className="etat-plateforme-libelle">{c.libelle}</span>
+            <strong>{c.valeur}</strong>
+            <small>{c.detail}</small>
+          </button>
+        );
+      })}
     </div>
   );
 }

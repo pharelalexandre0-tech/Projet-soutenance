@@ -1,6 +1,6 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconAlertTriangle, IconMessage, IconSettings } from '../components/icons';
+import { IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconAlertTriangle, IconMessage, IconSettings, IconCalendar } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
 // que tout téléchargé d'un bloc à la connexion — un compte Académie qui ne
@@ -21,12 +21,12 @@ const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard },
   { id: 'eleves', label: 'Élèves & classes', composant: ElevesClasses, icone: IconUsers, separateurAvant: true },
   { id: 'ue', label: "Unités d'enseignement", composant: UnitesEnseignement, icone: IconDocument },
-  { id: 'emplois', label: 'Emplois du temps', composant: EmploisDuTemps, icone: IconDashboard },
+  { id: 'emplois', label: 'Emplois du temps', composant: EmploisDuTemps, icone: IconCalendar, fonctionnalite: 'emplois-du-temps' },
   { id: 'notes', label: 'Notes', composant: Notes, icone: IconPencil },
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument },
-  { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconAlertTriangle },
-  { id: 'comptes', label: 'Comptes éphémères (Professeurs)', composant: ComptesEphemeres, icone: IconKey, separateurAvant: true },
-  { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage, separateurAvant: true },
+  { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconAlertTriangle, fonctionnalite: 'prediction' },
+  { id: 'comptes', label: 'Comptes éphémères (Professeurs)', composant: ComptesEphemeres, icone: IconKey, separateurAvant: true, fonctionnalite: 'acces-temporaires' },
+  { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage, separateurAvant: true, fonctionnalite: 'communication' },
   { id: 'parametres', label: 'Paramètres', composant: Parametres, icone: IconSettings, separateurAvant: true },
 ];
 

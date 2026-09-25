@@ -1,9 +1,12 @@
 const express = require('express');
 const ctrl = require('../controllers/referenceController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
+const { exigerFonctionnalite } = require('../middlewares/plateforme');
 
 const router = express.Router();
 const academie = autoriserRoles('academie');
+const emplois = exigerFonctionnalite('emplois-du-temps');
+const communication = exigerFonctionnalite('communication');
 
 router.post('/classes', authentifier, academie, ctrl.creerClasse);
 // Renvoie la liste complète des élèves de CHAQUE classe (noms, dates de
@@ -36,16 +39,16 @@ router.get('/unites-enseignement', authentifier, ctrl.listerUE);
 
 router.post('/matieres', authentifier, academie, ctrl.creerMatiere);
 
-router.post('/emplois-du-temps', authentifier, academie, ctrl.creerEmploiDuTemps);
-router.get('/emplois-du-temps', authentifier, ctrl.listerEmploisDuTemps);
-router.get('/emplois-du-temps/pdf', authentifier, academie, ctrl.genererEmploiDuTempsPDFRoute);
-router.delete('/emplois-du-temps/:id', authentifier, academie, ctrl.supprimerEmploiDuTemps);
+router.post('/emplois-du-temps', authentifier, emplois, academie, ctrl.creerEmploiDuTemps);
+router.get('/emplois-du-temps', authentifier, emplois, ctrl.listerEmploisDuTemps);
+router.get('/emplois-du-temps/pdf', authentifier, emplois, academie, ctrl.genererEmploiDuTempsPDFRoute);
+router.delete('/emplois-du-temps/:id', authentifier, emplois, academie, ctrl.supprimerEmploiDuTemps);
 
 router.get('/cahier-de-textes', authentifier, ctrl.listerCahierDeTextes);
 router.post('/cahier-de-textes', authentifier, academie, ctrl.ajouterCahierDeTextes);
 
-router.post('/messages', authentifier, academie, ctrl.envoyerMessage);
-router.get('/messages', authentifier, ctrl.listerMessages);
+router.post('/messages', authentifier, communication, academie, ctrl.envoyerMessage);
+router.get('/messages', authentifier, communication, ctrl.listerMessages);
 
 router.get('/tableau-de-bord/academique', authentifier, academie, ctrl.statistiquesAcademiques);
 

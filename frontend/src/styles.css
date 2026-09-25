@@ -1405,3 +1405,378 @@ button.danger:hover { background: var(--erreur-fond); }
   .piste-ouverture { opacity: 1; animation: none; }
   .remplissage-ouverture { width: 100%; animation: none; }
 }
+
+/* ==========================================================================
+   Pilotage de la plateforme (superadmin) et ses effets dans les espaces
+   des écoles : nouveautés, annonce, maintenance, modules.
+   ========================================================================== */
+
+.badge.bleu { background: var(--primaire-clair); color: var(--primaire); }
+
+/* Bouton "Nouveautés" de la barre du haut, avec pastille des non-lues */
+.bouton-nouveautes {
+  flex: none; display: inline-flex; align-items: center; gap: 7px;
+  background: var(--carte); border: 1px solid var(--bordure); border-radius: 9px;
+  padding: 7px 12px; font-size: 0.8rem; font-weight: 600; color: var(--texte);
+  cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease;
+}
+.bouton-nouveautes svg { color: var(--edu-or); }
+.bouton-nouveautes:hover { background: var(--gris-fond); border-color: var(--texte-clair); }
+.bouton-nouveautes-compte {
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--erreur); color: #fff; font-size: 0.66rem; font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--police-mono);
+}
+.bouton-nouveautes-mobile { display: none; }
+@media (max-width: 860px) {
+  .bouton-nouveautes-mobile {
+    display: flex; position: relative; margin-left: auto;
+    width: 36px; height: 36px; border-radius: 8px; border: none;
+    background: rgba(255,255,255,0.12); color: var(--edu-or);
+    align-items: center; justify-content: center; cursor: pointer;
+  }
+  .bouton-nouveautes-mobile .bouton-nouveautes-compte { position: absolute; top: -4px; right: -4px; }
+  .entete-mobile .bouton-nouveautes-mobile + .avatar { margin-left: 0; }
+}
+
+/* Bandeau d'annonce en tête de chaque espace */
+.bandeau-annonce {
+  display: flex; align-items: flex-start; gap: 14px;
+  background: var(--primaire-clair); color: var(--primaire-fonce);
+  border: 1px solid color-mix(in srgb, var(--primaire) 25%, transparent);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 22px;
+  animation: tombe-doucement 0.3s ease both;
+}
+.bandeau-annonce.important {
+  background: var(--alerte-fond); color: #6E4A0B;
+  border-color: color-mix(in srgb, var(--edu-or) 55%, transparent);
+}
+.bandeau-annonce-icone {
+  flex: none; width: 34px; height: 34px; border-radius: 9px;
+  background: var(--carte); color: var(--primaire);
+  display: flex; align-items: center; justify-content: center;
+}
+.bandeau-annonce.important .bandeau-annonce-icone { color: var(--alerte); }
+.bandeau-annonce-texte { flex: 1; min-width: 0; }
+.bandeau-annonce-texte strong { display: block; font-size: 0.8rem; margin-bottom: 3px; }
+.bandeau-annonce-texte p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--texte); overflow-wrap: anywhere; }
+.bandeau-annonce-fermer {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  border: none; background: transparent; color: inherit; opacity: 0.7;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.bandeau-annonce-fermer:hover { opacity: 1; background: rgba(255,255,255,0.6); }
+
+/* Écran d'attente pendant une maintenance */
+.ecran-maintenance {
+  position: fixed; inset: 0; z-index: 300;
+  background: var(--degrade-plein-ecran);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  animation: fondu-entree 0.25s ease both;
+}
+.ecran-maintenance-carte {
+  position: relative; width: 100%; max-width: 460px;
+  background: var(--carte); border-radius: 22px; padding: 44px 36px 32px;
+  text-align: center; box-shadow: 0 34px 80px rgba(6, 20, 34, 0.4);
+  animation: entree 0.35s cubic-bezier(.22,1,.36,1) both;
+}
+.ecran-maintenance-sceau {
+  display: inline-flex; width: 64px; height: 64px; border-radius: 50%; padding: 10px;
+  background: #fff; box-shadow: 0 0 0 10px var(--primaire-clair);
+}
+.ecran-maintenance-sceau img { width: 100%; height: 100%; object-fit: contain; }
+.ecran-maintenance-icone {
+  position: absolute; top: 74px; left: calc(50% + 18px);
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--edu-or); color: var(--edu-marine);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 0 4px var(--carte);
+}
+.ecran-maintenance h1 { font-family: var(--police-serif); font-size: 1.5rem; margin: 26px 0 10px; color: var(--texte); }
+.ecran-maintenance-message { margin: 0 0 12px; font-size: 0.95rem; line-height: 1.55; color: var(--texte); }
+.ecran-maintenance-fin { margin: 0 0 12px; font-size: 0.86rem; color: var(--texte-clair); }
+.ecran-maintenance-fin strong { color: var(--texte); font-family: var(--police-mono); font-size: 0.82rem; }
+.ecran-maintenance-aide { margin: 0 0 24px; font-size: 0.8rem; color: var(--texte-clair); line-height: 1.5; }
+.ecran-maintenance-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.ecran-maintenance-actions button.primaire { align-self: auto; margin-top: 0; }
+
+/* Avis de maintenance sur l'écran de connexion */
+.connexion-maintenance {
+  display: flex; align-items: flex-start; gap: 12px; text-align: left;
+  background: var(--alerte-fond); color: #6E4A0B;
+  border: 1px solid color-mix(in srgb, var(--edu-or) 50%, transparent);
+  border-radius: 10px; padding: 12px 14px; margin: -18px 0 22px;
+  font-size: 0.85rem; line-height: 1.45;
+}
+.connexion-maintenance svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--alerte); }
+.connexion-maintenance strong { display: block; margin-bottom: 2px; }
+
+/* Fil des notes de version (fenêtre "Nouveautés" et historique superadmin) */
+.fil-versions { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.fil-version {
+  position: relative; padding: 14px 16px 14px 18px;
+  border: 1px solid var(--bordure); border-radius: 12px; background: var(--carte);
+}
+.fil-version.non-lue { border-color: color-mix(in srgb, var(--edu-or) 60%, var(--bordure)); background: color-mix(in srgb, var(--alerte-fond) 45%, var(--carte)); }
+.fil-version.non-lue::before {
+  content: ""; position: absolute; left: -1px; top: 14px; bottom: 14px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--edu-or);
+}
+.fil-version-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.pastille-version {
+  font-family: var(--police-mono); font-size: 0.72rem; font-weight: 700;
+  color: var(--edu-marine); background: var(--gris-fond);
+  border: 1px solid var(--bordure); border-radius: 6px; padding: 2px 8px;
+}
+.etiquette-nouveau {
+  margin-left: auto; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--edu-marine); background: var(--edu-or); border-radius: 4px; padding: 2px 7px;
+}
+/* h3.… : doit l'emporter sur .carte h3 (petites capitales mono) quand
+   l'historique est affiché dans une carte. */
+h3.fil-version-titre {
+  margin: 0 0 6px; font-family: var(--police-serif); font-size: 1.02rem; font-weight: 600;
+  color: var(--texte); text-transform: none; letter-spacing: 0;
+}
+.fil-version-texte { margin: 0; font-size: 0.86rem; line-height: 1.6; color: var(--texte); white-space: pre-line; overflow-wrap: anywhere; }
+
+/* Bandeau d'explication en tête d'une page de pilotage */
+.bandeau-pilotage {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  background: var(--carte); border-radius: var(--radius); box-shadow: var(--ombre);
+  padding: 18px 22px; margin-bottom: 20px;
+}
+.bandeau-pilotage p { flex: 1; min-width: 240px; margin: 0; font-size: 0.86rem; line-height: 1.55; color: var(--texte-clair); }
+.bandeau-pilotage-compteurs { display: flex; gap: 8px; flex-wrap: wrap; }
+.bandeau-pilotage-compteurs span {
+  font-size: 0.76rem; color: var(--texte-clair);
+  background: var(--gris-fond); border-radius: 20px; padding: 5px 12px;
+}
+.bandeau-pilotage-compteurs strong { color: var(--texte); font-family: var(--police-mono); margin-right: 3px; }
+
+/* Cartes de modules (Fonctionnalités) */
+.grille-fonctionnalites { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .grille-fonctionnalites { grid-template-columns: 1fr; } }
+.carte-fonctionnalite { margin-bottom: 0; padding: 24px 26px 20px; border-top: 3px solid var(--succes); }
+.carte-fonctionnalite.portee-selection { border-top-color: var(--edu-or); }
+.carte-fonctionnalite.portee-aucune { border-top-color: var(--bordure); }
+.carte-fonctionnalite.portee-aucune .puce-icone { background: var(--gris-fond); color: var(--texte-clair); }
+.carte-fonctionnalite-entete { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 12px; }
+.carte-fonctionnalite-titre { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.carte-fonctionnalite-titre h3 {
+  margin: 0; font-family: var(--police-serif); font-size: 1.08rem; font-weight: 600;
+  color: var(--texte); text-transform: none; letter-spacing: 0;
+}
+.carte-fonctionnalite-description { margin: 0 0 14px; font-size: 0.85rem; line-height: 1.55; color: var(--texte-clair); }
+.puces-espaces { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.puces-espaces-libelle {
+  font-family: var(--police-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--texte-clair); margin-right: 4px;
+}
+.puce-espace {
+  font-size: 0.72rem; font-weight: 600; color: var(--primaire-fonce);
+  background: var(--primaire-clair); border-radius: 6px; padding: 3px 8px;
+}
+.carte-fonctionnalite-pied {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--bordure);
+  min-height: 52px;
+}
+.carte-fonctionnalite-pied .note-secondaire { font-size: 0.74rem; }
+.carte-fonctionnalite-actions { display: flex; gap: 8px; }
+.carte-fonctionnalite-actions button.primaire { margin-top: 0; padding: 8px 18px; }
+
+/* Sélecteur à trois positions (toutes / pilotes / désactivée) */
+.segment {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  background: var(--gris-fond); border-radius: 11px; padding: 4px;
+}
+.segment button {
+  border: none; background: transparent; border-radius: 8px; padding: 8px 6px;
+  font-size: 0.78rem; font-weight: 600; color: var(--texte-clair); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+.segment button:hover { color: var(--texte); }
+.segment button.actif { background: var(--carte); color: var(--texte); box-shadow: 0 1px 3px rgba(28,35,33,0.12); }
+.segment button.segment-toutes.actif { color: var(--succes); }
+.segment button.segment-selection.actif { color: var(--alerte); }
+.segment button:focus-visible { outline: 2px solid var(--primaire); outline-offset: 1px; }
+
+.choix-ecoles { margin-top: 14px; animation: tombe-doucement 0.25s ease both; }
+.choix-ecoles .note-secondaire { font-size: 0.78rem; margin: 0 0 8px; }
+.puces-ecoles { display: flex; flex-wrap: wrap; gap: 8px; }
+.puce-ecole {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%;
+  border: 1px solid var(--bordure); background: var(--carte); border-radius: 10px;
+  padding: 7px 12px 7px 8px; cursor: pointer; text-align: left;
+  font-size: 0.8rem; color: var(--texte);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.puce-ecole:hover { border-color: var(--primaire); }
+.puce-ecole.choisie { border-color: var(--primaire); background: var(--primaire-clair); }
+.puce-ecole-case {
+  flex: none; width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid var(--bordure); background: var(--carte); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.puce-ecole.choisie .puce-ecole-case { background: var(--primaire); border-color: var(--primaire); }
+.puce-ecole-nom { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.puce-ecole small { color: var(--texte-clair); font-size: 0.72rem; white-space: nowrap; }
+.puce-ecole.compacte { padding: 6px 12px 6px 8px; }
+.puce-ecole:focus-visible { outline: 2px solid var(--primaire); outline-offset: 2px; }
+
+/* Mises à jour : version en production + faits système */
+.carte-version { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 28px; align-items: stretch; }
+@media (max-width: 860px) { .carte-version { grid-template-columns: 1fr; } }
+.carte-version-principal {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  background: var(--degrade-plateforme); color: #fff; border-radius: 12px; padding: 22px 22px 20px;
+}
+.carte-version-surtitre {
+  font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(255,255,255,0.7);
+}
+.carte-version-numero { font-family: var(--police-serif); font-size: 2.6rem; font-weight: 600; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.carte-version-date { margin: 0 0 12px; font-size: 0.8rem; color: rgba(255,255,255,0.75); }
+.carte-version-principal button.primaire {
+  margin-top: auto; background: #fff; color: var(--edu-marine); box-shadow: none;
+}
+.carte-version-principal button.primaire:hover { filter: none; background: var(--primaire-clair); }
+.faits-systeme {
+  margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0; align-content: center;
+}
+.faits-systeme > div { padding: 14px 16px; border-bottom: 1px solid var(--bordure); min-width: 0; }
+.faits-systeme > div:nth-last-child(-n+3) { border-bottom: none; }
+@media (max-width: 1100px) {
+  .faits-systeme { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .faits-systeme > div:nth-last-child(-n+3) { border-bottom: 1px solid var(--bordure); }
+  .faits-systeme > div:nth-last-child(-n+2) { border-bottom: none; }
+}
+.faits-systeme dt {
+  font-family: var(--police-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--texte-clair); margin-bottom: 5px;
+}
+.faits-systeme dd { margin: 0; font-size: 0.9rem; font-weight: 600; color: var(--texte); }
+.mono { font-family: var(--police-mono); font-size: 0.84rem; }
+
+.lien-texte {
+  background: none; border: none; padding: 0; font: inherit; color: var(--primaire);
+  text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+}
+.lien-texte:hover { color: var(--primaire-fonce); }
+
+.historique-versions { list-style: none; margin: 0; padding: 0; }
+.ligne-version { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 18px 0; border-top: 1px solid var(--bordure); }
+.ligne-version:first-child { border-top: none; padding-top: 4px; }
+.ligne-version-rail { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; position: relative; }
+.ligne-version-corps { min-width: 0; }
+.ligne-version.brouillon .pastille-version { background: var(--carte); border-style: dashed; color: var(--texte-clair); }
+.ligne-version-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+@media (max-width: 640px) {
+  .ligne-version { grid-template-columns: 1fr; gap: 8px; }
+  .ligne-version-rail { flex-direction: row; align-items: center; }
+}
+
+/* Annonces & maintenance */
+.grille-diffusion { align-items: start; }
+.texte-aide { margin: -6px 0 18px; font-size: 0.83rem; line-height: 1.55; }
+.apercu-bloc { display: flex; flex-direction: column; gap: 8px; }
+.apercu-libelle {
+  font-family: var(--police-mono); font-size: 0.66rem; font-weight: 700;
+  color: var(--texte-clair); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.apercu-bloc .bandeau-annonce { margin-bottom: 0; animation: none; }
+.apercu-bloc .bandeau-annonce-fermer { cursor: default; }
+.actions-carte { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.actions-carte button.primaire { margin-top: 0; }
+.carte-maintenance.active { box-shadow: 0 0 0 2px color-mix(in srgb, var(--erreur) 45%, transparent), var(--ombre); }
+.etat-maintenance {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: var(--erreur-fond); border-radius: 12px; padding: 16px;
+}
+.etat-maintenance .puce-icone { background: var(--carte); color: var(--erreur); }
+.etat-maintenance strong { display: block; color: var(--erreur); margin-bottom: 4px; }
+.etat-maintenance p { margin: 0 0 4px; font-size: 0.84rem; line-height: 1.5; color: var(--texte); }
+.etat-maintenance p.etat-maintenance-message { font-style: italic; color: var(--texte-clair); }
+button.bouton-fort { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 600; }
+
+/* Journal d'activité */
+.barre-filtres { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.champ-recherche {
+  display: flex; align-items: center; gap: 10px; max-width: 420px;
+  background: var(--gris-fond); border: 1px solid var(--bordure); border-radius: 10px; padding: 0 12px;
+}
+.champ-recherche:focus-within { background: var(--carte); border-color: var(--primaire); box-shadow: 0 0 0 3px var(--primaire-clair); }
+.champ-recherche svg { flex: none; color: var(--texte-clair); }
+.champ-recherche input { flex: 1; min-width: 0; border: none; background: none; padding: 10px 0; }
+.champ-recherche input:focus { box-shadow: none; background: none; border: none; }
+.filtres-puces { display: flex; gap: 6px; flex-wrap: wrap; }
+.filtres-puces button {
+  border: 1px solid var(--bordure); background: var(--carte); border-radius: 20px;
+  padding: 5px 13px; font-size: 0.76rem; font-weight: 600; color: var(--texte-clair); cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.filtres-puces button:hover { border-color: var(--primaire); color: var(--primaire); }
+.filtres-puces button.actif { background: var(--primaire); border-color: var(--primaire); color: #fff; }
+.journal-jour { margin-bottom: 20px; }
+.journal-jour h3 { margin: 0 0 8px; }
+.journal-liste { list-style: none; margin: 0; padding: 0; position: relative; }
+.journal-liste::before { content: ""; position: absolute; left: 61px; top: 10px; bottom: 10px; width: 1px; background: var(--bordure); }
+.journal-entree { display: grid; grid-template-columns: 44px 14px 1fr; gap: 10px; align-items: start; padding: 8px 0; }
+.journal-heure { font-family: var(--police-mono); font-size: 0.74rem; color: var(--texte-clair); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.journal-pastille { width: 10px; height: 10px; border-radius: 50%; margin: 5px 0 0 2px; position: relative; background: var(--texte-clair); box-shadow: 0 0 0 3px var(--carte); }
+.journal-pastille.cat-etablissement { background: var(--edu-bleu); }
+.journal-pastille.cat-fonctionnalite { background: var(--edu-teal); }
+.journal-pastille.cat-mise-a-jour { background: var(--edu-vert); }
+.journal-pastille.cat-annonce { background: var(--edu-or); }
+.journal-pastille.cat-maintenance { background: var(--erreur); }
+.journal-pastille.cat-compte { background: var(--primaire-fonce); }
+.journal-pastille.cat-systeme { background: var(--edu-marine); }
+.journal-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.journal-texte span { font-size: 0.87rem; color: var(--texte); line-height: 1.45; overflow-wrap: anywhere; }
+.journal-texte small { font-size: 0.72rem; color: var(--texte-clair); }
+
+/* Tableau de bord superadmin : état de la plateforme */
+.etat-plateforme { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+@media (max-width: 1100px) { .etat-plateforme { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .etat-plateforme { grid-template-columns: 1fr; } }
+.etat-plateforme-case {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 12px; row-gap: 2px;
+  align-items: center; text-align: left;
+  background: var(--carte); border: 1px solid transparent; border-radius: var(--radius); box-shadow: var(--ombre);
+  padding: 16px 18px; cursor: pointer; font: inherit; color: var(--texte);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  animation: entree 0.4s cubic-bezier(.22,1,.36,1) both;
+}
+.etat-plateforme-case:hover { border-color: var(--primaire); transform: translateY(-2px); }
+.etat-plateforme-case .puce-icone { grid-row: 1 / span 3; align-self: start; }
+.etat-plateforme-libelle {
+  font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--texte-clair);
+}
+.etat-plateforme-case strong { font-family: var(--police-serif); font-size: 1.15rem; font-weight: 600; }
+.etat-plateforme-case small { font-size: 0.74rem; color: var(--texte-clair); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.etat-plateforme-case.ton-ok .puce-icone { background: var(--succes-fond); color: var(--succes); }
+.etat-plateforme-case.ton-info .puce-icone { background: var(--alerte-fond); color: var(--alerte); }
+.etat-plateforme-case.ton-alerte { border-color: color-mix(in srgb, var(--erreur) 50%, transparent); }
+.etat-plateforme-case.ton-alerte .puce-icone { background: var(--erreur-fond); color: var(--erreur); }
+.etat-plateforme-case.ton-alerte strong { color: var(--erreur); }
+
+/* Fiche d'une école : modules ouverts */
+.modules-ecole {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--gris-fond); border-radius: 10px; padding: 12px 14px; margin-bottom: 18px;
+}
+.modules-ecole-titre {
+  font-family: var(--police-mono); font-size: 0.64rem; font-weight: 700;
+  color: var(--texte-clair); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.modules-ecole-liste { display: flex; flex-wrap: wrap; gap: 6px; }
+.puce-module {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.74rem; font-weight: 600; border-radius: 6px; padding: 4px 9px;
+}
+.puce-module.ouvert { background: var(--succes-fond); color: var(--succes); }
+.puce-module.ferme { background: var(--carte); color: var(--texte-clair); text-decoration: line-through; }
+.modules-ecole .note-secondaire { font-size: 0.72rem; }

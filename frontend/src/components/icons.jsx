@@ -238,3 +238,77 @@ export function IconMapPin(props) {
     </svg>
   );
 }
+
+export function IconToggle(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2.5" y="6.5" width="19" height="11" rx="5.5" />
+      <circle cx="16" cy="12" r="3.2" />
+    </svg>
+  );
+}
+
+export function IconRocket(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14.5 4.5c2.6-1 4.6-1 5-.5.5.4.5 2.4-.5 5-1.1 2.8-3.6 5.6-6.5 7.3l-4.8-4.8c1.7-2.9 4.5-5.4 6.8-7Z" />
+      <circle cx="15" cy="9" r="1.6" />
+      <path d="M8.2 11.5 5 11l2.6-3.2 3.4-.3M12.5 15.8 13 19l3.2-2.6.3-3.4" />
+      <path d="M6.5 15.5c-1.3.4-2 1.8-2 4 2.2 0 3.6-.7 4-2" />
+    </svg>
+  );
+}
+
+export function IconMegaphone(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 10v4a1 1 0 0 0 1 1h2.5l7 4V5l-7 4H5a1 1 0 0 0-1 1Z" />
+      <path d="M7.5 15l1.2 4.5h2.3" />
+      <path d="M18 9.5a3.5 3.5 0 0 1 0 5" />
+    </svg>
+  );
+}
+
+export function IconHistory(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+      <path d="M4 4.5v3.8h3.8" />
+      <path d="M12 8v4.3l2.8 1.7" />
+    </svg>
+  );
+}
+
+export function IconSparkles(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10 3.5l1.6 4.4 4.4 1.6-4.4 1.6L10 15.5l-1.6-4.4L4 9.5l4.4-1.6L10 3.5Z" />
+      <path d="M17.5 14l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" />
+    </svg>
+  );
+}
+
+export function IconWrench(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M14.8 5.2a4.5 4.5 0 0 0-5.6 5.9l-5.3 5.3a1.6 1.6 0 0 0 2.3 2.3l5.3-5.3a4.5 4.5 0 0 0 5.9-5.6l-2.7 2.7-2.3-.3-.3-2.3 2.7-2.7Z" />
+    </svg>
+  );
+}
+
+export function IconCalendar(props) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="5" width="17" height="15" rx="2" />
+      <path d="M3.5 9.5h17M8 3v4M16 3v4" />
+    </svg>
+  );
+}
+
+export function IconCheck(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 12.5l4.5 4.5L19 7.5" />
+    </svg>
+  );
+}

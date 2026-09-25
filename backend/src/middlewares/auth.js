@@ -1,5 +1,6 @@
 const { verifySession } = require('../utils/jwt');
 const { Utilisateur, Etablissement } = require('../models');
+const { maintenanceEnCours, repondreMaintenance } = require('../services/plateformeService');
 
 // Diagramme 3 : verification cote serveur d'une session (Academie ou
 // Etudiant, et Finance qui suit le meme mecanisme d'authentification).
@@ -26,6 +27,13 @@ async function authentifier(req, res, next) {
       if (!etablissement || etablissement.statut === 'suspendu') {
         return res.status(403).json({ erreur: 'établissement suspendu, contactez le support' });
       }
+    }
+    // Mode maintenance : seul le superadmin garde la main (c'est lui qui
+    // conduit la maintenance), toutes les sessions d'école sont mises en
+    // attente, y compris celles ouvertes avant son déclenchement.
+    if (utilisateur.role !== 'superadmin') {
+      const maintenance = await maintenanceEnCours();
+      if (maintenance) return repondreMaintenance(res, maintenance);
     }
     req.utilisateur = utilisateur;
     next();

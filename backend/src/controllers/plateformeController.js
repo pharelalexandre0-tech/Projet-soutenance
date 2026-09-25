@@ -1,0 +1,56 @@
+const { MiseAJour } = require('../models');
+const { fonctionnalitesPour, annonceEnCours, maintenanceEnCours } = require('../services/plateformeService');
+
+// Sans session : l'écran de connexion et l'écran d'attente doivent pouvoir
+// dire "maintenance en cours" à quelqu'un qui n'a justement plus accès.
+// Rien d'autre que l'état de maintenance ne sort d'ici.
+async function statutPublic(req, res) {
+  const maintenance = await maintenanceEnCours();
+  return res.json({
+    maintenance: maintenance
+      ? { actif: true, message: maintenance.message || null, finPrevue: maintenance.finPrevue || null }
+      : { actif: false },
+  });
+}
+
+// Tout ce que l'espace d'un utilisateur doit savoir de la plateforme au
+// chargement (et à chaque rafraîchissement périodique) : quels modules son
+// école a ouverts, l'annonce en cours, et les notes de version qui le
+// concernent, avec celles qu'il n'a pas encore vues.
+async function etatPourUtilisateur(req, res) {
+  const utilisateur = req.utilisateur;
+  const [fonctionnalites, annonce, publiees] = await Promise.all([
+    fonctionnalitesPour(utilisateur.etablissementId),
+    annonceEnCours(),
+    MiseAJour.findAll({ where: { statut: 'publiee' }, order: [['publieeLe', 'DESC']], limit: 40 }),
+  ]);
+
+  const reference = new Date(utilisateur.nouveautesVuesLe || utilisateur.createdAt);
+  const pourMoi = publiees
+    .filter((m) => !Array.isArray(m.espaces) || m.espaces.length === 0 || m.espaces.includes(utilisateur.role))
+    .slice(0, 15)
+    .map((m) => ({
+      id: m.id,
+      version: m.version,
+      titre: m.titre,
+      contenu: m.contenu,
+      type: m.type,
+      publieeLe: m.publieeLe,
+      nonLue: new Date(m.publieeLe) > reference,
+    }));
+
+  return res.json({
+    fonctionnalites,
+    annonce: annonce ? { message: annonce.message, niveau: annonce.niveau, publieeLe: annonce.publieeLe } : null,
+    nouveautes: pourMoi,
+    nonLues: pourMoi.filter((m) => m.nonLue).length,
+  });
+}
+
+async function marquerNouveautesVues(req, res) {
+  req.utilisateur.nouveautesVuesLe = new Date();
+  await req.utilisateur.save();
+  return res.json({ nonLues: 0 });
+}
+
+module.exports = { statutPublic, etatPourUtilisateur, marquerNouveautesVues };

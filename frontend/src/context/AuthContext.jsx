@@ -16,7 +16,10 @@ export function AuthProvider({ children }) {
     client
       .get('/auth/moi')
       .then((res) => setProfil(res.data.profil))
-      .catch(() => sessionStorage.removeItem('pgs_token'))
+      // Pendant une maintenance, la session reste valable : on garde le
+      // jeton pour que l'utilisateur retrouve son espace dès la réouverture,
+      // sans avoir à se reconnecter.
+      .catch((err) => { if (!err.response?.data?.maintenance) sessionStorage.removeItem('pgs_token'); })
       .finally(() => setChargement(false));
   }, []);
 

@@ -4,8 +4,10 @@ import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconBanknote, IconCard, IconAlertTriangle, IconWallet } from '../../components/icons';
 import { totalElevesParClasses } from '../../utils/totaux';
+import { useFonctionnaliteOuverte } from '../../context/PlateformeContext';
 
 export default function TableauDeBord({ onNaviguer }) {
+  const estOuverte = useFonctionnaliteOuverte();
   const [impayes, setImpayes] = useState([]);
   const [totalEleves, setTotalEleves] = useState(0);
 
@@ -109,10 +111,12 @@ export default function TableauDeBord({ onNaviguer }) {
             <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
             Voir les impayés
           </button>
-          <button className="action-rapide" onClick={() => onNaviguer?.('salaires')}>
-            <span className="puce-icone petite"><IconWallet width={16} height={16} /></span>
-            Verser un salaire
-          </button>
+          {estOuverte('paie') && (
+            <button className="action-rapide" onClick={() => onNaviguer?.('salaires')}>
+              <span className="puce-icone petite"><IconWallet width={16} height={16} /></span>
+              Verser un salaire
+            </button>
+          )}
         </div>
       </div>
     </div>

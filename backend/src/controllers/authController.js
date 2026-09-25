@@ -4,6 +4,7 @@ const { signSession } = require('../utils/jwt');
 const { envoyerEmail } = require('../services/emailService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
+const { maintenanceEnCours, repondreMaintenance, journaliser } = require('../services/plateformeService');
 
 const DUREE_CODE_2FA_MIN = 10;
 const DUREE_RESET_MIN = 30;
@@ -51,6 +52,13 @@ async function seConnecter(req, res) {
     }
   }
 
+  // Vérifié après le mot de passe : il faut savoir QUI se connecte pour
+  // laisser passer le superadmin pendant une maintenance.
+  if (utilisateur.role !== 'superadmin') {
+    const maintenance = await maintenanceEnCours();
+    if (maintenance) return repondreMaintenance(res, maintenance);
+  }
+
   if (ROLES_AVEC_2FA.includes(utilisateur.role)) {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     utilisateur.codeDoubleFacteur = code;
@@ -62,6 +70,10 @@ async function seConnecter(req, res) {
       `Votre code de vérification est : ${code}\nIl expire dans ${DUREE_CODE_2FA_MIN} minutes.`
     );
     return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id });
+  }
+
+  if (utilisateur.role === 'superadmin') {
+    await journaliser(utilisateur, 'connexion', "Connexion à l'espace superadmin");
   }
 
   const token = signSession({ id: utilisateur.id, role: utilisateur.role });
@@ -89,6 +101,9 @@ async function verifierDoubleFacteur(req, res) {
   if (code !== utilisateur.codeDoubleFacteur) {
     return res.status(401).json({ erreur: 'code incorrect' });
   }
+  // Maintenance déclenchée entre l'envoi du code et sa saisie.
+  const maintenance = await maintenanceEnCours();
+  if (maintenance) return repondreMaintenance(res, maintenance);
 
   utilisateur.codeDoubleFacteur = null;
   utilisateur.codeDoubleFacteurExpire = null;

@@ -11,7 +11,7 @@ const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard },
   { id: 'frais', label: 'Frais de scolarité', composant: DefinirFrais, icone: IconBanknote },
   { id: 'impayes', label: 'Impayés', composant: Impayes, icone: IconAlertTriangle },
-  { id: 'salaires', label: 'Paie du personnel', composant: Salaires, icone: IconWallet },
+  { id: 'salaires', label: 'Paie du personnel', composant: Salaires, icone: IconWallet, fonctionnalite: 'paie' },
 ];
 
 export default function DashboardFinance() {

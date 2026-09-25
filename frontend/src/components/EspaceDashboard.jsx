@@ -1,8 +1,10 @@
 import { Fragment, Suspense, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
-import { IconLogout, IconMenu, IconClose, IconSettings, IconSearch } from './icons';
+import { IconLogout, IconMenu, IconClose, IconSettings, IconSearch, IconSparkles, IconMegaphone } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
+import ModaleNouveautes from './ModaleNouveautes';
+import { PlateformeContext } from '../context/PlateformeContext';
 import logoIcon from '../assets/logo-icon.png';
 
 const LIBELLES_ROLE = {
@@ -17,10 +19,73 @@ function initiales(prenom, nom) {
   return `${prenom?.[0] ?? ''}${nom?.[0] ?? ''}`.toUpperCase();
 }
 
+const DELAI_RAFRAICHISSEMENT_MS = 60 * 1000;
+const CLE_ANNONCE_MASQUEE = 'edusphere_annonce_masquee';
+
+function lireAnnonceMasquee() {
+  try { return sessionStorage.getItem(CLE_ANNONCE_MASQUEE); } catch { return null; }
+}
+
 export default function EspaceDashboard({ onglets, actif, onChange, avantContenu, bloquerContenu, children }) {
   const { profil, seDeconnecter } = useAuth();
-  const section = onglets.find((o) => o.id === actif) || onglets[0];
   const [menuOuvert, setMenuOuvert] = useState(false);
+
+  // État de la plateforme vu depuis une école : modules ouverts par le
+  // superadmin, annonce en cours, notes de version. Rafraîchi chaque minute
+  // et au retour sur l'onglet, pour qu'un module coupé, une annonce ou une
+  // maintenance se voient sans devoir recharger la page.
+  const estEcole = Boolean(profil?.role) && profil.role !== 'superadmin';
+  const [etatPlateforme, setEtatPlateforme] = useState(null);
+  const [nouveautesOuvertes, setNouveautesOuvertes] = useState(false);
+  const [annonceMasquee, setAnnonceMasquee] = useState(lireAnnonceMasquee);
+
+  useEffect(() => {
+    if (!estEcole) return undefined;
+    let premierChargement = true;
+    function charger() {
+      client.get('/plateforme/etat').then((res) => {
+        setEtatPlateforme(res.data);
+        // Ouverture automatique une seule fois, à l'arrivée dans l'espace :
+        // pas au milieu d'une saisie parce qu'une note vient d'être publiée.
+        if (premierChargement && res.data.nonLues > 0) setNouveautesOuvertes(true);
+        premierChargement = false;
+      }).catch(() => {});
+    }
+    charger();
+    const minuteur = setInterval(charger, DELAI_RAFRAICHISSEMENT_MS);
+    window.addEventListener('focus', charger);
+    return () => {
+      clearInterval(minuteur);
+      window.removeEventListener('focus', charger);
+    };
+  }, [estEcole]);
+
+  // Un onglet rattaché à un module fermé pour cette école disparaît du menu
+  // (l'API le refuse de toute façon, voir exigerFonctionnalite côté backend).
+  const ongletsVisibles = etatPlateforme
+    ? onglets.filter((o) => !o.fonctionnalite || etatPlateforme.fonctionnalites[o.fonctionnalite] !== false)
+    : onglets;
+  const section = ongletsVisibles.find((o) => o.id === actif) || ongletsVisibles[0];
+
+  useEffect(() => {
+    if (section && section.id !== actif) onChange(section.id);
+  }, [section, actif, onChange]);
+
+  function fermerNouveautes() {
+    setNouveautesOuvertes(false);
+    if (etatPlateforme?.nonLues > 0) {
+      client.put('/plateforme/nouveautes/vues').catch(() => {});
+      setEtatPlateforme((e) => ({ ...e, nonLues: 0, nouveautes: e.nouveautes.map((n) => ({ ...n, nonLue: false })) }));
+    }
+  }
+
+  const annonce = etatPlateforme?.annonce;
+  const annonceVisible = annonce && annonceMasquee !== annonce.publieeLe;
+  function masquerAnnonce() {
+    try { sessionStorage.setItem(CLE_ANNONCE_MASQUEE, annonce.publieeLe); } catch { /* stockage indisponible : masqué pour cette page seulement */ }
+    setAnnonceMasquee(annonce.publieeLe);
+  }
+  const nonLues = etatPlateforme?.nonLues || 0;
   // Le superadmin a déjà son propre onglet "Mon profil" dédié — pas besoin
   // de ce second accès qui ferait doublon pour lui seul.
   const [compteOuvert, setCompteOuvert] = useState(false);
@@ -66,8 +131,8 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
 
   const rechercheNettoyee = recherche.trim().toLowerCase();
   const resultatsRecherche = rechercheNettoyee
-    ? onglets.filter((o) => o.label.toLowerCase().includes(rechercheNettoyee))
-    : onglets;
+    ? ongletsVisibles.filter((o) => o.label.toLowerCase().includes(rechercheNettoyee))
+    : ongletsVisibles;
 
   function soumettreRecherche(e) {
     e.preventDefault();
@@ -83,6 +148,12 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
           <IconMenu width={20} height={20} />
         </button>
         <span className="marque-pastille petite"><img src={logoAffiche} alt="" /></span>
+        {estEcole && (
+          <button className="bouton-nouveautes-mobile" onClick={() => setNouveautesOuvertes(true)} aria-label="Nouveautés">
+            <IconSparkles width={18} height={18} />
+            {nonLues > 0 && <span className="bouton-nouveautes-compte">{nonLues}</span>}
+          </button>
+        )}
         <div className="avatar" title={`${profil?.prenom} ${profil?.nom}`}>{initiales(profil?.prenom, profil?.nom)}</div>
       </div>
 
@@ -101,7 +172,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
         </div>
 
         <nav className="nav-laterale">
-          {onglets.map((o) => {
+          {ongletsVisibles.map((o) => {
             const Icone = o.icone;
             return (
               <Fragment key={o.id}>
@@ -171,10 +242,29 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
               </div>
             )}
           </form>
+          {estEcole && (
+            <button className="bouton-nouveautes" onClick={() => setNouveautesOuvertes(true)}>
+              <IconSparkles width={15} height={15} />
+              Nouveautés
+              {nonLues > 0 && <span className="bouton-nouveautes-compte">{nonLues}</span>}
+            </button>
+          )}
           <span className="barre-superieure-date">{dateAffichee}</span>
         </div>
 
         <div className="espace-contenu">
+          {annonceVisible && (
+            <div className={`bandeau-annonce ${annonce.niveau === 'important' ? 'important' : ''}`} role="status">
+              <span className="bandeau-annonce-icone"><IconMegaphone width={18} height={18} /></span>
+              <div className="bandeau-annonce-texte">
+                <strong>{annonce.niveau === 'important' ? 'Annonce importante' : 'Annonce'} de l'équipe EduSphere</strong>
+                <p>{annonce.message}</p>
+              </div>
+              <button className="bandeau-annonce-fermer" onClick={masquerAnnonce} aria-label="Masquer l'annonce">
+                <IconClose width={14} height={14} />
+              </button>
+            </div>
+          )}
           {avantContenu}
           {!bloquerContenu && (
             <>
@@ -187,13 +277,16 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
                   onglet affiche "Chargement…" à la place du contenu sans faire
                   disparaître la barre latérale (contrairement au Suspense
                   global d'App.jsx, qui remplacerait toute la page). */}
-              <Suspense fallback={<div className="chargement">Chargement…</div>}>{children}</Suspense>
+              <PlateformeContext.Provider value={etatPlateforme?.fonctionnalites || null}>
+                <Suspense fallback={<div className="chargement">Chargement…</div>}>{children}</Suspense>
+              </PlateformeContext.Provider>
             </>
           )}
         </div>
       </div>
 
       {compteOuvert && <ModaleMonCompte onFermer={() => setCompteOuvert(false)} />}
+      {nouveautesOuvertes && <ModaleNouveautes nouveautes={etatPlateforme?.nouveautes || []} onFermer={fermerNouveautes} />}
     </div>
   );
 }

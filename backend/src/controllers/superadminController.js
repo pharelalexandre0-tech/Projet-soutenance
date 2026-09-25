@@ -4,6 +4,7 @@ const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { envoyerEmail } = require('../services/emailService');
+const { journaliser } = require('../services/plateformeService');
 const {
   Etablissement, Utilisateur, Classe, Eleve, Semestre, Professeur, Personnel,
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
@@ -83,6 +84,7 @@ async function creerEtablissement(req, res) {
     etablissementId: etablissement.id,
   });
 
+  await journaliser(req.utilisateur, 'etablissement', `Affiliation de l'établissement « ${etablissement.nom} » (${etablissement.ville})`);
   return res.status(201).json({ etablissement, compteAcademie: compteAcademie.toPublicJSON() });
 }
 
@@ -104,6 +106,7 @@ async function modifierEtablissement(req, res) {
     nom, sigle, devise, ville, pays, boitePostale, telephone, email,
     ...(logo !== undefined && { logo: logo || null }),
   });
+  await journaliser(req.utilisateur, 'etablissement', `Modification de la fiche de « ${etablissement.nom} »`);
   return res.json({ etablissement });
 }
 
@@ -185,6 +188,7 @@ async function supprimerEtablissement(req, res) {
   await Utilisateur.destroy({ where: { etablissementId } });
   await etablissement.destroy();
 
+  await journaliser(req.utilisateur, 'etablissement', `Suppression de l'établissement « ${etablissement.nom} » et de toutes ses données`);
   return res.json({ message: 'établissement supprimé' });
 }
 
@@ -200,6 +204,9 @@ async function changerStatutEtablissement(req, res) {
   }
   etablissement.statut = statut;
   await etablissement.save();
+  await journaliser(req.utilisateur, 'etablissement', statut === 'suspendu'
+    ? `Suspension de l'établissement « ${etablissement.nom} »`
+    : `Réactivation de l'établissement « ${etablissement.nom} »`);
   return res.json({ etablissement });
 }
 
@@ -231,6 +238,7 @@ async function creerSuperadmin(req, res) {
   }
   const motDePasseHache = await bcrypt.hash(motDePasse, 10);
   const compte = await Utilisateur.create({ nom, prenom, email, motDePasse: motDePasseHache, role: 'superadmin' });
+  await journaliser(req.utilisateur, 'compte', `Création du compte superadmin de ${prenom} ${nom}`);
   return res.status(201).json({ compte: compte.toPublicJSON() });
 }
 
@@ -312,6 +320,7 @@ async function reinitialiserMotDePasseAcademie(req, res) {
   compteAcademie.statut = 'actif';
   await compteAcademie.save();
 
+  await journaliser(req.utilisateur, 'compte', `Réinitialisation de l'accès Académie de « ${etablissement.nom} »`);
   return res.json({ email: compteAcademie.email, motDePasse: nouveauMotDePasse });
 }
 
@@ -336,6 +345,9 @@ async function envoyerEmailTest(req, res) {
     'E-mail de test EduSphere',
     `Ceci est un e-mail de test envoyé depuis l'espace Superadmin le ${new Date().toLocaleString('fr-FR')}.\n\nSi tu reçois ce message, l'envoi d'e-mail fonctionne correctement.`
   );
+  await journaliser(req.utilisateur, 'systeme', resultat.simule
+    ? "Test d'envoi d'e-mail (simulé, aucun service configuré)"
+    : "Test d'envoi d'e-mail vers sa propre adresse");
   return res.json({ envoye: resultat.envoye, simule: Boolean(resultat.simule), destinataire: req.utilisateur.email });
 }
 
@@ -356,6 +368,7 @@ async function mettreAJourMonProfil(req, res) {
     req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
   }
   await req.utilisateur.save();
+  if (motDePasse) await journaliser(req.utilisateur, 'compte', 'Changement de son propre mot de passe');
   return res.json({ profil: req.utilisateur.toPublicJSON() });
 }
 

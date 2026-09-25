@@ -1,7 +1,7 @@
 import { lazy, useEffect, useState } from 'react';
 import client from '../api/client';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDocument, IconPencil, IconCalendarAlert, IconBanknote, IconMessage, IconDashboard } from '../components/icons';
+import { IconDocument, IconPencil, IconCalendarAlert, IconBanknote, IconMessage, IconCalendar } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -14,9 +14,9 @@ const ONGLETS = [
   { id: 'bulletin', label: 'Bulletin', icone: IconDocument },
   { id: 'notes', label: 'Relevé de notes', icone: IconPencil },
   { id: 'absences', label: 'Absences', icone: IconCalendarAlert },
-  { id: 'emploi', label: 'Emploi du temps', icone: IconDashboard },
-  { id: 'frais', label: 'Frais & reçus', icone: IconBanknote },
-  { id: 'messages', label: 'Messages', icone: IconMessage },
+  { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, fonctionnalite: 'emplois-du-temps' },
+  { id: 'frais', label: 'Frais & reçus', icone: IconBanknote, fonctionnalite: 'frais-en-ligne' },
+  { id: 'messages', label: 'Messages', icone: IconMessage, fonctionnalite: 'communication' },
 ];
 
 // Plateforme universitaire : l'étudiant consulte directement son propre

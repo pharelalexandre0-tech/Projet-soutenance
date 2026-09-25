@@ -44,6 +44,10 @@ Utilisateur.init(
     // ci-dessus. Nul en dehors d'une réinitialisation en cours.
     tokenReinitialisation: { type: DataTypes.STRING, allowNull: true },
     tokenReinitialisationExpire: { type: DataTypes.DATE, allowNull: true },
+    // Dernière ouverture de la fenêtre "Nouveautés" : toute note de version
+    // publiée après cette date compte comme non lue. Nul = jamais ouverte,
+    // on repart alors de la création du compte (pas tout l'historique).
+    nouveautesVuesLe: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,

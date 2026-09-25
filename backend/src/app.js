@@ -17,6 +17,7 @@ const financeRoutes = require('./routes/finance');
 const predictionsRoutes = require('./routes/predictions');
 const referenceRoutes = require('./routes/reference');
 const superadminRoutes = require('./routes/superadmin');
+const plateformeRoutes = require('./routes/plateforme');
 const { DOSSIER_STOCKAGE } = require('./services/pdfService');
 
 const app = express();
@@ -75,6 +76,7 @@ app.use('/api/absences', absencesRoutes);
 app.use('/api/incidents', incidentsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/predictions', predictionsRoutes);
+app.use('/api/plateforme', plateformeRoutes);
 app.use('/api', referenceRoutes);
 app.use('/api/superadmin', superadminRoutes);
 
