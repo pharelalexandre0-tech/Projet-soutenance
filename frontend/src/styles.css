@@ -1529,3 +1529,68 @@ button.bouton-fort { padding: 0 16px; min-height: var(--hauteur-controle); font-
 .liste-services li + li { border-top: 1px solid var(--bordure); }
 .liste-services small { font-size: 13px; font-weight: 500; color: var(--succes); }
 @media (max-width: 760px) { .pied-carte { margin: 18px -18px -20px; padding: 12px 18px; } }
+
+/* Mon profil (superadmin) */
+.profil-entete {
+  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+  padding: 26px 30px; margin-bottom: 24px;
+  background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--radius); box-shadow: var(--ombre);
+}
+.profil-avatar {
+  width: 76px; height: 76px; flex: none; border-radius: 50%;
+  background: var(--degrade-plateforme); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 650; letter-spacing: 0.02em;
+  box-shadow: 0 0 0 4px var(--primaire-clair);
+}
+.profil-identite { flex: 1; min-width: 220px; }
+.profil-identite h2 { margin: 0; font-size: 24px; font-weight: 650; letter-spacing: -0.01em; }
+.profil-identite p { margin: 2px 0 10px; font-size: 15px; color: var(--texte-clair); }
+.profil-chiffres { margin: 0; display: grid; grid-template-columns: repeat(3, auto); gap: 0; }
+.profil-chiffres > div { padding: 4px 26px; border-left: 1px solid var(--bordure); }
+.profil-chiffres dt { font-size: 13.5px; color: var(--texte-clair); margin-bottom: 4px; white-space: nowrap; }
+.profil-chiffres dd { margin: 0; font-size: 18px; font-weight: 650; white-space: nowrap; }
+.grille-profil { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 1100px) {
+  .grille-profil { grid-template-columns: minmax(0, 1fr); }
+  .profil-chiffres { grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .profil-chiffres > div:first-child { border-left: none; padding-left: 0; }
+}
+@media (max-width: 560px) {
+  .profil-entete { padding: 20px 18px; gap: 16px; }
+  .profil-avatar { width: 60px; height: 60px; font-size: 21px; }
+  .profil-chiffres { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .profil-chiffres > div { border-left: none; padding: 0; }
+  .profil-chiffres dt, .profil-chiffres dd { white-space: normal; }
+}
+.champ small.note-secondaire { font-size: 13px; }
+.liste-activite { list-style: none; margin: 0; padding: 0; }
+.liste-activite li { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; }
+.liste-activite li + li { border-top: 1px solid var(--bordure); }
+.liste-activite-icone {
+  width: 34px; height: 34px; flex: none; border-radius: 9px;
+  background: var(--gris-fond); color: var(--texte-clair);
+  display: flex; align-items: center; justify-content: center;
+}
+.liste-activite-icone svg { width: 17px; height: 17px; }
+.liste-activite li > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.liste-activite li span { font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.liste-activite li small { font-size: 13px; color: var(--texte-clair); }
+.regles-mdp { list-style: none; margin: -4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.regles-mdp li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texte-clair); }
+.regles-mdp li.ok { color: var(--succes); }
+.regles-mdp-coche {
+  width: 18px; height: 18px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--bordure-controle); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.regles-mdp-coche svg { width: 12px; height: 12px; }
+.regles-mdp li.ok .regles-mdp-coche { background: var(--succes); border-color: var(--succes); }
+.droits-compte { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.droits-titre { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--texte); }
+.liste-droits { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.liste-droits li { display: flex; align-items: flex-start; gap: 10px; font-size: 14.5px; line-height: 1.45; }
+.droit-icone { width: 20px; height: 20px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.droit-icone svg { width: 12px; height: 12px; }
+.droit-icone.oui { background: var(--succes-fond); color: var(--succes); }
+.droit-icone.non { background: var(--erreur-fond); color: var(--erreur); }

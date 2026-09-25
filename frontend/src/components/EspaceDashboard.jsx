@@ -13,7 +13,7 @@ import { PlateformeContext } from '../context/PlateformeContext';
 import logoIcon from '../assets/logo-icon.png';
 
 const LIBELLES_ROLE = {
-  superadmin: 'Administration',
+  superadmin: 'Espace superadmin',
   academie: 'Espace Académie',
   finance: 'Espace Finance',
   etudiant: 'Espace Étudiant',

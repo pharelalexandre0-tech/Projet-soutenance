@@ -373,19 +373,25 @@ async function envoyerEmailTest(req, res) {
 // Le superadmin gère son propre compte comme n'importe quel autre — nom,
 // prénom, et mot de passe s'il le souhaite.
 async function mettreAJourMonProfil(req, res) {
-  const { nom, prenom, motDePasse } = req.body;
+  const { nom, prenom, motDePasse, motDePasseActuel } = req.body;
   if (!nom || !prenom) {
     return res.status(400).json({ erreur: 'nom et prénom sont obligatoires' });
   }
-  req.utilisateur.nom = nom;
-  req.utilisateur.prenom = prenom;
   if (motDePasse) {
     const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
     if (erreurMotDePasse) {
       return res.status(400).json({ erreur: erreurMotDePasse });
     }
+    // Une session laissée ouverte ne doit pas suffire à changer le mot de
+    // passe du compte le plus puissant de la plateforme.
+    const avecMotDePasse = await Utilisateur.scope('avecMotDePasse').findByPk(req.utilisateur.id);
+    if (!motDePasseActuel || !(await bcrypt.compare(motDePasseActuel, avecMotDePasse.motDePasse))) {
+      return res.status(400).json({ erreur: 'mot de passe actuel incorrect' });
+    }
     req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
   }
+  req.utilisateur.nom = nom;
+  req.utilisateur.prenom = prenom;
   await req.utilisateur.save();
   if (motDePasse) await journaliser(req.utilisateur, 'compte', 'Changement de son propre mot de passe');
   return res.json({ profil: req.utilisateur.toPublicJSON() });
