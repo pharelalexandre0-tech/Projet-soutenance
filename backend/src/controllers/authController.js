@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
-const { Utilisateur, Etablissement } = require('../models');
+const { Utilisateur, Etablissement, Eleve } = require('../models');
 const { signSession } = require('../utils/jwt');
 const { envoyerEmail } = require('../services/emailService');
+const { emailCodeConnexion, emailReinitialisation, emailRappelMatricule } = require('../services/modelesEmail');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
 const { maintenanceEnCours, repondreMaintenance, journaliser } = require('../services/plateformeService');
@@ -45,8 +46,9 @@ async function seConnecter(req, res) {
   if (utilisateur.statut === 'verrouille') {
     return res.status(403).json({ erreur: 'compte verrouillé, contactez votre administrateur' });
   }
+  let etablissement = null;
   if (utilisateur.etablissementId) {
-    const etablissement = await Etablissement.findByPk(utilisateur.etablissementId);
+    etablissement = await Etablissement.findByPk(utilisateur.etablissementId);
     if (!etablissement || etablissement.statut === 'suspendu') {
       return res.status(403).json({ erreur: 'établissement suspendu, contactez le support' });
     }
@@ -64,11 +66,10 @@ async function seConnecter(req, res) {
     utilisateur.codeDoubleFacteur = code;
     utilisateur.codeDoubleFacteurExpire = new Date(Date.now() + DUREE_CODE_2FA_MIN * 60 * 1000);
     await utilisateur.save();
-    await envoyerEmail(
-      utilisateur.email,
-      'Votre code de connexion EduSphere',
-      `Votre code de vérification est : ${code}\nIl expire dans ${DUREE_CODE_2FA_MIN} minutes.`
-    );
+    const message = emailCodeConnexion({
+      prenom: utilisateur.prenom, code, minutes: DUREE_CODE_2FA_MIN, etablissement: etablissement?.nom, role: utilisateur.role,
+    });
+    await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
     return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id });
   }
 
@@ -170,19 +171,31 @@ async function demanderReinitialisation(req, res) {
     return res.json(MESSAGE_GENERIQUE_RESET);
   }
 
+  const etablissement = utilisateur.etablissementId
+    ? await Etablissement.findByPk(utilisateur.etablissementId, { attributes: ['nom'] })
+    : null;
+
+  // Le mot de passe d'un étudiant est son matricule et ne se change pas :
+  // on lui rappelle plutôt que de lui envoyer un lien de réinitialisation.
+  if (utilisateur.role === 'etudiant') {
+    const eleve = await Eleve.findOne({ where: { compteEtudiantId: utilisateur.id }, attributes: ['matricule'] });
+    if (eleve?.matricule) {
+      const message = emailRappelMatricule({ prenom: utilisateur.prenom, matricule: eleve.matricule, etablissement: etablissement?.nom });
+      await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
+    }
+    return res.json(MESSAGE_GENERIQUE_RESET);
+  }
+
   const token = genererJetonEphemere();
   utilisateur.tokenReinitialisation = token;
   utilisateur.tokenReinitialisationExpire = new Date(Date.now() + DUREE_RESET_MIN * 60 * 1000);
   await utilisateur.save();
 
   const lien = `${baseUrlReinitialisation()}/${token}`;
-  await envoyerEmail(
-    utilisateur.email,
-    'Réinitialisation de votre mot de passe EduSphere',
-    `Une réinitialisation de mot de passe a été demandée pour ce compte.\n` +
-    `Si c'est bien toi, clique sur ce lien (valable ${DUREE_RESET_MIN} minutes) :\n${lien}\n\n` +
-    `Si tu n'es pas à l'origine de cette demande, ignore cet e-mail. Ton mot de passe reste inchangé.`
-  );
+  const message = emailReinitialisation({
+    prenom: utilisateur.prenom, email: utilisateur.email, lien, minutes: DUREE_RESET_MIN, etablissement: etablissement?.nom,
+  });
+  await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
 
   return res.json(MESSAGE_GENERIQUE_RESET);
 }
@@ -200,6 +213,9 @@ async function reinitialiserMotDePasse(req, res) {
   const utilisateur = await Utilisateur.scope('avecMotDePasse').findOne({ where: { tokenReinitialisation: token } });
   if (!utilisateur || !utilisateur.tokenReinitialisationExpire || new Date() > utilisateur.tokenReinitialisationExpire) {
     return res.status(400).json({ erreur: 'lien invalide ou expiré, refais une demande de réinitialisation' });
+  }
+  if (utilisateur.role === 'etudiant') {
+    return res.status(403).json({ erreur: "le mot de passe d'un étudiant est son matricule, il ne se modifie pas" });
   }
 
   utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
@@ -221,6 +237,11 @@ async function monProfil(req, res) {
 // reçu par e-mail).
 async function mettreAJourMonProfil(req, res) {
   const { nom, prenom, motDePasse } = req.body;
+  // L'identité et le mot de passe (matricule) d'un étudiant sont gérés par
+  // son établissement, jamais par lui-même.
+  if (req.utilisateur.role === 'etudiant') {
+    return res.status(403).json({ erreur: "les informations d'un compte étudiant sont gérées par l'établissement" });
+  }
   if (!nom || !prenom) {
     return res.status(400).json({ erreur: 'nom et prénom sont obligatoires' });
   }

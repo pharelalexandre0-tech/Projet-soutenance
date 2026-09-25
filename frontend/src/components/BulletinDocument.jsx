@@ -47,7 +47,7 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
 
       <div className="releve-identite">
         <div><span>Étudiant</span><strong>{eleve ? `${eleve.prenom} ${eleve.nom}` : `#${eleveId}`}</strong></div>
-        <div><span>Matricule</span><strong>ETU-{String(eleveId).padStart(5, '0')}</strong></div>
+        <div><span>Matricule</span><strong>{eleve?.matricule || `ETU-${String(eleveId).padStart(5, '0')}`}</strong></div>
         <div><span>Filière</span><strong>{eleve?.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'}</strong></div>
         <div><span>Semestre</span><strong>{semestre ? `${semestre.libelle} (${semestre.anneeScolaire})` : 'Non renseigné'}</strong></div>
       </div>

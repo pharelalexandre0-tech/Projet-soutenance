@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
-const { envoyerEmail } = require('../services/emailService');
+const { envoyerEmail, derniersEnvois } = require('../services/emailService');
 const { journaliser, clesDeLEcole, invaliderCache } = require('../services/plateformeService');
 const { MODULES_INTEGRES } = require('../config/fonctionnalites');
 const {
@@ -352,7 +352,7 @@ async function obtenirConfigEmail(req, res) {
   const resend = Boolean(process.env.RESEND_API_KEY);
   const smtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
   const actif = sendgrid ? 'sendgrid' : resend ? 'resend' : smtp ? 'smtp' : null;
-  return res.json({ sendgrid, resend, smtp, actif });
+  return res.json({ sendgrid, resend, smtp, actif, derniersEnvois: derniersEnvois() });
 }
 
 // Envoie un e-mail de test à l'adresse du superadmin lui-même — jamais à un
@@ -367,7 +367,10 @@ async function envoyerEmailTest(req, res) {
   await journaliser(req.utilisateur, 'systeme', resultat.simule
     ? "Test d'envoi d'e-mail (simulé, aucun service configuré)"
     : "Test d'envoi d'e-mail vers sa propre adresse");
-  return res.json({ envoye: resultat.envoye, simule: Boolean(resultat.simule), destinataire: req.utilisateur.email });
+  return res.json({
+    envoye: resultat.envoye, simule: Boolean(resultat.simule), destinataire: req.utilisateur.email,
+    service: resultat.service, erreurs: resultat.erreurs,
+  });
 }
 
 // Le superadmin gère son propre compte comme n'importe quel autre — nom,

@@ -133,7 +133,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   const largeurCol = largeurTotale / 4;
   const identite = [
     ['Étudiant', `${eleve.prenom} ${eleve.nom}`],
-    ['Matricule', `ETU-${String(eleve.id).padStart(5, '0')}`],
+    ['Matricule', eleve.matricule || `ETU-${String(eleve.id).padStart(5, '0')}`],
     ['Filière', eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'],
     ['Semestre', `${semestre.libelle} (${semestre.anneeScolaire})`],
   ];

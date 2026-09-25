@@ -1,15 +1,48 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import client from '../api/client';
 import Modal from './Modal';
+import ChampMotDePasse from './ChampMotDePasse';
 import { useAuth } from '../context/AuthContext';
+import { IconInfo } from './icons';
 
-// Symétrique de superadmin/MonProfil.jsx pour les trois autres rôles —
-// jusqu'ici seul le superadmin pouvait changer son propre mot de passe
-// depuis l'app (ex. après un mot de passe temporaire reçu par e-mail).
-// En modale plutôt qu'un onglet dédié : Académie/Finance/Étudiant n'ont
-// pas de section "Paramètres" personnels dans leur nav, seulement
-// (pour l'Académie) une page d'identité de l'établissement, différente.
+// Symétrique de superadmin/MonProfil.jsx pour les autres rôles, en modale :
+// Académie, Finance et Parents n'ont pas de page "profil" dans leur menu.
+// L'étudiant, lui, ne modifie rien : son mot de passe est son matricule,
+// attribué par l'établissement.
 export default function ModaleMonCompte({ onFermer }) {
+  const { profil } = useAuth();
+  return (
+    <Modal titre="Mon compte" onFermer={onFermer} largeur={480}>
+      {profil?.role === 'etudiant' ? <CompteEtudiant profil={profil} /> : <CompteModifiable />}
+    </Modal>
+  );
+}
+
+function CompteEtudiant({ profil }) {
+  const [matricule, setMatricule] = useState(null);
+  useEffect(() => {
+    client.get('/eleves').then((res) => setMatricule(res.data.eleves[0]?.matricule || null)).catch(() => {});
+  }, []);
+
+  return (
+    <div className="formulaire">
+      <dl className="fiche-compte">
+        <div><dt>Nom</dt><dd>{profil.prenom} {profil.nom}</dd></div>
+        <div><dt>Adresse e-mail</dt><dd>{profil.email}</dd></div>
+        <div><dt>Matricule</dt><dd className="mono">{matricule || '…'}</dd></div>
+      </dl>
+      <div className="encart-info">
+        <IconInfo />
+        <span>
+          Ton mot de passe est ton matricule : il ne se modifie pas. En cas de problème de connexion, adresse-toi au
+          service Académie de ton établissement.
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function CompteModifiable() {
   const { profil, mettreAJourProfil } = useAuth();
   const [form, setForm] = useState({ nom: profil?.nom || '', prenom: profil?.prenom || '', motDePasse: '' });
   const [enCours, setEnCours] = useState(false);
@@ -27,7 +60,7 @@ export default function ModaleMonCompte({ onFermer }) {
       const res = await client.put('/auth/mon-profil', payload);
       mettreAJourProfil(res.data.profil);
       setForm({ ...form, motDePasse: '' });
-      setSucces('Profil mis à jour.');
+      setSucces('Compte mis à jour.');
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'échec de la mise à jour');
     } finally {
@@ -36,21 +69,19 @@ export default function ModaleMonCompte({ onFermer }) {
   }
 
   return (
-    <Modal titre="Mon compte" onFermer={onFermer} largeur={440}>
-      <form className="formulaire" onSubmit={enregistrer}>
-        <div className="champ"><label>E-mail</label><input value={profil?.email || ''} disabled /></div>
-        <div className="ligne-champs">
-          <div className="champ"><label>Prénom</label><input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} required /></div>
-          <div className="champ"><label>Nom</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
-        </div>
-        <div className="champ">
-          <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-          <input type="password" autoComplete="new-password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={6} />
-        </div>
-        {erreur && <div className="message-erreur">{erreur}</div>}
-        {succes && <div className="message-succes">{succes}</div>}
-        <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer'}</button>
-      </form>
-    </Modal>
+    <form className="formulaire" onSubmit={enregistrer}>
+      <div className="champ"><label>Adresse e-mail</label><input value={profil?.email || ''} disabled /></div>
+      <div className="ligne-champs">
+        <div className="champ"><label>Prénom</label><input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} required /></div>
+        <div className="champ"><label>Nom</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
+      </div>
+      <div className="champ">
+        <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+        <ChampMotDePasse autoComplete="new-password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={6} />
+      </div>
+      {erreur && <div className="message-erreur">{erreur}</div>}
+      {succes && <div className="message-succes">{succes}</div>}
+      <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer'}</button>
+    </form>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ChampMotDePasse from './ChampMotDePasse';
 
 const VIDE = { parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
 
@@ -70,17 +71,15 @@ export default function ChampParent({ parents, valeur, onChange, motDePasseVisib
             </div>
             <div className="champ" style={{ flex: 1 }}>
               <label>Mot de passe (si nouveau compte)</label>
-              <input
-                type={motDePasseVisible ? 'text' : 'password'}
+              <ChampMotDePasse
                 autoComplete="new-password"
                 minLength={6}
                 value={valeur.parentMotDePasse}
                 onChange={(e) => onChange({ parentMotDePasse: e.target.value })}
+                visible={motDePasseVisible}
+                onBasculer={onBasculerMotDePasseVisible}
               />
             </div>
-            <button type="button" className="secondaire" style={{ alignSelf: 'flex-end', marginBottom: 1 }} onClick={onBasculerMotDePasseVisible}>
-              {motDePasseVisible ? 'Masquer' : 'Afficher'}
-            </button>
           </div>
         </>
       )}

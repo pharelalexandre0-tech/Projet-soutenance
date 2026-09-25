@@ -694,28 +694,6 @@ tbody tr:has(> td.vide):hover { background: none; }
 .case-statut.absence.actif { background: var(--erreur-fond); color: var(--erreur); border-color: var(--erreur); }
 .case-statut.retard.actif { background: var(--alerte-fond); color: var(--alerte); border-color: var(--alerte); }
 
-/* Emploi du temps hebdomadaire */
-.grille-emploi { display: grid; grid-template-columns: 48px repeat(6, minmax(122px, 1fr)); gap: 6px; min-width: 800px; }
-.grille-emploi-jour-titre { text-align: center; font-size: 12px; font-weight: 600; color: var(--texte-clair); padding-bottom: 8px; }
-.grille-emploi-heures { position: relative; }
-.grille-emploi-repere { position: absolute; right: 6px; transform: translateY(-50%); font-size: 11px; color: var(--texte-clair); font-variant-numeric: tabular-nums; }
-.grille-emploi-colonne { position: relative; background: color-mix(in srgb, var(--gris-fond) 60%, var(--carte)); border-radius: 8px; border: 1px solid var(--bordure); }
-.grille-emploi-ligne { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--bordure); }
-.grille-emploi-creneau {
-  position: absolute; left: 4px; right: 4px; min-height: 22px; overflow: hidden;
-  display: flex; flex-direction: column; gap: 1px; padding: 5px 7px;
-  background: var(--primaire-clair); border-left: 3px solid var(--primaire); border-radius: 6px;
-}
-.grille-emploi-creneau strong { font-size: 12px; color: var(--primaire-fonce); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.grille-emploi-creneau span { font-size: 11px; color: var(--texte-clair); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.grille-emploi-retirer {
-  position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border-radius: 4px;
-  border: none; background: transparent; color: var(--texte-clair); cursor: pointer;
-  font-size: 14px; line-height: 1; opacity: 0; transition: opacity 0.12s, background 0.12s, color 0.12s;
-}
-.grille-emploi-creneau:hover .grille-emploi-retirer, .grille-emploi-retirer:focus-visible { opacity: 1; }
-.grille-emploi-retirer:hover { background: var(--erreur-fond); color: var(--erreur); }
-
 /* Maître-détail (paie) */
 .maitre-detail { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 960px) { .maitre-detail { grid-template-columns: minmax(0, 1fr); } }
@@ -1594,3 +1572,119 @@ button.bouton-fort { padding: 0 16px; min-height: var(--hauteur-controle); font-
 .droit-icone svg { width: 12px; height: 12px; }
 .droit-icone.oui { background: var(--succes-fond); color: var(--succes); }
 .droit-icone.non { background: var(--erreur-fond); color: var(--erreur); }
+
+/* ==========================================================================
+   Emploi du temps : semaine type en grille (bureau), agenda par jour (mobile)
+   ========================================================================== */
+.edt-resume { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.edt-resume span { font-size: 14px; color: var(--texte-clair); background: var(--gris-fond); border-radius: 8px; padding: 7px 12px; }
+.edt-resume strong { color: var(--texte); font-weight: 650; margin-right: 3px; }
+.edt-grille { border: 1px solid var(--bordure); border-radius: 12px; overflow: hidden; background: var(--carte); }
+.edt-entete, .edt-corps { display: grid; grid-template-columns: 68px repeat(6, minmax(0, 1fr)); }
+.edt-entete { border-bottom: 1px solid var(--bordure); background: color-mix(in srgb, var(--gris-fond) 50%, var(--carte)); }
+.edt-jour { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-left: 1px solid var(--bordure); min-width: 0; }
+.edt-jour span { font-size: 15px; font-weight: 600; color: var(--texte); }
+.edt-jour small { font-size: 12.5px; color: var(--texte-clair); }
+.edt-jour.aujourdhui { box-shadow: inset 0 -3px 0 var(--primaire); }
+.edt-jour.aujourdhui span { color: var(--primaire); }
+.edt-corps {
+  position: relative;
+  /* Lignes des heures (pleines) et des demi-heures (discrètes), tracées une
+     fois pour toute la largeur plutôt que colonne par colonne. */
+  background-image:
+    linear-gradient(to bottom, var(--bordure) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--bordure) 45%, transparent) 1px, transparent 1px);
+  background-size: 100% var(--hauteur-heure), 100% calc(var(--hauteur-heure) / 2);
+}
+.edt-heures { position: relative; background: var(--carte); }
+.edt-heures span {
+  position: absolute; right: 10px; transform: translateY(-50%);
+  font-size: 12.5px; color: var(--texte-clair); font-variant-numeric: tabular-nums; background: var(--carte); padding: 0 2px;
+}
+.edt-heures span:first-child { transform: translateY(4px); }
+.edt-colonne { position: relative; border-left: 1px solid var(--bordure); min-width: 0; }
+.edt-colonne.aujourdhui { background: color-mix(in srgb, var(--primaire-clair) 40%, transparent); }
+.edt-colonne.editable { cursor: pointer; }
+.edt-colonne.editable:hover { background-color: color-mix(in srgb, var(--gris-fond) 60%, transparent); }
+.edt-colonne.editable.aujourdhui:hover { background-color: color-mix(in srgb, var(--primaire-clair) 60%, transparent); }
+.edt-cours {
+  position: absolute; left: 6px; right: 6px; z-index: 1;
+  display: flex; flex-direction: column; gap: 3px; overflow: hidden;
+  padding: 8px 10px; border-radius: 8px;
+  background: color-mix(in srgb, var(--teinte) 11%, var(--carte));
+  border: 1px solid color-mix(in srgb, var(--teinte) 22%, transparent);
+  border-left: 3px solid var(--teinte);
+  cursor: default;
+  transition: box-shadow 0.15s ease;
+}
+.edt-cours:hover { box-shadow: 0 4px 12px -4px rgba(11, 30, 61, 0.2); }
+.edt-cours strong { font-size: 14px; font-weight: 650; line-height: 1.3; color: color-mix(in srgb, var(--teinte) 75%, var(--texte)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 22px; }
+.edt-cours-info { display: flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--texte-clair); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.edt-cours-info svg { width: 13px; height: 13px; flex: none; }
+.edt-cours.court { flex-direction: row; align-items: center; gap: 10px; padding: 3px 10px; }
+.edt-retirer {
+  position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; border-radius: 6px;
+  border: none; background: var(--carte); color: var(--texte-clair); box-shadow: var(--ombre);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.edt-retirer svg { width: 14px; height: 14px; }
+.edt-cours:hover .edt-retirer, .edt-retirer:focus-visible { opacity: 1; }
+.edt-retirer:hover { color: var(--erreur); background: var(--erreur-fond); }
+.edt-maintenant { position: absolute; left: 0; right: 0; height: 2px; background: var(--erreur); z-index: 2; pointer-events: none; }
+.edt-maintenant::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--erreur); }
+.edt-jours-mobile { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; }
+.edt-jours-mobile button {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0;
+  border: 1px solid var(--bordure-controle); border-radius: 10px; background: var(--carte);
+  font: 600 14px var(--police); color: var(--texte); cursor: pointer;
+}
+.edt-jours-mobile button small { font-size: 12px; font-weight: 500; color: var(--texte-clair); }
+.edt-jours-mobile button.aujourdhui { border-color: var(--primaire); color: var(--primaire); }
+.edt-jours-mobile button.actif { background: var(--edu-marine); border-color: var(--edu-marine); color: #fff; }
+.edt-jours-mobile button.actif small { color: rgba(255, 255, 255, 0.75); }
+.edt-agenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.edt-agenda li {
+  position: relative; display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border: 1px solid var(--bordure); border-left: 4px solid var(--teinte); border-radius: 10px;
+  background: color-mix(in srgb, var(--teinte) 6%, var(--carte));
+}
+.edt-agenda-heures { display: flex; flex-direction: column; min-width: 54px; font-variant-numeric: tabular-nums; }
+.edt-agenda-heures strong { font-size: 15px; }
+.edt-agenda-heures span { font-size: 13px; color: var(--texte-clair); }
+.edt-agenda-cours { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.edt-agenda-cours strong { font-size: 15px; color: color-mix(in srgb, var(--teinte) 75%, var(--texte)); }
+.edt-agenda-cours span { font-size: 13.5px; color: var(--texte-clair); }
+.edt-agenda .edt-retirer { position: static; opacity: 1; flex: none; }
+
+/* Saisie de mot de passe avec bouton "afficher" */
+.saisie-mdp { position: relative; display: flex; min-width: 0; }
+.saisie-mdp input { flex: 1; min-width: 0; padding-right: 46px; }
+.saisie-mdp-bouton, .champ-icone-oeil {
+  width: 34px; height: 34px; flex: none; border: none; border-radius: 7px;
+  background: transparent; color: var(--texte-clair);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.saisie-mdp-bouton { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); }
+.saisie-mdp-bouton svg, .champ-icone-oeil svg { width: 18px; height: 18px; }
+.saisie-mdp-bouton:hover, .champ-icone-oeil:hover { background: var(--gris-fond); color: var(--texte); }
+.formulaire-connexion .champ-icone .champ-icone-oeil { margin-right: -8px; }
+.formulaire-connexion .champ-icone .champ-icone-oeil svg { width: 18px; height: 18px; color: inherit; }
+
+/* Fiche de compte en lecture seule (étudiant) */
+.fiche-compte { margin: 0; border: 1px solid var(--bordure); border-radius: 10px; }
+.fiche-compte > div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 16px; }
+.fiche-compte > div + div { border-top: 1px solid var(--bordure); }
+.fiche-compte dt { font-size: 14px; color: var(--texte-clair); }
+.fiche-compte dd { margin: 0; font-size: 15px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+
+/* Superadmin : derniers envois d'e-mail */
+.liste-envois { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--bordure); }
+.liste-envois li { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+.liste-envois li > div { min-width: 0; }
+.liste-envois strong { display: block; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-envois small { display: block; font-size: 12.5px; color: var(--texte-clair); }
+.liste-envois .erreur-envoi { color: var(--erreur); overflow-wrap: anywhere; margin-top: 2px; }
+
+@media (max-width: 760px) { .astuce-grille { display: none; } }

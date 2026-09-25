@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import client from '../api/client';
-import { IconLock } from '../components/icons';
+import ChampMotDePasse from '../components/ChampMotDePasse';
 
 // Page ouverte depuis le lien reçu par e-mail (demandé sur Login via
 // "Mot de passe oublié ?") — même esprit que AccesTemporaire.jsx : le jeton
@@ -51,18 +51,12 @@ export default function ReinitialiserMotDePasse() {
         <h1>Nouveau mot de passe</h1>
         <form className="formulaire" onSubmit={onSubmit}>
           <div className="champ">
-            <label>Nouveau mot de passe</label>
-            <div className="champ-icone">
-              <IconLock aria-hidden="true" />
-              <input type="password" autoComplete="new-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} minLength={6} required />
-            </div>
+            <label htmlFor="r-nouveau">Nouveau mot de passe</label>
+            <ChampMotDePasse id="r-nouveau" autoComplete="new-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} minLength={6} required autoFocus />
           </div>
           <div className="champ">
-            <label>Confirmer le mot de passe</label>
-            <div className="champ-icone">
-              <IconLock aria-hidden="true" />
-              <input type="password" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} minLength={6} required />
-            </div>
+            <label htmlFor="r-confirmation">Confirmer le mot de passe</label>
+            <ChampMotDePasse id="r-confirmation" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} minLength={6} required />
           </div>
           {erreur && <div className="message-erreur">{erreur}</div>}
           <button className="primaire" type="submit" disabled={enCours}>

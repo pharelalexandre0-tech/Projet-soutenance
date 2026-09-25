@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock, IconLogin, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
+import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
@@ -107,6 +107,7 @@ export default function Login() {
   const [erreurOubli, setErreurOubli] = useState(false);
   const [enCoursOubli, setEnCoursOubli] = useState(false);
   const [maintenance, setMaintenance] = useState(null);
+  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   // Arrivée depuis l'écran de démarrage : le sceau et le nom de la carte
   // bleue ne rejouent pas leur animation (ce sont ceux du démarrage qui
   // viennent s'y poser).
@@ -283,12 +284,23 @@ export default function Login() {
             </Champ>
             <Champ label="Mot de passe" icone={IconLock} erreur={Boolean(erreur)}>
               <input
-                type="password"
+                type={motDePasseVisible ? 'text' : 'password'}
                 placeholder="Votre mot de passe"
+                autoComplete="current-password"
                 value={motDePasse}
                 onChange={(e) => { setMotDePasse(e.target.value); setErreur(''); }}
                 required
               />
+              <button
+                type="button"
+                className="champ-icone-oeil"
+                onClick={() => setMotDePasseVisible((v) => !v)}
+                aria-label={motDePasseVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                aria-pressed={motDePasseVisible}
+                title={motDePasseVisible ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              >
+                {motDePasseVisible ? <IconOeilBarre /> : <IconOeil />}
+              </button>
             </Champ>
             <button
               type="button"

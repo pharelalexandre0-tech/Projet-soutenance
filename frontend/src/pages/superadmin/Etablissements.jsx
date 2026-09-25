@@ -4,6 +4,7 @@ import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
+import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { messageErreur } from '../../utils/erreurs';
 import { LIBELLES_ESPACES } from '../../utils/plateforme';
 import {
@@ -627,7 +628,7 @@ function FormulaireCreationEcole({ onFermer, onReussi }) {
         </div>
         <div className="ligne-champs">
           <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={form.academieEmail} onChange={maj('academieEmail')} required /></div>
-          <div className="champ"><label>Mot de passe</label><input type="password" autoComplete="new-password" value={form.academieMotDePasse} onChange={maj('academieMotDePasse')} required /></div>
+          <div className="champ"><label>Mot de passe</label><ChampMotDePasse autoComplete="new-password" value={form.academieMotDePasse} onChange={maj('academieMotDePasse')} required /></div>
         </div>
 
         <div className="separateur-section" style={{ margin: '4px 0' }} />

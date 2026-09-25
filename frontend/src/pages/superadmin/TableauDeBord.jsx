@@ -34,12 +34,18 @@ export default function TableauDeBord({ onNaviguer }) {
     setTestEnCours(true);
     try {
       const res = await client.post('/superadmin/email-test');
-      setToast({
-        message: res.data.simule
-          ? `Aucun service d'envoi configuré : le test a seulement été simulé (voir les journaux du serveur).`
-          : `E-mail de test envoyé à ${res.data.destinataire}.`,
-        type: res.data.simule ? 'erreur' : 'succes',
-      });
+      const echecs = (res.data.erreurs || []).map((e) => LIBELLE_SERVICE[e.service] || e.service);
+      let message;
+      if (!res.data.simule) {
+        message = `E-mail de test envoyé à ${res.data.destinataire} via ${LIBELLE_SERVICE[res.data.service] || res.data.service}`
+          + (echecs.length ? ` (après l'échec de ${echecs.join(', ')}).` : '.');
+      } else if (echecs.length) {
+        message = `L'e-mail n'est pas parti : ${echecs.join(', ')} a refusé l'envoi. Le détail est dans « Derniers envois ».`;
+      } else {
+        message = "Aucun service d'envoi configuré : le test a seulement été simulé.";
+      }
+      setToast({ message, type: res.data.simule ? 'erreur' : 'succes' });
+      client.get('/superadmin/config-email').then((r) => setConfigEmail(r.data)).catch(() => {});
     } catch (err) {
       setToast({ message: messageErreur(err, "échec de l'envoi du test"), type: 'erreur' });
     } finally {
@@ -155,6 +161,28 @@ export default function TableauDeBord({ onNaviguer }) {
                 <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>
                   <IconMail /> {testEnCours ? 'Envoi du test…' : "Tester l'envoi vers mon adresse"}
                 </button>
+                <h3 className="tiroir-section-titre" style={{ margin: '22px 0 0' }}>Derniers envois</h3>
+                {(configEmail.derniersEnvois || []).length === 0 && (
+                  <p className="note-secondaire" style={{ margin: '8px 0 0', fontSize: 14 }}>Aucun envoi depuis le dernier redémarrage du serveur.</p>
+                )}
+                {(configEmail.derniersEnvois || []).length > 0 && (
+                  <ul className="liste-envois">
+                    {configEmail.derniersEnvois.slice(0, 6).map((envoi) => (
+                      <li key={`${envoi.le}-${envoi.sujet}`}>
+                        <div>
+                          <strong>{envoi.sujet}</strong>
+                          <small>{envoi.destinataire} · {new Date(envoi.le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>
+                          {envoi.erreurs.map((e) => (
+                            <small key={e.service} className="erreur-envoi">{LIBELLE_SERVICE[e.service] || e.service} : {e.message}</small>
+                          ))}
+                        </div>
+                        <span className={`badge ${envoi.envoye ? 'vert' : envoi.erreurs.length ? 'rouge' : 'gris'}`}>
+                          {envoi.envoye ? `Envoyé (${LIBELLE_SERVICE[envoi.service]})` : envoi.erreurs.length ? 'Non envoyé' : 'Simulé'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </>
             )}
           </div>

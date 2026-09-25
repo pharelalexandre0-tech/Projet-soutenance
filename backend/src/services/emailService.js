@@ -1,64 +1,36 @@
 const fs = require('fs');
 const nodemailer = require('nodemailer');
 
-function echapperHtml(texte) {
-  return texte.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const { emailGenerique } = require('./modelesEmail');
+
+// Derniers envois (en mémoire, 30 au plus) : de quoi comprendre depuis
+// l'espace superadmin pourquoi un e-mail n'est pas arrivé, sans aller lire
+// les journaux du serveur. Adresse masquée : le superadmin ne doit pas
+// voir qui, dans une école, reçoit quoi.
+const JOURNAL_MAX = 30;
+const journalEnvois = [];
+
+function masquerAdresse(adresse) {
+  const [local, domaine] = String(adresse).split('@');
+  if (!domaine) return '***';
+  const visible = local.length <= 2 ? local[0] : `${local[0]}***${local[local.length - 1]}`;
+  return `${visible}@${domaine}`;
 }
 
-// Troisième passe. V1 (fond gris pleine page, bandeau dégradé) : "bizarre"
-// — rendu incohérent d'un client à l'autre. V2 (fond blanc, nom en gras +
-// liseré, paragraphes gris uniformes) : "trop IA" — exactement le gabarit
-// que produirait n'importe quel générateur générique, aucune identité
-// propre. Ce qui manquait aux deux : un vrai point focal. Un e-mail de
-// code n'est lu que pour UNE information — le code — le reste n'est que
-// contexte ; la mise en avant du code (grand, espacé, encadré) EST le
-// design, pas une paragraphe parmi d'autres. Le petit sceau "ES" reprend
-// la marque du logo réel sans dépendre d'une image hébergée (fragile par
-// e-mail — beaucoup de clients bloquent les images distantes par défaut).
-const RE_CODE = /\b(\d{6})\b/;
-// Un lien d'accès (compte éphémère, réinitialisation...) mérite le même
-// traitement que le code à 6 chiffres : isolé sur sa propre ligne dans le
-// texte source, il devient ici un vrai bouton plutôt qu'une URL brute
-// perdue au milieu d'un paragraphe — c'est justement ce qui manquait pour
-// que l'e-mail ait l'air d'un produit fini plutôt que d'un log technique.
-const RE_LIEN = /^(https?:\/\/\S+)$/;
+function consigner(destinataire, sujet, service, erreurs) {
+  journalEnvois.unshift({
+    le: new Date().toISOString(),
+    destinataire: masquerAdresse(destinataire),
+    sujet,
+    service,
+    envoye: service !== 'simulation',
+    erreurs,
+  });
+  journalEnvois.length = Math.min(journalEnvois.length, JOURNAL_MAX);
+}
 
-function versHtml(corps) {
-  const blocs = echapperHtml(corps)
-    .split('\n')
-    .map((ligne) => {
-      const lienTrouve = ligne.trim().match(RE_LIEN);
-      if (lienTrouve) {
-        return `<p style="margin:6px 0 18px; text-align:center;"><a href="${lienTrouve[1]}" style="display:inline-block; padding:13px 30px; background-color:#1D5FA8; color:#ffffff; font-size:15px; font-weight:bold; font-family:Arial,Helvetica,sans-serif; text-decoration:none; border-radius:8px;">Ouvrir l'accès</a></p>`;
-      }
-      const trouve = ligne.match(RE_CODE);
-      if (!trouve) {
-        return `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${ligne || '&nbsp;'}</p>`;
-      }
-      const avant = ligne.slice(0, trouve.index);
-      const apres = ligne.slice(trouve.index + trouve[0].length);
-      return (
-        (avant ? `<p style="margin:0 0 6px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${avant}</p>` : '') +
-        `<p style="margin:6px 0 16px; padding:16px 0; background-color:#E3ECF6; border-radius:8px; text-align:center; color:#164A85; font-size:30px; font-weight:bold; letter-spacing:0.3em; font-family:'Courier New',Courier,monospace;">${trouve[1]}</p>` +
-        (apres ? `<p style="margin:0 0 12px; color:#1C2321; font-size:15px; line-height:1.6; font-family:Arial,Helvetica,sans-serif;">${apres}</p>` : '')
-      );
-    })
-    .join('');
-  return `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"></head><body style="margin:0; padding:0; background-color:#ffffff; font-family:Arial,Helvetica,sans-serif;">
-<table role="presentation" width="100%" style="max-width:480px; margin:0 auto; border-collapse:collapse;">
-<tr><td style="padding:28px 28px 18px;">
-<table role="presentation" style="border-collapse:collapse;"><tr>
-<td style="width:34px; height:34px; background-color:#1D5FA8; border-radius:50%; text-align:center; vertical-align:middle; font-size:0;">
-<span style="color:#ffffff; font-size:13px; font-weight:bold; font-family:Arial,Helvetica,sans-serif; line-height:34px;">ES</span>
-</td>
-<td style="padding-left:10px; color:#0B1E3D; font-size:17px; font-weight:bold; font-family:Arial,Helvetica,sans-serif;">EduSphere</td>
-</tr></table>
-</td></tr>
-<tr><td style="padding:2px 28px 8px;">${blocs}</td></tr>
-<tr><td style="padding:18px 28px 26px; color:#6B7370; font-size:12px; font-family:Arial,Helvetica,sans-serif; border-top:1px solid #E2E5E1;">EduSphere, plateforme de gestion scolaire</td></tr>
-</table>
-</body></html>`;
+function derniersEnvois() {
+  return journalEnvois.slice();
 }
 
 // Render bloque le SMTP sortant (ports 25/465/587) sur son plan gratuit —
@@ -88,7 +60,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   });
 }
 
-async function envoyerViaSendGrid(destinataire, sujet, corps, piecesJointes) {
+async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointes) {
   const reponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
@@ -104,7 +76,7 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, piecesJointes) {
       // meilleur signal anti-spam qu'un message mono-format.
       content: [
         { type: 'text/plain', value: corps },
-        { type: 'text/html', value: versHtml(corps) },
+        { type: 'text/html', value: html },
       ],
       // SendGrid refuse la requête entière si `attachments` est présent
       // mais vide ("must have at least one attachment") — la clé ne doit
@@ -129,7 +101,7 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, piecesJointes) {
   }
 }
 
-async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
+async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes) {
   const reponse = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -141,7 +113,7 @@ async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
       to: destinataire,
       subject: sujet,
       text: corps,
-      html: versHtml(corps),
+      html,
       attachments: piecesJointes.map((p) => ({
         filename: p.nomFichier,
         content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
@@ -160,29 +132,36 @@ async function envoyerViaResend(destinataire, sujet, corps, piecesJointes) {
 }
 
 // `piecesJointes` (optionnel) : [{ cheminAbsolu, nomFichier }] — un reçu ou
-// une fiche de paie jointe en PDF, pas seulement un chemin mentionné dans
-// le texte du message.
-async function envoyerEmail(destinataire, sujet, corps, piecesJointes = []) {
+// une fiche de paie jointe en PDF. `options.html` : version HTML déjà mise
+// en forme (voir modelesEmail) ; sinon le texte est mis en forme dans le
+// cadre générique. Chaque service configuré est essayé dans l'ordre, et on
+// passe au suivant en cas d'échec.
+async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], options = {}) {
+  const html = options.html || emailGenerique(corps);
+  const erreurs = [];
+
   if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM) {
     try {
-      await envoyerViaSendGrid(destinataire, sujet, corps, piecesJointes);
-      return { envoye: true };
+      await envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointes);
+      consigner(destinataire, sujet, 'sendgrid', erreurs);
+      return { envoye: true, service: 'sendgrid', erreurs };
     } catch (err) {
+      erreurs.push({ service: 'sendgrid', message: err.message.slice(0, 300) });
       console.error(`[Service E-mail] Échec SendGrid pour ${destinataire}, repli :`, err.message);
     }
   }
 
   if (process.env.RESEND_API_KEY) {
     try {
-      await envoyerViaResend(destinataire, sujet, corps, piecesJointes);
-      return { envoye: true };
+      await envoyerViaResend(destinataire, sujet, corps, html, piecesJointes);
+      consigner(destinataire, sujet, 'resend', erreurs);
+      return { envoye: true, service: 'resend', erreurs };
     } catch (err) {
       // Le mode sandbox de Resend (aucun domaine vérifié) refuse tout
-      // destinataire qui n'est pas le compte vérifié — ex. un compte de
-      // démo comme academie@ecole.ga. Un e-mail 2FA qui échoue à cause de
-      // cette limite ne doit jamais bloquer la connexion : on retombe sur
-      // la simulation console plutôt que de laisser l'erreur remonter.
-      console.error(`[Service E-mail] Échec Resend pour ${destinataire}, repli en simulation :`, err.message);
+      // destinataire qui n'est pas le compte vérifié. Un e-mail 2FA qui
+      // échoue ne doit jamais bloquer la connexion : on continue.
+      erreurs.push({ service: 'resend', message: err.message.slice(0, 300) });
+      console.error(`[Service E-mail] Échec Resend pour ${destinataire}, repli :`, err.message);
     }
   }
 
@@ -193,21 +172,23 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = []) {
         to: destinataire,
         subject: sujet,
         text: corps,
-        html: versHtml(corps),
+        html,
         attachments: piecesJointes.map((p) => ({ filename: p.nomFichier, path: p.cheminAbsolu })),
       });
-      return { envoye: true };
+      consigner(destinataire, sujet, 'smtp', erreurs);
+      return { envoye: true, service: 'smtp', erreurs };
     } catch (err) {
-      // Jamais laissé remonter tel quel (voir le repli Resend ci-dessus,
-      // même raisonnement) : une 2FA qui échoue à cause d'un SMTP
-      // injoignable ne doit jamais planter la connexion en 500.
+      erreurs.push({ service: 'smtp', message: err.message.slice(0, 300) });
       console.error(`[Service E-mail] Échec SMTP pour ${destinataire}, repli en simulation :`, err.message);
     }
   }
 
   const suffixePieces = piecesJointes.length ? ` (+ ${piecesJointes.map((p) => p.nomFichier).join(', ')})` : '';
-  console.log(`[Service E-mail] (aucun envoi configuré, simulation) À: ${destinataire} | Sujet: ${sujet}${suffixePieces}\n${corps}\n`);
-  return { envoye: true, simule: true };
+  console.log(`[Service E-mail] (aucun envoi réel, simulation) À: ${destinataire} | Sujet: ${sujet}${suffixePieces}
+${corps}
+`);
+  consigner(destinataire, sujet, 'simulation', erreurs);
+  return { envoye: true, simule: true, service: 'simulation', erreurs };
 }
 
-module.exports = { envoyerEmail };
+module.exports = { envoyerEmail, derniersEnvois };

@@ -28,6 +28,7 @@ const { genererEmploiDuTempsPDF } = require('../services/pdfService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
+const { attribuerMatricule } = require('../services/matriculeService');
 const { calculerBulletin } = require('../services/moyenneService');
 
 // Restreint étudiant/parent à LEUR(S) propre(s) classe(s) sur les listes
@@ -253,18 +254,14 @@ async function supprimerProfesseur(req, res) {
 // cas on rattache l'élève au compte parent existant plutôt que d'exiger
 // un nouveau mot de passe à chaque inscription.
 async function creerEleve(req, res) {
-  const { nom, prenom, dateNaissance, classeId, email, motDePasse, parentNom, parentPrenom, parentEmail, parentMotDePasse } = req.body;
+  const { nom, prenom, dateNaissance, classeId, email, parentNom, parentPrenom, parentEmail, parentMotDePasse } = req.body;
 
   const classe = await Classe.findByPk(classeId);
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'classe introuvable' });
   }
-  if (!email || !motDePasse) {
-    return res.status(400).json({ erreur: "l'e-mail et le mot de passe du compte étudiant sont obligatoires" });
-  }
-  const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse);
-  if (erreurMotDePasse) {
-    return res.status(400).json({ erreur: erreurMotDePasse });
+  if (!email) {
+    return res.status(400).json({ erreur: "l'e-mail du compte étudiant est obligatoire" });
   }
   const emailExistant = await Utilisateur.findOne({ where: { email } });
   if (emailExistant) {
@@ -283,12 +280,14 @@ async function creerEleve(req, res) {
     }));
   }
 
-  const motDePasseHache = await bcrypt.hash(motDePasse, 10);
+  // Mot de passe provisoire, aussitôt remplacé par le matricule (qui n'est
+  // connu qu'une fois l'élève enregistré) : le mot de passe d'un étudiant
+  // est toujours son matricule.
   const compteEtudiant = await Utilisateur.create({
     nom,
     prenom,
     email,
-    motDePasse: motDePasseHache,
+    motDePasse: await bcrypt.hash(motDePasseAleatoire(), 10),
     role: 'etudiant',
     etablissementId: req.utilisateur.etablissementId,
   });
@@ -298,6 +297,7 @@ async function creerEleve(req, res) {
     parentId: compteParent?.id || null,
     etablissementId: req.utilisateur.etablissementId,
   });
+  await attribuerMatricule(eleve);
   return res.status(201).json({
     eleve,
     compteEtudiant: compteEtudiant.toPublicJSON(),
@@ -351,6 +351,15 @@ async function reinitialiserMotDePasseCompte(req, res) {
   }
   if (!['etudiant', 'parent'].includes(compte.role)) {
     return res.status(403).json({ erreur: 'seuls les comptes étudiant ou parent peuvent être réinitialisés ici' });
+  }
+  // Étudiant : son mot de passe redevient son matricule.
+  if (compte.role === 'etudiant') {
+    const eleve = await Eleve.findOne({ where: { compteEtudiantId: compte.id } });
+    const matricule = eleve?.matricule || (eleve ? await attribuerMatricule(eleve) : null);
+    if (!matricule) return res.status(404).json({ erreur: 'dossier étudiant introuvable pour ce compte' });
+    compte.motDePasse = await bcrypt.hash(matricule, 10);
+    await compte.save();
+    return res.json({ email: compte.email, motDePasse: matricule, matricule });
   }
   const nouveauMotDePasse = motDePasseAleatoire();
   compte.motDePasse = await bcrypt.hash(nouveauMotDePasse, 10);

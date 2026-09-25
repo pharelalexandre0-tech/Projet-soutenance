@@ -5,7 +5,7 @@ import {
   TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, ChevronDown,
   ChevronLeft, Plus, ExternalLink, Link2, Library, Video, Globe, Trash2, Pencil, Ellipsis, Info, Send,
   Calendar, Newspaper, LifeBuoy, Briefcase, Award, Bus, Utensils, HandCoins, ArrowLeft, Server, Database,
-  Activity, CornerDownLeft, CircleCheck, Clock, LogIn,
+  Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye, EyeOff,
 } from 'lucide-react';
 
 // Jeu d'icônes Lucide (trait régulier, dessin sobre) à la place des icônes
@@ -78,6 +78,8 @@ export const IconCircleCheck = avecTrait(CircleCheck);
 export const IconClock = avecTrait(Clock);
 export const IconBell = avecTrait(Bell);
 export const IconLogin = avecTrait(LogIn);
+export const IconOeil = avecTrait(Eye);
+export const IconOeilBarre = avecTrait(EyeOff);
 
 // Icônes proposées pour une fonctionnalité personnalisée (même liste que
 // ICONES_PERSONNALISABLES côté backend), plus celles des modules intégrés.

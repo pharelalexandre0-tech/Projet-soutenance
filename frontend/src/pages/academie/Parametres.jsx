@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import ChampMotDePasse from '../../components/ChampMotDePasse';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
@@ -176,18 +177,16 @@ export default function Parametres() {
           <div className="ligne-champs">
             <div className="champ" style={{ flex: 1 }}>
               <label>Mot de passe</label>
-              <input
-                type={motDePasseCompteVisible ? 'text' : 'password'}
+              <ChampMotDePasse
                 autoComplete="new-password"
                 value={nouveauCompte.motDePasse}
                 onChange={(e) => setNouveauCompte({ ...nouveauCompte, motDePasse: e.target.value })}
                 minLength={6}
                 required
+                visible={motDePasseCompteVisible}
+                onBasculer={() => setMotDePasseCompteVisible((v) => !v)}
               />
             </div>
-            <button type="button" className="secondaire" style={{ alignSelf: 'flex-end', marginBottom: 1 }} onClick={() => setMotDePasseCompteVisible((v) => !v)}>
-              {motDePasseCompteVisible ? 'Masquer' : 'Afficher'}
-            </button>
             <button
               type="button" className="secondaire"
               style={{ alignSelf: 'flex-end', marginBottom: 1 }}

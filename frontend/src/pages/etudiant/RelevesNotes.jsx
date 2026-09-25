@@ -49,7 +49,7 @@ export default function RelevesNotes({ eleveId, eleve }) {
       {eleve && (
         <div className="releve-identite">
           <div><span>Étudiant</span><strong>{eleve.prenom} {eleve.nom}</strong></div>
-          <div><span>Matricule</span><strong>ETU-{String(eleveId).padStart(5, '0')}</strong></div>
+          <div><span>Matricule</span><strong>{eleve?.matricule || `ETU-${String(eleveId).padStart(5, '0')}`}</strong></div>
           <div><span>Filière</span><strong>{eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'}</strong></div>
           <div><span>Semestre en cours</span><strong>{semestreLibelle ? `${semestreLibelle.libelle} (${semestreLibelle.anneeScolaire})` : 'Non renseigné'}</strong></div>
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
+import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { useAuth } from '../../context/AuthContext';
 import { messageErreur } from '../../utils/erreurs';
 import { dateCourte, dateHeure, depuis } from '../../utils/plateforme';
@@ -221,16 +222,16 @@ function MotDePasse({ profil, onEnregistre }) {
       <form className="formulaire" onSubmit={enregistrer} autoComplete="off">
         <div className="champ">
           <label htmlFor="p-actuel">Mot de passe actuel</label>
-          <input id="p-actuel" type="password" autoComplete="current-password" value={form.actuel} onChange={(e) => setForm({ ...form, actuel: e.target.value })} />
+          <ChampMotDePasse id="p-actuel" autoComplete="current-password" value={form.actuel} onChange={(e) => setForm({ ...form, actuel: e.target.value })} />
         </div>
         <div className="ligne-champs">
           <div className="champ">
             <label htmlFor="p-nouveau">Nouveau mot de passe</label>
-            <input id="p-nouveau" type="password" autoComplete="new-password" value={form.nouveau} onChange={(e) => setForm({ ...form, nouveau: e.target.value })} />
+            <ChampMotDePasse id="p-nouveau" autoComplete="new-password" value={form.nouveau} onChange={(e) => setForm({ ...form, nouveau: e.target.value })} />
           </div>
           <div className="champ">
             <label htmlFor="p-confirmation">Confirmation</label>
-            <input id="p-confirmation" type="password" autoComplete="new-password" value={form.confirmation} onChange={(e) => setForm({ ...form, confirmation: e.target.value })} />
+            <ChampMotDePasse id="p-confirmation" autoComplete="new-password" value={form.confirmation} onChange={(e) => setForm({ ...form, confirmation: e.target.value })} />
           </div>
         </div>
         <ul className="regles-mdp">

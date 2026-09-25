@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
-import { lireFichierExcel, motDePasseAleatoire } from '../../utils/excel';
+import { lireFichierExcel } from '../../utils/excel';
 import { NIVEAUX } from '../../utils/niveaux';
 import ConfirmModal from '../../components/ConfirmModal';
 import Modal from '../../components/Modal';
@@ -8,7 +8,7 @@ import TableauDefilant from '../../components/TableauDefilant';
 import ChampParent from '../../components/ChampParent';
 
 const ELEVE_VIDE = {
-  nom: '', prenom: '', classeId: '', email: '', motDePasse: '',
+  nom: '', prenom: '', classeId: '', email: '',
   parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '',
 };
 const RATTACHER_PARENT_VIDE = { parentNom: '', parentPrenom: '', parentEmail: '', parentMotDePasse: '' };
@@ -46,7 +46,6 @@ export default function ElevesClasses() {
   const [eleves, setEleves] = useState([]);
   const [nouvelleClasse, setNouvelleClasse] = useState({ nom: '', niveau: '' });
   const [nouvelEleve, setNouvelEleve] = useState(ELEVE_VIDE);
-  const [motDePasseVisible, setMotDePasseVisible] = useState(false);
   const [parentMotDePasseVisible, setParentMotDePasseVisible] = useState(false);
   const [message, setMessage] = useState('');
   // Tous les identifiants générés pendant CETTE session (inscription
@@ -195,11 +194,6 @@ export default function ElevesClasses() {
     const lignes = await lireFichierExcel(fichier);
     const reussis = [];
     const echecs = [];
-    // Un seul mot de passe généré pour tout le lot plutôt qu'un par élève :
-    // seul l'e-mail distingue chaque compte (et sert à la vérification), le
-    // mot de passe se communique à la classe entière en une seule fois. Le
-    // fichier peut toujours en imposer un différent ligne par ligne.
-    const motDePasseLot = motDePasseAleatoire();
     for (let i = 0; i < lignes.length; i += 1) {
       const ligne = lignes[i];
       const prenom = ligne.prenom || ligne.prenoms;
@@ -209,15 +203,15 @@ export default function ElevesClasses() {
         echecs.push({ ligne: i + 2, raison: 'prénom, nom ou e-mail manquant' });
         continue;
       }
-      const motDePasse = ligne.motdepasse || ligne.mdp || ligne.password || motDePasseLot;
       try {
         const res = await client.post('/eleves', {
           nom, prenom, email,
-          motDePasse: String(motDePasse),
           classeId: classeImportId,
           dateNaissance: ligne.datenaissance || undefined,
         });
-        reussis.push({ nom, prenom, email, motDePasse, compteId: res.data.compteEtudiant.id });
+        // Mot de passe de l'étudiant = son matricule, attribué par le serveur.
+        const matricule = res.data.eleve.matricule;
+        reussis.push({ nom, prenom, email, motDePasse: matricule, matricule, compteId: res.data.compteEtudiant.id });
       } catch (err) {
         echecs.push({ ligne: i + 2, raison: err.response?.data?.erreur || 'erreur inconnue' });
       }
@@ -227,7 +221,7 @@ export default function ElevesClasses() {
       setIdentifiantsCrees((prev) => [...prev, ...reussis.map((r, i) => ({
         id: `i-${horodatage}-${i}`, compteId: r.compteId,
         classeId: classeImportId, classeNom: classeImportNom, role: 'Étudiant',
-        prenom: r.prenom, nom: r.nom, email: r.email, motDePasse: r.motDePasse,
+        prenom: r.prenom, nom: r.nom, email: r.email, motDePasse: r.motDePasse, matricule: r.matricule,
       }))]);
     }
     setResultatImport({ reussis, echecs, classeNom: classeImportNom });
@@ -258,7 +252,8 @@ export default function ElevesClasses() {
       const nouveaux = [{
         id: `e-${res.data.eleve.id}`, compteId: res.data.compteEtudiant.id,
         classeId: nouvelEleve.classeId, classeNom, role: 'Étudiant',
-        prenom: nouvelEleve.prenom, nom: nouvelEleve.nom, email: nouvelEleve.email, motDePasse: nouvelEleve.motDePasse,
+        prenom: nouvelEleve.prenom, nom: nouvelEleve.nom, email: nouvelEleve.email,
+        motDePasse: res.data.eleve.matricule, matricule: res.data.eleve.matricule,
       }];
       // Compte parent réutilisé (déjà existant) : le mot de passe tapé ici
       // n'a servi à rien côté serveur, donc jamais l'ajouter comme si
@@ -272,10 +267,9 @@ export default function ElevesClasses() {
         });
       }
       setIdentifiantsCrees((prev) => [...prev, ...nouveaux]);
-      setMessage('Élève ajouté. Identifiants dans le tableau « Identifiants de connexion » ci-dessous.');
+      setMessage(`Élève inscrit avec le matricule ${res.data.eleve.matricule}, qui est aussi son mot de passe. Identifiants dans le tableau « Identifiants de connexion » ci-dessous.`);
       setNouvelEleve(ELEVE_VIDE);
       setAvecParent(false);
-      setMotDePasseVisible(false);
       setParentMotDePasseVisible(false);
       charger();
     } catch (err) {
@@ -339,10 +333,10 @@ export default function ElevesClasses() {
       const existe = prev.some((it) => it.compteId === compteAReinitialiser.compteId);
       if (existe) {
         return prev.map((it) => (
-          it.compteId === compteAReinitialiser.compteId ? { ...it, motDePasse: res.data.motDePasse } : it
+          it.compteId === compteAReinitialiser.compteId ? { ...it, motDePasse: res.data.motDePasse, matricule: res.data.matricule ?? it.matricule } : it
         ));
       }
-      return [...prev, { ...compteAReinitialiser, id: `r-${compteAReinitialiser.compteId}`, motDePasse: res.data.motDePasse }];
+      return [...prev, { ...compteAReinitialiser, id: `r-${compteAReinitialiser.compteId}`, motDePasse: res.data.motDePasse, matricule: res.data.matricule ?? compteAReinitialiser.matricule }];
     });
     setCompteAReinitialiser(null);
   }
@@ -478,10 +472,11 @@ export default function ElevesClasses() {
         {elevesParClasse.map(([classeId, groupe]) => (
           <TableauDefilant key={classeId} titre={groupe.nom} compte={groupe.eleves.length}>
             <table>
-              <thead><tr><th>Élève</th><th>Parent</th><th></th></tr></thead>
+              <thead><tr><th>Matricule</th><th>Élève</th><th>Parent</th><th></th></tr></thead>
               <tbody>
                 {groupe.eleves.map((e) => (
                   <tr key={e.id}>
+                    <td className="mono" style={{ whiteSpace: 'nowrap' }}>{e.matricule || 'En attente'}</td>
                     <td>
                       {e.prenom} {e.nom}
                       <div>
@@ -491,6 +486,7 @@ export default function ElevesClasses() {
                           onClick={() => setCompteAReinitialiser({
                             compteId: e.compteEtudiantId, role: 'Étudiant', prenom: e.prenom, nom: e.nom,
                             email: e.compteEtudiant?.email ?? null, classeId: e.classeId, classeNom: groupe.nom,
+                            matricule: e.matricule,
                           })}
                         >
                           Mot de passe
@@ -588,36 +584,10 @@ export default function ElevesClasses() {
                 <input type="email" autoComplete="off" value={nouvelEleve.email} onChange={(e) => setNouvelEleve({ ...nouvelEleve, email: e.target.value })} required />
               </div>
             </div>
-            <div className="ligne-champs">
-              <div className="champ" style={{ flex: 1 }}>
-                <label>Mot de passe (compte étudiant)</label>
-                <input
-                  type={motDePasseVisible ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={nouvelEleve.motDePasse}
-                  onChange={(e) => setNouvelEleve({ ...nouvelEleve, motDePasse: e.target.value })}
-                  minLength={6}
-                  required
-                />
-              </div>
-              <button
-                type="button" className="secondaire"
-                style={{ alignSelf: 'flex-end', marginBottom: 1 }}
-                onClick={() => setMotDePasseVisible((v) => !v)}
-              >
-                {motDePasseVisible ? 'Masquer' : 'Afficher'}
-              </button>
-              <button
-                type="button" className="secondaire"
-                style={{ alignSelf: 'flex-end', marginBottom: 1 }}
-                // À voir tout de suite : un mot de passe généré et jamais
-                // relevé (parce que caché derrière des points) est perdu
-                // dès la fermeture du formulaire.
-                onClick={() => { setNouvelEleve({ ...nouvelEleve, motDePasse: motDePasseAleatoire() }); setMotDePasseVisible(true); }}
-              >
-                Générer
-              </button>
-            </div>
+            <p className="note-secondaire" style={{ margin: 0, fontSize: 14 }}>
+              Le matricule de l'élève est attribué automatiquement à l'inscription (sigle de l'établissement, année,
+              numéro). Il sert aussi de mot de passe à son compte étudiant et ne se modifie pas.
+            </p>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.85rem', cursor: 'pointer' }}>
               <input type="checkbox" checked={avecParent} onChange={(e) => setAvecParent(e.target.checked)} />
@@ -647,8 +617,8 @@ export default function ElevesClasses() {
           <>
             <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -4, marginBottom: 14 }}>
               Colonnes attendues : <strong>prénom</strong>, <strong>nom</strong>, <strong>email</strong>, et en
-              option date de naissance, mot de passe. Sans colonne mot de passe, un seul mot de passe est généré et
-              partagé par tous les élèves du fichier : seul l'e-mail distingue chaque compte.
+              option la date de naissance. Chaque élève reçoit automatiquement son matricule, qui est aussi son mot
+              de passe.
             </p>
             <form className="formulaire" onSubmit={importerEleves}>
               <div className="ligne-champs">
@@ -722,12 +692,13 @@ export default function ElevesClasses() {
       {identifiantsParClasse.map((groupe) => (
         <TableauDefilant key={groupe.classeId} titre={groupe.nom} compte={groupe.entrees.length}>
           <table>
-            <thead><tr><th>Rôle</th><th>Nom</th><th>E-mail</th><th>Mot de passe</th><th></th></tr></thead>
+            <thead><tr><th>Rôle</th><th>Nom</th><th>Matricule</th><th>E-mail</th><th>Mot de passe</th><th></th></tr></thead>
             <tbody>
               {groupe.entrees.map((entree) => (
                 <tr key={entree.compteId ?? entree.id}>
                   <td>{entree.role}</td>
                   <td>{entree.prenom} {entree.nom}</td>
+                  <td className="mono">{entree.matricule || <span className="note-secondaire">Sans objet</span>}</td>
                   <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.email}</td>
                   <td style={{ fontFamily: 'var(--police-mono)' }}>{entree.motDePasse}</td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
@@ -773,9 +744,18 @@ export default function ElevesClasses() {
           boutonConfirmer="Réinitialiser"
           boutonEnCours="Réinitialisation…"
         >
-          Réinitialiser le mot de passe de {compteAReinitialiser.prenom} {compteAReinitialiser.nom}{' '}
-          ({compteAReinitialiser.role.toLowerCase()}) ? L'ancien mot de passe cessera immédiatement de fonctionner,
-          le nouveau apparaîtra dans le tableau « Identifiants de connexion ».
+          {compteAReinitialiser.role === 'Étudiant' ? (
+            <>
+              Le mot de passe de {compteAReinitialiser.prenom} {compteAReinitialiser.nom} redeviendra son matricule. Il
+              apparaîtra dans le tableau « Identifiants de connexion ».
+            </>
+          ) : (
+            <>
+              Réinitialiser le mot de passe de {compteAReinitialiser.prenom} {compteAReinitialiser.nom}{' '}
+              ({compteAReinitialiser.role.toLowerCase()}) ? L'ancien mot de passe cessera immédiatement de fonctionner,
+              le nouveau apparaîtra dans le tableau « Identifiants de connexion ».
+            </>
+          )}
         </ConfirmModal>
       )}
       {classeASupprimer && (
