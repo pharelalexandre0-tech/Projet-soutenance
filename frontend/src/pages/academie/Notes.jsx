@@ -177,36 +177,38 @@ export default function Notes() {
         )}
 
         {matiereId && eleves.length > 0 && (
-          <table>
-            <thead>
-              <tr>
-                <th>Élève</th>
-                <th>Moyenne CC / 20</th>
-                <th>Moyenne Examen / 20</th>
-              </tr>
-            </thead>
-            <tbody>
-              {eleves.map((el) => (
-                <tr key={el.id}>
-                  <td>{el.prenom} {el.nom}</td>
-                  <td>
-                    <input
-                      type="number" min="0" max="20" step="0.25" placeholder="/ 20"
-                      value={valeur(el.id, 'cc')}
-                      onChange={(e) => fixerValeur(el.id, 'cc', e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number" min="0" max="20" step="0.25" placeholder="/ 20"
-                      value={valeur(el.id, 'examen')}
-                      onChange={(e) => fixerValeur(el.id, 'examen', e.target.value)}
-                    />
-                  </td>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Élève</th>
+                  <th>Moyenne CC / 20</th>
+                  <th>Moyenne Examen / 20</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {eleves.map((el) => (
+                  <tr key={el.id}>
+                    <td>{el.prenom} {el.nom}</td>
+                    <td>
+                      <input
+                        type="number" min="0" max="20" step="0.25" placeholder="/ 20"
+                        value={valeur(el.id, 'cc')}
+                        onChange={(e) => fixerValeur(el.id, 'cc', e.target.value)}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number" min="0" max="20" step="0.25" placeholder="/ 20"
+                        value={valeur(el.id, 'examen')}
+                        onChange={(e) => fixerValeur(el.id, 'examen', e.target.value)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         {matiereId && eleves.length === 0 && <div className="vide">Choisis une classe pour afficher les élèves.</div>}
         {!matiereId && (

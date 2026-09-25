@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LimiteErreurChargement from './components/LimiteErreurChargement';
 import EcranMaintenance from './components/EcranMaintenance';
+import EcranDemarrage, { demarrageAAfficher } from './components/EcranDemarrage';
 import Login from './pages/Login';
 
 // Chaque profil ne charge jamais que son propre tableau de bord — les
@@ -38,6 +39,8 @@ function MisEnPage({ children }) {
 }
 
 export default function App() {
+  const [demarrage, setDemarrage] = useState(demarrageAAfficher);
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -60,6 +63,7 @@ export default function App() {
             </Routes>
           </Suspense>
           <EcranMaintenance />
+          {demarrage && <EcranDemarrage onTermine={() => setDemarrage(false)} />}
         </LimiteErreurChargement>
       </BrowserRouter>
     </AuthProvider>

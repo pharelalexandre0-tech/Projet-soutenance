@@ -1,6 +1,7 @@
 const express = require('express');
 const ctrl = require('../controllers/superadminController');
 const pilotage = require('../controllers/pilotageController');
+const fonctionnalites = require('../controllers/fonctionnalitesController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -18,8 +19,13 @@ router.get('/statistiques', authentifier, superadmin, ctrl.obtenirStatistiques);
 router.get('/config-email', authentifier, superadmin, ctrl.obtenirConfigEmail);
 router.post('/email-test', authentifier, superadmin, ctrl.envoyerEmailTest);
 
-router.get('/fonctionnalites', authentifier, superadmin, pilotage.listerFonctionnalites);
-router.put('/fonctionnalites/:cle', authentifier, superadmin, pilotage.modifierFonctionnalite);
+router.get('/fonctionnalites', authentifier, superadmin, fonctionnalites.listerCatalogue);
+router.post('/fonctionnalites', authentifier, superadmin, fonctionnalites.creerFonctionnalite);
+router.put('/fonctionnalites/:cle', authentifier, superadmin, fonctionnalites.modifierFonctionnalite);
+router.delete('/fonctionnalites/:cle', authentifier, superadmin, fonctionnalites.supprimerFonctionnalite);
+router.put('/fonctionnalites/:cle/ecoles', authentifier, superadmin, fonctionnalites.definirEcoles);
+router.post('/etablissements/:id/fonctionnalites', authentifier, superadmin, fonctionnalites.ajouterAEcole);
+router.delete('/etablissements/:id/fonctionnalites/:cle', authentifier, superadmin, fonctionnalites.retirerDeEcole);
 
 router.get('/mises-a-jour', authentifier, superadmin, pilotage.listerMisesAJour);
 router.post('/mises-a-jour', authentifier, superadmin, pilotage.creerMiseAJour);

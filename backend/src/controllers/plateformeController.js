@@ -1,5 +1,5 @@
 const { MiseAJour } = require('../models');
-const { fonctionnalitesPour, annonceEnCours, maintenanceEnCours } = require('../services/plateformeService');
+const { fonctionnalitesPour, extensionsPour, annonceEnCours, maintenanceEnCours } = require('../services/plateformeService');
 
 // Sans session : l'écran de connexion et l'écran d'attente doivent pouvoir
 // dire "maintenance en cours" à quelqu'un qui n'a justement plus accès.
@@ -19,8 +19,9 @@ async function statutPublic(req, res) {
 // concernent, avec celles qu'il n'a pas encore vues.
 async function etatPourUtilisateur(req, res) {
   const utilisateur = req.utilisateur;
-  const [fonctionnalites, annonce, publiees] = await Promise.all([
+  const [fonctionnalites, extensions, annonce, publiees] = await Promise.all([
     fonctionnalitesPour(utilisateur.etablissementId),
+    extensionsPour(utilisateur.etablissementId, utilisateur.role),
     annonceEnCours(),
     MiseAJour.findAll({ where: { statut: 'publiee' }, order: [['publieeLe', 'DESC']], limit: 40 }),
   ]);
@@ -41,6 +42,7 @@ async function etatPourUtilisateur(req, res) {
 
   return res.json({
     fonctionnalites,
+    extensions,
     annonce: annonce ? { message: annonce.message, niveau: annonce.niveau, publieeLe: annonce.publieeLe } : null,
     nouveautes: pourMoi,
     nonLues: pourMoi.filter((m) => m.nonLue).length,

@@ -1,7 +1,7 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
-  IconDashboard, IconBuilding, IconKey, IconSettings, IconToggle, IconRocket, IconMegaphone, IconHistory,
+  IconDashboard, IconBuilding, IconShield, IconUserCog, IconToggle, IconRocket, IconMegaphone, IconHistory,
 } from '../components/icons';
 
 const TableauDeBord = lazy(() => import('./superadmin/TableauDeBord'));
@@ -13,17 +13,23 @@ const Journal = lazy(() => import('./superadmin/Journal'));
 const Superadmins = lazy(() => import('./superadmin/Superadmins'));
 const MonProfil = lazy(() => import('./superadmin/MonProfil'));
 
-// Trois blocs : le pouls de la plateforme, le pilotage (écoles, modules,
-// versions, diffusion), puis la traçabilité et les comptes superadmin.
 const ONGLETS = [
-  { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard },
-  { id: 'etablissements', label: 'Établissements', composant: Etablissements, icone: IconBuilding, separateurAvant: true },
-  { id: 'fonctionnalites', label: 'Fonctionnalités', composant: Fonctionnalites, icone: IconToggle },
-  { id: 'mises-a-jour', label: 'Mises à jour', composant: MisesAJour, icone: IconRocket },
-  { id: 'annonces', label: 'Annonces & maintenance', composant: AnnoncesMaintenance, icone: IconMegaphone },
-  { id: 'journal', label: "Journal d'activité", composant: Journal, icone: IconHistory, separateurAvant: true },
-  { id: 'superadmins', label: 'Superadmins', composant: Superadmins, icone: IconKey },
-  { id: 'profil', label: 'Mon profil', composant: MonProfil, icone: IconSettings },
+  { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
+    description: 'État de la plateforme et chiffres cumulés de toutes les écoles affiliées.' },
+  { id: 'etablissements', label: 'Établissements', composant: Etablissements, icone: IconBuilding, groupe: 'Écoles',
+    description: 'Écoles affiliées, leurs fonctionnalités et leurs accès.' },
+  { id: 'fonctionnalites', label: 'Fonctionnalités', composant: Fonctionnalites, icone: IconToggle, groupe: 'Écoles',
+    description: 'Catalogue des fonctionnalités, création de nouvelles et attribution école par école.' },
+  { id: 'mises-a-jour', label: 'Mises à jour', composant: MisesAJour, icone: IconRocket, groupe: 'Plateforme',
+    description: 'Version en production et notes de version présentées aux écoles.' },
+  { id: 'annonces', label: 'Annonces & maintenance', composant: AnnoncesMaintenance, icone: IconMegaphone, groupe: 'Plateforme',
+    description: 'Bandeau d’information dans tous les espaces et mise en maintenance de la plateforme.' },
+  { id: 'journal', label: "Journal d'activité", composant: Journal, icone: IconHistory, groupe: 'Plateforme',
+    description: 'Historique des actions effectuées par les superadmins.' },
+  { id: 'superadmins', label: 'Superadmins', composant: Superadmins, icone: IconShield, groupe: 'Administration',
+    description: 'Comptes ayant accès à l’administration de la plateforme.' },
+  { id: 'profil', label: 'Mon profil', composant: MonProfil, icone: IconUserCog, groupe: 'Administration',
+    description: 'Tes informations et ton mot de passe.' },
 ];
 
 export default function DashboardSuperAdmin() {

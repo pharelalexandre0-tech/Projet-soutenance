@@ -456,15 +456,15 @@ export default function ElevesClasses() {
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0 }}>Liste ({elevesAffiches.length})</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
             <input
               type="search"
               placeholder="Rechercher un nom…"
               value={rechercheNom}
               onChange={(e) => { setRechercheNom(e.target.value); setPageEleves(0); }}
-              style={{ maxWidth: 170 }}
+              style={{ flex: '1 1 140px', minWidth: 0, maxWidth: 200 }}
             />
-            <select value={filtreClasse} onChange={(e) => { setFiltreClasse(e.target.value); setPageEleves(0); }} style={{ maxWidth: 200 }}>
+            <select value={filtreClasse} onChange={(e) => { setFiltreClasse(e.target.value); setPageEleves(0); }} style={{ flex: '1 1 140px', minWidth: 0, maxWidth: 200 }}>
               <option value="">Toutes les classes</option>
               {classes.map((c) => <option key={c.id} value={c.id}>{nomClasse(c)}</option>)}
             </select>
@@ -694,13 +694,13 @@ export default function ElevesClasses() {
     <div className="carte" style={{ marginTop: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 10, flexWrap: 'wrap' }}>
         <h2 style={{ margin: 0 }}>Identifiants de connexion ({identifiantsCrees.length})</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
           <input
             type="search"
             placeholder="Rechercher un nom, un e-mail…"
             value={rechercheIdentifiants}
             onChange={(e) => setRechercheIdentifiants(e.target.value)}
-            style={{ maxWidth: 200 }}
+            style={{ flex: '1 1 160px', minWidth: 0, maxWidth: 240 }}
           />
           {identifiantsCrees.length > 0 && (
             <button type="button" className="secondaire" style={{ padding: '4px 12px', fontSize: '0.78rem' }} onClick={() => setIdentifiantsCrees([])}>

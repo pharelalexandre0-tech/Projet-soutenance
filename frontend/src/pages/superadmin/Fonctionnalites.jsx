@@ -1,237 +1,445 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import client from '../../api/client';
+import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
+import Tiroir from '../../components/Tiroir';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
-import { LIBELLES_ESPACES, dateHeure } from '../../utils/plateforme';
+import { LIBELLES_ESPACES, ESPACES_NOTES } from '../../utils/plateforme';
 import {
-  IconAlertTriangle, IconKey, IconCalendar, IconMessage, IconWallet, IconBanknote, IconToggle, IconCheck,
+  IconSearch, IconPlus, IconCheck, IconChevronRight, IconInfo, IconEdit, IconTrash, IconExternal,
+  IconeFonctionnalite, ICONES_FONCTIONNALITES,
 } from '../../components/icons';
 
-const ICONES = {
-  prediction: IconAlertTriangle,
-  'acces-temporaires': IconKey,
-  'emplois-du-temps': IconCalendar,
-  communication: IconMessage,
-  paie: IconWallet,
-  'frais-en-ligne': IconBanknote,
+export const LIBELLES_TYPES = {
+  module: 'Module intégré',
+  page: "Page d'information",
+  lien: 'Service en ligne',
 };
 
-const PORTEES = [
-  { id: 'toutes', libelle: 'Toutes les écoles' },
-  { id: 'selection', libelle: 'Écoles pilotes' },
-  { id: 'aucune', libelle: 'Désactivée' },
+const FILTRES = [
+  { id: '', libelle: 'Toutes' },
+  { id: 'integree', libelle: 'Modules intégrés' },
+  { id: 'personnalisee', libelle: 'Personnalisées' },
 ];
 
-function memesEcoles(a, b) {
-  return a.length === b.length && a.every((id) => b.includes(id));
+export function TuileFonctionnalite({ fonctionnalite, grande = false }) {
+  return (
+    <span className={`tuile-fonctionnalite ${fonctionnalite.integree ? '' : 'personnalisee'} ${grande ? 'grande' : ''}`}>
+      <IconeFonctionnalite nom={fonctionnalite.icone} />
+    </span>
+  );
 }
 
-// Ouverture des modules aux écoles : le code d'un module arrive avec un
-// déploiement, mais c'est ici qu'on décide qui le reçoit. Le mode "Écoles
-// pilotes" sert à lancer une nouveauté dans une ou deux écoles d'abord,
-// avant de la généraliser.
+// Catalogue de toutes les fonctionnalités de la plateforme. Aucune n'est
+// imposée à toutes les écoles : chacune s'ajoute école par école (ici,
+// depuis sa fiche, ou depuis la fiche de l'école dans "Établissements").
+// Les fonctionnalités personnalisées se créent ici, sans développement.
 export default function Fonctionnalites() {
   const [donnees, setDonnees] = useState(null);
   const [erreurChargement, setErreurChargement] = useState('');
+  const [filtre, setFiltre] = useState('');
+  const [recherche, setRecherche] = useState('');
+  const [ouverte, setOuverte] = useState(null); // clé de la fonctionnalité affichée dans le tiroir
+  const [formulaire, setFormulaire] = useState(null); // null | {} (création) | { fonctionnalite } (modification)
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    client.get('/superadmin/fonctionnalites')
+  function charger() {
+    return client.get('/superadmin/fonctionnalites')
       .then((res) => setDonnees(res.data))
       .catch((err) => setErreurChargement(messageErreur(err, 'impossible de charger les fonctionnalités')));
-  }, []);
+  }
+  useEffect(() => { charger(); }, []);
+
+  const affichees = useMemo(() => {
+    if (!donnees) return [];
+    const texte = recherche.trim().toLowerCase();
+    return donnees.fonctionnalites.filter((f) => (!filtre || (filtre === 'integree' ? f.integree : !f.integree))
+      && (!texte || `${f.nom} ${f.description}`.toLowerCase().includes(texte)));
+  }, [donnees, filtre, recherche]);
 
   if (erreurChargement) return <div className="message-erreur">{erreurChargement}</div>;
   if (!donnees) return <div className="chargement">Chargement…</div>;
 
-  const compte = (portee) => donnees.fonctionnalites.filter((f) => f.portee === portee).length;
+  const totalEcoles = donnees.ecoles.length;
+  const fonctionnaliteOuverte = donnees.fonctionnalites.find((f) => f.cle === ouverte);
+  const compte = (id) => donnees.fonctionnalites.filter((f) => (!id || (id === 'integree' ? f.integree : !f.integree))).length;
 
   return (
     <>
-      <div className="bandeau-pilotage">
-        <span className="puce-icone"><IconToggle width={18} height={18} /></span>
-        <p>
-          Choisis quelles écoles reçoivent chaque module. Un module coupé disparaît du menu des espaces
-          concernés en moins d'une minute, et son accès est aussi refusé côté serveur.
-        </p>
-        <div className="bandeau-pilotage-compteurs">
-          <span><strong>{compte('toutes')}</strong> partout</span>
-          <span><strong>{compte('selection')}</strong> en pilote</span>
-          <span><strong>{compte('aucune')}</strong> désactivée{compte('aucune') > 1 ? 's' : ''}</span>
+      <div className="carte">
+        <div className="entete-carte">
+          <h2>Catalogue</h2>
+          <button className="primaire" onClick={() => setFormulaire({})}><IconPlus /> Créer une fonctionnalité</button>
+        </div>
+
+        <div className="encart-info" style={{ marginBottom: 16 }}>
+          <IconInfo />
+          <span>
+            Chaque école ne reçoit que les fonctionnalités que tu lui ajoutes. Les <strong>modules intégrés</strong> font
+            partie du code d'EduSphere ; les fonctionnalités <strong>personnalisées</strong> (page d'information ou service
+            en ligne) se créent ici, sans développement, et apparaissent comme un nouvel onglet dans les espaces choisis.
+          </span>
+        </div>
+
+        <div className="barre-outils">
+          <div className="filtres-puces" role="group" aria-label="Filtrer le catalogue">
+            {FILTRES.map((f) => (
+              <button key={f.id} className={filtre === f.id ? 'actif' : ''} onClick={() => setFiltre(f.id)}>
+                {f.libelle} ({compte(f.id)})
+              </button>
+            ))}
+          </div>
+          <div className="espaceur" />
+          <label className="champ-recherche">
+            <IconSearch />
+            <input placeholder="Rechercher une fonctionnalité" value={recherche} onChange={(e) => setRecherche(e.target.value)} />
+          </label>
+        </div>
+
+        <div className="liste-donnees">
+          <div className="entete-donnees" style={{ gridTemplateColumns: 'minmax(0, 2.6fr) 150px minmax(0, 1.4fr) 140px 20px' }}>
+            <span>Fonctionnalité</span><span>Type</span><span>Espaces</span><span>Écoles</span><span />
+          </div>
+          {affichees.length === 0 && (
+            <div className="vide" style={{ margin: 16 }}>
+              {donnees.fonctionnalites.length === 0 ? 'Le catalogue est vide.' : 'Aucune fonctionnalité ne correspond à ce filtre.'}
+            </div>
+          )}
+          {affichees.map((f) => (
+            <button
+              key={f.cle}
+              type="button"
+              className="ligne-donnees"
+              style={{ gridTemplateColumns: 'minmax(0, 2.6fr) 150px minmax(0, 1.4fr) 140px 20px' }}
+              onClick={() => setOuverte(f.cle)}
+            >
+              <div className="cellule-principale">
+                <TuileFonctionnalite fonctionnalite={f} />
+                <div className="textes">
+                  <strong>{f.nom}</strong>
+                  <small>{f.description}</small>
+                </div>
+              </div>
+              <span><span className={`badge sans-point ${f.integree ? 'bleu' : 'gris'}`}>{LIBELLES_TYPES[f.type]}</span></span>
+              <div className="puces">
+                {f.espaces.map((e) => <span key={e} className="puce">{LIBELLES_ESPACES[e] || e}</span>)}
+              </div>
+              <div className="jauge-ecoles">
+                <div className="jauge-ecoles-piste"><span style={{ width: `${totalEcoles ? (f.ecoles.length / totalEcoles) * 100 : 0}%` }} /></div>
+                <strong>{f.ecoles.length} / {totalEcoles}</strong>
+              </div>
+              <span className="cellule-droite"><IconChevronRight /></span>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grille-fonctionnalites">
-        {donnees.fonctionnalites.map((f) => (
-          <CarteFonctionnalite
-            key={f.cle}
-            fonctionnalite={f}
-            ecoles={donnees.ecoles}
-            onEnregistree={(nouvellesDonnees, message) => {
-              setDonnees(nouvellesDonnees);
-              setToast({ message, type: 'succes' });
-            }}
-          />
-        ))}
-      </div>
+      {fonctionnaliteOuverte && (
+        <GestionFonctionnalite
+          fonctionnalite={fonctionnaliteOuverte}
+          ecoles={donnees.ecoles}
+          onFermer={() => setOuverte(null)}
+          onModifier={() => setFormulaire({ fonctionnalite: fonctionnaliteOuverte })}
+          onMisAJour={(nouvellesDonnees, message) => {
+            if (nouvellesDonnees) setDonnees(nouvellesDonnees);
+            else charger();
+            setToast({ message, type: 'succes' });
+          }}
+          onSupprimee={(nom) => {
+            setOuverte(null);
+            charger();
+            setToast({ message: `« ${nom} » a été supprimée.`, type: 'succes' });
+          }}
+        />
+      )}
 
+      {formulaire && (
+        <FormulaireFonctionnalite
+          fonctionnalite={formulaire.fonctionnalite}
+          ecoles={donnees.ecoles}
+          icones={donnees.icones}
+          onFermer={() => setFormulaire(null)}
+          onEnregistree={(f, creation) => {
+            setFormulaire(null);
+            charger();
+            if (creation) setOuverte(f.cle);
+            setToast({ message: creation ? `« ${f.nom} » a été créée.` : `« ${f.nom} » a été modifiée.`, type: 'succes' });
+          }}
+        />
+      )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </>
   );
 }
 
-function CarteFonctionnalite({ fonctionnalite: f, ecoles, onEnregistree }) {
-  const [portee, setPortee] = useState(f.portee);
+function GestionFonctionnalite({ fonctionnalite: f, ecoles, onFermer, onModifier, onMisAJour, onSupprimee }) {
   const [choix, setChoix] = useState(f.ecoles);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
-  const [confirmation, setConfirmation] = useState(false);
+  const [confirmationSuppression, setConfirmationSuppression] = useState(false);
 
-  // Après un enregistrement, la carte repart de l'état confirmé par le serveur.
-  useEffect(() => {
-    setPortee(f.portee);
-    setChoix(f.ecoles);
-  }, [f]);
+  useEffect(() => setChoix(f.ecoles), [f]);
 
-  const Icone = ICONES[f.cle] || IconToggle;
-  const modifie = portee !== f.portee || (portee === 'selection' && !memesEcoles(choix, f.ecoles));
+  const modifie = choix.length !== f.ecoles.length || choix.some((id) => !f.ecoles.includes(id));
 
-  const etat = f.portee === 'toutes'
-    ? { badge: 'vert', texte: 'Ouverte à toutes les écoles' }
-    : f.portee === 'selection'
-      ? { badge: 'or', texte: `Pilote : ${f.nbEcolesOuvertes} école${f.nbEcolesOuvertes > 1 ? 's' : ''} sur ${ecoles.length}` }
-      : { badge: 'gris', texte: 'Désactivée partout' };
-
-  function basculerEcole(id) {
-    setErreur('');
+  function basculer(id) {
     setChoix((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]));
   }
 
-  // Lève l'erreur (au lieu de l'afficher) pour que ConfirmModal puisse la
-  // montrer dans sa propre fenêtre quand l'envoi part de la confirmation.
-  async function envoyer() {
-    const res = await client.put(`/superadmin/fonctionnalites/${f.cle}`, { portee, ecoles: portee === 'selection' ? choix : [] });
-    setConfirmation(false);
-    const messages = {
-      toutes: `« ${f.nom} » est ouverte à toutes les écoles.`,
-      selection: `« ${f.nom} » est ouverte aux écoles pilotes choisies.`,
-      aucune: `« ${f.nom} » est désactivée pour toutes les écoles.`,
-    };
-    onEnregistree(res.data, messages[portee]);
-  }
-
-  async function enregistrer() {
-    if (portee === 'aucune' && f.portee !== 'aucune') {
-      setConfirmation(true);
-      return;
-    }
+  async function enregistrerEcoles() {
     setEnCours(true);
     setErreur('');
     try {
-      await envoyer();
+      const res = await client.put(`/superadmin/fonctionnalites/${f.cle}/ecoles`, { ecoles: choix });
+      onMisAJour(res.data, `Écoles de « ${f.nom} » mises à jour.`);
     } catch (err) {
-      setErreur(messageErreur(err, "impossible d'enregistrer ce réglage"));
+      setErreur(messageErreur(err, "impossible d'enregistrer les écoles"));
     } finally {
       setEnCours(false);
     }
   }
 
-  function annuler() {
-    setPortee(f.portee);
-    setChoix(f.ecoles);
-    setErreur('');
+  async function supprimer() {
+    await client.delete(`/superadmin/fonctionnalites/${f.cle}`);
+    setConfirmationSuppression(false);
+    onSupprimee(f.nom);
   }
 
   return (
-    <div className={`carte carte-fonctionnalite portee-${f.portee}`}>
-      <div className="carte-fonctionnalite-entete">
-        <span className="puce-icone"><Icone width={18} height={18} /></span>
-        <div className="carte-fonctionnalite-titre">
-          <h3>{f.nom}</h3>
-          <span className={`badge ${etat.badge}`}>{etat.texte}</span>
-        </div>
-      </div>
-
-      <p className="carte-fonctionnalite-description">{f.description}</p>
-
-      <div className="puces-espaces">
-        <span className="puces-espaces-libelle">Espaces concernés</span>
-        {f.espaces.map((e) => <span key={e} className="puce-espace">{LIBELLES_ESPACES[e] || e}</span>)}
-      </div>
-
-      <div className="segment" role="radiogroup" aria-label={`Ouverture de ${f.nom}`}>
-        {PORTEES.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="radio"
-            aria-checked={portee === p.id}
-            className={`${portee === p.id ? 'actif' : ''} segment-${p.id}`}
-            onClick={() => { setPortee(p.id); setErreur(''); }}
-          >
-            {p.libelle}
-          </button>
-        ))}
-      </div>
-
-      {portee === 'selection' && (
-        <div className="choix-ecoles">
-          {ecoles.length === 0 && <div className="vide">Aucune école affiliée pour l'instant.</div>}
-          {ecoles.length > 0 && (
-            <>
-              <p className="note-secondaire">Écoles qui reçoivent ce module en avant-première :</p>
-              <div className="puces-ecoles">
-                {ecoles.map((e) => {
-                  const choisie = choix.includes(e.id);
-                  return (
-                    <button
-                      key={e.id}
-                      type="button"
-                      className={`puce-ecole ${choisie ? 'choisie' : ''}`}
-                      aria-pressed={choisie}
-                      onClick={() => basculerEcole(e.id)}
-                    >
-                      <span className="puce-ecole-case">{choisie && <IconCheck width={12} height={12} />}</span>
-                      <span className="puce-ecole-nom">{e.nom}</span>
-                      <small>{e.ville}{e.statut === 'suspendu' ? ', suspendue' : ''}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {erreur && <div className="message-erreur" style={{ marginTop: 12 }}>{erreur}</div>}
-
-      <div className="carte-fonctionnalite-pied">
-        <span className="note-secondaire">
-          {f.misAJourLe ? `Réglée le ${dateHeure(f.misAJourLe)}` : 'Réglage par défaut'}
-        </span>
-        {modifie && (
-          <div className="carte-fonctionnalite-actions">
-            <button type="button" className="secondaire" onClick={annuler} disabled={enCours}>Annuler</button>
-            <button type="button" className="primaire" onClick={enregistrer} disabled={enCours}>
-              {enCours ? 'Enregistrement…' : 'Enregistrer'}
+    <>
+      <Tiroir
+        titre={f.nom}
+        sousTitre={LIBELLES_TYPES[f.type]}
+        icone={<TuileFonctionnalite fonctionnalite={f} />}
+        onFermer={onFermer}
+        pied={(
+          <>
+            {!f.integree && (
+              <>
+                <button className="secondaire danger" onClick={() => setConfirmationSuppression(true)}><IconTrash /> Supprimer</button>
+                <button className="secondaire" onClick={onModifier} style={{ marginRight: 'auto' }}><IconEdit /> Modifier</button>
+              </>
+            )}
+            <button className="primaire" onClick={enregistrerEcoles} disabled={!modifie || enCours}>
+              {enCours ? 'Enregistrement…' : 'Enregistrer les écoles'}
             </button>
-          </div>
+          </>
         )}
-      </div>
+      >
+        <section className="tiroir-section">
+          <p style={{ margin: 0, lineHeight: 1.6 }}>{f.description}</p>
+        </section>
 
-      {confirmation && (
+        <section className="tiroir-section">
+          <h3 className="tiroir-section-titre">Espaces où elle apparaît</h3>
+          <div className="puces">{f.espaces.map((e) => <span key={e} className="puce">{LIBELLES_ESPACES[e] || e}</span>)}</div>
+        </section>
+
+        {f.type === 'lien' && (
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Service ouvert</h3>
+            <a href={f.url} target="_blank" rel="noopener noreferrer" className="mono" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, overflowWrap: 'anywhere' }}>
+              {f.url} <IconExternal width={14} height={14} />
+            </a>
+            <p className="note-secondaire" style={{ margin: '6px 0 0', fontSize: 13 }}>Bouton affiché : « {f.libelleBouton} »</p>
+          </section>
+        )}
+        {f.type === 'page' && (
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Contenu de la page</h3>
+            <div style={{ whiteSpace: 'pre-line', fontSize: 14, lineHeight: 1.65, maxHeight: 220, overflowY: 'auto', padding: 12, border: '1px solid var(--bordure)', borderRadius: 10 }}>
+              {f.contenu}
+            </div>
+          </section>
+        )}
+
+        <section className="tiroir-section">
+          <div className="entete-section">
+            <h3 className="tiroir-section-titre" style={{ margin: 0 }}>Écoles équipées ({choix.length} / {ecoles.length})</h3>
+            {ecoles.length > 0 && (
+              <button type="button" className="bouton-texte" onClick={() => setChoix(choix.length === ecoles.length ? [] : ecoles.map((e) => e.id))}>
+                {choix.length === ecoles.length ? 'Tout retirer' : 'Tout sélectionner'}
+              </button>
+            )}
+          </div>
+          {ecoles.length === 0 && <div className="vide">Aucune école affiliée pour l'instant.</div>}
+          <div className="liste-selection">
+            {ecoles.map((e) => {
+              const choisie = choix.includes(e.id);
+              return (
+                <button key={e.id} type="button" className={`option-selection ${choisie ? 'choisie' : ''}`} onClick={() => basculer(e.id)} aria-pressed={choisie}>
+                  <span className="case-choix-coche">{choisie && <IconCheck />}</span>
+                  <span className="textes">
+                    <strong>{e.nom}</strong>
+                    <small>{e.ville}{e.statut === 'suspendu' ? ', école verrouillée' : ''}</small>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {erreur && <div className="message-erreur" style={{ marginTop: 12 }}>{erreur}</div>}
+        </section>
+      </Tiroir>
+
+      {confirmationSuppression && (
         <ConfirmModal
-          titre={`Désactiver « ${f.nom} » ?`}
-          boutonConfirmer="Désactiver partout"
-          boutonEnCours="Désactivation…"
-          onConfirmer={envoyer}
-          onAnnuler={() => setConfirmation(false)}
+          titre={`Supprimer « ${f.nom} » ?`}
+          boutonConfirmer="Supprimer"
+          onConfirmer={supprimer}
+          onAnnuler={() => setConfirmationSuppression(false)}
         >
-          Le module disparaîtra de tous les espaces concernés ({f.espaces.map((e) => LIBELLES_ESPACES[e] || e).join(', ')})
-          dans toutes les écoles. Les données déjà saisies sont conservées et réapparaîtront si tu le rouvres.
+          L'onglet disparaîtra des {f.ecoles.length} école{f.ecoles.length > 1 ? 's' : ''} qui l'utilisent. Cette action est définitive.
         </ConfirmModal>
       )}
-    </div>
+    </>
+  );
+}
+
+const TYPES_CREATION = [
+  { id: 'page', titre: "Page d'information", aide: 'Règlement intérieur, calendrier académique, procédures… Un texte affiché dans un onglet.' },
+  { id: 'lien', titre: 'Service en ligne', aide: 'Bibliothèque numérique, cours en ligne, visioconférence… Un onglet qui ouvre ce service.' },
+];
+
+function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, onEnregistree }) {
+  const edition = Boolean(fonctionnalite);
+  const [form, setForm] = useState(() => ({
+    type: fonctionnalite?.type || 'page',
+    nom: fonctionnalite?.nom || '',
+    description: fonctionnalite?.description || '',
+    icone: fonctionnalite?.icone || 'FileText',
+    espaces: fonctionnalite?.espaces || ['etudiant', 'parent'],
+    contenu: fonctionnalite?.contenu || '',
+    url: fonctionnalite?.url || '',
+    libelleBouton: fonctionnalite?.libelleBouton || '',
+    ecoles: [],
+  }));
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState('');
+
+  const maj = (champ, valeur) => setForm((f) => ({ ...f, [champ]: valeur }));
+  const basculer = (champ, valeur) => setForm((f) => ({
+    ...f,
+    [champ]: f[champ].includes(valeur) ? f[champ].filter((x) => x !== valeur) : [...f[champ], valeur],
+  }));
+
+  async function soumettre(e) {
+    e.preventDefault();
+    setEnCours(true);
+    setErreur('');
+    try {
+      const res = edition
+        ? await client.put(`/superadmin/fonctionnalites/${fonctionnalite.cle}`, form)
+        : await client.post('/superadmin/fonctionnalites', form);
+      onEnregistree(res.data.fonctionnalite, !edition);
+    } catch (err) {
+      setErreur(messageErreur(err, "impossible d'enregistrer cette fonctionnalité"));
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <Modal titre={edition ? `Modifier « ${fonctionnalite.nom} »` : 'Créer une fonctionnalité'} onFermer={onFermer} largeur={640}>
+      <form className="formulaire" onSubmit={soumettre}>
+        {!edition && (
+          <div className="champ">
+            <label>Type</label>
+            <div className="choix-type">
+              {TYPES_CREATION.map((t) => (
+                <button key={t.id} type="button" className={`option-type ${form.type === t.id ? 'choisie' : ''}`} onClick={() => maj('type', t.id)} aria-pressed={form.type === t.id}>
+                  <span className="tuile-fonctionnalite personnalisee"><IconeFonctionnalite nom={t.id === 'page' ? 'FileText' : 'Globe'} /></span>
+                  <span><strong>{t.titre}</strong><small>{t.aide}</small></span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="champ">
+          <label htmlFor="f-nom">Nom de l'onglet</label>
+          <input id="f-nom" value={form.nom} onChange={(e) => maj('nom', e.target.value)} maxLength={80}
+            placeholder={form.type === 'page' ? 'Ex. Règlement intérieur' : 'Ex. Bibliothèque numérique'} required />
+        </div>
+        <div className="champ">
+          <label htmlFor="f-desc">Description</label>
+          <input id="f-desc" value={form.description} onChange={(e) => maj('description', e.target.value)} maxLength={300}
+            placeholder="Une phrase affichée sous le titre de l'onglet" required />
+        </div>
+
+        <div className="champ">
+          <label>Icône</label>
+          <div className="grille-icones">
+            {icones.map((nom) => {
+              const Icone = ICONES_FONCTIONNALITES[nom];
+              return (
+                <button key={nom} type="button" className={`option-icone ${form.icone === nom ? 'choisie' : ''}`} onClick={() => maj('icone', nom)} aria-label={nom} aria-pressed={form.icone === nom}>
+                  {Icone && <Icone />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="champ">
+          <label>Espaces où l'onglet apparaît</label>
+          <div className="cases-choix">
+            {ESPACES_NOTES.map((e) => {
+              const choisi = form.espaces.includes(e);
+              return (
+                <button key={e} type="button" className={`case-choix ${choisi ? 'choisie' : ''}`} onClick={() => basculer('espaces', e)} aria-pressed={choisi}>
+                  <span className="case-choix-coche">{choisi && <IconCheck />}</span>
+                  <span>{LIBELLES_ESPACES[e]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {form.type === 'page' ? (
+          <div className="champ">
+            <label htmlFor="f-contenu">Contenu de la page</label>
+            <textarea id="f-contenu" rows={8} maxLength={8000} value={form.contenu} onChange={(e) => maj('contenu', e.target.value)}
+              placeholder="Le texte affiché dans l'onglet. Les retours à la ligne sont conservés." required />
+          </div>
+        ) : (
+          <div className="ligne-champs">
+            <div className="champ" style={{ flex: 2 }}>
+              <label htmlFor="f-url">Adresse du service</label>
+              <input id="f-url" type="url" value={form.url} onChange={(e) => maj('url', e.target.value)} placeholder="https://" required />
+            </div>
+            <div className="champ">
+              <label htmlFor="f-bouton">Texte du bouton</label>
+              <input id="f-bouton" value={form.libelleBouton} onChange={(e) => maj('libelleBouton', e.target.value)} maxLength={60} placeholder="Ouvrir le service" />
+            </div>
+          </div>
+        )}
+
+        {!edition && ecoles.length > 0 && (
+          <div className="champ">
+            <label>Ajouter tout de suite à des écoles (facultatif)</label>
+            <div className="cases-choix">
+              {ecoles.map((e) => {
+                const choisie = form.ecoles.includes(e.id);
+                return (
+                  <button key={e.id} type="button" className={`case-choix ${choisie ? 'choisie' : ''}`} onClick={() => basculer('ecoles', e.id)} aria-pressed={choisie}>
+                    <span className="case-choix-coche">{choisie && <IconCheck />}</span>
+                    <span>{e.nom}</span>
+                    <small>{e.ville}</small>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {erreur && <div className="message-erreur">{erreur}</div>}
+        <div className="confirmation-actions">
+          <button type="button" className="secondaire" onClick={onFermer}>Annuler</button>
+          <button type="submit" className="primaire" disabled={enCours}>
+            {enCours ? 'Enregistrement…' : edition ? 'Enregistrer les modifications' : 'Créer la fonctionnalité'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

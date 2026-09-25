@@ -59,23 +59,25 @@ export default function TableauDeBord({ onNaviguer }) {
       <div className="grille-3">
         <div className="carte" style={{ gridColumn: 'span 2' }}>
           <h2>Impayés les plus urgents</h2>
-          <table>
-            <thead><tr><th>Élève</th><th>Libellé</th><th>Reste dû</th><th>Échéance</th></tr></thead>
-            <tbody>
-              {[...impayes]
-                .sort((a, b) => new Date(a.dateEcheance) - new Date(b.dateEcheance))
-                .slice(0, 6)
-                .map((f) => (
-                  <tr key={f.id}>
-                    <td>{f.Eleve?.prenom} {f.Eleve?.nom}</td>
-                    <td>{f.libelle}</td>
-                    <td>{(f.montant - f.montantRegle).toLocaleString('fr-FR')} FCFA</td>
-                    <td>{f.dateEcheance}</td>
-                  </tr>
-                ))}
-              {impayes.length === 0 && <tr><td colSpan={4} className="vide">Aucun impayé</td></tr>}
-            </tbody>
-          </table>
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th>Élève</th><th>Libellé</th><th>Reste dû</th><th>Échéance</th></tr></thead>
+              <tbody>
+                {[...impayes]
+                  .sort((a, b) => new Date(a.dateEcheance) - new Date(b.dateEcheance))
+                  .slice(0, 6)
+                  .map((f) => (
+                    <tr key={f.id}>
+                      <td>{f.Eleve?.prenom} {f.Eleve?.nom}</td>
+                      <td>{f.libelle}</td>
+                      <td>{(f.montant - f.montantRegle).toLocaleString('fr-FR')} FCFA</td>
+                      <td>{f.dateEcheance}</td>
+                    </tr>
+                  ))}
+                {impayes.length === 0 && <tr><td colSpan={4} className="vide">Aucun impayé</td></tr>}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="carte panneau-anneau">

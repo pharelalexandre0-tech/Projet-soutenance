@@ -25,7 +25,8 @@ const Personnel = require('./Personnel');
 const Etablissement = require('./Etablissement');
 // Pilotage de la plateforme par le superadmin (modules, notes de version,
 // annonce/maintenance, journal) — sans lien avec le contenu d'une école.
-const Fonctionnalite = require('./Fonctionnalite');
+const FonctionnalitePersonnalisee = require('./FonctionnalitePersonnalisee');
+const ActivationFonctionnalite = require('./ActivationFonctionnalite');
 const ParametrePlateforme = require('./ParametrePlateforme');
 const MiseAJour = require('./MiseAJour');
 const JournalAdministration = require('./JournalAdministration');
@@ -182,7 +183,8 @@ module.exports = {
   Salaire,
   Personnel,
   Etablissement,
-  Fonctionnalite,
+  FonctionnalitePersonnalisee,
+  ActivationFonctionnalite,
   ParametrePlateforme,
   MiseAJour,
   JournalAdministration,

@@ -1,5 +1,6 @@
 const app = require('./app');
 const { sequelize } = require('./models');
+const { initialiserActivations } = require('./services/plateformeService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -10,6 +11,7 @@ const PORT = process.env.PORT || 4000;
     // à remplacer par de vraies migrations Sequelize pour la production.
     await sequelize.sync({ alter: true });
     console.log('Connexion à PostgreSQL établie, modèles synchronisés.');
+    await initialiserActivations();
 
     app.listen(PORT, () => {
       console.log(`API Plateforme de Gestion Scolaire à l'écoute sur le port ${PORT}`);

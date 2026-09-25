@@ -1,12 +1,12 @@
-const { Etablissement, Fonctionnalite, MiseAJour, JournalAdministration, sequelize } = require('../models');
-const { CATALOGUE_FONCTIONNALITES, PORTEES } = require('../config/fonctionnalites');
+const { MiseAJour, JournalAdministration, sequelize } = require('../models');
 const {
-  DEMARRAGE, invaliderCache, reglagesFonctionnalites, lireParametre, ecrireParametre, journaliser,
+  DEMARRAGE, lireParametre, ecrireParametre, journaliser,
 } = require('../services/plateformeService');
 const { version: versionPaquet } = require('../../package.json');
 
-// Pilotage de la plateforme par le superadmin : ouverture des modules aux
-// écoles, notes de version, annonce, maintenance, journal. Même frontière
+// Pilotage de la plateforme par le superadmin : notes de version, annonce,
+// maintenance, journal (les fonctionnalités des écoles sont dans
+// fonctionnalitesController). Même frontière
 // que superadminController : on agit sur la plateforme, jamais sur le
 // contenu d'une école.
 
@@ -16,53 +16,6 @@ const NIVEAUX_ANNONCE = ['info', 'important'];
 
 function erreur400(res, message) {
   return res.status(400).json({ erreur: message });
-}
-
-// ---- Fonctionnalités --------------------------------------------------------
-
-async function listerFonctionnalites(req, res) {
-  const [reglages, ecoles] = await Promise.all([
-    reglagesFonctionnalites(),
-    Etablissement.findAll({ attributes: ['id', 'nom', 'ville', 'statut'], order: [['nom', 'ASC']] }),
-  ]);
-  const idsEcoles = new Set(ecoles.map((e) => e.id));
-
-  const fonctionnalites = reglages.map((f) => {
-    const ecolesValides = f.ecoles.filter((id) => idsEcoles.has(id));
-    const nbEcolesOuvertes = f.portee === 'toutes' ? ecoles.length : f.portee === 'selection' ? ecolesValides.length : 0;
-    return { ...f, ecoles: ecolesValides, nbEcolesOuvertes };
-  });
-
-  return res.json({ fonctionnalites, ecoles });
-}
-
-async function modifierFonctionnalite(req, res) {
-  const definition = CATALOGUE_FONCTIONNALITES.find((d) => d.cle === req.params.cle);
-  if (!definition) return res.status(404).json({ erreur: 'fonctionnalité inconnue' });
-
-  const { portee } = req.body;
-  if (!PORTEES.includes(portee)) return erreur400(res, 'portée invalide');
-
-  let ecolesChoisies = [];
-  if (portee === 'selection') {
-    const demandees = Array.isArray(req.body.ecoles) ? req.body.ecoles.map(Number).filter(Number.isInteger) : [];
-    ecolesChoisies = demandees.length
-      ? await Etablissement.findAll({ where: { id: demandees }, attributes: ['id', 'nom'], order: [['nom', 'ASC']] })
-      : [];
-    if (ecolesChoisies.length === 0) return erreur400(res, 'choisis au moins une école pilote');
-  }
-
-  await Fonctionnalite.upsert({ cle: definition.cle, portee, ecoles: ecolesChoisies.map((e) => e.id) });
-  invaliderCache();
-
-  const libelles = {
-    toutes: `« ${definition.nom} » ouverte à toutes les écoles`,
-    aucune: `« ${definition.nom} » désactivée pour toutes les écoles`,
-    selection: `« ${definition.nom} » ouverte à ${ecolesChoisies.length} école${ecolesChoisies.length > 1 ? 's' : ''} pilote${ecolesChoisies.length > 1 ? 's' : ''} : ${ecolesChoisies.map((e) => e.nom).join(', ')}`,
-  };
-  await journaliser(req.utilisateur, 'fonctionnalite', libelles[portee]);
-
-  return listerFonctionnalites(req, res);
 }
 
 // ---- Notes de version (mises à jour) ------------------------------------------
@@ -238,8 +191,6 @@ async function listerJournal(req, res) {
 }
 
 module.exports = {
-  listerFonctionnalites,
-  modifierFonctionnalite,
   listerMisesAJour,
   creerMiseAJour,
   modifierMiseAJour,

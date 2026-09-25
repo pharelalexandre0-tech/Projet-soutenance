@@ -7,7 +7,7 @@ import { messageErreur } from '../../utils/erreurs';
 import {
   LIBELLES_ESPACES, ESPACES_NOTES, TYPES_MISE_A_JOUR, dateCourte, dateHeure, depuis,
 } from '../../utils/plateforme';
-import { IconRocket, IconCheck } from '../../components/icons';
+import { IconSend, IconCheck, IconPlus } from '../../components/icons';
 
 function comparerVersions(a, b) {
   const pa = a.split('.').map(Number);
@@ -95,7 +95,7 @@ export default function MisesAJour({ onNaviguer }) {
           <p className="carte-version-date">
             {systeme?.versionPublieeLe ? `Annoncée le ${dateCourte(systeme.versionPublieeLe)}` : 'Aucune note de version publiée pour l’instant'}
           </p>
-          <button className="primaire" onClick={() => setFormulaire({})}>+ Publier une mise à jour</button>
+          <button className="primaire" onClick={() => setFormulaire({})}><IconPlus /> Publier une mise à jour</button>
         </div>
         <dl className="faits-systeme">
           <div>
@@ -288,19 +288,19 @@ function FormulaireNote({ note, versionProposee, onFermer, onEnregistre }) {
         </div>
         <div className="champ">
           <label>Espaces qui la verront</label>
-          <div className="puces-ecoles">
+          <div className="cases-choix">
             {ESPACES_NOTES.map((espace) => {
               const choisi = form.espaces.includes(espace);
               return (
                 <button
                   key={espace}
                   type="button"
-                  className={`puce-ecole compacte ${choisi ? 'choisie' : ''}`}
+                  className={`case-choix ${choisi ? 'choisie' : ''}`}
                   aria-pressed={choisi}
                   onClick={() => basculerEspace(espace)}
                 >
-                  <span className="puce-ecole-case">{choisi && <IconCheck width={12} height={12} />}</span>
-                  <span className="puce-ecole-nom">{LIBELLES_ESPACES[espace]}</span>
+                  <span className="case-choix-coche">{choisi && <IconCheck />}</span>
+                  <span>{LIBELLES_ESPACES[espace]}</span>
                 </button>
               );
             })}
@@ -318,7 +318,7 @@ function FormulaireNote({ note, versionProposee, onFermer, onEnregistre }) {
                 {enCours === 'enregistrer' ? 'Enregistrement…' : 'Enregistrer en brouillon'}
               </button>
               <button type="submit" className="primaire" disabled={Boolean(enCours)}>
-                <IconRocket width={15} height={15} style={{ verticalAlign: '-3px', marginRight: 7 }} />
+                <IconSend />
                 {enCours === 'publier' ? 'Publication…' : 'Publier maintenant'}
               </button>
             </>

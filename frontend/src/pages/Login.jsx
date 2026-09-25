@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
-import { IconMail, IconLock, IconLogout, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
+import { IconMail, IconLock, IconLogin, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
@@ -17,7 +17,7 @@ import logoIcon from '../assets/logo-icon.png';
 // place ici. "Mot de passe oublié" existe bien, lui (ReinitialiserMotDePasse.jsx).
 function CarteBienvenue() {
   return (
-    <div className="carte-bienvenue-blob">
+    <div className="carte-bienvenue-blob" data-cible-demarrage>
       <span className="blob blob-1" aria-hidden="true" />
       <span className="blob blob-2" aria-hidden="true" />
       <span className="blob blob-3" aria-hidden="true" />
@@ -107,6 +107,10 @@ export default function Login() {
   const [erreurOubli, setErreurOubli] = useState(false);
   const [enCoursOubli, setEnCoursOubli] = useState(false);
   const [maintenance, setMaintenance] = useState(null);
+  // Arrivée depuis l'écran de démarrage : le sceau et le nom de la carte
+  // bleue ne rejouent pas leur animation (ce sont ceux du démarrage qui
+  // viennent s'y poser).
+  const [depuisDemarrage] = useState(() => document.documentElement.classList.contains('demarrage-en-cours'));
 
   useEffect(() => {
     client.get('/plateforme/statut')
@@ -181,7 +185,7 @@ export default function Login() {
 
   if (motDePasseOublieOuvert) {
     return (
-      <div className="page-connexion">
+      <div className={`page-connexion ${depuisDemarrage ? 'depuis-demarrage' : ''}`}>
         <div className="composition-acces">
           <CarteBienvenue />
           <div className="carte-formulaire-acces">
@@ -221,7 +225,7 @@ export default function Login() {
 
   if (attenteCode) {
     return (
-      <div className="page-connexion">
+      <div className={`page-connexion ${depuisDemarrage ? 'depuis-demarrage' : ''}`}>
         <div className="composition-acces">
           <CarteBienvenue />
           <div className="carte-formulaire-acces">
@@ -260,7 +264,7 @@ export default function Login() {
   }
 
   return (
-    <div className="page-connexion">
+    <div className={`page-connexion ${depuisDemarrage ? 'depuis-demarrage' : ''}`}>
       <div className="composition-acces">
         <CarteBienvenue />
         <div className="carte-formulaire-acces">
@@ -295,7 +299,7 @@ export default function Login() {
             </button>
             {erreur && <AlerteErreur>{erreur}</AlerteErreur>}
             <button className="bouton-connexion" type="submit" disabled={enCours}>
-              <IconLogout className="bouton-connexion-icone" aria-hidden="true" />
+              <IconLogin className="bouton-connexion-icone" />
               {enCours ? 'Connexion…' : 'Se connecter'}
             </button>
           </form>

@@ -1,7 +1,7 @@
 import { lazy, useEffect, useState } from 'react';
 import client from '../api/client';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDocument, IconPencil, IconCalendarAlert, IconBanknote, IconMessage, IconCalendar } from '../components/icons';
+import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -11,12 +11,18 @@ const Messages = lazy(() => import('./etudiant/Messages'));
 const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
 
 const ONGLETS = [
-  { id: 'bulletin', label: 'Bulletin', icone: IconDocument },
-  { id: 'notes', label: 'Relevé de notes', icone: IconPencil },
-  { id: 'absences', label: 'Absences', icone: IconCalendarAlert },
-  { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, fonctionnalite: 'emplois-du-temps' },
-  { id: 'frais', label: 'Frais & reçus', icone: IconBanknote, fonctionnalite: 'frais-en-ligne' },
-  { id: 'messages', label: 'Messages', icone: IconMessage, fonctionnalite: 'communication' },
+  { id: 'bulletin', label: 'Bulletin', icone: IconDocument, groupe: 'Mon dossier',
+    description: 'Ton bulletin officiel du semestre.' },
+  { id: 'notes', label: 'Relevé de notes', icone: IconClipboard, groupe: 'Mon dossier',
+    description: 'Tes notes détaillées, matière par matière.' },
+  { id: 'absences', label: 'Absences', icone: IconCalendarAlert, groupe: 'Mon dossier',
+    description: 'Tes absences, et l’envoi de justificatifs.' },
+  { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, groupe: 'Vie scolaire', fonctionnalite: 'emplois-du-temps',
+    description: 'Les cours de la semaine.' },
+  { id: 'frais', label: 'Frais & reçus', icone: IconReceipt, groupe: 'Vie scolaire', fonctionnalite: 'frais-en-ligne',
+    description: 'Frais de scolarité, paiements effectués et reçus.' },
+  { id: 'messages', label: 'Messages', icone: IconMessage, groupe: 'Vie scolaire', fonctionnalite: 'communication',
+    description: 'Messages de l’administration de l’établissement.' },
 ];
 
 // Plateforme universitaire : l'étudiant consulte directement son propre

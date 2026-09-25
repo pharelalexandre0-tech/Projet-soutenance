@@ -94,21 +94,23 @@ function Alertes() {
           </div>
         )}
 
-        <table>
-          <thead><tr><th>Élève</th><th>Score</th><th>Niveau</th><th>Facteurs clés</th><th>Date</th></tr></thead>
-          <tbody>
-            {alertesTriees.map((a) => (
-              <tr key={a.id}>
-                <td>{a.Eleve?.prenom} {a.Eleve?.nom}</td>
-                <td style={{ fontFamily: 'var(--police-mono)' }}>{a.scoreRisque}/100</td>
-                <td><span className={`badge ${STYLE_NIVEAU[a.niveauRisque]}`}>{LIBELLE_NIVEAU[a.niveauRisque] || a.niveauRisque}</span></td>
-                <td>{a.facteursCles}</td>
-                <td>{new Date(a.dateCalcul).toLocaleDateString('fr-FR')}</td>
-              </tr>
-            ))}
-            {alertes.length === 0 && <tr><td colSpan={5} className="vide">Aucun élève analysé pour l'instant, lance l'analyse ci-dessus</td></tr>}
-          </tbody>
-        </table>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Élève</th><th>Score</th><th>Niveau</th><th>Facteurs clés</th><th>Date</th></tr></thead>
+            <tbody>
+              {alertesTriees.map((a) => (
+                <tr key={a.id}>
+                  <td>{a.Eleve?.prenom} {a.Eleve?.nom}</td>
+                  <td style={{ fontFamily: 'var(--police-mono)' }}>{a.scoreRisque}/100</td>
+                  <td><span className={`badge ${STYLE_NIVEAU[a.niveauRisque]}`}>{LIBELLE_NIVEAU[a.niveauRisque] || a.niveauRisque}</span></td>
+                  <td>{a.facteursCles}</td>
+                  <td>{new Date(a.dateCalcul).toLocaleDateString('fr-FR')}</td>
+                </tr>
+              ))}
+              {alertes.length === 0 && <tr><td colSpan={5} className="vide">Aucun élève analysé pour l'instant, lance l'analyse ci-dessus</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -4,12 +4,13 @@ const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { envoyerEmail } = require('../services/emailService');
-const { journaliser } = require('../services/plateformeService');
+const { journaliser, clesDeLEcole, invaliderCache } = require('../services/plateformeService');
+const { MODULES_INTEGRES } = require('../config/fonctionnalites');
 const {
   Etablissement, Utilisateur, Classe, Eleve, Semestre, Professeur, Personnel,
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
   Absence, Note, Bulletin, PredictionIA, MessageAnnonce, Notification,
-  FraisScolarite, Paiement, Recu, Salaire,
+  FraisScolarite, Paiement, Recu, Salaire, FonctionnalitePersonnalisee, ActivationFonctionnalite,
 } = require('../models');
 
 // Vue d'ensemble : le superadmin gère la PLATEFORME (écoles affiliées,
@@ -23,7 +24,8 @@ async function listerEtablissements(req, res) {
     etablissements.map(async (etab) => {
       const nbComptes = await Utilisateur.count({ where: { etablissementId: etab.id } });
       const nbComptesVerrouilles = await Utilisateur.count({ where: { etablissementId: etab.id, statut: 'verrouille' } });
-      return { ...etab.toJSON(), nbComptes, nbComptesVerrouilles };
+      const nbFonctionnalites = (await clesDeLEcole(etab.id)).size;
+      return { ...etab.toJSON(), nbComptes, nbComptesVerrouilles, nbFonctionnalites };
     })
   );
 
@@ -47,7 +49,7 @@ async function obtenirEtablissement(req, res) {
 async function creerEtablissement(req, res) {
   const {
     nom, sigle, devise, ville, pays, boitePostale, telephone, email, logo,
-    academieNom, academiePrenom, academieEmail, academieMotDePasse,
+    academieNom, academiePrenom, academieEmail, academieMotDePasse, fonctionnalites,
   } = req.body;
 
   if (!nom || !ville) {
@@ -84,7 +86,22 @@ async function creerEtablissement(req, res) {
     etablissementId: etablissement.id,
   });
 
-  await journaliser(req.utilisateur, 'etablissement', `Affiliation de l'établissement « ${etablissement.nom} » (${etablissement.ville})`);
+  // Fonctionnalités choisies à l'inscription de l'école, selon ses besoins.
+  // Sans choix explicite (appel direct à l'API), elle reçoit les modules
+  // intégrés, comme les écoles affiliées avant ce réglage.
+  const clesConnues = new Set([
+    ...MODULES_INTEGRES.map((m) => m.cle),
+    ...(await FonctionnalitePersonnalisee.findAll({ attributes: ['cle'] })).map((p) => p.cle),
+  ]);
+  const clesChoisies = Array.isArray(fonctionnalites)
+    ? [...new Set(fonctionnalites.map(String))].filter((c) => clesConnues.has(c))
+    : MODULES_INTEGRES.map((m) => m.cle);
+  if (clesChoisies.length) {
+    await ActivationFonctionnalite.bulkCreate(clesChoisies.map((cle) => ({ etablissementId: etablissement.id, cle })), { ignoreDuplicates: true });
+    invaliderCache();
+  }
+
+  await journaliser(req.utilisateur, 'etablissement', `Affiliation de l'établissement « ${etablissement.nom} » (${etablissement.ville}) avec ${clesChoisies.length} fonctionnalité${clesChoisies.length > 1 ? 's' : ''}`);
   return res.status(201).json({ etablissement, compteAcademie: compteAcademie.toPublicJSON() });
 }
 
@@ -186,6 +203,8 @@ async function supprimerEtablissement(req, res) {
   await Professeur.destroy({ where: { etablissementId } });
   await Personnel.destroy({ where: { etablissementId } });
   await Utilisateur.destroy({ where: { etablissementId } });
+  await ActivationFonctionnalite.destroy({ where: { etablissementId } });
+  invaliderCache();
   await etablissement.destroy();
 
   await journaliser(req.utilisateur, 'etablissement', `Suppression de l'établissement « ${etablissement.nom} » et de toutes ses données`);

@@ -184,24 +184,26 @@ export default function ComptesEphemeres() {
 
       <div className="carte">
         <h2>Professeurs</h2>
-        <table>
-          <thead><tr><th>Nom</th><th>Matière</th><th>E-mail</th><th></th></tr></thead>
-          <tbody>
-            {professeurs.map((p) => (
-              <tr key={p.id}>
-                <td>{p.prenom} {p.nom}</td>
-                <td>{p.matiere || 'Non renseignée'}</td>
-                <td>{p.email}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setProfesseurASupprimer(p)}>
-                    Retirer
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {professeurs.length === 0 && <tr><td colSpan={4} className="vide">Aucun professeur</td></tr>}
-          </tbody>
-        </table>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Nom</th><th>Matière</th><th>E-mail</th><th></th></tr></thead>
+            <tbody>
+              {professeurs.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.prenom} {p.nom}</td>
+                  <td>{p.matiere || 'Non renseignée'}</td>
+                  <td>{p.email}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="secondaire danger" style={{ padding: '3px 10px', fontSize: '0.76rem' }} onClick={() => setProfesseurASupprimer(p)}>
+                      Retirer
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {professeurs.length === 0 && <tr><td colSpan={4} className="vide">Aucun professeur</td></tr>}
+            </tbody>
+          </table>
+        </div>
         <div className="separateur-section" />
         <div className="entete-section">
           <h3>Ajouter un professeur</h3>

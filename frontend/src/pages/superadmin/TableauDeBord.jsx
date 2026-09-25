@@ -162,8 +162,8 @@ export default function TableauDeBord({ onNaviguer }) {
 // maintenance), chaque case menant à la page qui permet d'agir dessus.
 function EtatPlateforme({ pilotage, onNaviguer }) {
   const { systeme, fonctionnalites, diffusion } = pilotage;
-  const ouvertes = fonctionnalites?.filter((f) => f.portee === 'toutes').length ?? 0;
-  const pilotes = fonctionnalites?.filter((f) => f.portee === 'selection').length ?? 0;
+  const personnalisees = fonctionnalites?.filter((f) => !f.integree).length ?? 0;
+  const attributions = fonctionnalites?.reduce((s, f) => s + f.ecoles.length, 0) ?? 0;
   const maintenance = diffusion?.maintenance?.actif;
   const annonce = diffusion?.annonce?.actif;
 
@@ -175,8 +175,8 @@ function EtatPlateforme({ pilotage, onNaviguer }) {
     },
     {
       id: 'fonctionnalites', icone: IconToggle, libelle: 'Fonctionnalités',
-      valeur: fonctionnalites ? `${ouvertes} sur ${fonctionnalites.length}` : '…',
-      detail: fonctionnalites ? (pilotes ? `ouvertes partout, ${pilotes} en pilote` : 'ouvertes à toutes les écoles') : '',
+      valeur: fonctionnalites ? `${fonctionnalites.length} au catalogue` : '…',
+      detail: fonctionnalites ? `${personnalisees} personnalisée${personnalisees > 1 ? 's' : ''}, ${attributions} attribution${attributions > 1 ? 's' : ''} aux écoles` : '',
     },
     {
       id: 'annonces', icone: IconMegaphone, libelle: 'Annonce',

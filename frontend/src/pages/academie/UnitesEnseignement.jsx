@@ -98,19 +98,21 @@ export default function UnitesEnseignement() {
 
             {ueOuverte === ue.id && (
               <div style={{ padding: 14 }}>
-                <table>
-                  <thead><tr><th>Code</th><th>Matière</th><th>Coef.</th></tr></thead>
-                  <tbody>
-                    {(ue.Matieres || []).map((m) => (
-                      <tr key={m.id}>
-                        <td style={{ fontFamily: 'var(--police-mono)' }}>{m.code}</td>
-                        <td>{m.intitule}</td>
-                        <td>{m.coefficient}</td>
-                      </tr>
-                    ))}
-                    {(!ue.Matieres || ue.Matieres.length === 0) && <tr><td colSpan={3} className="vide">Aucune matière</td></tr>}
-                  </tbody>
-                </table>
+                <div className="table-scroll">
+                  <table>
+                    <thead><tr><th>Code</th><th>Matière</th><th>Coef.</th></tr></thead>
+                    <tbody>
+                      {(ue.Matieres || []).map((m) => (
+                        <tr key={m.id}>
+                          <td style={{ fontFamily: 'var(--police-mono)' }}>{m.code}</td>
+                          <td>{m.intitule}</td>
+                          <td>{m.coefficient}</td>
+                        </tr>
+                      ))}
+                      {(!ue.Matieres || ue.Matieres.length === 0) && <tr><td colSpan={3} className="vide">Aucune matière</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
                 <form className="ligne-champs" style={{ marginTop: 12 }} onSubmit={(e) => creerMatiere(e, ue.id)}>
                   <div className="champ">
                     <label>Code</label>

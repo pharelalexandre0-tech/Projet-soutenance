@@ -1,7 +1,7 @@
 import { lazy, useEffect, useState } from 'react';
 import client from '../api/client';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDocument, IconPencil, IconCalendarAlert, IconBanknote, IconMessage, IconCalendar } from '../components/icons';
+import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -11,12 +11,18 @@ const Messages = lazy(() => import('./etudiant/Messages'));
 const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
 
 const ONGLETS = [
-  { id: 'bulletin', label: 'Bulletin', icone: IconDocument },
-  { id: 'notes', label: 'Relevé de notes', icone: IconPencil },
-  { id: 'absences', label: 'Absences', icone: IconCalendarAlert },
-  { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, fonctionnalite: 'emplois-du-temps' },
-  { id: 'frais', label: 'Frais & reçus', icone: IconBanknote, fonctionnalite: 'frais-en-ligne' },
-  { id: 'messages', label: 'Messages', icone: IconMessage, fonctionnalite: 'communication' },
+  { id: 'bulletin', label: 'Bulletin', icone: IconDocument, groupe: 'Dossier de l’enfant',
+    description: 'Bulletin officiel du semestre de votre enfant.' },
+  { id: 'notes', label: 'Relevé de notes', icone: IconClipboard, groupe: 'Dossier de l’enfant',
+    description: 'Notes détaillées, matière par matière.' },
+  { id: 'absences', label: 'Absences', icone: IconCalendarAlert, groupe: 'Dossier de l’enfant',
+    description: 'Absences et retards enregistrés.' },
+  { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, groupe: 'Vie scolaire', fonctionnalite: 'emplois-du-temps',
+    description: 'Les cours de la semaine.' },
+  { id: 'frais', label: 'Frais & reçus', icone: IconReceipt, groupe: 'Vie scolaire', fonctionnalite: 'frais-en-ligne',
+    description: 'Frais de scolarité, paiements effectués et reçus.' },
+  { id: 'messages', label: 'Messages', icone: IconMessage, groupe: 'Vie scolaire', fonctionnalite: 'communication',
+    description: 'Messages de l’administration de l’établissement.' },
 ];
 
 // Espace Parents : consultation en temps réel des notes, absences, emploi

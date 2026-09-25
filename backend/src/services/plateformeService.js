@@ -1,23 +1,35 @@
-const { Fonctionnalite, ParametrePlateforme, JournalAdministration } = require('../models');
-const { CATALOGUE_FONCTIONNALITES } = require('../config/fonctionnalites');
+const {
+  sequelize, Etablissement, FonctionnalitePersonnalisee, ActivationFonctionnalite, ParametrePlateforme, JournalAdministration,
+} = require('../models');
+const { MODULES_INTEGRES } = require('../config/fonctionnalites');
 
 // Heure de démarrage du processus, affichée dans "Mises à jour" (depuis quand
 // la version actuelle tourne).
 const DEMARRAGE = new Date();
 
-// La maintenance et l'ouverture des modules sont consultées à CHAQUE requête
-// authentifiée : un petit cache en mémoire évite deux requêtes SQL de plus
-// par appel. Tout changement fait par le superadmin l'invalide aussitôt ;
-// le délai ne joue donc que si un autre processus modifiait la base.
+// Les fonctionnalités d'une école et la maintenance sont consultées à CHAQUE
+// requête authentifiée : un petit cache en mémoire évite trois requêtes SQL
+// de plus par appel. Toute modification faite par le superadmin l'invalide
+// aussitôt ; le délai ne joue que si un autre processus modifiait la base.
 const DUREE_CACHE_MS = 10 * 1000;
 let cache = null;
 
 async function chargerCache() {
   if (cache && cache.expireA > Date.now()) return cache;
-  const [lignes, parametres] = await Promise.all([Fonctionnalite.findAll(), ParametrePlateforme.findAll()]);
+  const [activations, personnalisees, parametres] = await Promise.all([
+    ActivationFonctionnalite.findAll({ attributes: ['etablissementId', 'cle'] }),
+    FonctionnalitePersonnalisee.findAll({ order: [['nom', 'ASC']] }),
+    ParametrePlateforme.findAll(),
+  ]);
+  const parEcole = new Map();
+  activations.forEach((a) => {
+    if (!parEcole.has(a.etablissementId)) parEcole.set(a.etablissementId, new Set());
+    parEcole.get(a.etablissementId).add(a.cle);
+  });
   cache = {
     expireA: Date.now() + DUREE_CACHE_MS,
-    fonctionnalites: new Map(lignes.map((l) => [l.cle, l.toJSON()])),
+    parEcole,
+    personnalisees: personnalisees.map((p) => p.toJSON()),
     parametres: new Map(parametres.map((p) => [p.cle, p.valeur])),
   };
   return cache;
@@ -27,42 +39,49 @@ function invaliderCache() {
   cache = null;
 }
 
-// Réglage effectif d'un module : la ligne en base si le superadmin l'a déjà
-// réglé, sinon la portée par défaut du catalogue.
-function reglage(definition, c) {
-  const ligne = c.fonctionnalites.get(definition.cle);
-  if (ligne) return { portee: ligne.portee, ecoles: Array.isArray(ligne.ecoles) ? ligne.ecoles : [], misAJourLe: ligne.updatedAt };
-  return { portee: definition.porteeParDefaut || 'toutes', ecoles: [], misAJourLe: null };
-}
-
-function estOuvertePour(r, etablissementId) {
-  if (r.portee === 'toutes') return true;
-  if (r.portee === 'aucune') return false;
-  return r.ecoles.includes(etablissementId);
-}
-
-async function reglagesFonctionnalites() {
+// Tout le catalogue, modules intégrés d'abord, avec pour chaque entrée la
+// liste des écoles qui l'ont reçue.
+async function catalogue() {
   const c = await chargerCache();
-  return CATALOGUE_FONCTIONNALITES.map((d) => ({ ...d, ...reglage(d, c) }));
+  const ecolesAyant = (cle) => [...c.parEcole.entries()].filter(([, cles]) => cles.has(cle)).map(([id]) => id);
+  return [
+    ...MODULES_INTEGRES.map((m) => ({ ...m, type: 'module', integree: true, ecoles: ecolesAyant(m.cle) })),
+    ...c.personnalisees.map((p) => ({ ...p, integree: false, ecoles: ecolesAyant(p.cle) })),
+  ];
 }
 
-// { prediction: true, paie: false, ... } pour une école donnée. Un compte
-// sans établissement (superadmin) n'a rien à restreindre.
+async function clesDeLEcole(etablissementId) {
+  const c = await chargerCache();
+  return c.parEcole.get(etablissementId) || new Set();
+}
+
+// { prediction: true, paie: false, ... } pour les modules intégrés d'une
+// école. Un compte sans établissement (superadmin) n'a rien à restreindre.
 async function fonctionnalitesPour(etablissementId) {
-  const c = await chargerCache();
+  const cles = etablissementId ? await clesDeLEcole(etablissementId) : null;
   const resultat = {};
-  CATALOGUE_FONCTIONNALITES.forEach((d) => {
-    resultat[d.cle] = etablissementId ? estOuvertePour(reglage(d, c), etablissementId) : true;
+  MODULES_INTEGRES.forEach((m) => {
+    resultat[m.cle] = cles ? cles.has(m.cle) : true;
   });
   return resultat;
 }
 
+// Fonctionnalités personnalisées ajoutées à l'école ET destinées à ce rôle :
+// chacune devient un onglet de plus dans l'espace de l'utilisateur.
+async function extensionsPour(etablissementId, role) {
+  if (!etablissementId) return [];
+  const c = await chargerCache();
+  const cles = c.parEcole.get(etablissementId) || new Set();
+  return c.personnalisees
+    .filter((p) => cles.has(p.cle) && Array.isArray(p.espaces) && p.espaces.includes(role))
+    .map(({ cle, type, nom, description, icone, contenu, url, libelleBouton }) => ({
+      cle, type, nom, description, icone, contenu, url, libelleBouton,
+    }));
+}
+
 async function fonctionnaliteOuverte(cle, etablissementId) {
   if (!etablissementId) return true;
-  const definition = CATALOGUE_FONCTIONNALITES.find((d) => d.cle === cle);
-  if (!definition) return true;
-  const c = await chargerCache();
-  return estOuvertePour(reglage(definition, c), etablissementId);
+  return (await clesDeLEcole(etablissementId)).has(cle);
 }
 
 async function lireParametre(cle) {
@@ -73,6 +92,28 @@ async function lireParametre(cle) {
 async function ecrireParametre(cle, valeur) {
   await ParametrePlateforme.upsert({ cle, valeur });
   invaliderCache();
+}
+
+// Passage au modèle "école par école" : les écoles déjà affiliées gardent
+// exactement ce qu'elles avaient (tous les modules intégrés), une seule
+// fois, au premier démarrage de cette version. Les écoles créées ensuite ne
+// reçoivent que ce que le superadmin choisit pour elles.
+async function initialiserActivations() {
+  const deja = await ParametrePlateforme.findByPk('activations_initialisees');
+  if (deja) return;
+  const ecoles = await Etablissement.findAll({ attributes: ['id'] });
+  const lignes = ecoles.flatMap((e) => MODULES_INTEGRES.map((m) => ({ etablissementId: e.id, cle: m.cle })));
+  if (lignes.length) await ActivationFonctionnalite.bulkCreate(lignes, { ignoreDuplicates: true });
+  // Ancienne table du réglage "toutes les écoles / pilotes", remplacée par
+  // les activations école par école.
+  try {
+    await sequelize.getQueryInterface().dropTable('fonctionnalites');
+  } catch {
+    // Déjà absente : rien à faire.
+  }
+  await ParametrePlateforme.upsert({ cle: 'activations_initialisees', valeur: { le: new Date(), ecoles: ecoles.length } });
+  invaliderCache();
+  console.log(`Fonctionnalités : ${ecoles.length} école(s) initialisée(s) avec les modules intégrés.`);
 }
 
 async function maintenanceEnCours() {
@@ -120,9 +161,12 @@ async function journaliser(utilisateur, categorie, libelle) {
 module.exports = {
   DEMARRAGE,
   invaliderCache,
-  reglagesFonctionnalites,
+  catalogue,
+  clesDeLEcole,
   fonctionnalitesPour,
+  extensionsPour,
   fonctionnaliteOuverte,
+  initialiserActivations,
   lireParametre,
   ecrireParametre,
   maintenanceEnCours,
