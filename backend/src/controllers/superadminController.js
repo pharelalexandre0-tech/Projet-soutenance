@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
+const { motDePasseAleatoire } = require('../utils/tokenGenerator');
+const { envoyerEmail } = require('../services/emailService');
 const {
   Etablissement, Utilisateur, Classe, Eleve, Semestre, Professeur, Personnel,
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
@@ -232,6 +234,111 @@ async function creerSuperadmin(req, res) {
   return res.status(201).json({ compte: compte.toPublicJSON() });
 }
 
+// Vue "pouls de la plateforme" : uniquement des totaux agrégés (jamais un
+// détail par élève ou par personne) — reste dans la même frontière que
+// listerEtablissements, juste additionné sur toutes les écoles à la fois.
+async function obtenirStatistiques(req, res) {
+  const [etablissements, totalEleves, totalProfesseurs, totalComptes, totalComptesVerrouilles] = await Promise.all([
+    Etablissement.findAll({ attributes: ['id', 'ville', 'statut', 'createdAt'] }),
+    Eleve.count(),
+    Professeur.count(),
+    Utilisateur.count({ where: { etablissementId: { [Op.not]: null } } }),
+    Utilisateur.count({ where: { etablissementId: { [Op.not]: null }, statut: 'verrouille' } }),
+  ]);
+
+  const totalActives = etablissements.filter((e) => e.statut === 'actif').length;
+
+  // Regroupement par ville : une répartition géographique lisible sans
+  // avoir ni coordonnées en base ni bibliothèque de carte à ajouter pour
+  // une poignée d'écoles.
+  const parVille = new Map();
+  etablissements.forEach((e) => {
+    const cle = e.ville || 'Non renseignée';
+    parVille.set(cle, (parVille.get(cle) || 0) + 1);
+  });
+  const repartitionParVille = [...parVille.entries()]
+    .map(([ville, total]) => ({ ville, total }))
+    .sort((a, b) => b.total - a.total);
+
+  // Écoles affiliées par mois (6 derniers mois) : la tendance d'adoption de
+  // la plateforme, pas seulement son état à l'instant T.
+  const maintenant = new Date();
+  const mois = [];
+  for (let i = 5; i >= 0; i -= 1) {
+    const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - i, 1);
+    mois.push({ cle: `${d.getFullYear()}-${d.getMonth()}`, libelle: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }), total: 0 });
+  }
+  etablissements.forEach((e) => {
+    const d = new Date(e.createdAt);
+    const cle = `${d.getFullYear()}-${d.getMonth()}`;
+    const entree = mois.find((m) => m.cle === cle);
+    if (entree) entree.total += 1;
+  });
+
+  return res.json({
+    totalEcoles: etablissements.length,
+    totalActives,
+    totalSuspendues: etablissements.length - totalActives,
+    totalEleves,
+    totalProfesseurs,
+    totalComptes,
+    totalComptesVerrouilles,
+    repartitionParVille,
+    croissance: mois.map(({ libelle, total }) => ({ libelle, total })),
+  });
+}
+
+// Dépannage : si le premier compte Académie d'une école est bloqué dehors
+// (mot de passe perdu ET e-mail inaccessible), le superadmin peut lui
+// générer un nouvel accès — jamais consulter ni modifier autre chose sur
+// son compte, seulement lui redonner l'entrée. Le plus ancien compte
+// Académie de l'école (pas "un compte au hasard") pour rester prévisible.
+async function reinitialiserMotDePasseAcademie(req, res) {
+  const etablissement = await Etablissement.findByPk(req.params.id);
+  if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
+
+  const compteAcademie = await Utilisateur.findOne({
+    where: { etablissementId: etablissement.id, role: 'academie' },
+    order: [['createdAt', 'ASC']],
+  });
+  if (!compteAcademie) {
+    return res.status(404).json({ erreur: 'aucun compte Académie pour cette école' });
+  }
+
+  const nouveauMotDePasse = motDePasseAleatoire();
+  compteAcademie.motDePasse = await bcrypt.hash(nouveauMotDePasse, 10);
+  // Redonne l'accès pour de bon : un compte individuellement verrouillé
+  // resterait bloqué même avec un nouveau mot de passe sinon.
+  compteAcademie.statut = 'actif';
+  await compteAcademie.save();
+
+  return res.json({ email: compteAcademie.email, motDePasse: nouveauMotDePasse });
+}
+
+// Vue technique : quel service d'envoi d'e-mail est actif, sans jamais
+// exposer les clés elles-mêmes — de quoi diagnostiquer "pourquoi cet e-mail
+// n'est jamais arrivé" sans aller fouiller les variables d'environnement du
+// serveur à la main. Même ordre de priorité que emailService.envoyerEmail.
+async function obtenirConfigEmail(req, res) {
+  const sendgrid = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM);
+  const resend = Boolean(process.env.RESEND_API_KEY);
+  const smtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+  const actif = sendgrid ? 'sendgrid' : resend ? 'resend' : smtp ? 'smtp' : null;
+  return res.json({ sendgrid, resend, smtp, actif });
+}
+
+// Envoie un e-mail de test à l'adresse du superadmin lui-même — jamais à un
+// tiers, pour ne jamais transformer cet outil de diagnostic en moyen de
+// spammer une adresse arbitraire.
+async function envoyerEmailTest(req, res) {
+  const resultat = await envoyerEmail(
+    req.utilisateur.email,
+    'E-mail de test EduSphere',
+    `Ceci est un e-mail de test envoyé depuis l'espace Superadmin le ${new Date().toLocaleString('fr-FR')}.\n\nSi tu reçois ce message, l'envoi d'e-mail fonctionne correctement.`
+  );
+  return res.json({ envoye: resultat.envoye, simule: Boolean(resultat.simule), destinataire: req.utilisateur.email });
+}
+
 // Le superadmin gère son propre compte comme n'importe quel autre — nom,
 // prénom, et mot de passe s'il le souhaite.
 async function mettreAJourMonProfil(req, res) {
@@ -259,6 +366,10 @@ module.exports = {
   modifierEtablissement,
   supprimerEtablissement,
   changerStatutEtablissement,
+  obtenirStatistiques,
+  reinitialiserMotDePasseAcademie,
+  obtenirConfigEmail,
+  envoyerEmailTest,
   listerSuperadmins,
   creerSuperadmin,
   mettreAJourMonProfil,
