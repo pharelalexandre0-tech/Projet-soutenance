@@ -2211,3 +2211,57 @@ tbody tr.ligne-groupe:hover { background: none; }
 .table-impayes td { white-space: nowrap; }
 .table-impayes .chiffre { text-align: right; }
 .reste-du { font-weight: 600; color: var(--texte); }
+
+/* ==========================================================================
+   Classes en tuiles (Élèves & classes)
+   ========================================================================== */
+
+.grille-classes {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;
+  max-height: min(440px, 58vh); overflow-y: auto; padding: 3px; margin: -3px;
+}
+.tuile-classe {
+  display: flex; flex-direction: column; gap: 10px; min-height: 138px;
+  padding: 18px 18px 16px; border: 1px solid var(--bordure); border-radius: var(--radius);
+  background: var(--carte); cursor: pointer; text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.tuile-classe:hover { border-color: var(--bordure-controle); box-shadow: var(--ombre); }
+.tuile-classe:focus-visible { outline: 2px solid var(--primaire); outline-offset: 2px; }
+.tuile-classe.active {
+  border-color: var(--primaire);
+  background: color-mix(in srgb, var(--primaire-clair) 55%, var(--carte));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primaire) 14%, transparent);
+}
+.tuile-classe-haut { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
+.tuile-classe-icone { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--primaire-clair); color: var(--primaire); }
+.tuile-classe-icone svg { width: 18px; height: 18px; }
+.tuile-classe-nom { font-size: 18px; font-weight: 650; line-height: 1.3; color: var(--texte); overflow-wrap: anywhere; }
+.tuile-classe.active .tuile-classe-nom { color: var(--primaire-fonce); }
+.tuile-classe-effectif { margin-top: auto; font-size: 14px; color: var(--texte-clair); }
+.tuile-classe-effectif b { margin-right: 4px; font-size: 22px; font-weight: 650; color: var(--texte); font-variant-numeric: tabular-nums; }
+.tuile-classe-gerer {
+  width: 34px; height: 34px; flex: none; border: 1px solid var(--bordure); border-radius: var(--rayon-controle);
+  background: var(--carte); color: var(--texte-clair); display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.tuile-classe-gerer svg { width: 16px; height: 16px; }
+.tuile-classe-gerer:hover { color: var(--primaire); border-color: var(--primaire); }
+.grille-classes-vide { grid-column: 1 / -1; }
+.grille-classes::-webkit-scrollbar { width: 11px; }
+.grille-classes::-webkit-scrollbar-track { background: var(--gris-fond); border-radius: 6px; }
+.grille-classes::-webkit-scrollbar-thumb { background: var(--bordure-controle); border-radius: 6px; border: 2px solid var(--gris-fond); }
+
+.puce-filtre {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--primaire) 35%, var(--bordure)); border-radius: 999px;
+  background: var(--primaire-clair); color: var(--primaire-fonce); font: 500 13px var(--police); cursor: pointer;
+}
+.puce-filtre svg { width: 14px; height: 14px; }
+.puce-filtre:hover { background: color-mix(in srgb, var(--primaire-clair) 70%, var(--primaire)); color: #fff; }
+
+@media (max-width: 760px) {
+  .grille-classes { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tuile-classe { min-height: 120px; padding: 14px; }
+  .tuile-classe-nom { font-size: 16px; }
+}

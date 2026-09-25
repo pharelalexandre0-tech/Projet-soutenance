@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import client from '../../api/client';
 import { lireFichierExcel } from '../../utils/excel';
 import { NIVEAUX } from '../../utils/niveaux';
@@ -10,7 +10,7 @@ import Toast from '../../components/Toast';
 import ChampParent from '../../components/ChampParent';
 import {
   IconUsers, IconSchool, IconUserPlus, IconUpload, IconPlus, IconSearch, IconEdit, IconChevronRight,
-  IconCopy, IconKey, IconTrash, IconGraduationCap, IconUserCog, IconInfo,
+  IconCopy, IconKey, IconTrash, IconGraduationCap, IconUserCog, IconInfo, IconClose,
 } from '../../components/icons';
 
 const ELEVE_VIDE = {
@@ -67,6 +67,9 @@ export default function ElevesClasses() {
 
   const [classeChoisie, setClasseChoisie] = useState('');
   const [recherche, setRecherche] = useState('');
+  const [rechercheClasse, setRechercheClasse] = useState('');
+  const [niveauClasse, setNiveauClasse] = useState('');
+  const sectionEleves = useRef(null);
   const [limite, setLimite] = useState(TRANCHE);
 
   const [ficheId, setFicheId] = useState(null);
@@ -102,6 +105,23 @@ export default function ElevesClasses() {
     .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr'));
   const elevesAffiches = elevesFiltres.slice(0, limite);
   const classeCourante = classes.find((c) => String(c.id) === classeChoisie);
+  const rechercheClasseNette = rechercheClasse.trim().toLowerCase();
+  const niveauxPresents = [...new Set(classes.map((c) => c.niveau))].sort((a, b) => NIVEAUX.indexOf(a) - NIVEAUX.indexOf(b));
+  const classesAffichees = classes
+    .filter((c) => !niveauClasse || c.niveau === niveauClasse)
+    .filter((c) => !rechercheClasseNette || `${c.nom} ${c.niveau}`.toLowerCase().includes(rechercheClasseNette))
+    .sort((a, b) => (NIVEAUX.indexOf(a.niveau) - NIVEAUX.indexOf(b.niveau)) || a.nom.localeCompare(b.nom, 'fr'));
+
+  // Choisir une classe filtre la liste des élèves ; si celle-ci est hors
+  // de l'écran, on y descend.
+  function choisirClasse(id) {
+    setClasseChoisie(id);
+    setLimite(TRANCHE);
+    const section = sectionEleves.current;
+    if (section && section.getBoundingClientRect().top > window.innerHeight * 0.55) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
   const avecParent = eleves.filter((e) => e.parent).length;
   const fiche = eleves.find((e) => e.id === ficheId) || null;
 
@@ -171,95 +191,132 @@ export default function ElevesClasses() {
         </div>
       </div>
 
-      <div className="grille-maitre">
-        <aside className="carte panneau-classes">
-          <div className="entete-carte">
-            <h2>Classes</h2>
-            <button type="button" className="secondaire" onClick={() => setCreationClasse(true)}><IconPlus /> Nouvelle</button>
-          </div>
-          <ul className="liste-classes" aria-label="Filtrer par classe">
-            <li>
-              <button type="button" className={`choix-classe ${!classeChoisie ? 'actif' : ''}`} onClick={() => { setClasseChoisie(''); setLimite(TRANCHE); }}>
-                <span className="choix-classe-textes"><strong>Toutes les classes</strong><small>{classes.length} classe{classes.length > 1 ? 's' : ''}</small></span>
-                <span className="choix-classe-compte">{eleves.length}</span>
-              </button>
-            </li>
-            {classes.map((c) => (
-              <li key={c.id}>
-                <button type="button" className={`choix-classe ${classeChoisie === String(c.id) ? 'actif' : ''}`} onClick={() => { setClasseChoisie(String(c.id)); setLimite(TRANCHE); }}>
-                  <span className="choix-classe-textes"><strong>{c.nom}</strong><small>{c.niveau}</small></span>
-                  <span className="choix-classe-compte">{c.Eleves?.length ?? 0}</span>
-                </button>
-                <button type="button" className="choix-classe-modifier" onClick={() => setClasseEditee(c)} aria-label={`Gérer la classe ${c.nom}`} title="Gérer la classe">
-                  <IconEdit />
-                </button>
-              </li>
-            ))}
-            {!chargement && classes.length === 0 && <li className="vide">Aucune classe. Crée la première avec « Nouvelle ».</li>}
-          </ul>
-        </aside>
-
-        <section className="carte">
-          <div className="entete-carte">
-            <h2>
-              {classeCourante ? `Élèves de ${nomClasse(classeCourante)}` : 'Tous les élèves'}
-              <span className="entete-carte-compteur">{elevesFiltres.length}</span>
-            </h2>
-            <div className="actions-carte">
-              <button type="button" className="secondaire" onClick={() => setImportation(true)} disabled={classes.length === 0}><IconUpload /> Importer</button>
-              <button type="button" className="primaire" onClick={() => setInscription(true)} disabled={classes.length === 0}><IconUserPlus /> Inscrire un élève</button>
-            </div>
-          </div>
-          <div className="barre-outils">
-            <label className="champ-recherche">
+      <section className="carte">
+        <div className="entete-carte">
+          <h2>Classes <span className="entete-carte-compteur">{classes.length}</span></h2>
+          <div className="actions-carte">
+            <label className="champ-recherche compact">
               <IconSearch />
-              <input
-                type="search"
-                placeholder="Rechercher un nom, un matricule, un e-mail…"
-                value={recherche}
-                onChange={(e) => { setRecherche(e.target.value); setLimite(TRANCHE); }}
-                aria-label="Rechercher un élève"
-              />
+              <input type="search" placeholder="Rechercher une classe…" value={rechercheClasse} onChange={(e) => setRechercheClasse(e.target.value)} aria-label="Rechercher une classe" />
             </label>
+            {niveauxPresents.length > 1 && (
+              <select value={niveauClasse} onChange={(e) => setNiveauClasse(e.target.value)} aria-label="Filtrer par niveau" className="filtre-select">
+                <option value="">Tous les niveaux</option>
+                {niveauxPresents.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            )}
+            <button type="button" className="primaire" onClick={() => setCreationClasse(true)}><IconPlus /> Nouvelle classe</button>
           </div>
-          <div className="table-scroll">
-            <table className="table-eleves">
-              <thead>
-                <tr>
-                  <th>Matricule</th>
-                  <th>Nom et prénom</th>
-                  <th>E-mail</th>
-                  {!classeCourante && <th>Classe</th>}
-                  <th>Parent</th>
-                  <th aria-label="Ouvrir la fiche" />
-                </tr>
-              </thead>
-              <tbody>
-                {elevesAffiches.map((e) => (
-                  <tr key={e.id} className="ligne-cliquable" onClick={() => setFicheId(e.id)}>
-                    <td className="mono">{e.matricule || 'En attente'}</td>
-                    <td className="cellule-nom">{e.nom} {e.prenom}</td>
-                    <td className="cellule-email">{e.compteEtudiant?.email || <span className="note-secondaire">Aucun compte</span>}</td>
-                    {!classeCourante && <td>{e.Classe ? nomClasse(e.Classe) : ''}</td>}
-                    <td>{e.parent ? `${e.parent.prenom} ${e.parent.nom}` : <span className="note-secondaire">Aucun</span>}</td>
-                    <td className="cellule-chevron"><IconChevronRight /></td>
-                  </tr>
-                ))}
-                {!chargement && elevesFiltres.length === 0 && (
-                  <tr><td colSpan={6} className="vide">{eleves.length === 0 ? 'Aucun élève inscrit pour le moment.' : 'Aucun élève ne correspond.'}</td></tr>
-                )}
-                {chargement && <tr><td colSpan={6} className="chargement">Chargement…</td></tr>}
-              </tbody>
-            </table>
-          </div>
-          {elevesFiltres.length > limite && (
-            <div className="pied-liste">
-              <span>{limite} élèves affichés sur {elevesFiltres.length}</span>
-              <button type="button" className="secondaire" onClick={() => setLimite((l) => l + TRANCHE)}>Afficher la suite</button>
+        </div>
+        <div className="grille-classes" role="list" aria-label="Classes de l'établissement">
+          {!rechercheClasseNette && !niveauClasse && (
+            <div
+              role="button" tabIndex={0} aria-pressed={!classeChoisie}
+              className={`tuile-classe tuile-toutes ${!classeChoisie ? 'active' : ''}`}
+              onClick={() => choisirClasse('')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirClasse(''); } }}
+            >
+              <span className="tuile-classe-haut"><span className="tuile-classe-icone"><IconUsers /></span></span>
+              <strong className="tuile-classe-nom">Toutes les classes</strong>
+              <span className="tuile-classe-effectif"><b>{eleves.length}</b> élève{eleves.length > 1 ? 's' : ''} au total</span>
             </div>
           )}
-        </section>
-      </div>
+          {classesAffichees.map((c) => {
+            const effectif = c.Eleves?.length ?? 0;
+            const active = classeChoisie === String(c.id);
+            return (
+              <div
+                key={c.id} role="button" tabIndex={0} aria-pressed={active}
+                className={`tuile-classe ${active ? 'active' : ''}`}
+                onClick={() => choisirClasse(String(c.id))}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choisirClasse(String(c.id)); } }}
+              >
+                <span className="tuile-classe-haut">
+                  <span className="badge bleu sans-point">{c.niveau}</span>
+                  <button
+                    type="button" className="tuile-classe-gerer" title="Gérer la classe" aria-label={`Gérer la classe ${c.nom}`}
+                    onClick={(e) => { e.stopPropagation(); setClasseEditee(c); }}
+                  >
+                    <IconEdit />
+                  </button>
+                </span>
+                <strong className="tuile-classe-nom">{c.nom}</strong>
+                <span className="tuile-classe-effectif">
+                  {effectif ? <><b>{effectif}</b> élève{effectif > 1 ? 's' : ''}</> : <span className="note-secondaire">Aucun élève inscrit</span>}
+                </span>
+              </div>
+            );
+          })}
+          {!chargement && classes.length === 0 && <div className="vide grille-classes-vide">Aucune classe. Créez la première avec « Nouvelle classe ».</div>}
+          {!chargement && classes.length > 0 && classesAffichees.length === 0 && <div className="vide grille-classes-vide">Aucune classe ne correspond à cette recherche.</div>}
+        </div>
+      </section>
+
+      <section className="carte" ref={sectionEleves}>
+        <div className="entete-carte">
+          <h2>
+            {classeCourante ? `Élèves de ${nomClasse(classeCourante)}` : 'Tous les élèves'}
+            <span className="entete-carte-compteur">{elevesFiltres.length}</span>
+            {classeCourante && (
+              <button type="button" className="puce-filtre" onClick={() => choisirClasse('')} title="Afficher toutes les classes">
+                Toutes les classes <IconClose />
+              </button>
+            )}
+          </h2>
+          <div className="actions-carte">
+            <button type="button" className="secondaire" onClick={() => setImportation(true)} disabled={classes.length === 0}><IconUpload /> Importer</button>
+            <button type="button" className="primaire" onClick={() => setInscription(true)} disabled={classes.length === 0}><IconUserPlus /> Inscrire un élève</button>
+          </div>
+        </div>
+        <div className="barre-outils">
+          <label className="champ-recherche">
+            <IconSearch />
+            <input
+              type="search"
+              placeholder="Rechercher un nom, un matricule, un e-mail…"
+              value={recherche}
+              onChange={(e) => { setRecherche(e.target.value); setLimite(TRANCHE); }}
+              aria-label="Rechercher un élève"
+            />
+          </label>
+        </div>
+        <div className="table-scroll">
+          <table className="table-eleves">
+            <thead>
+              <tr>
+                <th>Matricule</th>
+                <th>Nom et prénom</th>
+                <th>E-mail</th>
+                {!classeCourante && <th>Classe</th>}
+                <th>Parent</th>
+                <th aria-label="Ouvrir la fiche" />
+              </tr>
+            </thead>
+            <tbody>
+              {elevesAffiches.map((e) => (
+                <tr key={e.id} className="ligne-cliquable" onClick={() => setFicheId(e.id)}>
+                  <td className="mono">{e.matricule || 'En attente'}</td>
+                  <td className="cellule-nom">{e.nom} {e.prenom}</td>
+                  <td className="cellule-email">{e.compteEtudiant?.email || <span className="note-secondaire">Aucun compte</span>}</td>
+                  {!classeCourante && <td>{e.Classe ? nomClasse(e.Classe) : ''}</td>}
+                  <td>{e.parent ? `${e.parent.prenom} ${e.parent.nom}` : <span className="note-secondaire">Aucun</span>}</td>
+                  <td className="cellule-chevron"><IconChevronRight /></td>
+                </tr>
+              ))}
+              {!chargement && elevesFiltres.length === 0 && (
+                <tr><td colSpan={6} className="vide">{eleves.length === 0 ? 'Aucun élève inscrit pour le moment.' : 'Aucun élève ne correspond.'}</td></tr>
+              )}
+              {chargement && <tr><td colSpan={6} className="chargement">Chargement…</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        {elevesFiltres.length > limite && (
+          <div className="pied-liste">
+            <span>{limite} élèves affichés sur {elevesFiltres.length}</span>
+            <button type="button" className="secondaire" onClick={() => setLimite((l) => l + TRANCHE)}>Afficher la suite</button>
+          </div>
+        )}
+      </section>
 
       <section className="carte">
         <div className="entete-carte">
