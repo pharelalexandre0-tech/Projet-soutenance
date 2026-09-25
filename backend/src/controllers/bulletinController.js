@@ -1,7 +1,7 @@
 const path = require('path');
 const { Bulletin, Eleve, Classe, Semestre, Utilisateur } = require('../models');
 const { calculerBulletin } = require('../services/moyenneService');
-const { genererBulletinPDF, DOSSIER_STOCKAGE } = require('../services/pdfService');
+const { genererBulletinPDF, lireDocument } = require('../services/pdfService');
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 
@@ -53,7 +53,7 @@ async function obtenirBulletin(req, res) {
     return res.json({ bulletin, origine: 'existant', creditsTotal, admis, sessionGlobale, detailParUE, etablissement });
   }
 
-  const { cheminAbsolu, cheminRelatif } = await genererBulletinPDF({
+  const { contenu, cheminRelatif } = await genererBulletinPDF({
     eleve,
     semestre,
     moyenneGenerale,
@@ -79,7 +79,7 @@ async function obtenirBulletin(req, res) {
       destinataire.email,
       `Bulletin de ${eleve.prenom} ${eleve.nom} disponible`,
       `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
-      [{ cheminAbsolu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
+      [{ contenu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
     );
   }
 
@@ -94,7 +94,7 @@ async function envoyerBulletinParEmail(req, res) {
   const { eleveId, semestreId } = req.params;
 
   const [eleve, semestre, bulletin] = await Promise.all([
-    Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }] }),
+    Eleve.findByPk(eleveId, { include: [Classe, { model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }] }),
     Semestre.findByPk(semestreId),
     Bulletin.findOne({ where: { eleveId, semestreId } }),
   ]);
@@ -106,12 +106,24 @@ async function envoyerBulletinParEmail(req, res) {
     return res.status(400).json({ erreur: 'aucun compte étudiant ou parent associé à cet élève' });
   }
 
+  // Le PDF est lu dans PostgreSQL ; s'il manque (bulletin très ancien), il
+  // est regénéré à partir des notes actuelles.
+  let contenu = bulletin.fichierPDF ? await lireDocument(path.basename(bulletin.fichierPDF)) : null;
+  if (!contenu) {
+    const calcul = await calculerBulletin(Number(eleveId), Number(semestreId));
+    const genere = await genererBulletinPDF({
+      eleve, semestre, ...calcul, etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
+    });
+    contenu = genere.contenu;
+    bulletin.fichierPDF = genere.cheminRelatif;
+    await bulletin.save();
+  }
   for (const destinataire of destinataires) {
     await envoyerEmail(
       destinataire.email,
       `Bulletin de ${eleve.prenom} ${eleve.nom} : ${semestre.libelle}`,
       `Le bulletin du semestre ${semestre.libelle} est disponible en pièce jointe.`,
-      [{ cheminAbsolu: path.join(DOSSIER_STOCKAGE, path.basename(bulletin.fichierPDF)), nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
+      [{ contenu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
     );
   }
 

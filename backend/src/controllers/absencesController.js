@@ -1,5 +1,6 @@
 const { Absence, Eleve, Utilisateur, Notification } = require('../models');
 const { envoyerEmail } = require('../services/emailService');
+const { consignerAppel } = require('../services/compteRenduService');
 
 // Coeur du diagramme d'activité 6 : enregistrer l'absence, la classer
 // justifiée ou non, et notifier automatiquement l'étudiant si elle ne l'est
@@ -95,6 +96,8 @@ async function saisirAppelEphemere(req, res) {
   compte.statut = 'revoque';
   compte.saisieEnvoyeeLe = new Date();
   await compte.save();
+  // Feuille d'appel complète (présents compris) gardée pour l'Académie.
+  await consignerAppel(compte, { eleves: elevesClasse, marques, date });
 
   const nbAbsences = absences.filter((a) => a.type === 'absence').length;
   const nbRetards = absences.filter((a) => a.type === 'retard').length;

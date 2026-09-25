@@ -22,6 +22,7 @@ const {
   Paiement,
   Recu,
   CompteEphemere,
+  CompteRenduSaisie,
 } = require('../models');
 const { envoyerEmail } = require('../services/emailService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
@@ -32,6 +33,7 @@ const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { attribuerMatricule } = require('../services/matriculeService');
 const { calculerBulletin } = require('../services/moyenneService');
 const { etatPublication, publier, versionPubliee } = require('../services/emploiDuTempsService');
+const { rattacherProfesseursALaPaie } = require('../services/paieService');
 
 // Restreint étudiant/parent à LEUR(S) propre(s) classe(s) sur les listes
 // partagées (messages, emploi du temps, cahier de textes) — `null` = pas de
@@ -199,6 +201,7 @@ async function supprimerClasse(req, res) {
   await PublicationEmploiDuTemps.destroy({ where: { classeId } });
   await CahierDeTextes.destroy({ where: { classeId } });
   await MessageAnnonce.destroy({ where: { classeId } });
+  await CompteRenduSaisie.destroy({ where: { classeId } });
   await CompteEphemere.destroy({ where: { classeId } });
   await Eleve.destroy({ where: { classeId } });
   if (compteEtudiantIds.length) await Utilisateur.destroy({ where: { id: { [Op.in]: compteEtudiantIds } } });
@@ -223,6 +226,8 @@ async function statistiquesClasse(req, res) {
 
 async function creerProfesseur(req, res) {
   const professeur = await Professeur.create({ ...req.body, etablissementId: req.utilisateur.etablissementId });
+  // Il apparaît aussitôt dans la paie du personnel (Espace Finance).
+  await rattacherProfesseursALaPaie(req.utilisateur.etablissementId);
   return res.status(201).json({ professeur });
 }
 async function listerProfesseurs(req, res) {

@@ -3,6 +3,9 @@ const { sequelize } = require('./models');
 const { initialiserActivations } = require('./services/plateformeService');
 const { attribuerMatriculesManquants } = require('./services/matriculeService');
 const { initialiserPublicationsEmplois } = require('./services/emploiDuTempsService');
+const { importerDocumentsExistants } = require('./services/pdfService');
+const { reconstituerComptesRendus } = require('./services/compteRenduService');
+const { rattacherProfesseursALaPaie } = require('./services/paieService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -16,6 +19,9 @@ const PORT = process.env.PORT || 4000;
     await initialiserActivations();
     await attribuerMatriculesManquants();
     await initialiserPublicationsEmplois();
+    await importerDocumentsExistants();
+    await reconstituerComptesRendus();
+    await rattacherProfesseursALaPaie();
 
     app.listen(PORT, () => {
       console.log(`API Plateforme de Gestion Scolaire à l'écoute sur le port ${PORT}`);

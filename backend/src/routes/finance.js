@@ -10,7 +10,9 @@ const {
   envoyerRelance,
   verserSalaire,
 } = require('../controllers/financeController');
-const { listerPersonnel, creerPersonnel, obtenirFichePaie } = require('../controllers/personnelController');
+const {
+  listerPersonnel, creerPersonnel, modifierPersonnel, obtenirFichePaie,
+} = require('../controllers/personnelController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
 const { exigerFonctionnalite } = require('../middlewares/plateforme');
 
@@ -37,6 +39,7 @@ router.post('/impayes/:fraisId/relance', authentifier, finance, envoyerRelance);
 
 router.get('/personnel', authentifier, paie, finance, listerPersonnel);
 router.post('/personnel', authentifier, paie, finance, creerPersonnel);
+router.put('/personnel/:personnelId', authentifier, paie, finance, modifierPersonnel);
 router.get('/personnel/:personnelId/fiche', authentifier, paie, finance, obtenirFichePaie);
 router.post('/salaires', authentifier, paie, finance, verserSalaire);
 

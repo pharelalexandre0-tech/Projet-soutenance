@@ -352,7 +352,7 @@ async function obtenirConfigEmail(req, res) {
   const resend = Boolean(process.env.RESEND_API_KEY);
   const smtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
   const actif = sendgrid ? 'sendgrid' : resend ? 'resend' : smtp ? 'smtp' : null;
-  return res.json({ sendgrid, resend, smtp, actif, derniersEnvois: derniersEnvois() });
+  return res.json({ sendgrid, resend, smtp, actif, derniersEnvois: await derniersEnvois() });
 }
 
 // Envoie un e-mail de test à l'adresse du superadmin lui-même — jamais à un

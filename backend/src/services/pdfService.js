@@ -18,6 +18,7 @@ const COULEUR_ERREUR = '#A23B2E';
 const COULEUR_ERREUR_FOND = '#F6E7E4';
 const COULEUR_UE_FOND = '#E3ECF6';
 const COULEUR_RATTRAPAGE = '#A67C1E';
+const COULEUR_MARINE = '#0B1E3D';
 
 // Une UE passée par le rattrapage n'est jamais étiquetée "validée" au même
 // titre qu'une validation en session normale, même si la moyenne recalculée
@@ -48,14 +49,52 @@ function dessinerLogo(doc, etablissement, x, y, taille = 40) {
   }
 }
 
+// Type de document déduit du préfixe du nom de fichier.
+const TYPES_DOCUMENT = [['bulletin_', 'bulletin'], ['recu_', 'recu'], ['fiche_paie_', 'fiche_paie'], ['emploi_du_temps_', 'emploi_du_temps']];
+function typeDe(nomFichier) {
+  const type = TYPES_DOCUMENT.find(([prefixe]) => nomFichier.startsWith(prefixe));
+  return type ? type[1] : 'document';
+}
+
+// Chaque PDF généré est enregistré dans PostgreSQL (table documents_pdf) :
+// le disque d'un hébergeur comme Render est effacé à chaque déploiement.
+async function enregistrerDocument(nomFichier, contenu) {
+  const { DocumentPDF } = require('../models');
+  const existant = await DocumentPDF.findOne({ where: { nomFichier } });
+  if (existant) await existant.update({ contenu, taille: contenu.length });
+  else await DocumentPDF.create({ nomFichier, typeDocument: typeDe(nomFichier), contenu, taille: contenu.length });
+}
+
+async function lireDocument(nomFichier) {
+  const { DocumentPDF } = require('../models');
+  const document = await DocumentPDF.findOne({ where: { nomFichier } });
+  return document ? document.contenu : null;
+}
+
+// Au démarrage : les PDF encore présents sur le disque (générés avant le
+// passage à PostgreSQL) sont importés une fois dans la base.
+async function importerDocumentsExistants() {
+  const { DocumentPDF } = require('../models');
+  let n = 0;
+  for (const nomFichier of fs.readdirSync(DOSSIER_STOCKAGE).filter((f) => f.endsWith('.pdf'))) {
+    if (await DocumentPDF.count({ where: { nomFichier } })) continue;
+    const contenu = fs.readFileSync(path.join(DOSSIER_STOCKAGE, nomFichier));
+    await DocumentPDF.create({ nomFichier, typeDocument: typeDe(nomFichier), contenu, taille: contenu.length });
+    n += 1;
+  }
+  if (n) console.log(`Documents : ${n} PDF importé(s) du disque dans PostgreSQL.`);
+}
+
 function nouveauDocument(nomFichier, options = {}) {
-  const cheminAbsolu = path.join(DOSSIER_STOCKAGE, nomFichier);
   const doc = new PDFDocument({ margin: 50, size: 'A4', ...options });
-  const stream = fs.createWriteStream(cheminAbsolu);
-  doc.pipe(stream);
+  const morceaux = [];
+  doc.on('data', (morceau) => morceaux.push(morceau));
   const termine = new Promise((resolve, reject) => {
-    stream.on('finish', () => resolve(cheminAbsolu));
-    stream.on('error', reject);
+    doc.on('end', () => {
+      const contenu = Buffer.concat(morceaux);
+      enregistrerDocument(nomFichier, contenu).then(() => resolve(contenu), reject);
+    });
+    doc.on('error', reject);
   });
   return { doc, termine, cheminRelatif: `/fichiers/${nomFichier}` };
 }
@@ -96,12 +135,178 @@ function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, tail
   return y + hauteur;
 }
 
+// ---------------------------------------------------------------------------
+// Éléments communs des documents officiels (bulletin, reçu, fiche de paie,
+// emploi du temps) : même en-tête, même pied de page, même signature.
+// ---------------------------------------------------------------------------
+
+function sigleEtablissement(etablissement) {
+  if (etablissement.sigle) return etablissement.sigle.slice(0, 5).toUpperCase();
+  return (etablissement.nom || 'ES').split(/\s+/).filter((m) => m.length > 2).map((m) => m[0]).join('').slice(0, 4).toUpperCase();
+}
+
+// Logo (ou sigle) et identité de l'école à gauche, titre du document à
+// droite, filet marine dessous. Renvoie la position Y sous le filet.
+function enTeteOfficiel(doc, etablissement, { surtitre, titre, sousTitre, reference, largeurTitre = 190 }) {
+  const margeGauche = doc.page.margins.left;
+  const droite = doc.page.width - doc.page.margins.right;
+  const yEntete = 44;
+  const tailleLogo = 60;
+  if (!dessinerLogo(doc, etablissement, margeGauche, yEntete, tailleLogo)) {
+    doc.roundedRect(margeGauche, yEntete, tailleLogo, tailleLogo, 6).lineWidth(1.2).strokeColor(COULEUR_MARINE).stroke();
+    doc.font('Times-Bold').fontSize(15).fillColor(COULEUR_MARINE)
+      .text(sigleEtablissement(etablissement), margeGauche, yEntete + tailleLogo / 2 - 8, { width: tailleLogo, align: 'center' });
+  }
+  const xEcole = margeGauche + tailleLogo + 14;
+  const largeurEcole = droite - largeurTitre - 16 - xEcole;
+  doc.font('Times-Bold').fontSize(12.5).fillColor(COULEUR_MARINE)
+    .text(etablissement.nom.toUpperCase(), xEcole, yEntete + 2, { width: largeurEcole });
+  let yTexte = doc.y + 1;
+  if (etablissement.devise) {
+    doc.font('Times-Italic').fontSize(8.5).fillColor(COULEUR_TEXTE_CLAIR).text(etablissement.devise, xEcole, yTexte, { width: largeurEcole });
+    yTexte = doc.y + 1;
+  }
+  const adresse = [etablissement.boitePostale, etablissement.ville, etablissement.pays].filter(Boolean).join(', ');
+  const contacts = [etablissement.telephone, etablissement.email].filter(Boolean).join('  ·  ');
+  doc.font('Helvetica').fontSize(7.8).fillColor(COULEUR_TEXTE_CLAIR);
+  if (adresse) { doc.text(adresse, xEcole, yTexte, { width: largeurEcole }); yTexte = doc.y + 1; }
+  if (contacts) { doc.text(contacts, xEcole, yTexte, { width: largeurEcole }); yTexte = doc.y; }
+
+  const xTitre = droite - largeurTitre;
+  if (surtitre) {
+    doc.font('Helvetica-Bold').fontSize(7).fillColor(COULEUR_PRIMAIRE)
+      .text(surtitre, xTitre, yEntete + 2, { width: largeurTitre, align: 'right', characterSpacing: 0.8 });
+  }
+  doc.font('Times-Bold').fontSize(15).fillColor(COULEUR_MARINE)
+    .text(titre, xTitre, surtitre ? doc.y + 3 : yEntete + 2, { width: largeurTitre, align: 'right' });
+  if (sousTitre) {
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COULEUR_TEXTE).text(sousTitre, xTitre, doc.y + 2, { width: largeurTitre, align: 'right' });
+  }
+  if (reference) {
+    doc.font('Courier').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR).text(reference, xTitre, doc.y + 3, { width: largeurTitre, align: 'right' });
+  }
+  const y = Math.max(yEntete + tailleLogo, yTexte, doc.y) + 14;
+  doc.moveTo(margeGauche, y).lineTo(droite, y).lineWidth(2).strokeColor(COULEUR_MARINE).stroke();
+  return y + 16;
+}
+
+// Bloc d'identité : cases bordées [libellé, valeur, poids, police chasse fixe].
+function blocIdentite(doc, x, y, largeurTotale, cellules) {
+  const totalPoids = cellules.reduce((a, [, , poids = 1]) => a + poids, 0);
+  const hauteur = 38;
+  let cx = x;
+  cellules.forEach(([label, valeur, poids = 1, mono = false]) => {
+    const largeur = (largeurTotale * poids) / totalPoids;
+    doc.rect(cx, y, largeur, hauteur).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font('Helvetica-Bold').fontSize(6.3).fillColor(COULEUR_TEXTE_CLAIR).text(label.toUpperCase(), cx + 10, y + 8, { width: largeur - 20, characterSpacing: 0.6 });
+    // La valeur tient sur une ligne : la taille diminue si elle est trop longue.
+    doc.font(mono ? 'Courier-Bold' : 'Helvetica-Bold');
+    let taille = 9.5;
+    while (taille > 7 && doc.fontSize(taille).widthOfString(String(valeur || '')) > largeur - 20) taille -= 0.5;
+    doc.fontSize(taille).fillColor(COULEUR_TEXTE)
+      .text(valeur || '', cx + 10, y + 20, { width: largeur - 20, lineBreak: false, ellipsis: true });
+    cx += largeur;
+  });
+  return y + hauteur;
+}
+
+// Lieu et date à gauche, fonction du signataire et zone de signature à droite.
+function blocSignature(doc, y, etablissement, fonction) {
+  const margeGauche = doc.page.margins.left;
+  const droite = doc.page.width - doc.page.margins.right;
+  const dateDuJour = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  doc.font('Helvetica').fontSize(8.5).fillColor(COULEUR_TEXTE).text(`Fait à ${etablissement.ville}, le ${dateDuJour}`, margeGauche, y + 4);
+  const largeurSignature = 190;
+  const xSignature = droite - largeurSignature;
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COULEUR_TEXTE).text(fonction, xSignature, y, { width: largeurSignature, align: 'center' });
+  doc.moveTo(xSignature, y + 62).lineTo(droite, y + 62).lineWidth(0.7).strokeColor(COULEUR_TEXTE).stroke();
+  doc.font('Helvetica').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR).text('Signature et cachet', xSignature, y + 67, { width: largeurSignature, align: 'center' });
+  return y + 80;
+}
+
+// Mention de bas de page sur chaque page (document ouvert avec bufferPages).
+function piedDePageOfficiel(doc, texte) {
+  const margeGauche = doc.page.margins.left;
+  const largeur = doc.page.width - margeGauche - doc.page.margins.right;
+  const pages = doc.bufferedPageRange();
+  for (let i = pages.start; i < pages.start + pages.count; i += 1) {
+    doc.switchToPage(i);
+    const yPied = doc.page.height - doc.page.margins.bottom - 14;
+    doc.moveTo(margeGauche, yPied - 6).lineTo(margeGauche + largeur, yPied - 6).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font('Helvetica').fontSize(6.5).fillColor(COULEUR_TEXTE_CLAIR)
+      .text(`${texte}${pages.count > 1 ? `  ·  Page ${i - pages.start + 1}/${pages.count}` : ''}`, margeGauche, yPied, { width: largeur, align: 'center', lineBreak: false });
+  }
+}
+
+// Montant en toutes lettres (usage des reçus et fiches de paie).
+const UNITES = ['zéro', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf', 'dix', 'onze', 'douze', 'treize', 'quatorze', 'quinze', 'seize'];
+const DIZAINES = ['', 'dix', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante'];
+function moinsDeCent(n) {
+  if (n <= 16) return UNITES[n];
+  if (n < 20) return `dix-${UNITES[n - 10]}`;
+  if (n < 70) {
+    const d = Math.floor(n / 10);
+    const u = n % 10;
+    if (u === 0) return DIZAINES[d];
+    return u === 1 ? `${DIZAINES[d]} et un` : `${DIZAINES[d]}-${UNITES[u]}`;
+  }
+  if (n < 80) return n === 71 ? 'soixante et onze' : `soixante-${moinsDeCent(n - 60)}`;
+  if (n === 80) return 'quatre-vingts';
+  return `quatre-vingt-${moinsDeCent(n - 80)}`;
+}
+function moinsDeMille(n) {
+  const c = Math.floor(n / 100);
+  const r = n % 100;
+  let texte = '';
+  if (c === 1) texte = 'cent';
+  else if (c > 1) texte = `${UNITES[c]} cent${r === 0 ? 's' : ''}`;
+  if (r) texte = texte ? `${texte} ${moinsDeCent(r)}` : moinsDeCent(r);
+  return texte;
+}
+function enLettres(montant) {
+  let n = Math.round(Math.abs(montant));
+  if (n === 0) return 'zéro';
+  const parties = [];
+  const milliards = Math.floor(n / 1e9); n %= 1e9;
+  const millions = Math.floor(n / 1e6); n %= 1e6;
+  const milliers = Math.floor(n / 1e3); n %= 1e3;
+  if (milliards) parties.push(`${moinsDeMille(milliards)} milliard${milliards > 1 ? 's' : ''}`);
+  if (millions) parties.push(`${moinsDeMille(millions)} million${millions > 1 ? 's' : ''}`);
+  if (milliers) parties.push(milliers === 1 ? 'mille' : `${moinsDeMille(milliers).replace(/cents$/, 'cent')} mille`);
+  if (n) parties.push(moinsDeMille(n));
+  return parties.join(' ');
+}
+
+// Encadré "arrêté à la somme de" + montant mis en avant.
+function blocMontant(doc, x, y, largeur, { libelle, montant }) {
+  doc.rect(x, y, largeur, 76).fill('#F3F7F4');
+  doc.rect(x, y, largeur, 76).lineWidth(0.7).strokeColor('#CFE3D6').stroke();
+  doc.font('Helvetica-Bold').fontSize(6.5).fillColor(COULEUR_TEXTE_CLAIR).text(libelle, x + 16, y + 11, { width: largeur - 32, characterSpacing: 0.6 });
+  doc.font('Helvetica-Bold').fontSize(20).fillColor(COULEUR_SUCCES).text(`${formaterFCFA(montant)} FCFA`, x + 16, y + 22, { width: largeur - 32 });
+  const lettres = enLettres(montant);
+  doc.font('Helvetica-Oblique').fontSize(7.8).fillColor(COULEUR_TEXTE)
+    .text(`Arrêté à la somme de ${lettres} francs CFA.`, x + 16, y + 48, { width: largeur - 32, height: 22 });
+  return y + 76;
+}
+
+// Tableau récapitulatif à deux colonnes (libellé / montant), aligné à droite.
+function tableauRecapitulatif(doc, x, y, largeur, lignes) {
+  lignes.forEach(({ libelle, valeur, gras, couleur, fond }) => {
+    if (fond) doc.rect(x, y, largeur, 20).fill(fond);
+    doc.moveTo(x, y + 20).lineTo(x + largeur, y + 20).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font(gras ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.3).fillColor(COULEUR_TEXTE_CLAIR).text(libelle, x + 8, y + 6, { width: largeur * 0.55 - 8 });
+    doc.font(gras ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.8).fillColor(couleur || COULEUR_TEXTE)
+      .text(valeur, x + largeur * 0.55, y + 6, { width: largeur * 0.45 - 8, align: 'right' });
+    y += 20;
+  });
+  return y;
+}
+
 // Colonnes du tableau du bulletin (495 pt = largeur utile d'une page A4
 // avec des marges de 50) : Code / UE-Matière / Coef. / CC / Examen /
 // Moyenne / Résultat.
 const LARGEURS_COLONNES = [58, 187, 34, 44, 50, 52, 70];
 const EN_TETES = ['CODE', "UNITÉ D'ENSEIGNEMENT / MATIÈRE", 'COEF.', 'CC', 'EXAMEN', 'MOYENNE', 'RÉSULTAT'];
-const COULEUR_MARINE = '#0B1E3D';
 const COULEUR_UE = '#E8EEF6';
 
 function noteFr(valeur) {
@@ -113,11 +318,6 @@ function noteFr(valeur) {
 function resultatMatiere(m) {
   if (m.eliminatoire) return { texte: 'ÉLIMINATOIRE', couleur: COULEUR_ERREUR };
   return m.noteFinale >= 10 ? { texte: 'ACQUIS', couleur: COULEUR_SUCCES } : { texte: 'NON ACQUIS', couleur: COULEUR_ERREUR };
-}
-
-function sigleDe(etablissement) {
-  if (etablissement.sigle) return etablissement.sigle.slice(0, 5).toUpperCase();
-  return (etablissement.nom || 'ES').split(/\s+/).filter((m) => m.length > 2).map((m) => m[0]).join('').slice(0, 4).toUpperCase();
 }
 
 function enTeteTableau(doc, x, y) {
@@ -141,7 +341,7 @@ function assurerPlace(doc, y, hauteurNecessaire, margeGauche) {
 // son logo, bloc étudiant, résultats par UE et par matière, synthèse,
 // signature.
 async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement }) {
-  const nomFichier = `bulletin_${eleve.id}_${semestre.id}_${Date.now()}.pdf`;
+  const nomFichier = `bulletin_${eleve.id}_${semestre.id}.pdf`;
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
@@ -150,64 +350,20 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   const sansNotes = detailParUE.length === 0;
   const reference = `BUL-${String(semestre.id).padStart(2, '0')}${String(eleve.id).padStart(4, '0')}`;
 
-  // En-tête : logo et identité de l'école à gauche, titre du document à droite.
-  const yEntete = 44;
-  const tailleLogo = 60;
-  const logoDessine = dessinerLogo(doc, etablissement, margeGauche, yEntete, tailleLogo);
-  if (!logoDessine) {
-    doc.roundedRect(margeGauche, yEntete, tailleLogo, tailleLogo, 6).lineWidth(1.2).strokeColor(COULEUR_MARINE).stroke();
-    doc.font('Times-Bold').fontSize(15).fillColor(COULEUR_MARINE)
-      .text(sigleDe(etablissement), margeGauche, yEntete + tailleLogo / 2 - 8, { width: tailleLogo, align: 'center' });
-  }
-  const largeurTitre = 190;
-  const xEcole = margeGauche + tailleLogo + 14;
-  const largeurEcole = droite - largeurTitre - 16 - xEcole;
-  doc.font('Times-Bold').fontSize(12.5).fillColor(COULEUR_MARINE)
-    .text(etablissement.nom.toUpperCase(), xEcole, yEntete + 2, { width: largeurEcole });
-  let yTexte = doc.y + 1;
-  if (etablissement.devise) {
-    doc.font('Times-Italic').fontSize(8.5).fillColor(COULEUR_TEXTE_CLAIR).text(etablissement.devise, xEcole, yTexte, { width: largeurEcole });
-    yTexte = doc.y + 1;
-  }
-  const adresse = [etablissement.boitePostale, etablissement.ville, etablissement.pays].filter(Boolean).join(', ');
-  const contacts = [etablissement.telephone, etablissement.email].filter(Boolean).join('  ·  ');
-  doc.font('Helvetica').fontSize(7.8).fillColor(COULEUR_TEXTE_CLAIR);
-  if (adresse) { doc.text(adresse, xEcole, yTexte, { width: largeurEcole }); yTexte = doc.y + 1; }
-  if (contacts) { doc.text(contacts, xEcole, yTexte, { width: largeurEcole }); yTexte = doc.y; }
-
-  const xTitre = droite - largeurTitre;
-  doc.font('Helvetica-Bold').fontSize(7).fillColor(COULEUR_PRIMAIRE)
-    .text(`ANNÉE ${semestre.anneeScolaire || ''}`.trim(), xTitre, yEntete + 2, { width: largeurTitre, align: 'right', characterSpacing: 0.8 });
-  doc.font('Times-Bold').fontSize(15).fillColor(COULEUR_MARINE)
-    .text('BULLETIN DE NOTES', xTitre, doc.y + 3, { width: largeurTitre, align: 'right' });
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(COULEUR_TEXTE)
-    .text(semestre.libelle || '', xTitre, doc.y + 2, { width: largeurTitre, align: 'right' });
-  doc.font('Courier').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`Réf. ${reference}`, xTitre, doc.y + 3, { width: largeurTitre, align: 'right' });
-
-  let y = Math.max(yEntete + tailleLogo, yTexte, doc.y) + 14;
-  doc.moveTo(margeGauche, y).lineTo(droite, y).lineWidth(2).strokeColor(COULEUR_MARINE).stroke();
-  y += 16;
-
-  // Bloc étudiant : 4 cases bordées.
-  const identite = [
-    ['NOM ET PRÉNOM', `${eleve.nom} ${eleve.prenom}`, 1.5],
-    ['MATRICULE', eleve.matricule || 'Non attribué', 1],
-    ['CLASSE', eleve.Classe?.nom || 'Non renseignée', 1],
-    ['NIVEAU', eleve.Classe?.niveau || 'Non renseigné', 1],
-  ];
-  const totalPoids = identite.reduce((a, [, , p]) => a + p, 0);
-  const hauteurIdentite = 38;
-  let cx = margeGauche;
-  identite.forEach(([label, valeur, poids], i) => {
-    const largeur = (largeurTotale * poids) / totalPoids;
-    doc.rect(cx, y, largeur, hauteurIdentite).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
-    doc.font('Helvetica-Bold').fontSize(6.3).fillColor(COULEUR_TEXTE_CLAIR).text(label, cx + 10, y + 8, { width: largeur - 20, characterSpacing: 0.6 });
-    doc.font(i === 1 ? 'Courier-Bold' : 'Helvetica-Bold').fontSize(9.5).fillColor(COULEUR_TEXTE)
-      .text(valeur, cx + 10, y + 20, { width: largeur - 20, lineBreak: false, ellipsis: true });
-    cx += largeur;
+  let y = enTeteOfficiel(doc, etablissement, {
+    surtitre: `ANNÉE ${semestre.anneeScolaire || ''}`.trim(),
+    titre: 'BULLETIN DE NOTES',
+    sousTitre: semestre.libelle || '',
+    reference: `Réf. ${reference}`,
   });
-  y += hauteurIdentite + 16;
+
+  // Bloc étudiant.
+  y = blocIdentite(doc, margeGauche, y, largeurTotale, [
+    ['Nom et prénom', `${eleve.nom} ${eleve.prenom}`, 1.5],
+    ['Matricule', eleve.matricule || 'Non attribué', 1, true],
+    ['Classe', eleve.Classe?.nom || 'Non renseignée'],
+    ['Niveau', eleve.Classe?.niveau || 'Non renseigné'],
+  ]) + 16;
 
   if (sessionGlobale === 'rattrapage') {
     doc.rect(margeGauche, y, largeurTotale, 20).fill('#FAF0DC');
@@ -272,31 +428,13 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   });
   y += hauteurSynthese + 30;
 
-  // Lieu, date et signature.
-  const dateDuJour = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  doc.font('Helvetica').fontSize(8.5).fillColor(COULEUR_TEXTE).text(`Fait à ${etablissement.ville}, le ${dateDuJour}`, margeGauche, y + 4);
-  const largeurSignature = 190;
-  const xSignature = droite - largeurSignature;
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COULEUR_TEXTE).text('Le Directeur des études', xSignature, y, { width: largeurSignature, align: 'center' });
-  doc.moveTo(xSignature, y + 62).lineTo(droite, y + 62).lineWidth(0.7).strokeColor(COULEUR_TEXTE).stroke();
-  doc.font('Helvetica').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR).text('Signature et cachet', xSignature, y + 67, { width: largeurSignature, align: 'center' });
-
-  // Mentions de bas de page, sur chaque page.
-  const pages = doc.bufferedPageRange();
-  for (let i = pages.start; i < pages.start + pages.count; i += 1) {
-    doc.switchToPage(i);
-    const yPied = doc.page.height - doc.page.margins.bottom - 14;
-    doc.moveTo(margeGauche, yPied - 6).lineTo(droite, yPied - 6).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
-    doc.font('Helvetica').fontSize(6.5).fillColor(COULEUR_TEXTE_CLAIR)
-      .text(
-        `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.${pages.count > 1 ? `  ·  Page ${i - pages.start + 1}/${pages.count}` : ''}`,
-        margeGauche, yPied, { width: largeurTotale, align: 'center', lineBreak: false }
-      );
-  }
+  // Lieu, date et signature, puis mentions de bas de page.
+  blocSignature(doc, y, etablissement, 'Le Directeur des études');
+  piedDePageOfficiel(doc, `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.`);
 
   doc.end();
-  const chemin = await termine;
-  return { cheminAbsolu: chemin, cheminRelatif };
+  const contenu = await termine;
+  return { cheminRelatif, contenu, nomFichier };
 }
 
 function mention(moyenne) {
@@ -319,187 +457,123 @@ function formaterFCFA(montant) {
 const LIBELLE_MODE_PAIEMENT = { especes: 'Espèces', mobile_money: 'Mobile money', virement: 'Virement bancaire' };
 const LIBELLE_STATUT_FRAIS = { du: 'Dû', partiel: 'Partiellement réglé', solde: 'Soldé', impaye: 'Impayé' };
 
-// genererRecuPDF(paiement) - diagramme 8. Même traitement "document officiel"
-// que le bulletin : en-tête établissement, bloc identité, tableau quadrillé,
-// montant mis en avant, cachet.
+// genererRecuPDF(paiement) - diagramme 8. Document officiel au même
+// modèle que le bulletin : identité de l'école, élève, détail du règlement,
+// récapitulatif du frais, montant en toutes lettres, signature.
 async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissement }) {
   const nomFichier = `recu_${recuNumero}.pdf`;
-  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier);
+  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
   const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
+  const datePaiement = new Date(paiement.datePaiement || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_SUCCES);
-  dessinerLogo(doc, etablissement, margeGauche, 26);
-
-  doc.y = 34;
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
-  doc.moveDown(0.4);
-  doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
-    .text('REÇU DE PAIEMENT', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.3);
-  doc.fontSize(7.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`N° ${recuNumero}`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.6);
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_SUCCES).stroke();
-  doc.moveDown(0.7);
-
-  const largeurCol = largeurTotale / 3;
-  const identite = [
-    ['Élève', `${eleve.prenom} ${eleve.nom}`],
-    ['Mode de paiement', LIBELLE_MODE_PAIEMENT[paiement.modePaiement] || paiement.modePaiement],
-    ['Date de paiement', new Date(paiement.datePaiement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })],
-  ];
-  const yIdentite = doc.y;
-  identite.forEach(([label, valeur], i) => {
-    const cx = margeGauche + i * largeurCol;
-    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR).text(label.toUpperCase(), cx, yIdentite, { width: largeurCol - 8, characterSpacing: 0.5 });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor(COULEUR_TEXTE).text(valeur, cx, yIdentite + 11, { width: largeurCol - 8 });
+  let y = enTeteOfficiel(doc, etablissement, {
+    surtitre: 'SERVICE FINANCIER',
+    titre: 'REÇU DE PAIEMENT',
+    sousTitre: `N° ${recuNumero}`,
+    reference: `Émis le ${datePaiement}`,
   });
-  doc.y = yIdentite + 34;
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).dash(2, { space: 2 }).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
-  doc.undash();
-  doc.y += 14;
 
-  const largeursDetail = [largeurTotale - 200, 110, 90];
-  let y = dessinerLigne(
-    doc, margeGauche, doc.y, largeursDetail,
-    [
-      { texte: 'Frais concerné', gras: true, couleur: '#FFFFFF', taille: 7 },
-      { texte: 'Montant payé', align: 'center', gras: true, couleur: '#FFFFFF', taille: 7 },
-      { texte: 'Statut du frais', align: 'center', gras: true, couleur: '#FFFFFF', taille: 7 },
-    ],
-    { hauteur: 20, fond: COULEUR_PRIMAIRE, taille: 7 }
-  );
-  y = dessinerLigne(
-    doc, margeGauche, y, largeursDetail,
-    [
-      { texte: frais.libelle },
-      { texte: `${formaterFCFA(paiement.montant)} FCFA`, align: 'center', gras: true, couleur: COULEUR_SUCCES },
-      { texte: LIBELLE_STATUT_FRAIS[frais.statut] || frais.statut, align: 'center', gras: true },
-    ],
-    { hauteur: 22 }
-  );
-  y = dessinerLigne(
-    doc, margeGauche, y, largeursDetail,
-    [
-      { texte: 'Montant total du frais', couleur: COULEUR_TEXTE_CLAIR },
-      { texte: `${formaterFCFA(frais.montant)} FCFA`, align: 'center', couleur: COULEUR_TEXTE_CLAIR },
-      { texte: `reste ${formaterFCFA(frais.montant - frais.montantRegle)} FCFA`, align: 'center', couleur: COULEUR_TEXTE_CLAIR, taille: 7.2 },
-    ],
-    { hauteur: 20 }
-  );
+  y = blocIdentite(doc, margeGauche, y, largeurTotale, [
+    ['Reçu de', `${eleve.nom} ${eleve.prenom}`, 1.5],
+    ['Matricule', eleve.matricule || 'Non attribué', 1, true],
+    ['Classe', eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseignée', 1.2],
+    ['Date du paiement', datePaiement],
+  ]) + 22;
 
-  y += 26;
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text('MONTANT REÇU', margeGauche, y, { width: largeurTotale, align: 'center', characterSpacing: 0.5 });
-  doc.fontSize(26).font('Helvetica-Bold').fillColor(COULEUR_SUCCES)
-    .text(`${formaterFCFA(paiement.montant)} FCFA`, margeGauche, y + 12, { width: largeurTotale, align: 'center' });
+  // Détail du règlement.
+  const largeurs = [largeurTotale - 250, 130, 120];
+  y = dessinerLigne(doc, margeGauche, y, largeurs, [
+    { texte: 'DÉSIGNATION', gras: true, couleur: '#FFFFFF', taille: 6.8 },
+    { texte: 'MODE DE RÈGLEMENT', gras: true, couleur: '#FFFFFF', taille: 6.8 },
+    { texte: 'MONTANT RÉGLÉ', gras: true, couleur: '#FFFFFF', taille: 6.8, align: 'right' },
+  ], { hauteur: 22, fond: COULEUR_MARINE, sansBordure: true });
+  y = dessinerLigne(doc, margeGauche, y, largeurs, [
+    { texte: frais.libelle, gras: true },
+    { texte: LIBELLE_MODE_PAIEMENT[paiement.modePaiement] || paiement.modePaiement },
+    { texte: `${formaterFCFA(paiement.montant)} FCFA`, gras: true, align: 'right' },
+  ], { hauteur: 26, taille: 8.8 });
 
-  y += 70;
-  doc.moveTo(margeGauche, y).lineTo(margeGauche + largeurTotale, y).lineWidth(1.4).strokeColor(COULEUR_SUCCES).stroke();
-  y += 14;
-  doc.fontSize(8).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`Fait à ${etablissement.ville}, le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, margeGauche, y);
-  doc.circle(margeGauche + largeurTotale - 46, y + 30, 40).lineWidth(1).dash(2, { space: 2 }).strokeColor(COULEUR_BORDURE).stroke();
-  doc.undash();
-  doc.fontSize(6.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text('CACHET &\nSIGNATURE', margeGauche + largeurTotale - 46 - 30, y + 22, { width: 60, align: 'center' });
+  // Montant en lettres à gauche, récapitulatif du frais à droite.
+  y += 22;
+  const largeurMontant = largeurTotale - 270;
+  blocMontant(doc, margeGauche, y, largeurMontant, { libelle: 'MONTANT REÇU', montant: paiement.montant });
+  const dejaRegle = Math.max(0, (frais.montantRegle || 0) - paiement.montant);
+  const reste = Math.max(0, frais.montant - (frais.montantRegle || 0));
+  const solde = reste <= 0.01;
+  tableauRecapitulatif(doc, margeGauche + largeurTotale - 250, y - 2, 250, [
+    { libelle: 'Montant total du frais', valeur: `${formaterFCFA(frais.montant)} FCFA` },
+    { libelle: 'Déjà réglé auparavant', valeur: `${formaterFCFA(dejaRegle)} FCFA` },
+    { libelle: 'Montant de ce paiement', valeur: `${formaterFCFA(paiement.montant)} FCFA`, gras: true, couleur: COULEUR_SUCCES },
+    { libelle: 'Reste à payer', valeur: `${formaterFCFA(reste)} FCFA`, gras: true, couleur: solde ? COULEUR_SUCCES : COULEUR_ERREUR, fond: '#F5F7FA' },
+    { libelle: 'Situation du frais', valeur: solde ? 'Soldé' : (LIBELLE_STATUT_FRAIS[frais.statut] || frais.statut), gras: true },
+  ]);
+  y += 130;
 
-  doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom}, ${etablissement.boitePostale}, ${etablissement.telephone}, ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
+  blocSignature(doc, y, etablissement, 'Le Service financier');
+  piedDePageOfficiel(doc, `Reçu établi par ${etablissement.nom} via EduSphere  ·  N° ${recuNumero}  ·  Ce reçu fait foi de paiement, à conserver.`);
 
   doc.end();
-  const chemin = await termine;
-  return { cheminAbsolu: chemin, cheminRelatif };
+  const contenu = await termine;
+  return { cheminRelatif, contenu, nomFichier };
 }
 
-// genererFichePaiePDF(versement) - même traitement "document officiel" que
-// le reçu de paiement : en-tête établissement, bloc identité, montant mis
-// en avant, cachet. Une fiche par versement (pas cumulative sur l'année).
+// genererFichePaiePDF(versement) : même modèle que le reçu. Une fiche par
+// versement (pas cumulative sur l'année).
 async function genererFichePaiePDF({ personne, salaire, etablissement }) {
   const nomFichier = `fiche_paie_${salaire.id}.pdf`;
-  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier);
+  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
   const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
+  const numero = `FP-${new Date().getFullYear()}-${String(salaire.id).padStart(5, '0')}`;
+  const dateVersement = salaire.dateVersement
+    ? new Date(`${salaire.dateVersement}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'Non versé';
 
-  doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
-  dessinerLogo(doc, etablissement, margeGauche, 26);
-
-  doc.y = 34;
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
-  doc.moveDown(0.4);
-  doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
-    .text('FICHE DE PAIE', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.3);
-  doc.fontSize(7.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`N° FP-${new Date().getFullYear()}-${String(salaire.id).padStart(5, '0')}, ${salaire.periode}`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.6);
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
-  doc.moveDown(0.7);
-
-  const largeurCol = largeurTotale / 3;
-  const identite = [
-    ['Employé(e)', `${personne.prenom} ${personne.nom}`],
-    ['Poste', personne.poste],
-    ['Période', salaire.periode],
-  ];
-  const yIdentite = doc.y;
-  identite.forEach(([label, valeur], i) => {
-    const cx = margeGauche + i * largeurCol;
-    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR).text(label.toUpperCase(), cx, yIdentite, { width: largeurCol - 8, characterSpacing: 0.5 });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor(COULEUR_TEXTE).text(valeur, cx, yIdentite + 11, { width: largeurCol - 8 });
+  let y = enTeteOfficiel(doc, etablissement, {
+    surtitre: 'SERVICE FINANCIER',
+    titre: 'FICHE DE PAIE',
+    sousTitre: salaire.periode,
+    reference: `N° ${numero}`,
   });
-  doc.y = yIdentite + 34;
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).dash(2, { space: 2 }).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
-  doc.undash();
-  doc.y += 14;
 
-  const largeursDetail = [largeurTotale - 200, 110, 90];
-  let y = dessinerLigne(
-    doc, margeGauche, doc.y, largeursDetail,
-    [
-      { texte: 'Élément', gras: true, couleur: '#FFFFFF', taille: 7 },
-      { texte: 'Montant', align: 'center', gras: true, couleur: '#FFFFFF', taille: 7 },
-      { texte: 'Date de versement', align: 'center', gras: true, couleur: '#FFFFFF', taille: 7 },
-    ],
-    { hauteur: 20, fond: COULEUR_PRIMAIRE, taille: 7 }
-  );
-  y = dessinerLigne(
-    doc, margeGauche, y, largeursDetail,
-    [
-      { texte: 'Salaire net versé' },
-      { texte: `${formaterFCFA(salaire.montant)} FCFA`, align: 'center', gras: true, couleur: COULEUR_SUCCES },
-      { texte: salaire.dateVersement ? new Date(salaire.dateVersement).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'Non versé', align: 'center' },
-    ],
-    { hauteur: 22 }
-  );
+  y = blocIdentite(doc, margeGauche, y, largeurTotale, [
+    ['Salarié(e)', `${personne.nom} ${personne.prenom}`, 1.5],
+    ['Poste', personne.poste, 1.3],
+    ['Période', salaire.periode],
+    ['Date de versement', dateVersement],
+  ]) + 22;
 
-  y += 26;
-  doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text('MONTANT NET VERSÉ', margeGauche, y, { width: largeurTotale, align: 'center', characterSpacing: 0.5 });
-  doc.fontSize(26).font('Helvetica-Bold').fillColor(COULEUR_SUCCES)
-    .text(`${formaterFCFA(salaire.montant)} FCFA`, margeGauche, y + 12, { width: largeurTotale, align: 'center' });
+  const largeurs = [largeurTotale - 250, 130, 120];
+  y = dessinerLigne(doc, margeGauche, y, largeurs, [
+    { texte: 'RUBRIQUE', gras: true, couleur: '#FFFFFF', taille: 6.8 },
+    { texte: 'BASE', gras: true, couleur: '#FFFFFF', taille: 6.8, align: 'right' },
+    { texte: 'MONTANT', gras: true, couleur: '#FFFFFF', taille: 6.8, align: 'right' },
+  ], { hauteur: 22, fond: COULEUR_MARINE, sansBordure: true });
+  y = dessinerLigne(doc, margeGauche, y, largeurs, [
+    { texte: `Rémunération ${salaire.periode}`, gras: true },
+    { texte: personne.salaireBase ? `${formaterFCFA(personne.salaireBase)} FCFA` : '', align: 'right', couleur: COULEUR_TEXTE_CLAIR },
+    { texte: `${formaterFCFA(salaire.montant)} FCFA`, gras: true, align: 'right' },
+  ], { hauteur: 26, taille: 8.8 });
 
-  y += 70;
-  doc.moveTo(margeGauche, y).lineTo(margeGauche + largeurTotale, y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
-  y += 14;
-  doc.fontSize(8).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`Fait à ${etablissement.ville}, le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, margeGauche, y);
-  doc.circle(margeGauche + largeurTotale - 46, y + 30, 40).lineWidth(1).dash(2, { space: 2 }).strokeColor(COULEUR_BORDURE).stroke();
-  doc.undash();
-  doc.fontSize(6.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text('CACHET &\nSIGNATURE', margeGauche + largeurTotale - 46 - 30, y + 22, { width: 60, align: 'center' });
+  y += 22;
+  const largeurMontant = largeurTotale - 270;
+  blocMontant(doc, margeGauche, y, largeurMontant, { libelle: 'NET VERSÉ', montant: salaire.montant });
+  tableauRecapitulatif(doc, margeGauche + largeurTotale - 250, y - 2, 250, [
+    { libelle: 'Salaire de base', valeur: personne.salaireBase ? `${formaterFCFA(personne.salaireBase)} FCFA` : 'Non renseigné' },
+    { libelle: 'Net versé', valeur: `${formaterFCFA(salaire.montant)} FCFA`, gras: true, couleur: COULEUR_SUCCES, fond: '#F5F7FA' },
+    { libelle: 'Statut', valeur: salaire.statut === 'verse' ? 'Versé' : 'Prévu', gras: true },
+  ]);
+  y += 100;
 
-  doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom}, ${etablissement.boitePostale}, ${etablissement.telephone}, ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
+  blocSignature(doc, y, etablissement, "Pour l'employeur");
+  piedDePageOfficiel(doc, `Fiche établie par ${etablissement.nom} via EduSphere  ·  N° ${numero}  ·  À conserver sans limitation de durée.`);
 
   doc.end();
-  const chemin = await termine;
-  return { cheminAbsolu: chemin, cheminRelatif };
+  const contenu = await termine;
+  return { cheminRelatif, contenu, nomFichier };
 }
 
 const JOURS_EMPLOI = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -515,34 +589,25 @@ function versMinutesEmploi(hhmm) {
 // proportionnelle aux horaires plutôt qu'un tableau — pensé pour rester
 // lisible partagé tel quel (WhatsApp, e-mail) sans repasser par l'appli.
 async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement }) {
-  const nomFichier = `emploi_du_temps_${classe.id}_${semestre.id}_${Date.now()}.pdf`;
-  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { layout: 'landscape' });
+  const nomFichier = `emploi_du_temps_${classe.id}_${semestre.id}.pdf`;
+  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { layout: 'landscape', bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
   const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
 
-  doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
-
-  const yEntete = 26;
-  dessinerLogo(doc, etablissement, margeGauche, yEntete, 46);
-
-  doc.y = yEntete;
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
-  doc.moveDown(0.4);
-  doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
-    .text('EMPLOI DU TEMPS', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.3);
-  doc.fontSize(9.5).font('Helvetica-Bold').fillColor(COULEUR_PRIMAIRE)
-    .text(`${classe.nom} (${classe.niveau}), ${semestre.libelle} (${semestre.anneeScolaire})`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.6);
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
-  doc.moveDown(0.9);
+  const yDebut = enTeteOfficiel(doc, etablissement, {
+    surtitre: `ANNÉE ${semestre.anneeScolaire || ''}`.trim(),
+    titre: 'EMPLOI DU TEMPS',
+    sousTitre: `${classe.nom} (${classe.niveau})`,
+    reference: semestre.libelle,
+    largeurTitre: 230,
+  });
+  doc.y = yDebut;
 
   const largeurGouttiere = 34;
   const largeurJour = (largeurTotale - largeurGouttiere) / JOURS_EMPLOI.length;
   const yGrilleDebut = doc.y;
-  const hauteurGrille = doc.page.height - doc.page.margins.bottom - yGrilleDebut - 26;
+  const hauteurGrille = doc.page.height - doc.page.margins.bottom - yGrilleDebut - 30;
   const yColonnes = yGrilleDebut + 16;
   const hauteurColonnes = hauteurGrille - 16;
 
@@ -589,15 +654,13 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
     }
   });
 
-  doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(
-      `${etablissement.nom}, ${etablissement.boitePostale || ''}, ${etablissement.telephone || ''}, ${etablissement.email || ''}`,
-      margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' }
-    );
+  piedDePageOfficiel(doc, `Emploi du temps établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom} (${classe.niveau}), ${semestre.libelle}`);
 
   doc.end();
-  const chemin = await termine;
-  return { cheminAbsolu: chemin, cheminRelatif };
+  const contenu = await termine;
+  return { cheminRelatif, contenu, nomFichier };
 }
 
-module.exports = { genererBulletinPDF, genererRecuPDF, genererFichePaiePDF, genererEmploiDuTempsPDF, DOSSIER_STOCKAGE };
+module.exports = {
+  genererBulletinPDF, genererRecuPDF, genererFichePaiePDF, genererEmploiDuTempsPDF, lireDocument, importerDocumentsExistants, DOSSIER_STOCKAGE,
+};

@@ -3,12 +3,12 @@ const nodemailer = require('nodemailer');
 
 const { emailGenerique } = require('./modelesEmail');
 
-// Derniers envois (en mémoire, 30 au plus) : de quoi comprendre depuis
-// l'espace superadmin pourquoi un e-mail n'est pas arrivé, sans aller lire
-// les journaux du serveur. Adresse masquée : le superadmin ne doit pas
-// voir qui, dans une école, reçoit quoi.
-const JOURNAL_MAX = 30;
-const journalEnvois = [];
+// Chaque envoi est consigné dans PostgreSQL (table journal_emails) : de
+// quoi comprendre depuis l'espace superadmin pourquoi un e-mail n'est pas
+// arrivé, sans aller lire les journaux du serveur. Adresse masquée : le
+// superadmin ne doit pas voir qui, dans une école, reçoit quoi.
+const JOURNAL_AFFICHE = 30;
+const JOURNAL_CONSERVATION_JOURS = 90;
 
 function masquerAdresse(adresse) {
   const [local, domaine] = String(adresse).split('@');
@@ -17,20 +17,43 @@ function masquerAdresse(adresse) {
   return `${visible}@${domaine}`;
 }
 
-function consigner(destinataire, sujet, service, erreurs) {
-  journalEnvois.unshift({
-    le: new Date().toISOString(),
-    destinataire: masquerAdresse(destinataire),
-    sujet,
-    service,
-    envoye: service !== 'simulation',
-    erreurs,
-  });
-  journalEnvois.length = Math.min(journalEnvois.length, JOURNAL_MAX);
+async function consigner(destinataire, sujet, service, erreurs) {
+  try {
+    const { JournalEmail } = require('../models');
+    await JournalEmail.create({
+      destinataire: masquerAdresse(destinataire),
+      sujet: String(sujet).slice(0, 300),
+      service,
+      statut: service !== 'simulation' ? 'envoye' : erreurs.length ? 'echec' : 'simule',
+      erreurs,
+    });
+    // Ménage occasionnel : on ne garde que les derniers mois.
+    if (Math.random() < 0.05) {
+      const { Op } = require('sequelize');
+      await JournalEmail.destroy({ where: { createdAt: { [Op.lt]: new Date(Date.now() - JOURNAL_CONSERVATION_JOURS * 86400000) } } });
+    }
+  } catch (err) {
+    console.error('[Service E-mail] Journal indisponible :', err.message);
+  }
 }
 
-function derniersEnvois() {
-  return journalEnvois.slice();
+async function derniersEnvois() {
+  const { JournalEmail } = require('../models');
+  const lignes = await JournalEmail.findAll({ order: [['createdAt', 'DESC']], limit: JOURNAL_AFFICHE });
+  return lignes.map((l) => ({
+    le: l.createdAt,
+    destinataire: l.destinataire,
+    sujet: l.sujet,
+    service: l.service,
+    envoye: l.statut === 'envoye',
+    erreurs: l.erreurs || [],
+  }));
+}
+
+// Pièce jointe : contenu en mémoire (PDF lu depuis PostgreSQL) ou, pour
+// un ancien appel, chemin sur le disque.
+function contenuPiece(p) {
+  return p.contenu || fs.readFileSync(p.cheminAbsolu);
 }
 
 // Render bloque le SMTP sortant (ports 25/465/587) sur son plan gratuit —
@@ -84,7 +107,7 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointe
       // tableau vide comme pour Resend (qui l'accepte sans problème).
       ...(piecesJointes.length > 0 && {
         attachments: piecesJointes.map((p) => ({
-          content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
+          content: contenuPiece(p).toString('base64'),
           filename: p.nomFichier,
           disposition: 'attachment',
         })),
@@ -116,7 +139,7 @@ async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes)
       html,
       attachments: piecesJointes.map((p) => ({
         filename: p.nomFichier,
-        content: fs.readFileSync(p.cheminAbsolu).toString('base64'),
+        content: contenuPiece(p).toString('base64'),
       })),
     }),
     // `fetch` n'a par défaut aucune limite de temps — un Resend qui traîne
@@ -188,7 +211,7 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], opti
         subject: sujet,
         text: corps,
         html,
-        attachments: piecesJointes.map((p) => ({ filename: p.nomFichier, path: p.cheminAbsolu })),
+        attachments: piecesJointes.map((p) => (p.contenu ? { filename: p.nomFichier, content: p.contenu } : { filename: p.nomFichier, path: p.cheminAbsolu })),
       });
       consigner(destinataire, sujet, 'smtp', erreurs);
       return { envoye: true, service: 'smtp', erreurs };

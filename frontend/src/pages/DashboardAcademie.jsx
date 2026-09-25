@@ -2,6 +2,7 @@ import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
   IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconMessage, IconSettings, IconCalendar, IconLayers, IconTrendingDown,
+  IconClipboard,
 } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
@@ -12,6 +13,7 @@ const TableauDeBord = lazy(() => import('./academie/TableauDeBord'));
 const ElevesClasses = lazy(() => import('./academie/ElevesClasses'));
 const UnitesEnseignement = lazy(() => import('./academie/UnitesEnseignement'));
 const EmploisDuTemps = lazy(() => import('./academie/EmploisDuTemps'));
+const FeuillesAppel = lazy(() => import('./academie/FeuillesAppel'));
 const Notes = lazy(() => import('./academie/Notes'));
 const Bulletins = lazy(() => import('./academie/Bulletins'));
 const ComptesEphemeres = lazy(() => import('./academie/ComptesEphemeres'));
@@ -28,6 +30,8 @@ const ONGLETS = [
     description: 'Unités d’enseignement et matières de chaque semestre.' },
   { id: 'emplois', label: 'Emplois du temps', composant: EmploisDuTemps, icone: IconCalendar, groupe: 'Scolarité', fonctionnalite: 'emplois-du-temps',
     description: 'Créneaux hebdomadaires de chaque classe, et export PDF.' },
+  { id: 'appels', label: "Feuilles d'appel", composant: FeuillesAppel, icone: IconClipboard, groupe: 'Scolarité', fonctionnalite: 'acces-temporaires',
+    description: 'Appels faits par les professeurs depuis leur accès temporaire : présents, absents et retards de chaque séance.' },
   { id: 'notes', label: 'Notes', composant: Notes, icone: IconPencil, groupe: 'Évaluation',
     description: 'Saisie des notes de contrôle continu et d’examen.' },
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument, groupe: 'Évaluation',

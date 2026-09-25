@@ -6,6 +6,9 @@ const {
   renvoyerCompteEphemere,
   verifierJeton,
   enregistrerNotesEphemere,
+  listerComptesRendus,
+  detailCompteRendu,
+  compteRenduDeLAcces,
 } = require('../controllers/comptesEphemeresController');
 const { saisirAppelEphemere } = require('../controllers/absencesController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
@@ -24,6 +27,9 @@ router.get('/', ...academieAvecModule, listerComptesEphemeres);
 router.post('/', ...academieAvecModule, creerCompteEphemere);
 router.patch('/gestion/:id/revoquer', ...academieAvecModule, revoquerCompteEphemere);
 router.post('/gestion/:id/renvoyer', ...academieAvecModule, renvoyerCompteEphemere);
+router.get('/gestion/:id/compte-rendu', ...academieAvecModule, compteRenduDeLAcces);
+router.get('/comptes-rendus', ...academieAvecModule, listerComptesRendus);
+router.get('/comptes-rendus/:id', ...academieAvecModule, detailCompteRendu);
 
 // Professeur : ouvrir le lien reçu, puis saisir les notes (ou les absences
 // selon la tâche du compte éphémère). Pas de session classique ici, le

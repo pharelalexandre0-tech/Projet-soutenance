@@ -2130,3 +2130,42 @@ a.bouton-lien-secondaire svg { width: 17px; height: 17px; }
   .bulletin-pied { flex-direction: column; align-items: stretch; }
   .bulletin-signature { min-width: 0; }
 }
+
+/* ==========================================================================
+   Feuilles d'appel, comptes rendus de saisie, paie du personnel
+   ========================================================================== */
+
+.chiffres-classe.chiffres-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.chiffres-classe dd small { font-size: 13px; font-weight: 500; color: var(--texte-clair); }
+.liste-compte-rendu { list-style: none; margin: 0; padding: 0; border: 1px solid var(--bordure); border-radius: 10px; overflow: hidden; }
+.liste-compte-rendu li { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--bordure); }
+.liste-compte-rendu li:last-child { border-bottom: none; }
+.liste-compte-rendu li.statut-absent { background: color-mix(in srgb, var(--erreur-fond) 55%, var(--carte)); }
+.liste-compte-rendu li.statut-retard { background: color-mix(in srgb, var(--alerte-fond) 60%, var(--carte)); }
+.liste-compte-rendu-statut { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: none; }
+.liste-compte-rendu-statut small { font-size: 12px; }
+.liste-compte-rendu-note { flex: none; font-size: 15px; font-variant-numeric: tabular-nums; }
+.table-appels td { white-space: nowrap; }
+.table-appels .chiffre { text-align: right; }
+
+.panneau-outils { display: flex; flex-direction: column; gap: 10px; margin: -22px -30px 0; padding: 14px 30px; border-bottom: 1px solid var(--bordure); }
+.panneau-outils .champ-recherche { min-width: 0; }
+.panneau-outils + .liste-classes { margin-top: 0; }
+.liste-personnel-paie .choix-classe { padding-right: 30px; }
+.liste-personnel-paie .badge { flex: none; }
+.avatar-initiales.grand { width: 48px; height: 48px; font-size: 15px; }
+.fiche-paie-identite { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.fiche-paie-identite h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 !important; }
+.fiche-paie-identite p { margin: 2px 0 0; font-size: 14px; color: var(--texte-clair); overflow-wrap: anywhere; }
+.fiche-paie-vide { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 20px; }
+.fiche-paie-vide h2 { margin: 16px 0 8px !important; padding: 0 !important; border: none !important; font-size: 19px; }
+.fiche-paie-vide p { margin: 0; max-width: 52ch; font-size: 14.5px; line-height: 1.6; color: var(--texte-clair); }
+.stat-tile .valeur.valeur-montant { font-size: 26px; }
+
+@media (max-width: 760px) {
+  .panneau-outils { margin: -18px -18px 0; padding: 12px 18px; }
+  .liste-personnel-paie .choix-classe { padding-right: 18px; }
+  .chiffres-classe.chiffres-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chiffres-classe.chiffres-4 > div:nth-child(3) { border-left: none; }
+  .chiffres-classe.chiffres-4 > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
+}

@@ -80,6 +80,7 @@ export const IconClock = avecTrait(Clock);
 export const IconBell = avecTrait(Bell);
 export const IconLogin = avecTrait(LogIn);
 export const IconOeil = avecTrait(Eye);
+export const IconEye = IconOeil;
 export const IconOeilBarre = avecTrait(EyeOff);
 export const IconUpload = avecTrait(Upload);
 export const IconUserPlus = avecTrait(UserPlus);

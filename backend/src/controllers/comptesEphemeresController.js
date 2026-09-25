@@ -1,12 +1,13 @@
 const { fn, col } = require('sequelize');
 const {
-  CompteEphemere, Professeur, Classe, Matiere, UniteEnseignement, Semestre, Eleve, Etablissement, Note, Absence,
+  CompteEphemere, Professeur, Classe, Matiere, UniteEnseignement, Semestre, Eleve, Etablissement, Note, Absence, CompteRenduSaisie,
 } = require('../models');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
 const { lienAccesTemporaire } = require('../utils/liens');
 const { enregistrerMoyenne } = require('./notesController');
 const { envoyerEmail } = require('../services/emailService');
 const { emailAccesTemporaire } = require('../services/modelesEmail');
+const { consignerNotes, presenterResume, presenterDetail } = require('../services/compteRenduService');
 
 function formaterExpiration(date) {
   return new Date(date).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Libreville' });
@@ -266,6 +267,11 @@ async function enregistrerNotesEphemere(req, res) {
   compte.statut = 'revoque';
   compte.saisieEnvoyeeLe = new Date();
   await compte.save();
+  // Liste des notes envoyées, gardée telle quelle pour l'Académie.
+  await consignerNotes(compte, {
+    eleves,
+    notes: notes.filter((n) => n.valeur !== '' && n.valeur !== undefined && n.valeur !== null),
+  });
 
   return res.status(201).json({
     message: 'notes enregistrées',
@@ -274,6 +280,34 @@ async function enregistrerNotesEphemere(req, res) {
   });
 }
 
+// Comptes rendus des saisies de professeurs (feuilles d'appel, notes) :
+// liste pour l'Académie, filtrable par type et par classe.
+async function listerComptesRendus(req, res) {
+  const where = { etablissementId: req.utilisateur.etablissementId };
+  if (req.query.tache) where.tache = req.query.tache;
+  if (req.query.classeId) where.classeId = req.query.classeId;
+  const comptesRendus = await CompteRenduSaisie.findAll({ where, order: [['date', 'DESC'], ['envoyeLe', 'DESC']], limit: 500 });
+  return res.json({ comptesRendus: comptesRendus.map(presenterResume) });
+}
+
+async function detailCompteRendu(req, res) {
+  const cr = await CompteRenduSaisie.findByPk(req.params.id);
+  if (!cr || cr.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'compte rendu introuvable' });
+  }
+  return res.json({ compteRendu: await presenterDetail(cr) });
+}
+
+// Même détail, à partir d'un accès de la liste "Accès temporaires".
+async function compteRenduDeLAcces(req, res) {
+  const compte = await compteDeLEcole(req.params.id, req.utilisateur.etablissementId);
+  if (!compte) return res.status(404).json({ erreur: 'accès introuvable' });
+  const cr = await CompteRenduSaisie.findOne({ where: { compteEphemereId: compte.id } });
+  if (!cr) return res.status(404).json({ erreur: "le professeur n'a encore rien envoyé avec cet accès" });
+  return res.json({ compteRendu: await presenterDetail(cr) });
+}
+
 module.exports = {
   creerCompteEphemere, listerComptesEphemeres, revoquerCompteEphemere, renvoyerCompteEphemere, verifierJeton, enregistrerNotesEphemere,
+  listerComptesRendus, detailCompteRendu, compteRenduDeLAcces,
 };

@@ -3,10 +3,11 @@ import client from '../../api/client';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
+import DetailCompteRendu from '../../components/DetailCompteRendu';
 import { messageErreur } from '../../utils/erreurs';
 import {
   IconPlus, IconPencil, IconCalendarAlert, IconKey, IconUsers, IconCheck, IconCircleCheck, IconClock,
-  IconMail, IconClose, IconSend, IconDocument, IconTrash,
+  IconMail, IconClose, IconSend, IconDocument, IconTrash, IconEye,
 } from '../../components/icons';
 
 const DUREES = [
@@ -79,6 +80,7 @@ export default function ComptesEphemeres() {
   const [aFermer, setAFermer] = useState(null);
   const [professeurASupprimer, setProfesseurASupprimer] = useState(null);
   const [renvoiEnCours, setRenvoiEnCours] = useState(null);
+  const [compteRendu, setCompteRendu] = useState(null);
   const [toast, setToast] = useState(null);
   const [, setTic] = useState(0);
 
@@ -129,6 +131,15 @@ export default function ComptesEphemeres() {
       charger();
     } finally {
       setRenvoiEnCours(null);
+    }
+  }
+
+  async function voirSaisie(a) {
+    try {
+      const res = await client.get(`/comptes-ephemeres/gestion/${a.id}/compte-rendu`);
+      setCompteRendu(res.data.compteRendu);
+    } catch (err) {
+      setToast({ message: messageErreur(err, 'impossible d’ouvrir cette saisie'), type: 'erreur' });
     }
   }
 
@@ -238,6 +249,11 @@ export default function ComptesEphemeres() {
                           <button className="bouton-icone-texte danger" onClick={() => setAFermer(a)} title="Fermer l'accès"><IconClose /> Fermer</button>
                         </>
                       )}
+                      {!statut.ouvert && (a.saisieEnvoyeeLe || a.saisies > 0) && (
+                        <button className="bouton-icone-texte" onClick={() => voirSaisie(a)} title="Voir ce que le professeur a envoyé">
+                          <IconEye /> Voir la saisie
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -315,6 +331,7 @@ export default function ComptesEphemeres() {
           déjà délivrés ne fonctionneront plus.
         </ConfirmModal>
       )}
+      {compteRendu && <DetailCompteRendu compteRendu={compteRendu} onFermer={() => setCompteRendu(null)} />}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </>
   );

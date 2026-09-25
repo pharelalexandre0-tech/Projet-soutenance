@@ -88,7 +88,7 @@ async function enregistrerPaiement(req, res) {
   }
 
   const frais = await FraisScolarite.findByPk(fraisId, {
-    include: [{ model: Eleve, include: [{ model: Utilisateur, as: 'compteEtudiant' }] }],
+    include: [{ model: Eleve, include: [Classe, { model: Utilisateur, as: 'compteEtudiant' }] }],
   });
   if (!frais || frais.Eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'frais introuvable' });
@@ -112,7 +112,7 @@ async function enregistrerPaiement(req, res) {
   await frais.save();
 
   const recuNumero = `REC-${new Date().getFullYear()}-${String(paiement.id).padStart(5, '0')}`;
-  const { cheminAbsolu, cheminRelatif } = await genererRecuPDF({
+  const { contenu, cheminRelatif } = await genererRecuPDF({
     recuNumero,
     eleve: frais.Eleve,
     frais,
@@ -127,7 +127,7 @@ async function enregistrerPaiement(req, res) {
       frais.Eleve.compteEtudiant.email,
       `Reçu de paiement : ${frais.libelle}`,
       `Votre paiement de ${montant} FCFA a été enregistré. Vous trouverez le reçu ${recuNumero} en pièce jointe.`,
-      [{ cheminAbsolu, nomFichier: `${recuNumero}.pdf` }]
+      [{ contenu, nomFichier: `${recuNumero}.pdf` }]
     );
     await Notification.create({
       utilisateurId: frais.Eleve.compteEtudiant.id,
@@ -276,7 +276,7 @@ async function verserSalaire(req, res) {
     gereParFinanceId: req.utilisateur.id,
   });
 
-  const { cheminAbsolu, cheminRelatif } = await genererFichePaiePDF({
+  const { contenu, cheminRelatif } = await genererFichePaiePDF({
     personne,
     salaire,
     etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
@@ -290,7 +290,7 @@ async function verserSalaire(req, res) {
       personne.email,
       `Fiche de paie : ${periode}`,
       `Votre salaire de ${montant} FCFA pour la période "${periode}" a été versé. Vous trouverez votre fiche de paie en pièce jointe.`,
-      [{ cheminAbsolu, nomFichier: `fiche_paie_${periode.replace(/\s+/g, '_')}.pdf` }]
+      [{ contenu, nomFichier: `fiche_paie_${periode.replace(/\s+/g, '_')}.pdf` }]
     );
     ficheEnvoyeeA = personne.email;
   }

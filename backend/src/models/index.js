@@ -31,6 +31,9 @@ const ActivationFonctionnalite = require('./ActivationFonctionnalite');
 const ParametrePlateforme = require('./ParametrePlateforme');
 const MiseAJour = require('./MiseAJour');
 const JournalAdministration = require('./JournalAdministration');
+const DocumentPDF = require('./DocumentPDF');
+const JournalEmail = require('./JournalEmail');
+const CompteRenduSaisie = require('./CompteRenduSaisie');
 
 // ---- Multi-établissement (superadmin) --------------------------------------
 // EduSphere héberge plusieurs écoles : chaque compte (hors superadmin), et
@@ -125,6 +128,22 @@ Note.belongsTo(Eleve, { foreignKey: 'eleveId' });
 Matiere.hasMany(Note, { foreignKey: 'matiereId' });
 Note.belongsTo(Matiere, { foreignKey: 'matiereId' });
 CompteEphemere.hasMany(Note, { foreignKey: 'compteEphemereId' });
+
+// Compte rendu figé de ce qu'un professeur a envoyé (feuille d'appel, notes).
+CompteEphemere.hasOne(CompteRenduSaisie, { foreignKey: 'compteEphemereId' });
+CompteRenduSaisie.belongsTo(CompteEphemere, { foreignKey: 'compteEphemereId' });
+Classe.hasMany(CompteRenduSaisie, { foreignKey: 'classeId' });
+CompteRenduSaisie.belongsTo(Classe, { foreignKey: 'classeId' });
+Professeur.hasMany(CompteRenduSaisie, { foreignKey: 'professeurId' });
+CompteRenduSaisie.belongsTo(Professeur, { foreignKey: 'professeurId' });
+Matiere.hasMany(CompteRenduSaisie, { foreignKey: 'matiereId' });
+CompteRenduSaisie.belongsTo(Matiere, { foreignKey: 'matiereId' });
+Etablissement.hasMany(CompteRenduSaisie, { foreignKey: 'etablissementId' });
+CompteRenduSaisie.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+
+// La paie reprend automatiquement les professeurs de l'Académie.
+Professeur.hasOne(Personnel, { foreignKey: 'professeurId' });
+Personnel.belongsTo(Professeur, { foreignKey: 'professeurId' });
 Note.belongsTo(CompteEphemere, { foreignKey: 'compteEphemereId' });
 Utilisateur.hasMany(Note, { foreignKey: 'saisiParAcademieId' });
 Note.belongsTo(Utilisateur, { foreignKey: 'saisiParAcademieId', as: 'saisiParAcademie' });
@@ -197,4 +216,7 @@ module.exports = {
   ParametrePlateforme,
   MiseAJour,
   JournalAdministration,
+  DocumentPDF,
+  JournalEmail,
+  CompteRenduSaisie,
 };

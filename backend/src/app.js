@@ -18,7 +18,7 @@ const predictionsRoutes = require('./routes/predictions');
 const referenceRoutes = require('./routes/reference');
 const superadminRoutes = require('./routes/superadmin');
 const plateformeRoutes = require('./routes/plateforme');
-const { DOSSIER_STOCKAGE } = require('./services/pdfService');
+const { DOSSIER_STOCKAGE, lireDocument } = require('./services/pdfService');
 
 const app = express();
 
@@ -63,7 +63,21 @@ const limiteurConnexion = rateLimit({
 });
 app.use(['/api/auth/connexion', '/api/auth/mot-de-passe-oublie', '/api/auth/reinitialiser-mot-de-passe'], limiteurConnexion);
 
-// Bulletins et reçus PDF générés par pdfService (diagrammes 5 et 8).
+// Bulletins, reçus, fiches de paie et emplois du temps PDF (diagrammes 5
+// et 8), lus dans PostgreSQL. Le dossier du disque ne sert plus que de
+// repli pour d'anciens fichiers pas encore importés.
+app.get('/fichiers/:nomFichier', async (req, res, next) => {
+  try {
+    const contenu = await lireDocument(req.params.nomFichier);
+    if (!contenu) return next();
+    res.set('Content-Type', 'application/pdf');
+    res.set('Content-Disposition', `inline; filename="${req.params.nomFichier.replace(/"/g, '')}"`);
+    res.set('Cache-Control', 'no-cache');
+    return res.send(contenu);
+  } catch (err) {
+    return next(err);
+  }
+});
 app.use('/fichiers', express.static(DOSSIER_STOCKAGE));
 
 app.get('/api/sante', (req, res) => res.json({ etat: 'ok' }));
