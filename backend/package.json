@@ -11,7 +11,9 @@
     "backup": "node src/scripts/sauvegarder.js",
     "train:risque": "node src/scripts/entrainerModeleRisque.js",
     "check:impayes": "node src/scripts/checkImpayes.js",
-    "check:prediction": "node src/scripts/runPrediction.js"
+    "check:prediction": "node src/scripts/runPrediction.js",
+    "seed:demo": "node src/scripts/peuplerDemo.js",
+    "export:jeu-risque": "node src/scripts/exporterJeuRisque.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

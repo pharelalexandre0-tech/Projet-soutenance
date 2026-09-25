@@ -1,13 +1,16 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
-import TableauDefilant from '../../components/TableauDefilant';
-import { IconBanknote } from '../../components/icons';
+import { IconBanknote, IconSearch, IconPlus, IconWallet } from '../../components/icons';
 import { totalElevesParNiveaux } from '../../utils/totaux';
 
 const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge', sans_frais: 'gris' };
-const LIBELLE_STATUT = { du: 'dû', partiel: 'partiel', solde: 'à jour', impaye: 'impayé', sans_frais: 'sans frais' };
+const LIBELLE_STATUT = { du: 'Dû', partiel: 'Partiel', solde: 'À jour', impaye: 'Impayé', sans_frais: 'Sans frais' };
+
+function fcfa(montant) {
+  return `${Math.round(montant || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} FCFA`;
+}
 
 // Dès qu'un étudiant est inscrit, la Finance doit voir son frais sans avoir
 // à le créer élève par élève : une classe, tout un niveau ou l'établissement
@@ -21,6 +24,7 @@ export default function DefinirFrais() {
   const [eleveEnPaiement, setEleveEnPaiement] = useState(null);
   const [toast, setToast] = useState(null);
   const [recherche, setRecherche] = useState('');
+  const [classeId, setClasseId] = useState('');
 
   function charger() {
     setChargement(true);
@@ -40,92 +44,97 @@ export default function DefinirFrais() {
   // besoin d'un onglet séparé, l'étudiant cherché reste encaissable ici
   // exactement comme dans la liste complète.
   const termeRecherche = recherche.trim().toLowerCase();
-  const niveauxFiltres = termeRecherche
-    ? niveaux
-        .map((n) => ({
-          ...n,
-          classes: n.classes
-            .map((c) => ({ ...c, eleves: c.eleves.filter((e) => `${e.prenom} ${e.nom}`.toLowerCase().includes(termeRecherche)) }))
-            .filter((c) => c.eleves.length > 0),
-        }))
-        .filter((n) => n.classes.length > 0)
-    : niveaux;
+  const groupes = niveaux.flatMap((n) => n.classes
+    .filter((c) => !classeId || String(c.id) === classeId)
+    .map((c) => ({
+      niveau: n.niveau,
+      classe: c,
+      eleves: c.eleves.filter((e) => !termeRecherche || `${e.prenom} ${e.nom} ${e.nom} ${e.prenom}`.toLowerCase().includes(termeRecherche)),
+    }))
+    .filter((g) => !termeRecherche || g.eleves.length > 0));
+  const classes = niveaux.flatMap((n) => n.classes.map((c) => ({ ...c, niveau: n.niveau })));
 
   return (
     <>
       <div className="stats-grid">
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Net à payer</span><span className="puce-icone petite"><IconBanknote width={16} height={16} /></span></div>
-          <div className="valeur">{totalNetAPayer.toLocaleString('fr-FR')}</div>
+          <div className="valeur valeur-montant">{fcfa(totalNetAPayer)}</div>
         </div>
         <div className="stat-tile tile-vert">
           <div className="stat-tile-haut"><span className="libelle">Déjà versé</span></div>
-          <div className="valeur">{totalVerse.toLocaleString('fr-FR')}</div>
+          <div className="valeur valeur-montant">{fcfa(totalVerse)}</div>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Reste dû</span></div>
-          <div className="valeur">{(totalNetAPayer - totalVerse).toLocaleString('fr-FR')}</div>
+          <div className="valeur valeur-montant">{fcfa(totalNetAPayer - totalVerse)}</div>
         </div>
       </div>
 
       <div className="carte">
         <div className="entete-carte">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="puce-icone petite"><IconBanknote width={16} height={16} /></span>
-            <h2>Frais de scolarité ({totalEleves} étudiant{totalEleves > 1 ? 's' : ''})</h2>
-          </div>
-          <button className="primaire" onClick={() => setModaleClasseOuverte(true)}>+ Définir un frais</button>
+          <h2>Frais de scolarité <span className="entete-carte-compteur">{totalEleves} étudiant{totalEleves > 1 ? 's' : ''}</span></h2>
+          <button className="primaire" onClick={() => setModaleClasseOuverte(true)}><IconPlus /> Définir un frais</button>
         </div>
 
-        <input
-          type="search"
-          placeholder="Rechercher un étudiant par nom…"
-          value={recherche}
-          onChange={(e) => setRecherche(e.target.value)}
-          style={{ width: '100%', boxSizing: 'border-box', marginBottom: 16 }}
-        />
+        <div className="barre-outils">
+          <label className="champ-recherche">
+            <IconSearch />
+            <input type="search" placeholder="Rechercher un étudiant…" value={recherche} onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher un étudiant" />
+          </label>
+          <select value={classeId} onChange={(e) => setClasseId(e.target.value)} aria-label="Filtrer par classe" className="filtre-select">
+            <option value="">Toutes les classes</option>
+            {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
+          </select>
+        </div>
 
-        {chargement && <div className="chargement">Chargement…</div>}
-        {!chargement && niveaux.length === 0 && <div className="vide">Aucune classe enregistrée</div>}
-        {!chargement && niveaux.length > 0 && niveauxFiltres.length === 0 && (
-          <div className="vide">Aucun étudiant ne correspond à "{recherche.trim()}"</div>
-        )}
-
-        {niveauxFiltres.map(({ niveau, classes }) => (
-          <div className="roster-niveau" key={niveau}>
-            <h3 className="roster-niveau-titre">{niveau}</h3>
-            {classes.map((classe) => (
-              <TableauDefilant
-                key={classe.id}
-                titre={classe.nom}
-                compte={`${classe.eleves.length} élève${classe.eleves.length > 1 ? 's' : ''}`}
-              >
-                <div className="table-scroll">
-                  <table>
-                    <thead><tr><th>Étudiant</th><th>Net à payer</th><th>Versé</th><th>Reste</th><th>Statut</th><th></th></tr></thead>
-                    <tbody>
-                      {classe.eleves.map((eleve) => (
-                        <tr key={eleve.id}>
-                          <td>{eleve.prenom} {eleve.nom}</td>
-                          <td className="note-secondaire">{eleve.totalDu.toLocaleString('fr-FR')} FCFA</td>
-                          <td className="note-secondaire">{eleve.totalRegle.toLocaleString('fr-FR')} FCFA</td>
-                          <td>{eleve.resteDu > 0 ? `${eleve.resteDu.toLocaleString('fr-FR')} FCFA` : 'Soldé'}</td>
-                          <td><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
-                          <td>
-                            {eleve.fraisActifId && (
-                              <button className="secondaire" onClick={() => setEleveEnPaiement({ ...eleve, classeNom: classe.nom })}>Encaisser</button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {classe.eleves.length === 0 && <tr><td colSpan={6} className="vide">Aucun élève dans cette classe</td></tr>}
-                    </tbody>
-                  </table>
-                </div>
-              </TableauDefilant>
-            ))}
-          </div>
-        ))}
+        <div className="table-scroll defilement-visible">
+          <table className="table-impayes">
+            <thead>
+              <tr>
+                <th>Étudiant</th>
+                <th className="chiffre">Net à payer</th>
+                <th className="chiffre">Versé</th>
+                <th className="chiffre">Reste</th>
+                <th>Statut</th>
+                <th className="cellule-actions">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupes.map(({ niveau, classe, eleves }) => (
+                <Fragment key={classe.id}>
+                  <tr className="ligne-groupe">
+                    <td colSpan={6}>
+                      <span className="ligne-groupe-niveau">{niveau}</span>
+                      <strong>{classe.nom}</strong>
+                      <span className="entete-carte-compteur">{classe.eleves.length} élève{classe.eleves.length > 1 ? 's' : ''}</span>
+                      {classe.eleves.length === 0 && <span className="note-secondaire">Aucun élève dans cette classe</span>}
+                    </td>
+                  </tr>
+                  {eleves.map((eleve) => (
+                    <tr key={eleve.id}>
+                      <td className="cellule-nom">{eleve.nom} {eleve.prenom}</td>
+                      <td className="chiffre">{fcfa(eleve.totalDu)}</td>
+                      <td className="chiffre note-secondaire">{fcfa(eleve.totalRegle)}</td>
+                      <td className={`chiffre ${eleve.resteDu > 0 ? 'reste-du' : 'ton-reussite'}`}>{eleve.resteDu > 0 ? fcfa(eleve.resteDu) : 'Soldé'}</td>
+                      <td><span className={`badge ${STYLE_STATUT[eleve.statutGlobal]}`}>{LIBELLE_STATUT[eleve.statutGlobal]}</span></td>
+                      <td className="cellule-actions">
+                        {eleve.fraisActifId
+                          ? <button className="bouton-icone-texte" onClick={() => setEleveEnPaiement({ ...eleve, classeNom: classe.nom })}><IconWallet /> Encaisser</button>
+                          : <span className="note-secondaire">Aucune</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+              {chargement && <tr><td colSpan={6} className="chargement">Chargement…</td></tr>}
+              {!chargement && niveaux.length === 0 && <tr><td colSpan={6} className="vide">Aucune classe enregistrée.</td></tr>}
+              {!chargement && niveaux.length > 0 && groupes.length === 0 && (
+                <tr><td colSpan={6} className="vide">Aucun étudiant ne correspond à cette recherche.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {modaleClasseOuverte && (

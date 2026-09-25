@@ -1,0 +1,46 @@
+@startuml diagramme-10
+title Diagramme 10 : composition et publication de l'emploi du temps
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequenceParticipantBorderColor #0B1E3D
+skinparam sequenceParticipantBackgroundColor #F7F9FC
+skinparam sequenceLifeLineBorderColor #9AA3B5
+skinparam sequenceGroupBorderColor #1D5FA8
+autonumber
+actor "Académie" as AC
+boundary "Emplois du temps" as UI
+control "API /emplois-du-temps" as API
+control "emploiDuTempsService" as SVC
+database "PostgreSQL" as DB
+participant "Service e-mail" as MAIL
+actor "Étudiants et parents" as ET
+
+AC -> UI : ajouter ou retirer des cours (brouillon)
+UI -> API : POST/DELETE /api/emplois-du-temps
+API -> DB : emplois_du_temps (brouillon)
+UI -> API : GET /api/emplois-du-temps/publication
+API -> SVC : etatPublication(classe)
+SVC -> DB : comparer brouillon et version publiée
+API --> UI : brouillon / publié / modifications non publiées
+AC -> UI : Publier
+UI -> API : POST /api/emplois-du-temps/publier
+activate API
+API -> SVC : publier(classe, semestre)
+activate SVC
+SVC -> DB : copie figée des créneaux\n(publications_emplois_du_temps, version + 1)
+SVC --> API : nombre de destinataires
+SVC -> DB : INSERT notifications
+SVC -> MAIL : e-mail « Emploi du temps publié / mis à jour »
+MAIL -> ET : e-mail
+deactivate SVC
+API --> UI : 201 publié
+deactivate API
+ET -> UI : consulter l'emploi du temps
+UI -> API : GET /api/emplois-du-temps
+API -> DB : version publiée uniquement
+@enduml

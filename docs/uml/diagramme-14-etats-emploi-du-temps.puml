@@ -1,0 +1,19 @@
+@startuml diagramme-14
+title Diagramme d'états : publication de l'emploi du temps d'une classe
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam stateBackgroundColor #F7F9FC
+skinparam stateBorderColor #0B1E3D
+state "Brouillon\n(non visible des étudiants)" as Brouillon
+state "Publié" as Publie
+state "Modifications\nnon publiées" as Modifie
+[*] --> Brouillon : premier cours ajouté
+Brouillon --> Brouillon : ajout / retrait de cours
+Brouillon --> Publie : Publier\n/ notification + e-mail
+Publie --> Modifie : ajout / retrait de cours
+Modifie --> Publie : Publier les changements\n/ notification + e-mail
+Modifie --> Publie : retour à l'identique
+@enduml

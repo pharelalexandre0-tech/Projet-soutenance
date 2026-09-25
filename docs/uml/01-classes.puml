@@ -1,0 +1,304 @@
+@startuml classes
+title EduSphere : diagramme de classes
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam classAttributeIconSize 0
+skinparam classBackgroundColor #F7F9FC
+skinparam classBorderColor #0B1E3D
+skinparam packageBackgroundColor #FFFFFF
+skinparam packageBorderColor #9AA3B5
+hide empty members
+
+package "Établissement et comptes" {
+  class Etablissement {
+    +id : Integer
+    +nom : String
+    +sigle : String
+    +devise : String
+    +ville : String
+    +pays : String
+    +boitePostale : String
+    +telephone : String
+    +email : String
+    +logo : Text
+    +statut : StatutEtablissement
+  }
+  class Utilisateur {
+    +id : Integer
+    +nom : String
+    +prenom : String
+    +email : String
+    -motDePasse : String
+    +role : Role
+    +statut : StatutCompte
+    -codeDoubleFacteur : String
+    -codeDoubleFacteurExpire : Date
+    +seConnecter(email, motDePasse)
+    +verifierCodeDoubleFacteur(code)
+  }
+  enum Role {
+    superadmin
+    academie
+    finance
+    etudiant
+    parent
+  }
+}
+
+package "Structure pédagogique" {
+  class Classe {
+    +id : Integer
+    +nom : String
+    +niveau : String
+  }
+  class Eleve {
+    +id : Integer
+    +nom : String
+    +prenom : String
+    +dateNaissance : Date
+    +matricule : String
+    +attribuerMatricule()
+  }
+  class Professeur {
+    +id : Integer
+    +nom : String
+    +prenom : String
+    +email : String
+    +matiere : String
+  }
+  class Semestre {
+    +id : Integer
+    +libelle : String
+    +anneeScolaire : String
+    +cycle : Cycle
+    +numero : Integer
+  }
+  class UniteEnseignement {
+    +id : Integer
+    +code : String
+    +intitule : String
+    +credits : Integer
+    +coefficient : Float
+  }
+  class Matiere {
+    +id : Integer
+    +code : String
+    +intitule : String
+    +coefficient : Float
+  }
+}
+
+package "Évaluation et suivi" {
+  class Note {
+    +id : Integer
+    +moyenneCC : Float
+    +moyenneExamen : Float
+    +session : Session
+    +noteFinale() : Float
+  }
+  class Bulletin {
+    +id : Integer
+    +moyenneGenerale : Float
+    +creditsValides : Integer
+    +dateGeneration : Date
+    +statut : StatutBulletin
+    +calculer()
+    +genererPDF()
+  }
+  class IncidentComportement {
+    +id : Integer
+    +date : Date
+    +description : String
+    +gravite : Gravite
+    +parentInformeLe : Date
+  }
+  class PredictionIA {
+    +id : Integer
+    +scoreRisque : Float
+    +niveauRisque : NiveauRisque
+    +facteursCles : Text
+    +alerteGeneree : Boolean
+    +calculerRisque()
+  }
+}
+
+package "Vie scolaire et communication" {
+  class Absence {
+    +id : Integer
+    +date : Date
+    +type : TypeAbsence
+    +justifie : Boolean
+    +motif : String
+    +justifier(motif)
+  }
+  class EmploiDuTemps {
+    +id : Integer
+    +jour : String
+    +heureDebut : String
+    +heureFin : String
+    +matiere : String
+    +salle : String
+  }
+  class PublicationEmploiDuTemps {
+    +id : Integer
+    +creneaux : JSON
+    +publieLe : Date
+    +version : Integer
+    +nbDestinataires : Integer
+    +publier()
+  }
+  class CahierDeTextes {
+    +id : Integer
+    +date : Date
+    +contenuSeance : Text
+  }
+  class MessageAnnonce {
+    +id : Integer
+    +titre : String
+    +contenu : Text
+    +type : TypeMessage
+    +dateEnvoi : Date
+  }
+  class Notification {
+    +id : Integer
+    +contenu : String
+    +lu : Boolean
+    +dateEnvoi : Date
+  }
+}
+
+package "Accès temporaires" {
+  class CompteEphemere {
+    +id : Integer
+    -jeton : String
+    +tache : Tache
+    +categorie : Categorie
+    +evaluationLibelle : String
+    +dateExpiration : Date
+    +statut : StatutAcces
+    +saisieEnvoyeeLe : Date
+    +estValide() : Boolean
+    +revoquer()
+  }
+  class CompteRenduSaisie {
+    +id : Integer
+    +tache : Tache
+    +date : Date
+    +resume : JSON
+    +lignes : JSON
+    +envoyeLe : Date
+  }
+}
+
+package "Finance et paie" {
+  class FraisScolarite {
+    +id : Integer
+    +libelle : String
+    +montant : Float
+    +montantRegle : Float
+    +dateEcheance : Date
+    +statut : StatutFrais
+    +resteDu() : Float
+  }
+  class Paiement {
+    +id : Integer
+    +montant : Float
+    +datePaiement : Date
+    +modePaiement : ModePaiement
+    +statut : StatutPaiement
+  }
+  class Recu {
+    +id : Integer
+    +numero : String
+    +dateEmission : Date
+    +genererPDF()
+  }
+  class Personnel {
+    +id : Integer
+    +nom : String
+    +prenom : String
+    +email : String
+    +poste : String
+    +salaireBase : Float
+    +dateEmbauche : Date
+  }
+  class Salaire {
+    +id : Integer
+    +montant : Float
+    +periode : String
+    +statut : StatutSalaire
+    +dateVersement : Date
+    +genererFichePaie()
+  }
+}
+
+package "Documents et journaux" {
+  class DocumentPDF {
+    +id : Integer
+    +nomFichier : String
+    +typeDocument : String
+    +contenu : Binary
+    +taille : Integer
+  }
+  class JournalEmail {
+    +id : Integer
+    +destinataire : String
+    +sujet : String
+    +service : String
+    +statut : StatutEnvoi
+  }
+}
+
+Etablissement "1" -- "0..*" Utilisateur
+Etablissement "1" -- "0..*" Classe
+Etablissement "1" -- "0..*" Semestre
+Etablissement "1" -- "0..*" Professeur
+Etablissement "1" -- "0..*" Personnel
+Etablissement "1" -- "0..*" Eleve
+Utilisateur ..> Role
+
+Classe "1" -- "0..*" Eleve : accueille >
+Eleve "0..1" -- "1" Utilisateur : compte étudiant >
+Eleve "0..*" -- "0..1" Utilisateur : parent >
+
+Semestre "1" *-- "0..*" UniteEnseignement
+UniteEnseignement "1" *-- "1..*" Matiere
+
+Eleve "1" -- "0..*" Note
+Matiere "1" -- "0..*" Note
+Eleve "1" -- "0..*" Bulletin
+Semestre "1" -- "0..*" Bulletin
+Eleve "1" -- "0..*" Absence
+Eleve "1" -- "0..*" IncidentComportement
+Eleve "1" -- "0..*" PredictionIA
+
+Classe "1" -- "0..*" EmploiDuTemps : brouillon >
+Semestre "1" -- "0..*" EmploiDuTemps
+Classe "1" -- "0..1" PublicationEmploiDuTemps : version publiée >
+Classe "1" -- "0..*" CahierDeTextes
+Classe "0..1" -- "0..*" MessageAnnonce
+Utilisateur "1" -- "0..*" MessageAnnonce : auteur >
+Utilisateur "1" -- "0..*" Notification : reçoit >
+
+Utilisateur "1" -- "0..*" CompteEphemere : crée (Académie) >
+Professeur "1" -- "0..*" CompteEphemere : cible >
+Classe "1" -- "0..*" CompteEphemere
+Matiere "0..1" -- "0..*" CompteEphemere
+CompteEphemere "1" -- "0..1" CompteRenduSaisie : produit >
+CompteEphemere "0..1" -- "0..*" Note : saisies >
+CompteEphemere "0..1" -- "0..*" Absence : appel >
+
+Eleve "1" -- "0..*" FraisScolarite
+Semestre "1" -- "0..*" FraisScolarite
+FraisScolarite "1" -- "0..*" Paiement : réglé par >
+Paiement "1" -- "0..1" Recu : justifié par >
+Personnel "1" -- "0..*" Salaire
+Professeur "0..1" -- "0..1" Personnel : repris dans la paie >
+
+Bulletin ..> DocumentPDF : genererPDF()
+Recu ..> DocumentPDF : genererPDF()
+Salaire ..> DocumentPDF : genererFichePaie()
+@enduml

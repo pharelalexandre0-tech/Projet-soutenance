@@ -2169,3 +2169,45 @@ a.bouton-lien-secondaire svg { width: 17px; height: 17px; }
   .chiffres-classe.chiffres-4 > div:nth-child(3) { border-left: none; }
   .chiffres-classe.chiffres-4 > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
 }
+
+/* ==========================================================================
+   Barres de défilement toujours visibles sur les tableaux de données
+   ========================================================================== */
+
+.table-scroll { overflow-y: scroll; }
+.table-scroll.sans-limite { overflow-y: visible; }
+.table-scroll::-webkit-scrollbar,
+.table-cadre::-webkit-scrollbar,
+.liste-classes::-webkit-scrollbar,
+.liste-professeurs::-webkit-scrollbar,
+.tiroir-corps::-webkit-scrollbar { width: 11px; height: 11px; }
+.table-scroll::-webkit-scrollbar-track,
+.table-cadre::-webkit-scrollbar-track,
+.liste-classes::-webkit-scrollbar-track,
+.liste-professeurs::-webkit-scrollbar-track,
+.tiroir-corps::-webkit-scrollbar-track { background: var(--gris-fond); }
+.table-scroll::-webkit-scrollbar-thumb,
+.table-cadre::-webkit-scrollbar-thumb,
+.liste-classes::-webkit-scrollbar-thumb,
+.liste-professeurs::-webkit-scrollbar-thumb,
+.tiroir-corps::-webkit-scrollbar-thumb { background: var(--bordure-controle); border-radius: 6px; border: 2px solid var(--gris-fond); }
+.table-scroll::-webkit-scrollbar-thumb:hover,
+.table-cadre::-webkit-scrollbar-thumb:hover { background: var(--texte-clair); }
+@supports not selector(::-webkit-scrollbar) {
+  .table-scroll, .table-cadre, .liste-classes, .liste-professeurs, .tiroir-corps { scrollbar-width: thin; scrollbar-color: var(--bordure-controle) var(--gris-fond); }
+}
+.table-scroll.defilement-visible { max-height: min(620px, 70vh); }
+
+/* Lignes de regroupement (niveau et classe) dans un tableau unique */
+tr.ligne-groupe td {
+  padding-top: 11px; padding-bottom: 11px;
+  background: color-mix(in srgb, var(--primaire-clair) 55%, var(--carte));
+  border-top: 1px solid color-mix(in srgb, var(--primaire) 15%, var(--bordure));
+}
+tbody tr.ligne-groupe:hover { background: none; }
+.ligne-groupe-niveau { margin-right: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--primaire); }
+.ligne-groupe strong { margin-right: 10px; font-size: 15px; color: var(--texte); }
+.ligne-groupe .note-secondaire { margin-left: 10px; font-size: 13.5px; }
+.table-impayes td { white-space: nowrap; }
+.table-impayes .chiffre { text-align: right; }
+.reste-du { font-weight: 600; color: var(--texte); }

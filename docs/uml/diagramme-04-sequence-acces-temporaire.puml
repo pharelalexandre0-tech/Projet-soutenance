@@ -1,0 +1,65 @@
+@startuml diagramme-04
+title Diagramme 4 : accès temporaire d'un professeur (saisie des notes ou appel)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequenceParticipantBorderColor #0B1E3D
+skinparam sequenceParticipantBackgroundColor #F7F9FC
+skinparam sequenceLifeLineBorderColor #9AA3B5
+skinparam sequenceGroupBorderColor #1D5FA8
+autonumber
+actor "Académie" as AC
+actor "Professeur" as PR
+boundary "Interface web" as UI
+control "API /comptes-ephemeres" as API
+database "PostgreSQL" as DB
+participant "Service e-mail" as MAIL
+
+== Ouverture de l'accès ==
+AC -> UI : Nouvel accès (mission, professeur,\nclasse, matière, durée)
+UI -> API : POST /api/comptes-ephemeres
+activate API
+API -> DB : vérifier professeur, classe, matière\net que la classe a des élèves
+API -> DB : INSERT comptes_ephemeres\n(jeton aléatoire, expiration, statut actif)
+API -> MAIL : e-mail au professeur avec le lien personnel
+API --> UI : 201 accès créé, lien, résultat de l'envoi
+deactivate API
+
+== Saisie par le professeur ==
+PR -> UI : ouvrir le lien /acces-temporaire/{jeton}
+UI -> API : GET /api/comptes-ephemeres/{jeton}
+activate API
+API -> DB : verifierJeton : existe, actif, non expiré
+alt lien expiré, fermé ou déjà utilisé
+  API --> UI : 403 lien plus actif
+  UI --> PR : écran « lien expiré ou fermé »
+else lien valide
+  API --> UI : portée (classe, matière, type) et liste des élèves
+  deactivate API
+  PR -> UI : saisir les moyennes ou faire l'appel, puis confirmer
+  alt mission : saisie des notes
+    UI -> API : POST /api/comptes-ephemeres/{jeton}/notes
+    activate API
+    API -> DB : INSERT/UPDATE notes (moyenne CC ou examen)
+  else mission : appel
+    UI -> API : POST /api/comptes-ephemeres/{jeton}/absences
+    API -> DB : INSERT absences (absents, retards)
+    API -> MAIL : prévenir étudiant et parent\n(absence non justifiée)
+  end
+  API -> DB : INSERT comptes_rendus_saisie\n(feuille d'appel ou liste des notes)
+  API -> DB : UPDATE comptes_ephemeres\nstatut = révoqué, saisieEnvoyeeLe
+  API --> UI : 201 saisie enregistrée
+  deactivate API
+  UI --> PR : écran de remerciement, lien fermé
+end
+
+== Consultation par l'Académie ==
+AC -> UI : Feuilles d'appel / Voir la saisie
+UI -> API : GET /api/comptes-ephemeres/comptes-rendus/{id}
+API -> DB : compte rendu + état des absences
+API --> UI : détail élève par élève
+@enduml

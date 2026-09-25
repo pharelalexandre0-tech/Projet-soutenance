@@ -1,0 +1,45 @@
+@startuml diagramme-01
+title Diagramme 1 : inscription d'un élève et attribution du matricule
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequenceParticipantBorderColor #0B1E3D
+skinparam sequenceParticipantBackgroundColor #F7F9FC
+skinparam sequenceLifeLineBorderColor #9AA3B5
+skinparam sequenceGroupBorderColor #1D5FA8
+autonumber
+actor "Académie" as AC
+boundary "Interface web\n(React)" as UI
+control "API EduSphere\n(Express)" as API
+control "matriculeService" as MS
+database "PostgreSQL" as DB
+
+AC -> UI : Inscrire un élève\n(prénom, nom, classe, e-mail, parent facultatif)
+UI -> API : POST /api/eleves
+activate API
+API -> DB : vérifier la classe\n(même établissement)
+alt classe introuvable ou d'une autre école
+  API --> UI : 404 classe introuvable
+  UI --> AC : message d'erreur
+else classe valide
+  API -> DB : INSERT utilisateurs (rôle étudiant)
+  API -> DB : INSERT eleves
+  API -> MS : attribuerMatricule(élève)
+  activate MS
+  MS -> DB : plus grand numéro déjà attribué pour le sigle
+  MS -> MS : tirer le code XY (chiffre + lettre)
+  MS -> DB : UPDATE eleves.matricule = SIGLE-XY-NNNN\nmot de passe = matricule (haché bcrypt)
+  MS --> API : matricule
+  deactivate MS
+  opt un parent est renseigné
+    API -> DB : retrouver le compte parent par e-mail\nou le créer, puis rattacher l'élève
+  end
+  API --> UI : 201 élève, matricule, comptes créés
+  UI --> AC : identifiant (e-mail) et mot de passe (matricule)\nà transmettre à l'étudiant
+end
+deactivate API
+@enduml

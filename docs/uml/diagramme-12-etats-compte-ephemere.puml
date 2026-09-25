@@ -1,0 +1,20 @@
+@startuml diagramme-12
+title Diagramme d'états : accès temporaire (compte éphémère)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam stateBackgroundColor #F7F9FC
+skinparam stateBorderColor #0B1E3D
+state "Actif" as Actif
+state "Révoqué" as Revoque
+state "Expiré" as Expire
+[*] --> Actif : l'Académie crée l'accès\n(e-mail envoyé au professeur)
+Actif --> Actif : renvoi de l'e-mail
+Actif --> Revoque : saisie envoyée par le professeur\n[compte rendu enregistré]
+Actif --> Revoque : fermeture par l'Académie
+Actif --> Expire : date d'expiration dépassée
+Revoque --> [*]
+Expire --> [*]
+@enduml

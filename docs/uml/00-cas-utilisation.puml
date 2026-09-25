@@ -1,0 +1,105 @@
+@startuml cas-utilisation
+title EduSphere : diagramme de cas d'utilisation
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam packageStyle rectangle
+skinparam usecase {
+  BackgroundColor #F7F9FC
+  BorderColor #1D5FA8
+}
+skinparam actorBorderColor #0B1E3D
+
+actor "Superadmin" as SA
+actor "Académie" as AC
+actor "Finance" as FI
+actor "Étudiant" as ET
+actor "Parent" as PA
+actor "Professeur\n(accès temporaire)" as PR
+actor "Système\n(planificateur)" as SY
+
+rectangle "Plateforme EduSphere" {
+  usecase "S'authentifier" as UC_AUTH
+  usecase "Confirmer la connexion\npar code e-mail (2FA)" as UC_2FA
+
+  usecase "Gérer les établissements\n(créer, suspendre, supprimer)" as UC_ETAB
+  usecase "Ouvrir des fonctionnalités\nà une école" as UC_FONC
+  usecase "Créer une fonctionnalité\npersonnalisée (sans code)" as UC_PERSO
+  usecase "Publier une mise à jour,\nune annonce, la maintenance" as UC_MAJ
+
+  usecase "Gérer classes et élèves\n(inscription, import, matricule)" as UC_ELEVES
+  usecase "Gérer semestres, UE\net matières (LMD)" as UC_LMD
+  usecase "Composer et publier\nl'emploi du temps" as UC_EDT
+  usecase "Saisir les notes" as UC_NOTES
+  usecase "Générer et envoyer\nles bulletins" as UC_BULL
+  usecase "Ouvrir un accès temporaire\nà un professeur" as UC_ACCES
+  usecase "Consulter les feuilles d'appel\net les saisies reçues" as UC_APPELS
+  usecase "Signaler un incident\nde comportement" as UC_INC
+  usecase "Analyser le risque\nde décrochage (IA)" as UC_IA
+  usecase "Envoyer messages\net annonces" as UC_MSG
+
+  usecase "Définir les frais\nde scolarité" as UC_FRAIS
+  usecase "Encaisser un paiement\n(reçu PDF)" as UC_PAIE
+  usecase "Suivre et relancer\nles impayés" as UC_IMPAYES
+  usecase "Gérer le personnel\net verser les salaires" as UC_SAL
+
+  usecase "Consulter notes, bulletin,\nabsences et emploi du temps" as UC_DOSSIER
+  usecase "Justifier une absence" as UC_JUST
+  usecase "Consulter frais et reçus" as UC_FRAIS_ET
+  usecase "Suivre le dossier\nde son enfant" as UC_ENFANT
+
+  usecase "Saisir les notes\nd'une classe" as UC_PR_NOTES
+  usecase "Faire l'appel" as UC_PR_APPEL
+
+  usecase "Vérifier chaque jour\nles échéances" as UC_ECHEANCES
+  usecase "Calculer périodiquement\nle risque" as UC_RISQUE
+}
+
+SA --> UC_ETAB
+SA --> UC_FONC
+SA --> UC_PERSO
+SA --> UC_MAJ
+
+AC --> UC_ELEVES
+AC --> UC_LMD
+AC --> UC_EDT
+AC --> UC_NOTES
+AC --> UC_BULL
+AC --> UC_ACCES
+AC --> UC_APPELS
+AC --> UC_INC
+AC --> UC_IA
+AC --> UC_MSG
+
+FI --> UC_FRAIS
+FI --> UC_PAIE
+FI --> UC_IMPAYES
+FI --> UC_SAL
+
+ET --> UC_DOSSIER
+ET --> UC_JUST
+ET --> UC_FRAIS_ET
+PA --> UC_ENFANT
+PA --> UC_FRAIS_ET
+
+PR --> UC_PR_NOTES
+PR --> UC_PR_APPEL
+
+SY --> UC_ECHEANCES
+SY --> UC_RISQUE
+
+UC_ETAB ..> UC_AUTH : <<include>>
+UC_ELEVES ..> UC_AUTH : <<include>>
+UC_PAIE ..> UC_AUTH : <<include>>
+UC_DOSSIER ..> UC_AUTH : <<include>>
+UC_ENFANT ..> UC_AUTH : <<include>>
+UC_2FA .> UC_AUTH : <<extend>>\n(étudiant, parent)
+UC_ACCES ..> UC_PR_NOTES : <<include>>
+UC_ACCES ..> UC_PR_APPEL : <<include>>
+UC_PR_APPEL ..> UC_APPELS : alimente
+UC_INC ..> UC_IA : alimente
+UC_ECHEANCES ..> UC_IMPAYES : alimente
+@enduml

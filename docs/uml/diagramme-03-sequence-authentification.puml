@@ -1,0 +1,53 @@
+@startuml diagramme-03
+title Diagramme 3 : authentification (avec double facteur pour étudiants et parents)
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequenceParticipantBorderColor #0B1E3D
+skinparam sequenceParticipantBackgroundColor #F7F9FC
+skinparam sequenceLifeLineBorderColor #9AA3B5
+skinparam sequenceGroupBorderColor #1D5FA8
+autonumber
+actor "Utilisateur" as U
+boundary "Page de connexion" as UI
+control "API /auth" as API
+database "PostgreSQL" as DB
+participant "Service e-mail\n(SendGrid / Resend)" as MAIL
+
+U -> UI : saisir e-mail et mot de passe\n(étudiant : son matricule)
+UI -> API : POST /api/auth/connexion
+activate API
+API -> DB : rechercher l'utilisateur par e-mail
+API -> API : comparer le mot de passe (bcrypt)
+alt identifiants invalides
+  API --> UI : 401 identifiants incorrects
+else compte verrouillé ou établissement suspendu
+  API --> UI : 403 accès refusé
+else maintenance en cours (hors superadmin)
+  API --> UI : 503 maintenance
+else rôle étudiant ou parent
+  API -> DB : enregistrer un code à 6 chiffres\nvalable 10 minutes
+  API -> MAIL : e-mail « Confirmez votre connexion » (code)
+  API --> UI : doubleFacteurRequis
+  deactivate API
+  U -> UI : saisir le code reçu
+  UI -> API : POST /api/auth/connexion/double-facteur
+  activate API
+  API -> DB : vérifier le code et son expiration
+  alt code valide
+    API -> DB : effacer le code
+    API --> UI : jeton de session (JWT) + profil
+    UI --> U : ouverture de son espace
+  else code faux ou expiré
+    API --> UI : 401 code invalide
+  end
+else autres rôles (académie, finance, superadmin)
+  API --> UI : jeton de session (JWT) + profil
+  UI --> U : ouverture de son espace
+end
+deactivate API
+@enduml

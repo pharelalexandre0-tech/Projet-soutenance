@@ -1,0 +1,47 @@
+@startuml diagramme-05
+title Diagramme 5 : consultation et génération du bulletin
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequenceParticipantBorderColor #0B1E3D
+skinparam sequenceParticipantBackgroundColor #F7F9FC
+skinparam sequenceLifeLineBorderColor #9AA3B5
+skinparam sequenceGroupBorderColor #1D5FA8
+autonumber
+actor "Étudiant / Parent / Académie" as U
+boundary "Page Bulletin" as UI
+control "API /bulletins" as API
+control "moyenneService" as MOY
+control "pdfService" as PDF
+database "PostgreSQL" as DB
+participant "Service e-mail" as MAIL
+
+U -> UI : choisir l'élève et le semestre
+UI -> API : GET /api/bulletins/{eleveId}/{semestreId}
+activate API
+API -> DB : vérifier les droits\n(son dossier, son enfant ou son école)
+API -> MOY : calculerBulletin(élève, semestre)
+activate MOY
+MOY -> DB : notes par matière (sessions normale et rattrapage)
+MOY -> MOY : note finale = (CC + examen) / 2\nmatière éliminatoire si < 7\nmoyenne d'UE pondérée, crédits validés
+MOY --> API : moyenne générale, crédits, détail par UE
+deactivate MOY
+API -> PDF : genererBulletinPDF(données, établissement)
+activate PDF
+PDF -> DB : INSERT/UPDATE documents_pdf (contenu du PDF)
+PDF --> API : adresse /fichiers/bulletin_...pdf
+deactivate PDF
+alt bulletin déjà généré
+  API -> DB : UPDATE bulletins (moyenne, crédits, PDF)
+else première génération
+  API -> DB : INSERT bulletins (statut envoyé)
+  API -> MAIL : bulletin en pièce jointe\nà l'étudiant et au parent
+end
+API --> UI : bulletin + détail par UE
+deactivate API
+UI --> U : document officiel à l'écran\net téléchargement PDF
+@enduml

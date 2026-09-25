@@ -1,0 +1,38 @@
+@startuml diagramme-09
+title Diagramme d'activité 9 : suivi et relance des impayés
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam activityBackgroundColor #F7F9FC
+skinparam activityBorderColor #0B1E3D
+skinparam activityDiamondBackgroundColor #E3ECF6
+skinparam activityDiamondBorderColor #1D5FA8
+skinparam swimlaneBorderColor #9AA3B5
+|Système|
+start
+:Vérification quotidienne des échéances\n(ou bouton « Vérifier les échéances »);
+while (Frais échu et non soldé ?) is (oui)
+  :Passer le frais au statut « impayé »;
+  :Notifier l'étudiant (notification + e-mail);
+endwhile (non)
+|Finance|
+:Consulter la vue d'ensemble\npar niveau et par classe;
+:Rechercher et filtrer (impayés, partiels);
+if (Relance nécessaire ?) then (oui)
+  :Envoyer une relance;
+  |Étudiant / Parent|
+  :Recevoir la relance;
+  :Régler tout ou partie du frais;
+  |Finance|
+  :Encaisser le paiement (diagramme 8);
+  if (Frais soldé ?) then (oui)
+    :Statut « soldé »;
+  else (non)
+    :Statut « partiel »;
+  endif
+else (non)
+endif
+stop
+@enduml

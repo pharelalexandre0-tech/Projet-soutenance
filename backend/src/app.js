@@ -103,7 +103,25 @@ app.use('/api/superadmin', superadminRoutes);
 // 400`) — une exception non prévue (bug, erreur Postgres...) n'a pas ce
 // champ, et son `.message` brut ne doit jamais atteindre le client : il
 // peut contenir des détails internes (requête SQL, chemin de fichier...).
+// Messages clairs pour les erreurs de validation des modèles (adresse
+// e-mail mal formée, valeur hors liste...) : c'est une donnée à corriger,
+// pas une panne du serveur.
+const MESSAGES_VALIDATION = {
+  isEmail: 'adresse e-mail invalide',
+  isIn: 'valeur non autorisée',
+  min: 'valeur trop petite',
+  max: 'valeur trop grande',
+};
+
 app.use((err, req, res, next) => {
+  if (err.name === 'SequelizeValidationError') {
+    const premiere = err.errors?.[0];
+    const message = MESSAGES_VALIDATION[premiere?.validatorKey] || `champ « ${premiere?.path || 'inconnu'} » invalide`;
+    return res.status(400).json({ erreur: message });
+  }
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    return res.status(409).json({ erreur: 'cette valeur existe déjà' });
+  }
   console.error(err);
   const exposable = Number.isInteger(err.status);
   res.status(err.status || 500).json({ erreur: exposable ? err.message : 'erreur interne du serveur' });

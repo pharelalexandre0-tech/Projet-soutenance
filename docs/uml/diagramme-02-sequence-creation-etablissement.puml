@@ -1,0 +1,35 @@
+@startuml diagramme-02
+title Diagramme 2 : création d'un établissement par le Superadmin
+skinparam shadowing false
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #0B1E3D
+skinparam roundcorner 8
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam sequenceParticipantBorderColor #0B1E3D
+skinparam sequenceParticipantBackgroundColor #F7F9FC
+skinparam sequenceLifeLineBorderColor #9AA3B5
+skinparam sequenceGroupBorderColor #1D5FA8
+autonumber
+actor "Superadmin" as SA
+boundary "Espace superadmin" as UI
+control "API EduSphere" as API
+database "PostgreSQL" as DB
+
+SA -> UI : Créer une école (identité, logo,\nfonctionnalités, compte Académie)
+UI -> API : POST /api/superadmin/etablissements
+activate API
+API -> API : valider les champs et le logo\n(PNG, JPEG ou WebP)
+alt données invalides
+  API --> UI : 400 message d'erreur
+else données valides
+  API -> DB : INSERT etablissements
+  API -> DB : INSERT activations_fonctionnalites\n(une ligne par module ouvert)
+  API -> DB : INSERT utilisateurs (compte Académie de l'école)
+  API -> DB : INSERT journal_administration
+  API --> UI : 201 établissement créé
+  UI --> SA : fiche de l'école et accès Académie
+end
+deactivate API
+@enduml
