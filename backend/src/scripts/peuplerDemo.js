@@ -297,7 +297,8 @@ async function main() {
   console.log(`  ${classes.length} classes, ${matieres.length} matières, ${professeurs.length} professeurs, ${personnel.length} membres du personnel`);
   console.log(`  ${compteurs.etudiants} étudiants (${compteurs.parents} parents), ${compteurs.notes} notes, ${compteurs.absences || 0} absences, ${compteurs.incidents || 0} incidents`);
   console.log(`  ${compteurs.frais} frais, ${compteurs.paiements} paiements, ${compteurs.salaires} salaires, ${compteurs.cours} cours publiés, ${alertes} élève(s) en alerte de décrochage`);
-  console.log('Connexion : academie@ide.example.com ou finance@ide.example.com, mot de passe de démonstration (voir donnees-test/README.md).');
+  console.log(`Connexion : academie@${SIGLE.toLowerCase()}.example.com ou finance@${SIGLE.toLowerCase()}.example.com (mot de passe : DEMO_MOT_DE_PASSE, sinon celui défini en tête de ce script).`);
+  console.log('Étudiants : leur matricule comme mot de passe ; parents : même mot de passe que les comptes de démonstration.');
   await m.sequelize.close();
 }
 
