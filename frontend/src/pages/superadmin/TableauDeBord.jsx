@@ -5,6 +5,7 @@ import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 import {
   IconBuilding, IconGraduationCap, IconUsers, IconLock, IconMapPin, IconMail, IconRocket, IconToggle, IconMegaphone, IconWrench,
+  IconCircleCheck,
 } from '../../components/icons';
 
 const LIBELLE_SERVICE = { sendgrid: 'SendGrid', resend: 'Resend', smtp: 'SMTP' };
@@ -48,6 +49,7 @@ export default function TableauDeBord({ onNaviguer }) {
 
   const maxVille = Math.max(1, ...(stats?.repartitionParVille.map((v) => v.total) ?? [1]));
   const maxMois = Math.max(1, ...(stats?.croissance.map((m) => m.total) ?? [1]));
+  const totalSurPeriode = stats?.croissance.reduce((somme, m) => somme + m.total, 0) ?? 0;
 
   return (
     <div>
@@ -57,7 +59,7 @@ export default function TableauDeBord({ onNaviguer }) {
           <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEcoles} /> : '…'}</div>
         </div>
         <div className="stat-tile tile-vert">
-          <div className="stat-tile-haut"><span className="libelle">Écoles actives</span></div>
+          <div className="stat-tile-haut"><span className="libelle">Écoles actives</span><span className="puce-icone petite"><IconCircleCheck /></span></div>
           <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalActives} /> : '…'}</div>
         </div>
         <div className="stat-tile">
@@ -77,80 +79,86 @@ export default function TableauDeBord({ onNaviguer }) {
       <EtatPlateforme pilotage={pilotage} onNaviguer={onNaviguer} />
 
       <div className="grille-2">
-        <div className="carte">
+        <div className="carte carte-etiree">
           <h2>Écoles affiliées par mois</h2>
           {!stats && <div className="chargement">Chargement…</div>}
           {stats && (
-            <div className="barres-liste">
-              {stats.croissance.map((m) => (
-                <div className="barre-ligne" key={m.libelle}>
-                  <span style={{ textTransform: 'capitalize' }}>{m.libelle}</span>
-                  <div className="barre-piste">
-                    <div className="barre-remplissage" style={{ width: `${(m.total / maxMois) * 100}%` }} />
+            <>
+              <div className="barres-liste">
+                {stats.croissance.map((m) => (
+                  <div className="barre-ligne" key={m.libelle}>
+                    <span style={{ textTransform: 'capitalize' }}>{m.libelle}</span>
+                    <div className="barre-piste">
+                      <div className="barre-remplissage" style={{ width: `${(m.total / maxMois) * 100}%` }} />
+                    </div>
+                    <span>{m.total}</span>
                   </div>
-                  <span style={{ textAlign: 'right', fontFamily: 'var(--police-mono)' }}>{m.total}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+              <p className="pied-carte">
+                {totalSurPeriode} école{totalSurPeriode > 1 ? 's' : ''} affiliée{totalSurPeriode > 1 ? 's' : ''} sur les six derniers mois,
+                {' '}{stats.totalEcoles} au total.
+              </p>
+            </>
           )}
         </div>
 
-        <div className="carte">
-          <div className="entete-carte">
-            <h2>Répartition par ville</h2>
-            <span className="puce-icone petite"><IconMapPin width={16} height={16} /></span>
+        <div className="colonne-empilee">
+          <div className="carte">
+            <div className="entete-carte">
+              <h2>Répartition par ville</h2>
+              <span className="puce-icone petite"><IconMapPin /></span>
+            </div>
+            {!stats && <div className="chargement">Chargement…</div>}
+            {stats && stats.repartitionParVille.length === 0 && <div className="vide">Aucun établissement pour le moment</div>}
+            {stats && stats.repartitionParVille.length > 0 && (
+              <div className="barres-liste">
+                {stats.repartitionParVille.map((v) => (
+                  <div className="barre-ligne" key={v.ville}>
+                    <span>{v.ville}</span>
+                    <div className="barre-piste">
+                      <div className="barre-remplissage" style={{ width: `${(v.total / maxVille) * 100}%` }} />
+                    </div>
+                    <span>{v.total}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          {!stats && <div className="chargement">Chargement…</div>}
-          {stats && stats.repartitionParVille.length === 0 && <div className="vide">Aucun établissement pour le moment</div>}
-          {stats && stats.repartitionParVille.length > 0 && (
-            <div className="barres-liste">
-              {stats.repartitionParVille.map((v) => (
-                <div className="barre-ligne" key={v.ville}>
-                  <span>{v.ville}</span>
-                  <div className="barre-piste">
-                    <div className="barre-remplissage" style={{ width: `${(v.total / maxVille) * 100}%` }} />
-                  </div>
-                  <span style={{ textAlign: 'right', fontFamily: 'var(--police-mono)' }}>{v.total}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
 
-      <div className="carte">
-        <div className="entete-carte">
-          <h2>Configuration de l'envoi d'e-mail</h2>
-          <span className="puce-icone petite"><IconMail width={16} height={16} /></span>
-        </div>
-        <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -8, marginBottom: 16 }}>
-          Diagnostic technique : quel service envoie réellement les e-mails de la plateforme (codes de connexion,
-          reçus, accès temporaires…). Sans aucun service configuré, EduSphere se contente de journaliser les
-          e-mails côté serveur au lieu de les envoyer.
-        </p>
-        {!configEmail && <div className="chargement">Chargement…</div>}
-        {configEmail && (
-          <>
-            <div className="ligne-champs" style={{ marginBottom: 16 }}>
-              {['sendgrid', 'resend', 'smtp'].map((service) => (
-                <div key={service} className="champ">
-                  <label>{LIBELLE_SERVICE[service]}</label>
-                  <span className={`badge ${configEmail[service] ? 'vert' : 'gris'}`}>
-                    {configEmail[service] ? 'configuré' : 'absent'}
-                  </span>
-                </div>
-              ))}
+          <div className="carte">
+            <div className="entete-carte">
+              <h2>Envoi d'e-mail</h2>
+              <span className="puce-icone petite"><IconMail /></span>
             </div>
-            <p className="note-secondaire" style={{ marginBottom: 14 }}>
-              {configEmail.actif
-                ? <>Service actif : <strong>{LIBELLE_SERVICE[configEmail.actif]}</strong> (ordre de priorité SendGrid → Resend → SMTP).</>
-                : 'Aucun service configuré actuellement : les e-mails sont uniquement simulés (journal serveur).'}
-            </p>
-            <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>
-              {testEnCours ? 'Envoi du test…' : "Tester l'envoi (vers mon adresse)"}
-            </button>
-          </>
-        )}
+            {!configEmail && <div className="chargement">Chargement…</div>}
+            {configEmail && (
+              <>
+                <ul className="liste-services">
+                  {['sendgrid', 'resend', 'smtp'].map((service) => (
+                    <li key={service}>
+                      <span>
+                        {LIBELLE_SERVICE[service]}
+                        {configEmail.actif === service && <small> · service utilisé</small>}
+                      </span>
+                      <span className={`badge ${configEmail[service] ? 'vert' : 'gris'}`}>
+                        {configEmail[service] ? 'Configuré' : 'Absent'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="note-secondaire" style={{ margin: '14px 0', fontSize: 14 }}>
+                  {configEmail.actif
+                    ? 'Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité SendGrid, puis Resend, puis SMTP).'
+                    : 'Aucun service configuré : les e-mails sont seulement écrits dans le journal du serveur.'}
+                </p>
+                <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>
+                  <IconMail /> {testEnCours ? 'Envoi du test…' : "Tester l'envoi vers mon adresse"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
@@ -176,7 +184,9 @@ function EtatPlateforme({ pilotage, onNaviguer }) {
     {
       id: 'fonctionnalites', icone: IconToggle, libelle: 'Fonctionnalités',
       valeur: fonctionnalites ? `${fonctionnalites.length} au catalogue` : '…',
-      detail: fonctionnalites ? `${personnalisees} personnalisée${personnalisees > 1 ? 's' : ''}, ${attributions} attribution${attributions > 1 ? 's' : ''} aux écoles` : '',
+      detail: fonctionnalites
+        ? (personnalisees ? `dont ${personnalisees} personnalisée${personnalisees > 1 ? 's' : ''}` : `${attributions} attribution${attributions > 1 ? 's' : ''} aux écoles`)
+        : '',
     },
     {
       id: 'annonces', icone: IconMegaphone, libelle: 'Annonce',
