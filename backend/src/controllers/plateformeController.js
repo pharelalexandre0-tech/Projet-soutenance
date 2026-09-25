@@ -1,4 +1,4 @@
-const { MiseAJour } = require('../models');
+const { MiseAJour, Etablissement } = require('../models');
 const { fonctionnalitesPour, extensionsPour, annonceEnCours, maintenanceEnCours } = require('../services/plateformeService');
 
 // Sans session : l'écran de connexion et l'écran d'attente doivent pouvoir
@@ -55,4 +55,17 @@ async function marquerNouveautesVues(req, res) {
   return res.json({ nonLues: 0 });
 }
 
-module.exports = { statutPublic, etatPourUtilisateur, marquerNouveautesVues };
+// Logo d'un établissement servi comme une vraie image : les e-mails ne
+// peuvent pas afficher un data URI, il leur faut une adresse publique.
+// Seul le logo sort d'ici (déjà visible sur les documents de l'école).
+async function logoEtablissement(req, res) {
+  const etablissement = await Etablissement.findByPk(req.params.id, { attributes: ['logo'] });
+  const correspondance = etablissement?.logo?.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/);
+  if (!correspondance) return res.status(404).end();
+  res.set('Content-Type', correspondance[1] === 'image/jpg' ? 'image/jpeg' : correspondance[1]);
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  return res.send(Buffer.from(correspondance[2], 'base64'));
+}
+
+module.exports = { statutPublic, etatPourUtilisateur, marquerNouveautesVues, logoEtablissement };

@@ -136,8 +136,23 @@ async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes)
 // en forme (voir modelesEmail) ; sinon le texte est mis en forme dans le
 // cadre générique. Chaque service configuré est essayé dans l'ordre, et on
 // passe au suivant en cas d'échec.
+// Identité de l'école du destinataire, pour qu'un e-mail générique (absence,
+// bulletin, relance...) porte lui aussi son logo et ses coordonnées.
+async function etablissementDuDestinataire(email) {
+  try {
+    const { Utilisateur, Etablissement } = require('../models');
+    const utilisateur = await Utilisateur.findOne({ where: { email }, attributes: ['etablissementId'] });
+    return utilisateur?.etablissementId ? await Etablissement.findByPk(utilisateur.etablissementId) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], options = {}) {
-  const html = options.html || emailGenerique(corps);
+  const html = options.html || emailGenerique(corps, {
+    titre: sujet,
+    etablissement: options.etablissement || await etablissementDuDestinataire(destinataire),
+  });
   const erreurs = [];
 
   if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM) {

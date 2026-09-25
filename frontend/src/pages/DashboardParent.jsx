@@ -1,7 +1,7 @@
 import { lazy, useEffect, useState } from 'react';
 import client from '../api/client';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar } from '../components/icons';
+import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -9,6 +9,7 @@ const AbsencesEtudiant = lazy(() => import('./etudiant/AbsencesEtudiant'));
 const FraisEtudiant = lazy(() => import('./etudiant/FraisEtudiant'));
 const Messages = lazy(() => import('./etudiant/Messages'));
 const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
+const ComportementEnfant = lazy(() => import('./etudiant/ComportementEnfant'));
 
 const ONGLETS = [
   { id: 'bulletin', label: 'Bulletin', icone: IconDocument, groupe: 'Dossier de l’enfant',
@@ -17,6 +18,8 @@ const ONGLETS = [
     description: 'Notes détaillées, matière par matière.' },
   { id: 'absences', label: 'Absences', icone: IconCalendarAlert, groupe: 'Dossier de l’enfant',
     description: 'Absences et retards enregistrés.' },
+  { id: 'comportement', label: 'Comportement', icone: IconFlag, groupe: 'Dossier de l’enfant',
+    description: 'Incidents de comportement signalés par l’établissement.' },
   { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, groupe: 'Vie scolaire', fonctionnalite: 'emplois-du-temps',
     description: 'Les cours de la semaine.' },
   { id: 'frais', label: 'Frais & reçus', icone: IconReceipt, groupe: 'Vie scolaire', fonctionnalite: 'frais-en-ligne',
@@ -65,6 +68,7 @@ export default function DashboardParent() {
       {onglet === 'bulletin' && <Bulletin eleveId={eleveId} eleve={enfant} />}
       {onglet === 'notes' && <RelevesNotes eleveId={eleveId} eleve={enfant} />}
       {onglet === 'absences' && <AbsencesEtudiant eleveId={eleveId} />}
+      {onglet === 'comportement' && <ComportementEnfant eleveId={eleveId} />}
       {onglet === 'emploi' && <EmploiDuTemps classeId={enfant?.classeId} />}
       {onglet === 'frais' && <FraisEtudiant eleveId={eleveId} />}
       {onglet === 'messages' && <Messages />}

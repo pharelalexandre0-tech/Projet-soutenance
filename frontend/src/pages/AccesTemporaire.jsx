@@ -3,7 +3,10 @@ import { useParams } from 'react-router-dom';
 import client from '../api/client';
 import Modal from '../components/Modal';
 import logoIcon from '../assets/logo-icon.png';
-import { IconClock, IconCircleCheck, IconCircleAlert, IconPencil, IconCalendarAlert, IconSend } from '../components/icons';
+import { nomPropre } from '../utils/noms';
+import {
+  IconClock, IconCircleCheck, IconCircleAlert, IconPencil, IconCalendarAlert, IconSend, IconSearch, IconUsers, IconShield, IconMail,
+} from '../components/icons';
 
 // Diagramme 4 : le Professeur ouvre le lien reçu -> verifierJeton ->
 // session temporaire ouverte, limitée à la portée définie -> formulaire de
@@ -37,7 +40,6 @@ export default function AccesTemporaire() {
     );
   }
 
-  const expire = new Date(session.dateExpiration) <= new Date();
   const appel = session.tache === 'saisie_absences';
 
   if (envoi) {
@@ -55,28 +57,31 @@ export default function AccesTemporaire() {
     );
   }
 
-  if (expire) {
+  if (new Date(session.dateExpiration) <= new Date()) {
     return <EcranLienFerme message="lien expiré, demande un nouvel accès" session={session} />;
   }
+
+  const etab = session.etablissement;
+  const professeur = `${nomPropre(session.professeur.prenom)} ${nomPropre(session.professeur.nom)}`;
 
   return (
     <PageAcces session={session} minuteur>
       <main className="acces-contenu">
-        <section className="acces-mission">
-          <span className="acces-mission-icone">{appel ? <IconCalendarAlert /> : <IconPencil />}</span>
-          <div className="acces-mission-texte">
+        <aside className="acces-mission">
+          <div className="acces-mission-tete">
+            <span className="acces-mission-icone">{appel ? <IconCalendarAlert /> : <IconPencil />}</span>
             <span className="acces-surtitre">{appel ? "Faire l'appel" : 'Saisie des notes'}</span>
-            <h1>Bonjour {session.professeur.prenom} {session.professeur.nom}</h1>
-            <p>
-              {appel
-                ? "Indiquez les élèves absents ou en retard pour la séance d'aujourd'hui. Les autres sont comptés présents."
-                : 'Saisissez la moyenne de chaque élève sur 20. Le lien se ferme dès que vous envoyez la saisie.'}
-            </p>
           </div>
+          <h1>Bonjour {professeur}</h1>
+          <p>
+            {appel
+              ? "Indiquez les élèves absents ou en retard pour la séance d'aujourd'hui. Les autres sont comptés présents."
+              : 'Saisissez la moyenne de chaque élève sur 20, puis envoyez la saisie. Le lien se ferme dès l\'envoi.'}
+          </p>
           <dl className="acces-portee">
             <div><dt>Classe</dt><dd>{session.portee.classe}</dd></div>
             {appel ? (
-              <div><dt>Date</dt><dd>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</dd></div>
+              <div><dt>Séance du</dt><dd>{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</dd></div>
             ) : (
               <>
                 <div><dt>Matière</dt><dd>{session.portee.matiere}{session.portee.ue ? <small>{session.portee.ue}</small> : null}</dd></div>
@@ -84,11 +89,29 @@ export default function AccesTemporaire() {
                 {session.portee.evaluation && <div><dt>Évaluation</dt><dd>{session.portee.evaluation}</dd></div>}
               </>
             )}
-            <div><dt>Élèves</dt><dd>{session.eleves.length}</dd></div>
+            <div><dt>Effectif</dt><dd>{session.eleves.length} élève{session.eleves.length > 1 ? 's' : ''}</dd></div>
           </dl>
-        </section>
+          <Delai session={session} />
+          {(etab?.email || etab?.telephone) && (
+            <div className="acces-aide">
+              <strong>Une question ?</strong>
+              <span>Service de la scolarité{etab?.nom ? `, ${etab.nom}` : ''}</span>
+              {etab.email && <a href={`mailto:${etab.email}`}><IconMail /> {etab.email}</a>}
+              {etab.telephone && <span>{etab.telephone}</span>}
+            </div>
+          )}
+        </aside>
 
-        {appel
+        {session.eleves.length === 0 ? (
+          <section className="carte acces-liste acces-liste-vide">
+            <span className="resultat-icone attention"><IconUsers /></span>
+            <h2>Aucun élève dans cette classe</h2>
+            <p>
+              La classe {session.portee.classe} ne compte encore aucun élève inscrit : il n'y a rien à saisir pour le moment.
+              Contactez le service de la scolarité pour qu'il inscrive les élèves, puis vous envoie un nouveau lien.
+            </p>
+          </section>
+        ) : appel
           ? <FormulaireAppel jeton={jeton} session={session} onEnvoye={setEnvoi} />
           : <FormulaireNotes jeton={jeton} session={session} onEnvoye={setEnvoi} />}
       </main>
@@ -102,6 +125,23 @@ function tempsRestant(date) {
   const heures = Math.floor(minutes / 60);
   if (heures < 48) return `${heures} h${minutes % 60 ? ` ${String(minutes % 60).padStart(2, '0')}` : ''}`;
   return `${Math.round(heures / 24)} jours`;
+}
+
+function Delai({ session }) {
+  const debut = new Date(session.dateCreation || Date.now()).getTime();
+  const fin = new Date(session.dateExpiration).getTime();
+  const part = fin > debut ? Math.min(1, Math.max(0, (fin - Date.now()) / (fin - debut))) : 0;
+  const bientot = fin - Date.now() < 10 * 60 * 1000;
+  return (
+    <div className={`acces-delai ${bientot ? 'bientot' : ''}`}>
+      <div className="acces-delai-textes">
+        <span>Temps restant</span>
+        <strong>{tempsRestant(session.dateExpiration)}</strong>
+      </div>
+      <div className="acces-delai-piste"><span style={{ width: `${Math.round(part * 100)}%` }} /></div>
+      <small>Jusqu'au {new Date(session.dateExpiration).toLocaleString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</small>
+    </div>
+  );
 }
 
 function PageAcces({ session, minuteur = false, children }) {
@@ -125,6 +165,9 @@ function PageAcces({ session, minuteur = false, children }) {
         )}
       </header>
       {children}
+      <footer className="acces-pied">
+        <IconShield /> Lien personnel à usage unique, fermé automatiquement après l'envoi. Plateforme EduSphere.
+      </footer>
     </div>
   );
 }
@@ -145,20 +188,34 @@ function EcranLienFerme({ message, session }) {
           <span className="resultat-icone attention"><IconCircleAlert /></span>
           <h1>{titre}</h1>
           <p>{texte}</p>
-          <p className="acces-etat-note">Pour obtenir un nouveau lien, contactez le service de scolarité de l'établissement.</p>
+          <p className="acces-etat-note">Pour obtenir un nouveau lien, contactez le service de la scolarité de l'établissement.</p>
         </div>
       </div>
     </PageAcces>
   );
 }
 
-function BarreEnvoi({ resume, erreur, enCours, desactive, libelle }) {
+function RechercheEleve({ valeur, onChange }) {
+  return (
+    <label className="champ-recherche compact">
+      <IconSearch />
+      <input type="search" placeholder="Rechercher un élève…" value={valeur} onChange={(e) => onChange(e.target.value)} aria-label="Rechercher un élève" />
+    </label>
+  );
+}
+
+function filtrer(eleves, recherche) {
+  const r = recherche.trim().toLowerCase();
+  return r ? eleves.filter((e) => `${e.nom} ${e.prenom} ${e.matricule || ''}`.toLowerCase().includes(r)) : eleves;
+}
+
+function BarreEnvoi({ resume, erreur, enCours, libelle }) {
   return (
     <div className="acces-barre-envoi">
       <div className="acces-barre-envoi-textes">
-        {erreur ? <span className="acces-erreur">{erreur}</span> : <span>{resume}</span>}
+        {erreur ? <span className="acces-erreur">{erreur}</span> : resume}
       </div>
-      <button className="primaire" type="submit" disabled={enCours || desactive}>
+      <button className="primaire" type="submit" disabled={enCours}>
         <IconSend /> {enCours ? 'Envoi…' : libelle}
       </button>
     </div>
@@ -173,28 +230,31 @@ function valeurValide(v) {
 
 function FormulaireNotes({ jeton, session, onEnvoye }) {
   const [notes, setNotes] = useState({});
+  const [recherche, setRecherche] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [confirmation, setConfirmation] = useState(false);
-  const champs = useRef([]);
+  const champs = useRef({});
 
   const saisies = session.eleves.filter((e) => notes[e.id] !== undefined && notes[e.id] !== '');
   const invalides = session.eleves.filter((e) => !valeurValide(notes[e.id]));
   const manquantes = session.eleves.length - saisies.length;
   const valeurs = saisies.filter((e) => valeurValide(notes[e.id])).map((e) => Number(String(notes[e.id]).replace(',', '.')));
   const moyenne = valeurs.length ? valeurs.reduce((a, b) => a + b, 0) / valeurs.length : null;
+  const affiches = filtrer(session.eleves, recherche);
 
   function surEntree(e, i) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    champs.current[i + 1]?.focus();
+    const suivant = affiches[i + 1];
+    if (suivant) champs.current[suivant.id]?.focus();
   }
 
   function demander(e) {
     e.preventDefault();
     setErreur('');
     if (invalides.length) { setErreur('Certaines notes ne sont pas comprises entre 0 et 20.'); return; }
-    if (saisies.length === 0) { setErreur('Saisissez au moins une note avant d\'envoyer.'); return; }
+    if (saisies.length === 0) { setErreur("Saisissez au moins une note avant d'envoyer."); return; }
     setConfirmation(true);
   }
 
@@ -212,54 +272,55 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
     }
   }
 
+  let resume;
+  if (invalides.length) resume = <span className="acces-erreur">{invalides.length} note{invalides.length > 1 ? 's' : ''} hors de l'échelle 0 à 20.</span>;
+  else if (saisies.length === 0) resume = <span>Astuce : la touche Entrée passe à l'élève suivant.</span>;
+  else {
+    resume = (
+      <span>
+        <strong>{saisies.length}</strong> note{saisies.length > 1 ? 's' : ''} saisie{saisies.length > 1 ? 's' : ''}
+        {moyenne !== null && <>, moyenne de classe <strong>{moyenne.toFixed(2).replace('.', ',')}</strong></>}
+        {manquantes > 0 && <>, {manquantes} élève{manquantes > 1 ? 's' : ''} sans note</>}
+      </span>
+    );
+  }
+
   return (
-    <form className="acces-formulaire" onSubmit={demander} noValidate>
-      <section className="carte acces-liste">
-        <div className="entete-carte">
-          <h2>Moyennes sur 20</h2>
-          <span className="entete-carte-compteur">{saisies.length} / {session.eleves.length} saisies</span>
-        </div>
-        {session.eleves.length === 0 && <div className="vide">Aucun élève dans cette classe.</div>}
-        <ol className="acces-eleves">
-          {session.eleves.map((eleve, i) => {
-            const invalide = !valeurValide(notes[eleve.id]);
-            return (
-              <li key={eleve.id} className={invalide ? 'invalide' : ''}>
-                <span className="acces-numero">{i + 1}</span>
-                <label className="acces-eleve" htmlFor={`note-${eleve.id}`}>
-                  <strong>{eleve.nom} {eleve.prenom}</strong>
-                  {eleve.matricule && <small>{eleve.matricule}</small>}
-                </label>
-                <div className="acces-note">
-                  <input
-                    id={`note-${eleve.id}`}
-                    ref={(el) => { champs.current[i] = el; }}
-                    inputMode="decimal"
-                    autoComplete="off"
-                    placeholder="--"
-                    value={notes[eleve.id] ?? ''}
-                    onChange={(e) => setNotes((prev) => ({ ...prev, [eleve.id]: e.target.value }))}
-                    onKeyDown={(e) => surEntree(e, i)}
-                    aria-invalid={invalide}
-                  />
-                  <span>/ 20</span>
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
-      <BarreEnvoi
-        resume={invalides.length
-          ? <span className="acces-erreur">{invalides.length} note{invalides.length > 1 ? 's' : ''} hors de l'échelle 0 à 20.</span>
-          : saisies.length === 0
-          ? 'Astuce : la touche Entrée passe à l\'élève suivant.'
-          : `${saisies.length} note${saisies.length > 1 ? 's' : ''} saisie${saisies.length > 1 ? 's' : ''}${moyenne !== null ? `, moyenne de classe ${moyenne.toFixed(2).replace('.', ',')}` : ''}${manquantes ? `, ${manquantes} élève${manquantes > 1 ? 's' : ''} sans note` : ''}.`}
-        erreur={erreur}
-        enCours={enCours}
-        desactive={session.eleves.length === 0}
-        libelle="Envoyer les notes"
-      />
+    <form className="carte acces-liste" onSubmit={demander} noValidate>
+      <div className="entete-carte">
+        <h2>Moyennes sur 20 <span className="entete-carte-compteur">{saisies.length} / {session.eleves.length}</span></h2>
+        {session.eleves.length > 12 && <RechercheEleve valeur={recherche} onChange={setRecherche} />}
+      </div>
+      <ol className="acces-eleves">
+        {affiches.map((eleve, i) => {
+          const invalide = !valeurValide(notes[eleve.id]);
+          return (
+            <li key={eleve.id} className={invalide ? 'invalide' : ''}>
+              <span className="acces-numero">{session.eleves.indexOf(eleve) + 1}</span>
+              <label className="acces-eleve" htmlFor={`note-${eleve.id}`}>
+                <strong>{eleve.nom.toUpperCase()} {nomPropre(eleve.prenom)}</strong>
+                {eleve.matricule && <small>{eleve.matricule}</small>}
+              </label>
+              <div className="acces-note">
+                <input
+                  id={`note-${eleve.id}`}
+                  ref={(el) => { champs.current[eleve.id] = el; }}
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="--"
+                  value={notes[eleve.id] ?? ''}
+                  onChange={(e) => setNotes((prev) => ({ ...prev, [eleve.id]: e.target.value }))}
+                  onKeyDown={(e) => surEntree(e, i)}
+                  aria-invalid={invalide}
+                />
+                <span>/ 20</span>
+              </div>
+            </li>
+          );
+        })}
+        {affiches.length === 0 && <li className="acces-aucun">Aucun élève ne correspond à cette recherche.</li>}
+      </ol>
+      <BarreEnvoi resume={resume} erreur={erreur} enCours={enCours} libelle="Envoyer les notes" />
       {confirmation && (
         <Modal titre="Envoyer les notes ?" onFermer={() => !enCours && setConfirmation(false)} largeur={460}>
           <p className="confirmation-texte">
@@ -290,6 +351,7 @@ function dateDuJour() {
 
 function FormulaireAppel({ jeton, session, onEnvoye }) {
   const [statuts, setStatuts] = useState({});
+  const [recherche, setRecherche] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [confirmation, setConfirmation] = useState(false);
@@ -298,6 +360,7 @@ function FormulaireAppel({ jeton, session, onEnvoye }) {
   const absents = compte('absence');
   const retards = compte('retard');
   const presents = compte('present');
+  const affiches = filtrer(session.eleves, recherche);
 
   function demander(e) {
     e.preventDefault();
@@ -319,50 +382,53 @@ function FormulaireAppel({ jeton, session, onEnvoye }) {
   }
 
   return (
-    <form className="acces-formulaire" onSubmit={demander}>
-      <section className="carte acces-liste">
-        <div className="entete-carte">
-          <h2>Liste d'appel</h2>
-          <div className="acces-compteurs">
-            <span className="badge vert">{presents} présent{presents > 1 ? 's' : ''}</span>
-            <span className="badge rouge">{absents} absent{absents > 1 ? 's' : ''}</span>
-            <span className="badge or">{retards} retard{retards > 1 ? 's' : ''}</span>
-          </div>
+    <form className="carte acces-liste" onSubmit={demander}>
+      <div className="entete-carte">
+        <h2>Liste d'appel</h2>
+        <div className="acces-compteurs">
+          <span className="badge vert">{presents} présent{presents > 1 ? 's' : ''}</span>
+          <span className="badge rouge">{absents} absent{absents > 1 ? 's' : ''}</span>
+          <span className="badge or">{retards} retard{retards > 1 ? 's' : ''}</span>
         </div>
-        {session.eleves.length === 0 && <div className="vide">Aucun élève dans cette classe.</div>}
-        <ol className="acces-eleves">
-          {session.eleves.map((eleve, i) => {
-            const statut = statuts[eleve.id] || 'present';
-            return (
-              <li key={eleve.id} className={`statut-${statut}`}>
-                <span className="acces-numero">{i + 1}</span>
-                <span className="acces-eleve">
-                  <strong>{eleve.nom} {eleve.prenom}</strong>
-                  {eleve.matricule && <small>{eleve.matricule}</small>}
-                </span>
-                <div className="ligne-appel-options" role="group" aria-label={`Statut de ${eleve.prenom} ${eleve.nom}`}>
-                  {OPTIONS_STATUT.map((opt) => (
-                    <button
-                      type="button"
-                      key={opt.valeur}
-                      className={`case-statut ${opt.valeur}${statut === opt.valeur ? ' actif' : ''}`}
-                      aria-pressed={statut === opt.valeur}
-                      onClick={() => setStatuts({ ...statuts, [eleve.id]: opt.valeur })}
-                    >
-                      {opt.libelle}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
+      </div>
+      {(session.eleves.length > 12 || absents + retards > 0) && (
+        <div className="acces-outils">
+          {session.eleves.length > 12 && <RechercheEleve valeur={recherche} onChange={setRecherche} />}
+          {absents + retards > 0 && <button type="button" className="bouton-texte" onClick={() => setStatuts({})}>Tout remettre à présent</button>}
+        </div>
+      )}
+      <ol className="acces-eleves">
+        {affiches.map((eleve) => {
+          const statut = statuts[eleve.id] || 'present';
+          return (
+            <li key={eleve.id} className={`statut-${statut}`}>
+              <span className="acces-numero">{session.eleves.indexOf(eleve) + 1}</span>
+              <span className="acces-eleve">
+                <strong>{eleve.nom.toUpperCase()} {nomPropre(eleve.prenom)}</strong>
+                {eleve.matricule && <small>{eleve.matricule}</small>}
+              </span>
+              <div className="ligne-appel-options" role="group" aria-label={`Statut de ${eleve.prenom} ${eleve.nom}`}>
+                {OPTIONS_STATUT.map((opt) => (
+                  <button
+                    type="button"
+                    key={opt.valeur}
+                    className={`case-statut ${opt.valeur}${statut === opt.valeur ? ' actif' : ''}`}
+                    aria-pressed={statut === opt.valeur}
+                    onClick={() => setStatuts({ ...statuts, [eleve.id]: opt.valeur })}
+                  >
+                    {opt.libelle}
+                  </button>
+                ))}
+              </div>
+            </li>
+          );
+        })}
+        {affiches.length === 0 && <li className="acces-aucun">Aucun élève ne correspond à cette recherche.</li>}
+      </ol>
       <BarreEnvoi
-        resume={absents + retards === 0 ? 'Tous les élèves sont marqués présents.' : `${absents} absent${absents > 1 ? 's' : ''} et ${retards} retard${retards > 1 ? 's' : ''} à signaler.`}
+        resume={<span>{absents + retards === 0 ? 'Tous les élèves sont marqués présents.' : <><strong>{absents}</strong> absent{absents > 1 ? 's' : ''} et <strong>{retards}</strong> retard{retards > 1 ? 's' : ''} à signaler.</>}</span>}
         erreur={erreur}
         enCours={enCours}
-        desactive={session.eleves.length === 0}
         libelle="Envoyer l'appel"
       />
       {confirmation && (

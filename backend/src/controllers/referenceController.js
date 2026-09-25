@@ -8,6 +8,7 @@ const {
   UniteEnseignement,
   Matiere,
   EmploiDuTemps,
+  PublicationEmploiDuTemps,
   Utilisateur,
   CahierDeTextes,
   MessageAnnonce,
@@ -30,6 +31,7 @@ const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { attribuerMatricule } = require('../services/matriculeService');
 const { calculerBulletin } = require('../services/moyenneService');
+const { etatPublication, publier, versionPubliee } = require('../services/emploiDuTempsService');
 
 // Restreint étudiant/parent à LEUR(S) propre(s) classe(s) sur les listes
 // partagées (messages, emploi du temps, cahier de textes) — `null` = pas de
@@ -194,6 +196,7 @@ async function supprimerClasse(req, res) {
 
   await supprimerDonneesEleves(eleveIds);
   await EmploiDuTemps.destroy({ where: { classeId } });
+  await PublicationEmploiDuTemps.destroy({ where: { classeId } });
   await CahierDeTextes.destroy({ where: { classeId } });
   await MessageAnnonce.destroy({ where: { classeId } });
   await CompteEphemere.destroy({ where: { classeId } });
@@ -469,10 +472,18 @@ async function listerEmploisDuTemps(req, res) {
   const where = {};
   if (req.query.classeId) where.classeId = req.query.classeId;
   // Étudiant/parent restreints à LEUR(S) classe(s), quel que soit le
-  // classeId demandé — sans ça, rien n'empêchait de lire l'emploi du temps
-  // d'une autre classe en passant n'importe quel id en query.
+  // classeId demandé, et seulement à la version PUBLIÉE par l'Académie
+  // (jamais le brouillon qu'elle est en train de composer).
   const classesAutorisees = await classeIdsAutorises(req.utilisateur);
-  if (classesAutorisees) where.classeId = classesAutorisees;
+  if (classesAutorisees) {
+    const demandee = req.query.classeId ? Number(req.query.classeId) : null;
+    const classeIds = demandee && classesAutorisees.includes(demandee) ? [demandee] : classesAutorisees;
+    const publications = await versionPubliee(classeIds);
+    return res.json({
+      emplois: publications.flatMap((p) => p.creneaux.map((c) => ({ ...c, classeId: p.classeId }))),
+      publication: publications[0] ? { publieLe: publications[0].publieLe, version: publications[0].version } : null,
+    });
+  }
   const emplois = await EmploiDuTemps.findAll({
     where,
     include: [{ model: Classe, where: { etablissementId: req.utilisateur.etablissementId } }],
@@ -480,6 +491,31 @@ async function listerEmploisDuTemps(req, res) {
   });
   return res.json({ emplois });
 }
+// État de publication de la grille d'une classe (Académie).
+async function etatPublicationEmploi(req, res) {
+  const classe = await Classe.findByPk(req.query.classeId);
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+  return res.json(await etatPublication(classe.id));
+}
+
+// Publier : les étudiants et parents de la classe voient cette version et
+// sont prévenus (notification et e-mail).
+async function publierEmploiDuTemps(req, res) {
+  const classe = await Classe.findByPk(req.body.classeId);
+  if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe introuvable' });
+  }
+  try {
+    const { nbDestinataires, miseAJour } = await publier({ classe, semestreId: req.body.semestreId, utilisateur: req.utilisateur });
+    return res.status(201).json({ ...(await etatPublication(classe.id)), nbDestinataires, miseAJour });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ erreur: err.message });
+    throw err;
+  }
+}
+
 async function supprimerEmploiDuTemps(req, res) {
   const emploi = await EmploiDuTemps.findByPk(req.params.id, { include: [Classe] });
   if (!emploi || emploi.Classe.etablissementId !== req.utilisateur.etablissementId) {
@@ -648,6 +684,8 @@ module.exports = {
   creerEmploiDuTemps,
   listerEmploisDuTemps,
   supprimerEmploiDuTemps,
+  etatPublicationEmploi,
+  publierEmploiDuTemps,
   genererEmploiDuTempsPDFRoute,
   listerCahierDeTextes,
   ajouterCahierDeTextes,

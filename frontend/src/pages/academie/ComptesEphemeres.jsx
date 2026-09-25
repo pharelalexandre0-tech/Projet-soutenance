@@ -441,7 +441,14 @@ function NouvelAcces({ professeurs, professeurInitial, onFermer, onCree, onCopie
             <label htmlFor="a-classe">Classe</label>
             <select id="a-classe" value={form.classeId} onChange={maj('classeId')} required>
               <option value="">Choisir une classe</option>
-              {classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}
+              {classes.map((c) => {
+                const effectif = c.Eleves?.length ?? 0;
+                return (
+                  <option key={c.id} value={c.id} disabled={effectif === 0}>
+                    {c.nom} ({c.niveau}) · {effectif ? `${effectif} élève${effectif > 1 ? 's' : ''}` : 'aucun élève'}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>

@@ -60,7 +60,7 @@ async function seConnecter(req, res) {
     utilisateur.codeDoubleFacteurExpire = new Date(Date.now() + DUREE_CODE_2FA_MIN * 60 * 1000);
     await utilisateur.save();
     const message = emailCodeConnexion({
-      prenom: utilisateur.prenom, code, minutes: DUREE_CODE_2FA_MIN, etablissement: etablissement?.nom, role: utilisateur.role,
+      prenom: utilisateur.prenom, code, minutes: DUREE_CODE_2FA_MIN, etablissement, role: utilisateur.role, email: utilisateur.email,
     });
     await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
     return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id });
@@ -165,7 +165,7 @@ async function demanderReinitialisation(req, res) {
   }
 
   const etablissement = utilisateur.etablissementId
-    ? await Etablissement.findByPk(utilisateur.etablissementId, { attributes: ['nom'] })
+    ? await Etablissement.findByPk(utilisateur.etablissementId)
     : null;
 
   // Le mot de passe d'un étudiant est son matricule et ne se change pas :
@@ -173,7 +173,7 @@ async function demanderReinitialisation(req, res) {
   if (utilisateur.role === 'etudiant') {
     const eleve = await Eleve.findOne({ where: { compteEtudiantId: utilisateur.id }, attributes: ['matricule'] });
     if (eleve?.matricule) {
-      const message = emailRappelMatricule({ prenom: utilisateur.prenom, matricule: eleve.matricule, etablissement: etablissement?.nom });
+      const message = emailRappelMatricule({ prenom: utilisateur.prenom, matricule: eleve.matricule, email: utilisateur.email, etablissement });
       await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
     }
     return res.json(MESSAGE_GENERIQUE_RESET);
@@ -186,7 +186,7 @@ async function demanderReinitialisation(req, res) {
 
   const lien = lienReinitialisation(token);
   const message = emailReinitialisation({
-    prenom: utilisateur.prenom, email: utilisateur.email, lien, minutes: DUREE_RESET_MIN, etablissement: etablissement?.nom,
+    prenom: utilisateur.prenom, email: utilisateur.email, lien, minutes: DUREE_RESET_MIN, etablissement,
   });
   await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
 

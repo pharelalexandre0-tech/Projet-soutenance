@@ -7,6 +7,7 @@ const Semestre = require('./Semestre');
 const UniteEnseignement = require('./UniteEnseignement');
 const Matiere = require('./Matiere');
 const EmploiDuTemps = require('./EmploiDuTemps');
+const PublicationEmploiDuTemps = require('./PublicationEmploiDuTemps');
 const Eleve = require('./Eleve');
 const CompteEphemere = require('./CompteEphemere');
 const CahierDeTextes = require('./CahierDeTextes');
@@ -54,6 +55,13 @@ EmploiDuTemps.belongsTo(Classe, { foreignKey: 'classeId' });
 
 Semestre.hasMany(EmploiDuTemps, { foreignKey: 'semestreId' });
 EmploiDuTemps.belongsTo(Semestre, { foreignKey: 'semestreId' });
+
+Classe.hasOne(PublicationEmploiDuTemps, { foreignKey: 'classeId' });
+PublicationEmploiDuTemps.belongsTo(Classe, { foreignKey: 'classeId' });
+Semestre.hasMany(PublicationEmploiDuTemps, { foreignKey: 'semestreId' });
+PublicationEmploiDuTemps.belongsTo(Semestre, { foreignKey: 'semestreId' });
+Utilisateur.hasMany(PublicationEmploiDuTemps, { foreignKey: 'publieParId' });
+PublicationEmploiDuTemps.belongsTo(Utilisateur, { foreignKey: 'publieParId', as: 'publiePar' });
 
 Semestre.hasMany(UniteEnseignement, { foreignKey: 'semestreId' });
 UniteEnseignement.belongsTo(Semestre, { foreignKey: 'semestreId' });
@@ -167,6 +175,7 @@ module.exports = {
   UniteEnseignement,
   Matiere,
   EmploiDuTemps,
+  PublicationEmploiDuTemps,
   Eleve,
   CompteEphemere,
   CahierDeTextes,

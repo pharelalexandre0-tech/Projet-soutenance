@@ -6,7 +6,7 @@ import Toast from '../../components/Toast';
 import GrilleEmploiDuTemps from '../../components/GrilleEmploiDuTemps';
 import { messageErreur } from '../../utils/erreurs';
 import { JOURS } from '../../utils/jours';
-import { IconDownload, IconPlus } from '../../components/icons';
+import { IconDownload, IconPlus, IconSend, IconCircleCheck, IconAlertTriangle, IconInfo } from '../../components/icons';
 
 const CRENEAU_VIDE = { jour: 'Lundi', heureDebut: '08:00', heureFin: '10:00', matiere: '', salle: '' };
 
@@ -21,6 +21,8 @@ export default function EmploisDuTemps() {
   const [creneauASupprimer, setCreneauASupprimer] = useState(null);
   const [telechargementEnCours, setTelechargementEnCours] = useState(false);
   const [toast, setToast] = useState(null);
+  const [etat, setEtat] = useState(null);
+  const [publication, setPublication] = useState(false);
 
   useEffect(() => {
     client.get('/classes').then((res) => {
@@ -39,8 +41,12 @@ export default function EmploisDuTemps() {
     client.get(`/emplois-du-temps?classeId=${id}`)
       .then((res) => setEmplois(res.data.emplois))
       .finally(() => setChargement(false));
+    client.get('/emplois-du-temps/publication', { params: { classeId: id } })
+      .then((res) => setEtat(res.data))
+      .catch(() => setEtat(null));
   }
   useEffect(() => {
+    setEtat(null);
     if (classeId) charger(classeId); else setEmplois([]);
   }, [classeId]);
 
@@ -67,6 +73,9 @@ export default function EmploisDuTemps() {
 
   const pret = classeId && semestreId;
   const classe = classes.find((c) => String(c.id) === classeId);
+  const effectif = classe?.Eleves?.length ?? 0;
+  const dejaPubliee = !!etat?.publication;
+  const aPublier = dejaPubliee ? !etat?.aJour : emplois.length > 0;
 
   return (
     <div className="carte">
@@ -76,11 +85,15 @@ export default function EmploisDuTemps() {
           <button type="button" className="secondaire" onClick={telechargerPDF} disabled={!pret || emplois.length === 0 || telechargementEnCours}>
             <IconDownload /> {telechargementEnCours ? 'Génération…' : 'Télécharger en PDF'}
           </button>
-          <button type="button" className="primaire" onClick={() => setCreneauEnSaisie(CRENEAU_VIDE)} disabled={!pret}>
+          <button type="button" className="secondaire" onClick={() => setCreneauEnSaisie(CRENEAU_VIDE)} disabled={!pret}>
             <IconPlus /> Ajouter un cours
+          </button>
+          <button type="button" className="primaire" onClick={() => setPublication(true)} disabled={!classeId || !aPublier}>
+            <IconSend /> {dejaPubliee ? 'Publier les changements' : 'Publier'}
           </button>
         </div>
       </div>
+
 
       <div className="barre-outils">
         <select value={classeId} onChange={(e) => setClasseId(e.target.value)} aria-label="Classe" style={{ minWidth: 240 }}>
@@ -93,6 +106,26 @@ export default function EmploisDuTemps() {
         </select>
         {pret && <span className="note-secondaire astuce-grille" style={{ fontSize: 14 }}>Clique sur une case vide de la grille pour y ajouter un cours.</span>}
       </div>
+
+      {classeId && etat && (
+        <div className={`bandeau-publication ${!dejaPubliee ? 'brouillon' : etat.aJour ? 'publie' : 'modifie'}`}>
+          {!dejaPubliee && <IconInfo />}
+          {dejaPubliee && etat.aJour && <IconCircleCheck />}
+          {dejaPubliee && !etat.aJour && <IconAlertTriangle />}
+          <div>
+            <strong>
+              {!dejaPubliee && 'Brouillon : pas encore publié'}
+              {dejaPubliee && etat.aJour && `Publié le ${new Date(etat.publication.publieLe).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}`}
+              {dejaPubliee && !etat.aJour && 'Modifications non publiées'}
+            </strong>
+            <span>
+              {!dejaPubliee && "Les étudiants et les parents de la classe ne voient pas encore cet emploi du temps. Publie-le une fois la grille terminée."}
+              {dejaPubliee && etat.aJour && `Version ${etat.publication.version}, visible par les étudiants et les parents${etat.publication.nbDestinataires ? ` (${etat.publication.nbDestinataires} prévenus)` : ''}.`}
+              {dejaPubliee && !etat.aJour && `Les étudiants voient encore la version du ${new Date(etat.publication.publieLe).toLocaleDateString('fr-FR')}. Publie les changements pour les prévenir.`}
+            </span>
+          </div>
+        </div>
+      )}
 
       {!classeId && <div className="vide">Choisis une classe pour afficher son emploi du temps.</div>}
       {classeId && !semestreId && <div className="vide">Choisis le semestre concerné pour pouvoir ajouter des cours.</div>}
@@ -118,6 +151,29 @@ export default function EmploisDuTemps() {
           }}
         />
       )}
+      {publication && (
+        <Modal titre={dejaPubliee ? 'Publier les changements ?' : "Publier l'emploi du temps ?"} onFermer={() => setPublication(false)} largeur={500}>
+          <PublicationEmploi
+            classe={classe}
+            classeId={classeId}
+            semestreId={semestreId}
+            nbCours={emplois.length}
+            effectif={effectif}
+            miseAJour={dejaPubliee}
+            onAnnuler={() => setPublication(false)}
+            onPublie={(res) => {
+              setPublication(false);
+              setEtat(res);
+              setToast({
+                message: res.nbDestinataires
+                  ? `Emploi du temps publié : ${res.nbDestinataires} étudiant(s) et parent(s) prévenu(s) par notification et e-mail.`
+                  : 'Emploi du temps publié. Aucun étudiant à prévenir pour le moment.',
+                type: 'succes',
+              });
+            }}
+          />
+        </Modal>
+      )}
       {creneauASupprimer && (
         <ConfirmModal
           titre="Retirer ce cours ?"
@@ -132,6 +188,45 @@ export default function EmploisDuTemps() {
       )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
+  );
+}
+
+function PublicationEmploi({ classe, classeId, semestreId, nbCours, effectif, miseAJour, onAnnuler, onPublie }) {
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState('');
+
+  async function publier() {
+    setEnCours(true);
+    setErreur('');
+    try {
+      const res = await client.post('/emplois-du-temps/publier', { classeId: Number(classeId), semestreId: semestreId ? Number(semestreId) : null });
+      onPublie(res.data);
+    } catch (err) {
+      setErreur(messageErreur(err, 'impossible de publier'));
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <>
+      <p className="confirmation-texte">
+        {miseAJour ? 'La nouvelle version' : "L'emploi du temps"} de <strong>{classe ? `${classe.nom} (${classe.niveau})` : 'cette classe'}</strong>{' '}
+        ({nbCours} cours par semaine) deviendra visible pour les étudiants et leurs parents.
+      </p>
+      <div className="encart-info" style={{ marginBottom: 20 }}>
+        <IconInfo />
+        <span>
+          {effectif > 0
+            ? `Les ${effectif} étudiant(s) de la classe et leurs parents recevront une notification et un e-mail.`
+            : "La classe ne compte encore aucun étudiant : personne ne sera prévenu, mais la grille sera visible dès les premières inscriptions."}
+        </span>
+      </div>
+      {erreur && <div className="message-erreur" style={{ marginBottom: 14 }}>{erreur}</div>}
+      <div className="confirmation-actions">
+        <button type="button" className="secondaire" onClick={onAnnuler} disabled={enCours}>Annuler</button>
+        <button type="button" className="primaire" onClick={publier} disabled={enCours}><IconSend /> {enCours ? 'Publication…' : 'Publier et prévenir'}</button>
+      </div>
+    </>
   );
 }
 

@@ -15,7 +15,7 @@ function formaterExpiration(date) {
 // Envoi (ou renvoi) du lien au professeur, avec le modèle d'e-mail de
 // service. Renvoie le résultat de l'envoi pour l'afficher à l'Académie.
 async function envoyerLienProfesseur(compte, { professeur, classe, matiere }) {
-  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom'] });
+  const etablissement = await Etablissement.findByPk(classe.etablissementId);
   const message = emailAccesTemporaire({
     prenom: professeur.prenom,
     tache: compte.tache,
@@ -25,7 +25,7 @@ async function envoyerLienProfesseur(compte, { professeur, classe, matiere }) {
     categorie: compte.categorie,
     lien: lienAccesTemporaire(compte.jeton),
     expiration: formaterExpiration(compte.dateExpiration),
-    etablissement: etablissement?.nom,
+    etablissement,
   });
   const resultat = await envoyerEmail(professeur.email, message.sujet, message.texte, [], { html: message.html });
   return { envoye: !resultat.simule, service: resultat.service, destinataire: professeur.email };
@@ -59,6 +59,10 @@ async function creerCompteEphemere(req, res) {
     (tacheFinale === 'saisie_notes' && (!matiere || matiere.UniteEnseignement?.Semestre?.etablissementId !== etabId))
   ) {
     return res.status(404).json({ erreur: 'professeur, classe ou matière introuvable' });
+  }
+  // Un lien vers une classe vide ne mène le professeur nulle part.
+  if ((await Eleve.count({ where: { classeId: classe.id } })) === 0) {
+    return res.status(400).json({ erreur: "cette classe ne compte encore aucun élève : inscris d'abord les élèves avant d'ouvrir un accès" });
   }
 
   const duree = Number(dureeMinutes) > 0 ? Number(dureeMinutes) : 60; // 1h par defaut
@@ -202,12 +206,15 @@ async function verifierJeton(req, res) {
   if (!professeur || !classe) {
     return res.status(410).json({ erreur: 'ce lien ne correspond plus à un professeur ou une classe existant(e)' });
   }
-  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom', 'sigle', 'logo'] });
+  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom', 'sigle', 'logo', 'ville', 'email', 'telephone'] });
 
   return res.json({
     session: 'temporaire',
     tache: compte.tache,
-    etablissement: etablissement ? { nom: etablissement.nom, sigle: etablissement.sigle, logo: etablissement.logo } : null,
+    etablissement: etablissement ? {
+      nom: etablissement.nom, sigle: etablissement.sigle, logo: etablissement.logo,
+      ville: etablissement.ville, email: etablissement.email, telephone: etablissement.telephone,
+    } : null,
     professeur: { nom: professeur.nom, prenom: professeur.prenom },
     portee: {
       classe: classe.nom,
@@ -216,6 +223,7 @@ async function verifierJeton(req, res) {
       categorie: compte.categorie,
       evaluation: compte.evaluationLibelle,
     },
+    dateCreation: compte.dateCreation || compte.createdAt,
     dateExpiration: compte.dateExpiration,
     eleves: eleves.map((e) => ({ id: e.id, nom: e.nom, prenom: e.prenom, matricule: e.matricule })),
   });

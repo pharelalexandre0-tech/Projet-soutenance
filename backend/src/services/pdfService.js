@@ -24,11 +24,11 @@ const COULEUR_RATTRAPAGE = '#A67C1E';
 // franchit le seuil — voir moyenneService.calculerBulletin.
 function libelleResultatUE(ligneUE) {
   if (ligneUE.eliminatoire) {
-    return { texte: ligneUE.session === 'rattrapage' ? 'Éliminatoire (rattrapage)' : 'Éliminatoire', couleur: COULEUR_ERREUR };
+    return { texte: ligneUE.session === 'rattrapage' ? 'Éliminatoire (rattr.)' : 'Éliminatoire', couleur: COULEUR_ERREUR };
   }
   if (ligneUE.session === 'rattrapage') return { texte: 'Rattrapage', couleur: COULEUR_RATTRAPAGE };
-  if (ligneUE.valide) return { texte: 'UE validée', couleur: COULEUR_SUCCES };
-  return { texte: 'Passe en rattrapage', couleur: COULEUR_ERREUR };
+  if (ligneUE.valide) return { texte: 'Validée', couleur: COULEUR_SUCCES };
+  return { texte: 'À rattraper', couleur: COULEUR_ERREUR };
 }
 
 // Logo de l'établissement, dessiné en haut à gauche de chaque document
@@ -36,12 +36,15 @@ function libelleResultatUE(ligneUE) {
 // échoue pour autant (un logo cassé ne doit jamais empêcher un reçu ou un
 // bulletin de sortir).
 function dessinerLogo(doc, etablissement, x, y, taille = 40) {
-  if (!etablissement.logo) return;
+  if (!etablissement.logo) return false;
   try {
     const base64 = etablissement.logo.split(',')[1];
-    doc.image(Buffer.from(base64, 'base64'), x, y, { fit: [taille, taille] });
+    doc.image(Buffer.from(base64, 'base64'), x, y, { fit: [taille, taille], align: 'center', valign: 'center' });
+    return true;
   } catch {
-    // Logo corrompu/illisible : le document part sans lui plutôt que d'échouer entièrement.
+    // Logo corrompu/illisible (ou WebP, que PDFKit ne lit pas) : le document
+    // part sans lui plutôt que d'échouer entièrement.
+    return false;
   }
 }
 
@@ -59,183 +62,237 @@ function nouveauDocument(nomFichier, options = {}) {
 
 // Dessine une ligne de tableau quadrillé (cellules bordées, fond optionnel)
 // et retourne la position Y suivante. `cellules` : [{ texte, align, gras }].
-function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, taille = 8 } = {}) {
+function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, taille = 8, sansBordure = false, fusion } = {}) {
+  // `fusion` : [première, dernière] colonne réunies en une seule cellule
+  // (le texte de la première occupe toute la largeur du bloc).
+  const blocs = [];
   let cx = x;
-  largeurs.forEach((largeur) => {
-    if (fond) doc.rect(cx, y, largeur, hauteur).fill(fond);
-    doc.rect(cx, y, largeur, hauteur).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
+  for (let i = 0; i < largeurs.length; i += 1) {
+    const fin = fusion && i === fusion[0] ? fusion[1] : i;
+    const largeur = largeurs.slice(i, fin + 1).reduce((a, b) => a + b, 0);
+    blocs.push({ indice: i, x: cx, largeur });
     cx += largeur;
+    i = fin;
+  }
+  blocs.forEach((bloc) => {
+    if (fond) doc.rect(bloc.x, y, bloc.largeur, hauteur).fill(fond);
+    if (!sansBordure) doc.rect(bloc.x, y, bloc.largeur, hauteur).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
   });
-  cx = x;
-  cellules.forEach((cellule, i) => {
-    const largeur = largeurs[i];
+  blocs.forEach((bloc) => {
+    const cellule = cellules[bloc.indice];
+    if (!cellule) return;
+    const t = cellule.taille || taille;
     doc
       .font(cellule.gras ? 'Helvetica-Bold' : 'Helvetica')
-      .fontSize(cellule.taille || taille)
+      .fontSize(t)
       .fillColor(cellule.couleur || COULEUR_TEXTE)
-      .text(cellule.texte ?? '', cx + 6, y + (hauteur - (cellule.taille || taille)) / 2 - 1, {
-        width: largeur - 10,
+      .text(cellule.texte ?? '', bloc.x + 6, y + (hauteur - t) / 2 - 1, {
+        width: bloc.largeur - 12,
         align: cellule.align || 'left',
         lineBreak: false,
         ellipsis: true,
       });
-    cx += largeur;
   });
   return y + hauteur;
 }
 
-const LARGEURS_COLONNES = [52, 148, 32, 42, 48, 55, 108]; // Code / Matière / Coef / CC / Examen / Note / Résultat
-const EN_TETES = ['Code', "Unité d'enseignement / Matière", 'Coef.', 'CC', 'Examen', 'Note/20', 'Résultat'];
+// Colonnes du tableau du bulletin (495 pt = largeur utile d'une page A4
+// avec des marges de 50) : Code / UE-Matière / Coef. / CC / Examen /
+// Moyenne / Résultat.
+const LARGEURS_COLONNES = [58, 187, 34, 44, 50, 52, 70];
+const EN_TETES = ['CODE', "UNITÉ D'ENSEIGNEMENT / MATIÈRE", 'COEF.', 'CC', 'EXAMEN', 'MOYENNE', 'RÉSULTAT'];
+const COULEUR_MARINE = '#0B1E3D';
+const COULEUR_UE = '#E8EEF6';
 
-function assurerPlace(doc, y, hauteurNecessaire, margeGauche, largeurTotale) {
-  if (y + hauteurNecessaire > doc.page.height - doc.page.margins.bottom) {
+function noteFr(valeur) {
+  if (valeur === null || valeur === undefined || valeur === '') return '';
+  const n = Number(valeur);
+  return Number.isFinite(n) ? n.toFixed(2).replace('.', ',') : String(valeur);
+}
+
+function resultatMatiere(m) {
+  if (m.eliminatoire) return { texte: 'ÉLIMINATOIRE', couleur: COULEUR_ERREUR };
+  return m.noteFinale >= 10 ? { texte: 'ACQUIS', couleur: COULEUR_SUCCES } : { texte: 'NON ACQUIS', couleur: COULEUR_ERREUR };
+}
+
+function sigleDe(etablissement) {
+  if (etablissement.sigle) return etablissement.sigle.slice(0, 5).toUpperCase();
+  return (etablissement.nom || 'ES').split(/\s+/).filter((m) => m.length > 2).map((m) => m[0]).join('').slice(0, 4).toUpperCase();
+}
+
+function enTeteTableau(doc, x, y) {
+  return dessinerLigne(
+    doc, x, y, LARGEURS_COLONNES,
+    EN_TETES.map((t, i) => ({ texte: t, align: i >= 2 && i <= 5 ? 'right' : 'left', gras: true, couleur: '#FFFFFF', taille: 6.8 })),
+    { hauteur: 22, fond: COULEUR_MARINE, taille: 6.8, sansBordure: true }
+  );
+}
+
+function assurerPlace(doc, y, hauteurNecessaire, margeGauche) {
+  if (y + hauteurNecessaire > doc.page.height - doc.page.margins.bottom - 20) {
     doc.addPage();
-    let ny = doc.page.margins.top;
-    ny = dessinerLigne(
-      doc, margeGauche, ny, LARGEURS_COLONNES,
-      EN_TETES.map((t, i) => ({ texte: t, align: i >= 2 ? 'center' : 'left', gras: true, couleur: '#FFFFFF', taille: 7 })),
-      { hauteur: 20, fond: COULEUR_PRIMAIRE, taille: 7 }
-    );
-    return ny;
+    return enTeteTableau(doc, margeGauche, doc.page.margins.top);
   }
   return y;
 }
 
-// genererPDF(données du bulletin) - diagramme 5. Reproduit fidèlement le
-// registre affiché à l'écran : résultat par matière ET par UE (une UE peut
-// être éliminatoire ou nécessiter un rattrapage même si sa moyenne suffirait).
+// genererPDF(données du bulletin) - diagramme 5. Même document que celui
+// affiché à l'écran (BulletinDocument) : identité de l'établissement avec
+// son logo, bloc étudiant, résultats par UE et par matière, synthèse,
+// signature.
 async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement }) {
   const nomFichier = `bulletin_${eleve.id}_${semestre.id}_${Date.now()}.pdf`;
-  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier);
+  const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
   const largeurTotale = LARGEURS_COLONNES.reduce((a, b) => a + b, 0);
+  const droite = margeGauche + largeurTotale;
+  const sansNotes = detailParUE.length === 0;
+  const reference = `BUL-${String(semestre.id).padStart(2, '0')}${String(eleve.id).padStart(4, '0')}`;
 
-  doc.rect(0, 0, doc.page.width, 8).fill(COULEUR_PRIMAIRE);
-  dessinerLogo(doc, etablissement, margeGauche, 26);
+  // En-tête : logo et identité de l'école à gauche, titre du document à droite.
+  const yEntete = 44;
+  const tailleLogo = 60;
+  const logoDessine = dessinerLogo(doc, etablissement, margeGauche, yEntete, tailleLogo);
+  if (!logoDessine) {
+    doc.roundedRect(margeGauche, yEntete, tailleLogo, tailleLogo, 6).lineWidth(1.2).strokeColor(COULEUR_MARINE).stroke();
+    doc.font('Times-Bold').fontSize(15).fillColor(COULEUR_MARINE)
+      .text(sigleDe(etablissement), margeGauche, yEntete + tailleLogo / 2 - 8, { width: tailleLogo, align: 'center' });
+  }
+  const largeurTitre = 190;
+  const xEcole = margeGauche + tailleLogo + 14;
+  const largeurEcole = droite - largeurTitre - 16 - xEcole;
+  doc.font('Times-Bold').fontSize(12.5).fillColor(COULEUR_MARINE)
+    .text(etablissement.nom.toUpperCase(), xEcole, yEntete + 2, { width: largeurEcole });
+  let yTexte = doc.y + 1;
+  if (etablissement.devise) {
+    doc.font('Times-Italic').fontSize(8.5).fillColor(COULEUR_TEXTE_CLAIR).text(etablissement.devise, xEcole, yTexte, { width: largeurEcole });
+    yTexte = doc.y + 1;
+  }
+  const adresse = [etablissement.boitePostale, etablissement.ville, etablissement.pays].filter(Boolean).join(', ');
+  const contacts = [etablissement.telephone, etablissement.email].filter(Boolean).join('  ·  ');
+  doc.font('Helvetica').fontSize(7.8).fillColor(COULEUR_TEXTE_CLAIR);
+  if (adresse) { doc.text(adresse, xEcole, yTexte, { width: largeurEcole }); yTexte = doc.y + 1; }
+  if (contacts) { doc.text(contacts, xEcole, yTexte, { width: largeurEcole }); yTexte = doc.y; }
 
-  doc.y = 34;
-  doc.fontSize(8.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom.toUpperCase()}, ${etablissement.ville.toUpperCase()}, ${etablissement.pays.toUpperCase()}`, margeGauche, doc.y, { width: largeurTotale, align: 'center', characterSpacing: 0.6 });
-  doc.moveDown(0.4);
-  doc.fontSize(19).font('Helvetica-Bold').fillColor(COULEUR_TEXTE)
-    .text('BULLETIN DE NOTES', margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.3);
-  doc.fontSize(7.5).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`N° BUL-${String(semestre.id).padStart(2, '0')}${String(eleve.id).padStart(4, '0')}, document officiel de fin de semestre`, margeGauche, doc.y, { width: largeurTotale, align: 'center' });
-  doc.moveDown(0.6);
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
-  doc.moveDown(0.7);
+  const xTitre = droite - largeurTitre;
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(COULEUR_PRIMAIRE)
+    .text(`ANNÉE ${semestre.anneeScolaire || ''}`.trim(), xTitre, yEntete + 2, { width: largeurTitre, align: 'right', characterSpacing: 0.8 });
+  doc.font('Times-Bold').fontSize(15).fillColor(COULEUR_MARINE)
+    .text('BULLETIN DE NOTES', xTitre, doc.y + 3, { width: largeurTitre, align: 'right' });
+  doc.font('Helvetica-Bold').fontSize(9).fillColor(COULEUR_TEXTE)
+    .text(semestre.libelle || '', xTitre, doc.y + 2, { width: largeurTitre, align: 'right' });
+  doc.font('Courier').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR)
+    .text(`Réf. ${reference}`, xTitre, doc.y + 3, { width: largeurTitre, align: 'right' });
 
-  // Bloc identité — mêmes 4 champs que la version affichée à l'écran
-  // (Étudiant / Matricule / Filière / Semestre), pour que le PDF téléchargé
-  // ne soit jamais un document différent de ce que l'étudiant a sous les yeux.
-  const largeurCol = largeurTotale / 4;
+  let y = Math.max(yEntete + tailleLogo, yTexte, doc.y) + 14;
+  doc.moveTo(margeGauche, y).lineTo(droite, y).lineWidth(2).strokeColor(COULEUR_MARINE).stroke();
+  y += 16;
+
+  // Bloc étudiant : 4 cases bordées.
   const identite = [
-    ['Étudiant', `${eleve.prenom} ${eleve.nom}`],
-    ['Matricule', eleve.matricule || `ETU-${String(eleve.id).padStart(5, '0')}`],
-    ['Filière', eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : 'Non renseigné'],
-    ['Semestre', `${semestre.libelle} (${semestre.anneeScolaire})`],
+    ['NOM ET PRÉNOM', `${eleve.nom} ${eleve.prenom}`, 1.5],
+    ['MATRICULE', eleve.matricule || 'Non attribué', 1],
+    ['CLASSE', eleve.Classe?.nom || 'Non renseignée', 1],
+    ['NIVEAU', eleve.Classe?.niveau || 'Non renseigné', 1],
   ];
-  const yIdentite = doc.y;
-  identite.forEach(([label, valeur], i) => {
-    const cx = margeGauche + i * largeurCol;
-    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR).text(label.toUpperCase(), cx, yIdentite, { width: largeurCol - 8, characterSpacing: 0.5 });
-    doc.fontSize(10).font('Helvetica-Bold').fillColor(COULEUR_TEXTE).text(valeur, cx, yIdentite + 11, { width: largeurCol - 8 });
+  const totalPoids = identite.reduce((a, [, , p]) => a + p, 0);
+  const hauteurIdentite = 38;
+  let cx = margeGauche;
+  identite.forEach(([label, valeur, poids], i) => {
+    const largeur = (largeurTotale * poids) / totalPoids;
+    doc.rect(cx, y, largeur, hauteurIdentite).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font('Helvetica-Bold').fontSize(6.3).fillColor(COULEUR_TEXTE_CLAIR).text(label, cx + 10, y + 8, { width: largeur - 20, characterSpacing: 0.6 });
+    doc.font(i === 1 ? 'Courier-Bold' : 'Helvetica-Bold').fontSize(9.5).fillColor(COULEUR_TEXTE)
+      .text(valeur, cx + 10, y + 20, { width: largeur - 20, lineBreak: false, ellipsis: true });
+    cx += largeur;
   });
-  doc.y = yIdentite + 34;
-  doc.moveTo(margeGauche, doc.y).lineTo(margeGauche + largeurTotale, doc.y).dash(2, { space: 2 }).lineWidth(0.7).strokeColor(COULEUR_BORDURE).stroke();
-  doc.undash();
-  doc.y += 14;
+  y += hauteurIdentite + 16;
 
-  // En-tête du tableau
-  let y = dessinerLigne(
-    doc, margeGauche, doc.y, LARGEURS_COLONNES,
-    EN_TETES.map((t, i) => ({ texte: t, align: i >= 2 ? 'center' : 'left', gras: true, couleur: '#FFFFFF', taille: 7 })),
-    { hauteur: 20, fond: COULEUR_PRIMAIRE, taille: 7 }
-  );
+  if (sessionGlobale === 'rattrapage') {
+    doc.rect(margeGauche, y, largeurTotale, 20).fill('#FAF0DC');
+    doc.font('Helvetica').fontSize(7.8).fillColor('#9C6B12')
+      .text('Ce bulletin intègre les résultats de la session de rattrapage pour les UE non validées en session normale.', margeGauche + 10, y + 6.5, { width: largeurTotale - 20 });
+    y += 30;
+  }
+
+  y = enTeteTableau(doc, margeGauche, y);
+
+  if (sansNotes) {
+    doc.rect(margeGauche, y, largeurTotale, 36).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(COULEUR_TEXTE_CLAIR)
+      .text("Aucune note n'a encore été enregistrée pour ce semestre.", margeGauche, y + 14, { width: largeurTotale, align: 'center' });
+    y += 36;
+  }
 
   detailParUE.forEach((ligneUE) => {
-    y = assurerPlace(doc, y, 18 * (1 + ligneUE.matieres.length), margeGauche, largeurTotale);
-
+    y = assurerPlace(doc, y, 20 * (1 + ligneUE.matieres.length), margeGauche);
     const { texte: resultatUE, couleur: couleurResultatUE } = libelleResultatUE(ligneUE);
-    const hauteurUE = 18;
-    const largeurLabel = LARGEURS_COLONNES.slice(0, 5).reduce((a, b) => a + b, 0);
-    const largeurNote = LARGEURS_COLONNES[5];
-    const largeurResultat = LARGEURS_COLONNES[6];
-    const xNote = margeGauche + largeurLabel;
-    const xResultat = xNote + largeurNote;
-
-    doc.rect(margeGauche, y, largeurLabel, hauteurUE).fill(COULEUR_UE_FOND);
-    doc.rect(margeGauche, y, largeurLabel, hauteurUE).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(COULEUR_PRIMAIRE)
-      .text(
-        `${ligneUE.code ? ligneUE.code + ' : ' : ''}${ligneUE.ue} · ${ligneUE.credits} crédits${ligneUE.session === 'rattrapage' ? ' · session de rattrapage' : ''}`,
-        margeGauche + 6, y + 5, { width: largeurLabel - 10, lineBreak: false, ellipsis: true }
-      );
-
-    doc.rect(xNote, y, largeurNote, hauteurUE).fill(COULEUR_UE_FOND);
-    doc.rect(xNote, y, largeurNote, hauteurUE).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(COULEUR_TEXTE)
-      .text(`${ligneUE.moyenne}/20`, xNote + 4, y + 5, { width: largeurNote - 8, align: 'center' });
-
-    doc.rect(xResultat, y, largeurResultat, hauteurUE).fill(COULEUR_UE_FOND);
-    doc.rect(xResultat, y, largeurResultat, hauteurUE).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
-    doc.font('Helvetica-Bold').fontSize(6.8).fillColor(couleurResultatUE)
-      .text(resultatUE, xResultat + 4, y + 5.5, { width: largeurResultat - 8, align: 'center' });
-
-    y += hauteurUE;
+    const credits = `${ligneUE.credits} crédit${ligneUE.credits > 1 ? 's' : ''}`;
+    y = dessinerLigne(doc, margeGauche, y, LARGEURS_COLONNES, [
+      { texte: ligneUE.code || '', gras: true, couleur: COULEUR_MARINE, taille: 7.5 },
+      { texte: `${ligneUE.ue}  ·  ${credits}${ligneUE.session === 'rattrapage' ? '  ·  rattrapage' : ''}`, gras: true, couleur: COULEUR_MARINE },
+      { texte: '' }, { texte: '' }, { texte: '' },
+      { texte: noteFr(ligneUE.moyenne), align: 'right', gras: true, couleur: COULEUR_MARINE },
+      { texte: resultatUE.toUpperCase(), gras: true, couleur: couleurResultatUE, taille: 6.5 },
+    ], { hauteur: 20, fond: COULEUR_UE, fusion: [1, 4] });
 
     ligneUE.matieres.forEach((m) => {
-      y = assurerPlace(doc, y, 18, margeGauche, largeurTotale);
-      const badge = m.eliminatoire ? 'éliminatoire' : m.noteFinale >= 10 ? 'validé' : 'non validé';
-      const couleurBadge = m.eliminatoire || m.noteFinale < 10 ? COULEUR_ERREUR : COULEUR_SUCCES;
-      y = dessinerLigne(
-        doc, margeGauche, y, LARGEURS_COLONNES,
-        [
-          { texte: m.code || 'N/A', couleur: COULEUR_TEXTE_CLAIR, taille: 7.5 },
-          { texte: `${m.matiere}${m.session === 'rattrapage' ? ' (rattrapage)' : ''}` },
-          { texte: String(m.coefficient), align: 'center' },
-          { texte: m.moyenneCC ?? 'N/A', align: 'center', couleur: COULEUR_TEXTE_CLAIR },
-          { texte: m.moyenneExamen ?? 'N/A', align: 'center', couleur: COULEUR_TEXTE_CLAIR },
-          { texte: `${m.noteFinale}`, align: 'center', gras: true, couleur: m.noteFinale >= 10 ? COULEUR_SUCCES : COULEUR_ERREUR },
-          { texte: badge, align: 'center', gras: true, couleur: couleurBadge, taille: 6.8 },
-        ]
-      );
+      y = assurerPlace(doc, y, 18, margeGauche);
+      const res = resultatMatiere(m);
+      y = dessinerLigne(doc, margeGauche, y, LARGEURS_COLONNES, [
+        { texte: m.code || '', couleur: COULEUR_TEXTE_CLAIR, taille: 7.3 },
+        { texte: `     ${m.matiere}${m.session === 'rattrapage' ? ' (rattrapage)' : ''}` },
+        { texte: String(m.coefficient ?? ''), align: 'right' },
+        { texte: noteFr(m.moyenneCC), align: 'right', couleur: COULEUR_TEXTE_CLAIR },
+        { texte: noteFr(m.moyenneExamen), align: 'right', couleur: COULEUR_TEXTE_CLAIR },
+        { texte: noteFr(m.noteFinale), align: 'right', gras: true, couleur: res.couleur },
+        { texte: res.texte, gras: true, couleur: res.couleur, taille: 6.5 },
+      ], { hauteur: 18 });
     });
   });
 
-  y += 16;
-  y = assurerPlace(doc, y, 60, margeGauche, largeurTotale);
-
-  // Pied : moyenne générale / crédits / mention / décision
-  const pied = [
-    ['Moyenne générale', `${moyenneGenerale}/20`, moyenneGenerale >= 10 ? COULEUR_SUCCES : COULEUR_ERREUR],
-    ['Crédits validés', `${creditsValides} / ${creditsTotal}`, COULEUR_TEXTE],
-    ['Mention', mention(moyenneGenerale), COULEUR_TEXTE],
-    ['Décision', admis ? 'Admis(e)' : 'Non validé(e)', admis ? COULEUR_SUCCES : COULEUR_ERREUR],
+  // Synthèse : 4 cases dans un cadre marine.
+  y += 18;
+  y = assurerPlace(doc, y, 150, margeGauche);
+  const synthese = [
+    ['MOYENNE GÉNÉRALE', sansNotes ? 'Non évaluée' : `${noteFr(moyenneGenerale)} / 20`, sansNotes ? COULEUR_TEXTE : moyenneGenerale >= 10 ? COULEUR_SUCCES : COULEUR_ERREUR],
+    ['CRÉDITS VALIDÉS', `${creditsValides} / ${creditsTotal}`, COULEUR_TEXTE],
+    ['MENTION', sansNotes ? 'Non évalué' : mention(moyenneGenerale), COULEUR_TEXTE],
+    ['DÉCISION', sansNotes ? 'En attente' : admis ? 'Admis(e)' : 'Ajourné(e)', sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_ERREUR],
   ];
-  doc.moveTo(margeGauche, y).lineTo(margeGauche + largeurTotale, y).lineWidth(1.4).strokeColor(COULEUR_PRIMAIRE).stroke();
-  y += 12;
-  const largeurPied = largeurTotale / 4;
-  pied.forEach(([label, valeur, couleur], i) => {
-    const cx = margeGauche + i * largeurPied;
-    doc.fontSize(6.5).font('Helvetica-Bold').fillColor(COULEUR_TEXTE_CLAIR).text(label.toUpperCase(), cx, y, { width: largeurPied - 6, align: 'center', characterSpacing: 0.4 });
-    doc.fontSize(13).font('Helvetica-Bold').fillColor(couleur).text(valeur, cx, y + 11, { width: largeurPied - 6, align: 'center' });
+  const largeurCase = largeurTotale / 4;
+  const hauteurSynthese = 46;
+  doc.rect(margeGauche, y, largeurTotale, hauteurSynthese).lineWidth(1.3).strokeColor(COULEUR_MARINE).stroke();
+  synthese.forEach(([label, valeur, couleur], i) => {
+    const x = margeGauche + i * largeurCase;
+    if (i) doc.moveTo(x, y).lineTo(x, y + hauteurSynthese).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font('Helvetica-Bold').fontSize(6.3).fillColor(COULEUR_TEXTE_CLAIR).text(label, x, y + 9, { width: largeurCase, align: 'center', characterSpacing: 0.6 });
+    doc.font('Times-Bold').fontSize(13).fillColor(couleur).text(valeur, x, y + 22, { width: largeurCase, align: 'center' });
   });
-  y += 42;
+  y += hauteurSynthese + 30;
 
-  if (sessionGlobale === 'rattrapage') {
-    doc.fontSize(7.5).font('Helvetica-Oblique').fillColor(COULEUR_OR)
-      .text('Ce bulletin intègre les résultats de la session de rattrapage.', margeGauche, y, { width: largeurTotale, align: 'center' });
-    y += 16;
+  // Lieu, date et signature.
+  const dateDuJour = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  doc.font('Helvetica').fontSize(8.5).fillColor(COULEUR_TEXTE).text(`Fait à ${etablissement.ville}, le ${dateDuJour}`, margeGauche, y + 4);
+  const largeurSignature = 190;
+  const xSignature = droite - largeurSignature;
+  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COULEUR_TEXTE).text('Le Directeur des études', xSignature, y, { width: largeurSignature, align: 'center' });
+  doc.moveTo(xSignature, y + 62).lineTo(droite, y + 62).lineWidth(0.7).strokeColor(COULEUR_TEXTE).stroke();
+  doc.font('Helvetica').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR).text('Signature et cachet', xSignature, y + 67, { width: largeurSignature, align: 'center' });
+
+  // Mentions de bas de page, sur chaque page.
+  const pages = doc.bufferedPageRange();
+  for (let i = pages.start; i < pages.start + pages.count; i += 1) {
+    doc.switchToPage(i);
+    const yPied = doc.page.height - doc.page.margins.bottom - 14;
+    doc.moveTo(margeGauche, yPied - 6).lineTo(droite, yPied - 6).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
+    doc.font('Helvetica').fontSize(6.5).fillColor(COULEUR_TEXTE_CLAIR)
+      .text(
+        `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.${pages.count > 1 ? `  ·  Page ${i - pages.start + 1}/${pages.count}` : ''}`,
+        margeGauche, yPied, { width: largeurTotale, align: 'center', lineBreak: false }
+      );
   }
-
-  doc.fontSize(8).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`Fait à ${etablissement.ville}, le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`, margeGauche, y);
-
-  doc.fontSize(7).font('Helvetica').fillColor(COULEUR_TEXTE_CLAIR)
-    .text(`${etablissement.nom}, ${etablissement.boitePostale}, ${etablissement.telephone}, ${etablissement.email}`, margeGauche, doc.page.height - doc.page.margins.bottom - 16, { width: largeurTotale, align: 'center' });
 
   doc.end();
   const chemin = await termine;

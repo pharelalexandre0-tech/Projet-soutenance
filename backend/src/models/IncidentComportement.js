@@ -11,6 +11,8 @@ IncidentComportement.init(
     date: { type: DataTypes.DATEONLY, allowNull: false },
     description: { type: DataTypes.STRING, allowNull: false },
     gravite: { type: DataTypes.ENUM('mineur', 'majeur'), allowNull: false, defaultValue: 'mineur' },
+    // Date à laquelle le parent a été prévenu (notification et e-mail).
+    parentInformeLe: { type: DataTypes.DATE, allowNull: true },
   },
   { sequelize, modelName: 'IncidentComportement', tableName: 'incidents_comportement' }
 );

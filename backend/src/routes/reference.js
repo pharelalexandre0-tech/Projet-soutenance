@@ -42,6 +42,8 @@ router.post('/matieres', authentifier, academie, ctrl.creerMatiere);
 router.post('/emplois-du-temps', authentifier, emplois, academie, ctrl.creerEmploiDuTemps);
 router.get('/emplois-du-temps', authentifier, emplois, ctrl.listerEmploisDuTemps);
 router.get('/emplois-du-temps/pdf', authentifier, emplois, academie, ctrl.genererEmploiDuTempsPDFRoute);
+router.get('/emplois-du-temps/publication', authentifier, emplois, academie, ctrl.etatPublicationEmploi);
+router.post('/emplois-du-temps/publier', authentifier, emplois, academie, ctrl.publierEmploiDuTemps);
 router.delete('/emplois-du-temps/:id', authentifier, emplois, academie, ctrl.supprimerEmploiDuTemps);
 
 router.get('/cahier-de-textes', authentifier, ctrl.listerCahierDeTextes);

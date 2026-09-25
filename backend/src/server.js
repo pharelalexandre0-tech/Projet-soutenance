@@ -2,6 +2,7 @@ const app = require('./app');
 const { sequelize } = require('./models');
 const { initialiserActivations } = require('./services/plateformeService');
 const { attribuerMatriculesManquants } = require('./services/matriculeService');
+const { initialiserPublicationsEmplois } = require('./services/emploiDuTempsService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -14,6 +15,7 @@ const PORT = process.env.PORT || 4000;
     console.log('Connexion à PostgreSQL établie, modèles synchronisés.');
     await initialiserActivations();
     await attribuerMatriculesManquants();
+    await initialiserPublicationsEmplois();
 
     app.listen(PORT, () => {
       console.log(`API Plateforme de Gestion Scolaire à l'écoute sur le port ${PORT}`);
