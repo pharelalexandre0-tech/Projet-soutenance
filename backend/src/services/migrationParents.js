@@ -29,11 +29,31 @@ async function migrerComptesParents(sequelize) {
   }
 
   const [parents] = await sequelize.query("SELECT id FROM utilisateurs WHERE role::text = 'parent'");
-  if (parents.length === 0) return;
-  const ids = parents.map((p) => p.id);
-  await sequelize.query('DELETE FROM notifications WHERE "utilisateurId" IN (:ids)', { replacements: { ids } });
-  await sequelize.query('DELETE FROM utilisateurs WHERE id IN (:ids)', { replacements: { ids } });
-  console.log(`[Migration] ${ids.length} ancien(s) compte(s) parent remplacé(s) par l'adresse e-mail rattachée à l'élève.`);
+  if (parents.length) {
+    const ids = parents.map((p) => p.id);
+    await sequelize.query('DELETE FROM notifications WHERE "utilisateurId" IN (:ids)', { replacements: { ids } });
+    await sequelize.query('DELETE FROM utilisateurs WHERE id IN (:ids)', { replacements: { ids } });
+    console.log(`[Migration] ${ids.length} ancien(s) compte(s) parent remplacé(s) par l'adresse e-mail rattachée à l'élève.`);
+  }
+  await retirerRoleParent(sequelize);
+}
+
+// Le rôle « parent » n'existe plus : retiré du type énuméré PostgreSQL (qui
+// ne permet pas de supprimer une valeur, d'où la recréation du type), une
+// fois qu'aucun compte ne l'utilise.
+async function retirerRoleParent(sequelize) {
+  const [valeurs] = await sequelize.query(
+    "SELECT e.enumlabel AS valeur FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid WHERE t.typname = 'enum_utilisateurs_role'"
+  );
+  if (!valeurs.some((v) => v.valeur === 'parent')) return;
+  await sequelize.transaction(async (transaction) => {
+    const options = { transaction };
+    await sequelize.query('ALTER TYPE enum_utilisateurs_role RENAME TO enum_utilisateurs_role_ancien', options);
+    await sequelize.query("CREATE TYPE enum_utilisateurs_role AS ENUM ('superadmin', 'academie', 'finance', 'etudiant')", options);
+    await sequelize.query('ALTER TABLE utilisateurs ALTER COLUMN role TYPE enum_utilisateurs_role USING role::text::enum_utilisateurs_role', options);
+    await sequelize.query('DROP TYPE enum_utilisateurs_role_ancien', options);
+  });
+  console.log('[Migration] Rôle « parent » retiré du type des rôles.');
 }
 
 // Après la synchronisation : l'espace Parents n'existe plus (le parent voit
