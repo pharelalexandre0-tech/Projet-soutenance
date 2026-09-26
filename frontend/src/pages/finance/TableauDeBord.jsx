@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconBanknote, IconCard, IconAlertTriangle, IconWallet } from '../../components/icons';
@@ -11,12 +12,14 @@ export default function TableauDeBord({ onNaviguer }) {
   const [impayes, setImpayes] = useState([]);
   const [totalEleves, setTotalEleves] = useState(0);
 
-  useEffect(() => {
-    client.get('/finance/impayes').then((res) => setImpayes(res.data.impayes));
+  function charger() {
+    client.get('/finance/impayes').then((res) => setImpayes(res.data.impayes)).catch(() => {});
     client.get('/classes').then((res) => {
       setTotalEleves(totalElevesParClasses(res.data.classes));
-    });
-  }, []);
+    }).catch(() => {});
+  }
+  useEffect(charger, []);
+  useActualisation(charger);
 
   const montantTotalDu = impayes.reduce((acc, f) => acc + (f.montant - f.montantRegle), 0);
   const elevesConcernes = new Set(impayes.map((f) => f.eleveId)).size;

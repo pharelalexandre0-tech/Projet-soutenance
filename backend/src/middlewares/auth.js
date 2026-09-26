@@ -36,6 +36,9 @@ async function authentifier(req, res, next) {
       if (maintenance) return repondreMaintenance(res, maintenance);
     }
     req.utilisateur = utilisateur;
+    // Session ouverte par le parent sur le compte étudiant de son enfant :
+    // mêmes droits, seul l'affichage change (Espace Parents).
+    req.sessionParent = utilisateur.role === 'etudiant' && payload.parent === true;
     next();
   } catch (err) {
     return res.status(401).json({ erreur: "erreur d'authentification" });

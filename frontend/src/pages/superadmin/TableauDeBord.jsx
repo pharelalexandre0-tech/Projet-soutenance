@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
@@ -29,6 +30,7 @@ export default function TableauDeBord({ onNaviguer }) {
     client.get('/superadmin/diffusion').then((res) => setPilotage((p) => ({ ...p, diffusion: res.data }))).catch(() => {});
   }
   useEffect(charger, []);
+  useActualisation(charger, { delai: 1500 });
 
   async function testerEnvoi() {
     setTestEnCours(true);

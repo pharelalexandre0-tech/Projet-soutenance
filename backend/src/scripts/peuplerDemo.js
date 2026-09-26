@@ -21,6 +21,7 @@ const { rattacherProfesseursALaPaie } = require('../services/paieService');
 const { consignerAppel } = require('../services/compteRenduService');
 const { calculerRisqueEleve } = require('../services/riskService');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
+const { publier } = require('../services/evenementsService');
 
 const SIGLE = 'IDE';
 const MOT_DE_PASSE = process.env.DEMO_MOT_DE_PASSE || 'EduSphere2026';
@@ -150,18 +151,13 @@ async function main() {
       const email = `${sansAccents(prenom)}.${sansAccents(nom)}${indexNom}@eleves.example.com`;
       const profil = tirerProfil();
       const compte = await m.Utilisateur.create({ nom, prenom, email, motDePasse: hache, role: 'etudiant', etablissementId: etab.id });
-      let parentId = null;
-      if (i % 2 === 0) {
-        const parent = await m.Utilisateur.create({
-          nom, prenom: choisir(['Michel', 'Jeanne', 'Paul', 'Albertine', 'Samuel', 'Odette']),
-          email: `parent.${sansAccents(nom)}${indexNom}@parents.example.com`, motDePasse: hache, role: 'parent', etablissementId: etab.id,
-        });
-        parentId = parent.id;
-        compter('parents');
-      }
+      // Un élève sur deux a l'adresse d'un parent : le parent ouvre le
+      // compte de l'enfant avec elle et le matricule.
+      const emailParent = i % 2 === 0 ? `parent.${sansAccents(nom)}${indexNom}@parents.example.com` : null;
+      if (emailParent) compter('parents');
       const eleve = await m.Eleve.create({
         nom, prenom, dateNaissance: `${entier(2003, 2007)}-${String(entier(1, 12)).padStart(2, '0')}-${String(entier(1, 28)).padStart(2, '0')}`,
-        classeId: classe.id, etablissementId: etab.id, compteEtudiantId: compte.id, parentId,
+        classeId: classe.id, etablissementId: etab.id, compteEtudiantId: compte.id, emailParent,
       });
       await attribuerMatricule(eleve);
       eleves.push({ eleve, profil, classe });
@@ -293,12 +289,13 @@ async function main() {
     if (risque.alerteGeneree) alertes += 1;
   }
 
+  await publier(etab.id, 'eleves');
   console.log(`Établissement de démonstration créé : ${etab.nom} (${SIGLE}).`);
   console.log(`  ${classes.length} classes, ${matieres.length} matières, ${professeurs.length} professeurs, ${personnel.length} membres du personnel`);
-  console.log(`  ${compteurs.etudiants} étudiants (${compteurs.parents} parents), ${compteurs.notes} notes, ${compteurs.absences || 0} absences, ${compteurs.incidents || 0} incidents`);
+  console.log(`  ${compteurs.etudiants} étudiants (${compteurs.parents} avec l'adresse d'un parent), ${compteurs.notes} notes, ${compteurs.absences || 0} absences, ${compteurs.incidents || 0} incidents`);
   console.log(`  ${compteurs.frais} frais, ${compteurs.paiements} paiements, ${compteurs.salaires} salaires, ${compteurs.cours} cours publiés, ${alertes} élève(s) en alerte de décrochage`);
   console.log(`Connexion : academie@${SIGLE.toLowerCase()}.example.com ou finance@${SIGLE.toLowerCase()}.example.com (mot de passe : DEMO_MOT_DE_PASSE, sinon celui défini en tête de ce script).`);
-  console.log('Étudiants : leur matricule comme mot de passe ; parents : même mot de passe que les comptes de démonstration.');
+  console.log("Étudiants : leur matricule comme mot de passe ; parents : leur adresse e-mail et le matricule de l'enfant.");
   await m.sequelize.close();
 }
 

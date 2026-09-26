@@ -88,7 +88,7 @@ export default function DetailCompteRendu({ compteRendu: cr, onFermer }) {
         <IconInfo />
         <span>
           {appel
-            ? "Chaque absence et chaque retard ont été ajoutés au dossier de l'élève (onglet Absences de l'étudiant et du parent), qui ont été prévenus par notification et e-mail. Ils comptent aussi dans le score de risque de décrochage."
+            ? "Chaque absence et chaque retard ont été ajoutés au dossier de l'élève (onglet Absences de son compte, que le parent ouvre aussi) ; l'élève et son parent ont été prévenus par notification et e-mail. Ils comptent aussi dans le score de risque de décrochage."
             : "Ces moyennes ont été enregistrées dans les notes de la matière (page Notes) et comptent dans le bulletin et le score de risque de décrochage."}
         </span>
       </div>

@@ -14,6 +14,10 @@ Eleve.init(
     // CDP-2N-0001). Sert
     // aussi de mot de passe au compte étudiant, qui ne peut pas le changer.
     matricule: { type: DataTypes.STRING(30), allowNull: true, unique: true },
+    // Le parent n'a pas de compte à lui : il ouvre le compte étudiant de son
+    // enfant avec cette adresse et le même mot de passe (le matricule). Les
+    // e-mails destinés à la famille partent aussi à cette adresse.
+    emailParent: { type: DataTypes.STRING, allowNull: true, validate: { isEmail: true } },
   },
   { sequelize, modelName: 'Eleve', tableName: 'eleves' }
 );

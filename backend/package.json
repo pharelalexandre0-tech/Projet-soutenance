@@ -1,13 +1,13 @@
 {
   "name": "plateforme-scolaire-backend",
   "version": "1.0.0",
-  "description": "API de la Plateforme de Gestion Scolaire (Espace Ecole / Espace Parents)",
+  "description": "API d'EduSphere, plateforme de gestion scolaire multi-établissements",
   "main": "src/server.js",
   "type": "commonjs",
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed": "node src/seed/seed.js",
+    "init:superadmin": "node src/scripts/initialiserSuperadmin.js",
     "backup": "node src/scripts/sauvegarder.js",
     "train:risque": "node src/scripts/entrainerModeleRisque.js",
     "check:impayes": "node src/scripts/checkImpayes.js",

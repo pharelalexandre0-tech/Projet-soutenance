@@ -2,11 +2,10 @@ import {
   LayoutDashboard, Users, PenLine, KeyRound, Mail, Lock, CalendarX2, Banknote, CreditCard, TriangleAlert,
   Wallet, FileText, MessagesSquare, LogOut, Building2, Settings, Menu, GraduationCap, BookOpen, X, Search,
   Download, MapPin, Blocks, RefreshCw, Megaphone, History, Bell, Wrench, CalendarDays, Check, Layers,
-  TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, ChevronDown,
-  ChevronLeft, Plus, ExternalLink, Link2, Library, Video, Globe, Trash2, Pencil, Ellipsis, Info, Send,
-  Calendar, Newspaper, LifeBuoy, Briefcase, Award, Bus, Utensils, HandCoins, ArrowLeft, Server, Database,
-  Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye, EyeOff, Upload, UserPlus, Copy, School,
-  CalendarCheck, ShieldAlert, Flag, Printer,
+  TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, Plus, ExternalLink,
+  Link2, Library, Video, Globe, Trash2, Pencil, Info, Send, Calendar, Newspaper, LifeBuoy, Briefcase, Award,
+  Bus, Utensils, HandCoins, ArrowLeft, Database, Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye,
+  EyeOff, Upload, UserPlus, Copy, School, Flag, Sparkles,
 } from 'lucide-react';
 
 // Jeu d'icônes Lucide (trait régulier, dessin sobre) à la place des icônes
@@ -48,7 +47,7 @@ export const IconToggle = avecTrait(Blocks);
 export const IconRocket = avecTrait(RefreshCw);
 export const IconMegaphone = avecTrait(Megaphone);
 export const IconHistory = avecTrait(History);
-export const IconSparkles = avecTrait(Bell);
+export const IconSparkles = avecTrait(Sparkles);
 export const IconWrench = avecTrait(Wrench);
 export const IconCalendar = avecTrait(CalendarDays);
 export const IconCheck = avecTrait(Check);
@@ -61,17 +60,13 @@ export const IconClipboard = avecTrait(ClipboardList);
 export const IconShield = avecTrait(ShieldCheck);
 export const IconUserCog = avecTrait(UserCog);
 export const IconChevronRight = avecTrait(ChevronRight);
-export const IconChevronDown = avecTrait(ChevronDown);
-export const IconChevronLeft = avecTrait(ChevronLeft);
 export const IconPlus = avecTrait(Plus);
 export const IconExternal = avecTrait(ExternalLink);
 export const IconTrash = avecTrait(Trash2);
 export const IconEdit = avecTrait(Pencil);
-export const IconMore = avecTrait(Ellipsis);
 export const IconInfo = avecTrait(Info);
 export const IconSend = avecTrait(Send);
 export const IconArrowLeft = avecTrait(ArrowLeft);
-export const IconServer = avecTrait(Server);
 export const IconDatabase = avecTrait(Database);
 export const IconActivity = avecTrait(Activity);
 export const IconEnter = avecTrait(CornerDownLeft);
@@ -86,10 +81,7 @@ export const IconUpload = avecTrait(Upload);
 export const IconUserPlus = avecTrait(UserPlus);
 export const IconCopy = avecTrait(Copy);
 export const IconSchool = avecTrait(School);
-export const IconCalendarCheck = avecTrait(CalendarCheck);
-export const IconShieldAlert = avecTrait(ShieldAlert);
 export const IconFlag = avecTrait(Flag);
-export const IconPrinter = avecTrait(Printer);
 
 // Icônes proposées pour une fonctionnalité personnalisée (même liste que
 // ICONES_PERSONNALISABLES côté backend), plus celles des modules intégrés.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import logoIcon from '../assets/logo-icon.png';
 
-export const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
+const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
 const NOM = 'EduSphere';
 const DUREE_AFFICHAGE_MS = 2300;
 const DUREE_TRANSITION_MS = 850;

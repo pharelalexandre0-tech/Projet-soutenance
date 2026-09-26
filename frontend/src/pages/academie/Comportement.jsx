@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
@@ -23,8 +24,9 @@ function dateCourte(iso) {
 
 // Signalement de comportement : troisième signal du calcul de risque (avec
 // les notes et les absences). Chaque incident va au dossier de l'élève
-// (journal ci-contre, espace Parents), relance le calcul de son score et,
-// si la case est cochée, prévient le parent.
+// (journal ci-contre, rubrique Comportement du compte que le parent ouvre
+// avec son adresse), relance le calcul de son score et, si la case est
+// cochée, prévient le parent par e-mail.
 export default function Comportement() {
   const [classes, setClasses] = useState([]);
   const [eleves, setEleves] = useState([]);
@@ -50,9 +52,14 @@ export default function Comportement() {
     else setEleves([]);
     setForm((f) => ({ ...f, eleveId: '' }));
   }, [form.classeId]);
+  useActualisation(() => {
+    chargerIncidents();
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
+    if (form.classeId) client.get(`/eleves?classeId=${form.classeId}`).then((res) => setEleves(res.data.eleves)).catch(() => {});
+  });
 
   const eleve = eleves.find((e) => String(e.id) === form.eleveId);
-  const sansParent = !!eleve && !eleve.parent;
+  const sansParent = !!eleve && !eleve.emailParent;
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
 
   async function enregistrer(e) {
@@ -142,7 +149,7 @@ export default function Comportement() {
                 type="checkbox" checked={form.informerParent && !sansParent} disabled={sansParent}
                 onChange={(e) => setForm({ ...form, informerParent: e.target.checked })}
               />
-              {sansParent ? "Informer le parent : aucun parent n'est rattaché à cet élève" : 'Informer le parent par notification et e-mail'}
+              {sansParent ? "Informer le parent : aucune adresse parent pour cet élève" : `Informer le parent par e-mail (${eleve?.emailParent || 'adresse du parent'})`}
             </label>
             {erreur && <div className="message-erreur">{erreur}</div>}
             <button className="primaire" type="submit" disabled={enCours}><IconFlag /> {enCours ? 'Enregistrement…' : 'Enregistrer le signalement'}</button>
@@ -160,7 +167,7 @@ export default function Comportement() {
                 <li>
                   {resultat.parent.informe
                     ? (resultat.parent.envoye ? `Parent prévenu par e-mail (${resultat.parent.email}) et par notification.` : "Parent prévenu par notification ; l'e-mail n'a pas pu partir.")
-                    : resultat.parent.rattache ? 'Parent non prévenu (case décochée).' : "Aucun parent rattaché : personne n'a été prévenu."}
+                    : resultat.parent.rattache ? 'Parent non prévenu (case décochée).' : "Aucune adresse parent : seul l'élève voit le signalement dans son compte."}
                 </li>
               </ul>
             </div>
@@ -171,7 +178,7 @@ export default function Comportement() {
             <ul>
               <li>
                 <span className="parcours-icone"><IconClipboard /></span>
-                <span><strong>Dossier de l'élève</strong>Consigné dans le journal ci-contre et visible par le parent dans son espace, rubrique Comportement.</span>
+                <span><strong>Dossier de l'élève</strong>Consigné dans le journal ci-contre et visible dans le compte de l'élève, que le parent ouvre avec son adresse (rubrique Comportement).</span>
               </li>
               <li>
                 <span className="parcours-icone"><IconTrendingDown /></span>
@@ -179,7 +186,7 @@ export default function Comportement() {
               </li>
               <li>
                 <span className="parcours-icone"><IconMail /></span>
-                <span><strong>Famille</strong>Le parent reçoit une notification et un e-mail, si la case est cochée.</span>
+                <span><strong>Famille</strong>Le parent reçoit un e-mail et une notification dans le compte, si la case est cochée.</span>
               </li>
             </ul>
           </div>

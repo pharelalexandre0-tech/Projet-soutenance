@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 
 const SEUIL_VALIDATION_UE = 10;
 
@@ -12,13 +13,16 @@ export default function RelevesNotes({ eleveId, eleve }) {
     client.get('/etablissement').then((res) => setEtablissement(res.data.etablissement));
   }, []);
 
-  useEffect(() => {
-    setChargement(true);
+  function charger(silencieux = false) {
+    if (!eleveId) return;
+    if (!silencieux) setChargement(true);
     client.get(`/notes/eleve/${eleveId}`).then((res) => {
       setNotes(res.data.notes);
       setChargement(false);
-    });
-  }, [eleveId]);
+    }).catch(() => setChargement(false));
+  }
+  useEffect(() => { charger(); }, [eleveId]);
+  useActualisation(() => charger(true));
 
   // Regroupement par UE puis par matière, pour afficher le relevé comme un
   // vrai registre de notes plutôt qu'une liste plate.

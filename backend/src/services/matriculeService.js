@@ -91,4 +91,4 @@ async function attribuerMatriculesManquants() {
   }
 }
 
-module.exports = { prefixe, prochainMatricule, attribuerMatricule, attribuerMatriculesManquants };
+module.exports = { attribuerMatricule, attribuerMatriculesManquants };

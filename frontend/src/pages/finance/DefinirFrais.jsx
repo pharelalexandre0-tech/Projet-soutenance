@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import { IconBanknote, IconSearch, IconPlus, IconWallet } from '../../components/icons';
@@ -26,14 +27,15 @@ export default function DefinirFrais() {
   const [recherche, setRecherche] = useState('');
   const [classeId, setClasseId] = useState('');
 
-  function charger() {
-    setChargement(true);
+  function charger(silencieux = false) {
+    if (!silencieux) setChargement(true);
     client.get('/finance/impayes/par-classe').then((res) => {
       setNiveaux(res.data.niveaux);
       setChargement(false);
-    });
+    }).catch(() => setChargement(false));
   }
-  useEffect(charger, []);
+  useEffect(() => { charger(); }, []);
+  useActualisation(() => charger(true));
 
   const totalEleves = totalElevesParNiveaux(niveaux);
   const totalNetAPayer = niveaux.reduce((s, n) => s + n.classes.reduce((s2, c) => s2 + c.eleves.reduce((s3, e) => s3 + e.totalDu, 0), 0), 0);

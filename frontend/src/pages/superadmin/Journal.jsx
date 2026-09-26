@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import { messageErreur } from '../../utils/erreurs';
 import { IconSearch } from '../../components/icons';
 
@@ -32,11 +33,13 @@ export default function Journal() {
   const [categorie, setCategorie] = useState('');
   const [recherche, setRecherche] = useState('');
 
-  useEffect(() => {
+  function charger() {
     client.get('/superadmin/journal')
       .then((res) => setEntrees(res.data.entrees))
       .catch((err) => setErreur(messageErreur(err, 'impossible de charger le journal')));
-  }, []);
+  }
+  useEffect(charger, []);
+  useActualisation(charger);
 
   const filtre = recherche.trim().toLowerCase();
   const affichees = (entrees || []).filter((e) => (!categorie || e.categorie === categorie)

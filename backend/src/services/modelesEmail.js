@@ -184,8 +184,9 @@ const ESPACES = {
   superadmin: 'Administration de la plateforme',
 };
 
-// Code de double authentification (étudiants et parents).
-function emailCodeConnexion({ prenom, code, minutes, etablissement, role, email }) {
+// Code de double authentification (étudiants, et parents qui ouvrent le
+// compte de leur enfant : `enfant` est alors renseigné).
+function emailCodeConnexion({ prenom, code, minutes, etablissement, role, email, enfant }) {
   const etab = identite(etablissement);
   const espace = ESPACES[role] ? `Espace ${ESPACES[role]}` : 'Votre espace';
   const sujet = `${code} est votre code de connexion`;
@@ -212,6 +213,7 @@ function emailCodeConnexion({ prenom, code, minutes, etablissement, role, email 
       tableauDetails([
         ['Compte', email],
         ['Espace', espace],
+        ['Dossier de', enfant],
         ['Date', maintenant()],
       ], 'Détails de la demande'),
       note("Vous n'êtes pas à l'origine de cette demande ?", 'Ignorez ce message : sans ce code, personne ne peut accéder à votre compte. Ne communiquez jamais ce code, même à un membre de l\'administration.'),
@@ -281,6 +283,41 @@ function emailRappelMatricule({ prenom, matricule, email, etablissement }) {
       ], 'Pour vous connecter'),
       paragraphe('Il ne se modifie pas. Si vous ne parvenez toujours pas à vous connecter, adressez-vous au service de la scolarité.', '0 0 8px'),
       note("Vous n'êtes pas à l'origine de cette demande ?", 'Aucune action n\'est nécessaire : chaque connexion demande aussi un code envoyé à cette adresse e-mail.'),
+    ].join(''),
+  });
+  return { sujet, texte, html };
+}
+
+// Un parent n'a pas de mot de passe à lui : il se connecte avec son adresse
+// et le matricule de son enfant.
+function emailRappelParent({ email, enfants, etablissement }) {
+  const sujet = 'Vos informations de connexion';
+  const plusieurs = enfants.length > 1;
+  const texte = texteBrut([
+    salutation(null),
+    '',
+    'Vous avez demandé à réinitialiser votre mot de passe.',
+    '',
+    `Pour suivre ${plusieurs ? 'vos enfants' : 'votre enfant'}, connectez-vous avec votre adresse ${email} et, comme mot de passe, le matricule de l'élève :`,
+    ...enfants.map((e) => `- ${e.nom} : ${e.matricule}`),
+    '',
+    "Ce mot de passe ne se modifie pas. Si vous ne parvenez toujours pas à vous connecter, adressez-vous au service de la scolarité.",
+  ], etablissement);
+  const html = cadre({
+    surtitre: 'Espace Parents',
+    titre: 'Vos informations de connexion',
+    etablissement,
+    preEntete: "Votre mot de passe est le matricule de votre enfant.",
+    contenu: [
+      paragraphe(salutation(null)),
+      paragraphe(`Vous avez demandé à réinitialiser votre mot de passe. Pour suivre ${plusieurs ? 'vos enfants' : 'votre enfant'}, connectez-vous avec <strong>votre adresse e-mail</strong> et, comme mot de passe, le <strong>matricule de l'élève</strong>.`),
+      ...enfants.map((e) => blocValeur(`Matricule de ${e.nom}`, e.matricule || 'en attente')),
+      tableauDetails([
+        ['Identifiant', email],
+        ['Mot de passe', plusieurs ? "le matricule de l'enfant à consulter" : 'le matricule, ci-dessus'],
+      ], 'Pour vous connecter'),
+      paragraphe('Il ne se modifie pas. Si vous ne parvenez toujours pas à vous connecter, adressez-vous au service de la scolarité.', '0 0 8px'),
+      note("Vous n'êtes pas à l'origine de cette demande ?", "Aucune action n'est nécessaire : chaque connexion demande aussi un code envoyé à cette adresse e-mail."),
     ].join(''),
   });
   return { sujet, texte, html };
@@ -387,7 +424,7 @@ function emailIncident({ prenom, eleve, date, gravite, description, etablissemen
         ['Motif', description],
       ]),
       paragraphe("Nous restons à votre disposition pour en discuter : vous pouvez contacter le service de la scolarité ou demander un rendez-vous.", '0 0 8px'),
-      note(null, 'Ce signalement est aussi visible dans votre espace Parents.'),
+      note(null, "Ce signalement est aussi visible dans l'Espace Parents, rubrique « Comportement »."),
     ].join(''),
   });
   return { sujet, texte, html };
@@ -416,6 +453,6 @@ function emailGenerique(corps, { titre, etablissement, surtitre } = {}) {
 }
 
 module.exports = {
-  emailCodeConnexion, emailReinitialisation, emailRappelMatricule, emailAccesTemporaire, emailEmploiDuTemps, emailIncident,
-  emailGenerique, nomPropre,
+  emailCodeConnexion, emailReinitialisation, emailRappelMatricule, emailRappelParent, emailAccesTemporaire, emailEmploiDuTemps,
+  emailIncident, emailGenerique, nomPropre,
 };

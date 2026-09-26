@@ -3,9 +3,9 @@ const sequelize = require('../config/db');
 
 // Classe Utilisateur du diagramme de classes : regroupe Academie, Finance et
 // Etudiant (le Professeur n'a volontairement PAS de compte permanent, voir
-// CompteEphemere). Plateforme universitaire : c'est l'étudiant lui-même qui
-// a un compte et consulte son propre dossier, pas un parent. Le champ `role`
-// fait office de discriminant plutot que
+// CompteEphemere). Le parent non plus : il ouvre le compte étudiant de son
+// enfant avec sa propre adresse e-mail (Eleve.emailParent) et le même mot
+// de passe. Le champ `role` fait office de discriminant plutot que
 // des sous-classes Sequelize separees, avec deux colonnes optionnelles qui
 // ne servent qu'a un seul role (service pour Academie, fonction pour
 // Finance) pour rester fidele au modele de domaine.
@@ -25,7 +25,7 @@ Utilisateur.init(
     motDePasse: { type: DataTypes.STRING, allowNull: false },
     // 'superadmin' n'appartient à aucun établissement (etablissementId reste
     // null pour ce rôle) — il gère la liste des écoles elles-mêmes.
-    role: { type: DataTypes.ENUM('superadmin', 'academie', 'finance', 'etudiant', 'parent'), allowNull: false },
+    role: { type: DataTypes.ENUM('superadmin', 'academie', 'finance', 'etudiant'), allowNull: false },
     // specifique Academie
     service: { type: DataTypes.STRING, allowNull: true },
     // specifique Finance
@@ -39,6 +39,9 @@ Utilisateur.init(
     // courte. Nul en dehors d'une connexion en cours.
     codeDoubleFacteur: { type: DataTypes.STRING, allowNull: true },
     codeDoubleFacteurExpire: { type: DataTypes.DATE, allowNull: true },
+    // Adresse à laquelle le code a été envoyé : celle de l'étudiant, ou
+    // celle de son parent quand c'est lui qui se connecte (session parent).
+    codeDoubleFacteurPour: { type: DataTypes.STRING, allowNull: true },
     // "Mot de passe oublié" : jeton aléatoire à usage unique envoyé par
     // e-mail, même principe de durée de vie courte que le code 2FA
     // ci-dessus. Nul en dehors d'une réinitialisation en cours.
@@ -58,7 +61,7 @@ Utilisateur.init(
     // Utilisateur est inclus en relation imbriquée (ex. compte étudiant d'un
     // élève). Le scope "avecMotDePasse" (auth uniquement) permet de les
     // récupérer explicitement pour la vérification.
-    defaultScope: { attributes: { exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire', 'tokenReinitialisation', 'tokenReinitialisationExpire'] } },
+    defaultScope: { attributes: { exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire', 'codeDoubleFacteurPour', 'tokenReinitialisation', 'tokenReinitialisationExpire'] } },
     scopes: { avecMotDePasse: { attributes: {} } },
   }
 );

@@ -4,13 +4,12 @@
 export const LIBELLES_ESPACES = {
   academie: 'Académie',
   finance: 'Finance',
-  etudiant: 'Étudiants',
-  parent: 'Parents',
+  etudiant: 'Étudiants et parents',
   professeur: 'Professeurs',
 };
 
 // Ordre d'affichage des cases "Espaces qui la verront" d'une note de version.
-export const ESPACES_NOTES = ['academie', 'finance', 'etudiant', 'parent'];
+export const ESPACES_NOTES = ['academie', 'finance', 'etudiant'];
 
 export const TYPES_MISE_A_JOUR = {
   nouveaute: { libelle: 'Nouveauté', badge: 'vert' },

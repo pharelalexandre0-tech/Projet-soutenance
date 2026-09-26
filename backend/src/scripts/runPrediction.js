@@ -5,6 +5,7 @@
 require('dotenv').config();
 const { sequelize, Etablissement } = require('../models');
 const { executerAnalyseRisque } = require('../controllers/predictionController');
+const { publier } = require('../services/evenementsService');
 
 (async () => {
   await sequelize.authenticate();
@@ -12,6 +13,7 @@ const { executerAnalyseRisque } = require('../controllers/predictionController')
   for (const etab of etablissements) {
     const resultat = await executerAnalyseRisque(etab.id);
     console.log(`Analyse de prédiction IA effectuée pour "${etab.nom}" :`, resultat);
+    await publier(etab.id, 'predictions');
   }
   await sequelize.close();
 })().catch((err) => {

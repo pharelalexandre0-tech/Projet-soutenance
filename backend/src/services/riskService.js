@@ -64,4 +64,4 @@ async function calculerRisqueEleve(eleveId) {
   };
 }
 
-module.exports = { calculerRisqueEleve, modeleActif, oublierModele, assurerModeleIA, SEUIL_ALERTE };
+module.exports = { calculerRisqueEleve, modeleActif, oublierModele, assurerModeleIA };

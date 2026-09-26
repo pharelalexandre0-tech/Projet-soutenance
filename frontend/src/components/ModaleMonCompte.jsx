@@ -6,9 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { IconInfo } from './icons';
 
 // Symétrique de superadmin/MonProfil.jsx pour les autres rôles, en modale :
-// Académie, Finance et Parents n'ont pas de page "profil" dans leur menu.
-// L'étudiant, lui, ne modifie rien : son mot de passe est son matricule,
-// attribué par l'établissement.
+// Académie et Finance n'ont pas de page "profil" dans leur menu.
+// L'étudiant (et son parent, qui ouvre le même compte) ne modifie rien : le
+// mot de passe est le matricule, attribué par l'établissement.
 export default function ModaleMonCompte({ onFermer }) {
   const { profil } = useAuth();
   return (
@@ -23,6 +23,25 @@ function CompteEtudiant({ profil }) {
   useEffect(() => {
     client.get('/eleves').then((res) => setMatricule(res.data.eleves[0]?.matricule || null)).catch(() => {});
   }, []);
+
+  if (profil.modeParent) {
+    return (
+      <div className="formulaire">
+        <dl className="fiche-compte">
+          <div><dt>Élève suivi</dt><dd>{profil.prenom} {profil.nom}</dd></div>
+          <div><dt>Votre identifiant</dt><dd>{profil.emailParent}</dd></div>
+          <div><dt>Mot de passe</dt><dd className="mono">{matricule || '…'}</dd></div>
+        </dl>
+        <div className="encart-info">
+          <IconInfo />
+          <span>
+            Vous vous connectez avec votre adresse e-mail et le matricule de votre enfant, qui ne se modifie pas. Pour
+            changer d'adresse, adressez-vous au service de la scolarité.
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="formulaire">

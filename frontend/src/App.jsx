@@ -15,7 +15,6 @@ const AccesTemporaire = lazy(() => import('./pages/AccesTemporaire'));
 const ReinitialiserMotDePasse = lazy(() => import('./pages/ReinitialiserMotDePasse'));
 const DashboardAcademie = lazy(() => import('./pages/DashboardAcademie'));
 const DashboardEtudiant = lazy(() => import('./pages/DashboardEtudiant'));
-const DashboardParent = lazy(() => import('./pages/DashboardParent'));
 const DashboardFinance = lazy(() => import('./pages/DashboardFinance'));
 const DashboardSuperAdmin = lazy(() => import('./pages/DashboardSuperAdmin'));
 
@@ -25,7 +24,6 @@ function Accueil() {
   if (profil?.role === 'academie') return <DashboardAcademie />;
   if (profil?.role === 'finance') return <DashboardFinance />;
   if (profil?.role === 'etudiant') return <DashboardEtudiant />;
-  if (profil?.role === 'parent') return <DashboardParent />;
   return <Navigate to="/connexion" replace />;
 }
 

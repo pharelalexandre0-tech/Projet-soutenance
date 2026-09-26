@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import client from '../api/client';
+import { reinitialiserFlux } from '../api/tempsReel';
 
 const AuthContext = createContext(null);
 
@@ -46,6 +47,7 @@ export function AuthProvider({ children }) {
 
   function seDeconnecter() {
     sessionStorage.removeItem('pgs_token');
+    reinitialiserFlux();
     setProfil(null);
   }
 

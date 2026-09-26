@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 
-// Espace Parents : incidents de comportement consignés par l'établissement
-// dans le dossier de l'enfant (le parent en est aussi prévenu par e-mail).
-export default function ComportementEnfant({ eleveId }) {
+// Incidents de comportement consignés par l'établissement dans le dossier de
+// l'élève, visibles de l'étudiant comme de son parent (même compte). Le
+// parent en est aussi prévenu par e-mail.
+export default function ComportementEleve({ eleveId }) {
   const [incidents, setIncidents] = useState(null);
 
-  useEffect(() => {
+  function charger() {
     if (!eleveId) return;
+    client.get(`/incidents/eleve/${eleveId}`).then((res) => setIncidents(res.data.incidents)).catch(() => setIncidents((i) => i || []));
+  }
+  useEffect(() => {
     setIncidents(null);
-    client.get(`/incidents/eleve/${eleveId}`).then((res) => setIncidents(res.data.incidents)).catch(() => setIncidents([]));
+    charger();
   }, [eleveId]);
+  useActualisation(charger);
 
   return (
     <div className="carte">

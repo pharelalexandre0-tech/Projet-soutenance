@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
@@ -15,9 +16,11 @@ export default function AnnoncesMaintenance() {
   const [diffusion, setDiffusion] = useState(null);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
+  function charger() {
     client.get('/superadmin/diffusion').then((res) => setDiffusion(res.data)).catch(() => {});
-  }, []);
+  }
+  useEffect(charger, []);
+  useActualisation(charger);
 
   if (!diffusion) return <div className="chargement">Chargement…</div>;
 

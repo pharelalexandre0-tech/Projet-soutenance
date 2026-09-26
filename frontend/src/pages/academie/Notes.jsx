@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import { lireFichierExcel, normaliserTexte } from '../../utils/excel';
 
 // Diagramme 4 (cas nominal) : l'Académie saisit, par matière, la moyenne de
@@ -35,6 +36,14 @@ export default function Notes() {
     if (classeId) client.get(`/eleves?classeId=${classeId}`).then((res) => setEleves(res.data.eleves));
     else setEleves([]);
   }, [classeId]);
+  // Les valeurs en cours de saisie ne sont pas touchées : seules les
+  // listes (classes, semestres, UE, élèves) se mettent à jour.
+  useActualisation(() => {
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
+    client.get('/semestres').then((res) => setSemestres(res.data.semestres)).catch(() => {});
+    if (semestreId) client.get(`/unites-enseignement?semestreId=${semestreId}`).then((res) => setUes(res.data.ues)).catch(() => {});
+    if (classeId) client.get(`/eleves?classeId=${classeId}`).then((res) => setEleves(res.data.eleves)).catch(() => {});
+  });
 
   const ueSelectionnee = ues.find((u) => String(u.id) === ueId);
   const matieres = ueSelectionnee?.Matieres || [];

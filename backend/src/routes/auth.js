@@ -12,7 +12,7 @@ router.post('/connexion/double-facteur', verifierDoubleFacteur);
 router.post('/mot-de-passe-oublie', demanderReinitialisation);
 router.post('/reinitialiser-mot-de-passe', reinitialiserMotDePasse);
 // Réservé à l'Académie : évite qu'un compte non authentifié s'auto-crée un
-// accès (le seed, lui, passe directement par le modèle, pas par cette route).
+// accès (le premier superadmin se crée par npm run init:superadmin).
 router.post('/comptes', authentifier, autoriserRoles('academie'), creerCompte);
 router.get('/moi', authentifier, monProfil);
 router.put('/mon-profil', authentifier, mettreAJourMonProfil);

@@ -162,6 +162,4 @@ module.exports = {
   calculerNoteFinale,
   obtenirResultatMatiere,
   calculerBulletin,
-  SEUIL_VALIDATION_UE,
-  NOTE_ELIMINATOIRE,
 };

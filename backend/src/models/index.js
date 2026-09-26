@@ -79,14 +79,10 @@ Matiere.belongsTo(UniteEnseignement, { foreignKey: 'uniteEnseignementId' });
 Classe.hasMany(Eleve, { foreignKey: 'classeId' });
 Eleve.belongsTo(Classe, { foreignKey: 'classeId' });
 
-// Le compte Étudiant reste (l'élève consulte directement son propre
-// dossier) et coexiste avec un compte Parent optionnel : un même parent
-// peut être rattaché à plusieurs enfants (hasMany), l'inverse non — un
-// élève a un seul contact parent principal dans le système.
+// Un seul compte par élève, le compte Étudiant : le parent s'y connecte
+// avec son propre e-mail (Eleve.emailParent) et le même mot de passe.
 Utilisateur.hasOne(Eleve, { foreignKey: 'compteEtudiantId', as: 'dossierEtudiant' });
 Eleve.belongsTo(Utilisateur, { foreignKey: 'compteEtudiantId', as: 'compteEtudiant' });
-Utilisateur.hasMany(Eleve, { foreignKey: 'parentId', as: 'enfants' });
-Eleve.belongsTo(Utilisateur, { foreignKey: 'parentId', as: 'parent' });
 
 // Cahier de textes : tenu par l'Academie ou par un Professeur via un compte
 // ephemere (jamais directement par le Professeur).

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import AnneauProgression from '../../components/AnneauProgression';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconDashboard, IconUsers, IconKey, IconPencil, IconCalendarAlert, IconAlertTriangle, IconDocument } from '../../components/icons';
@@ -24,12 +25,16 @@ export default function TableauDeBord({ onNaviguer }) {
   const [absences, setAbsences] = useState(null);
   const [academique, setAcademique] = useState(null);
 
-  useEffect(() => {
-    client.get('/classes').then((res) => setClasses(res.data.classes));
-    client.get('/professeurs').then((res) => setProfesseurs(res.data.professeurs));
-    client.get('/absences/statistiques').then((res) => setAbsences(res.data));
-    client.get('/tableau-de-bord/academique').then((res) => setAcademique(res.data));
-  }, []);
+  function charger() {
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
+    client.get('/professeurs').then((res) => setProfesseurs(res.data.professeurs)).catch(() => {});
+    client.get('/absences/statistiques').then((res) => setAbsences(res.data)).catch(() => {});
+    client.get('/tableau-de-bord/academique').then((res) => setAcademique(res.data)).catch(() => {});
+  }
+  useEffect(charger, []);
+  // Les moyennes par UE demandent un calcul complet : un seul rechargement
+  // pour une série de changements rapprochés.
+  useActualisation(charger, { delai: 1500 });
 
   const totalEleves = totalElevesParClasses(classes);
   const maxEffectif = Math.max(1, ...classes.map((c) => c.Eleves?.length ?? 0));

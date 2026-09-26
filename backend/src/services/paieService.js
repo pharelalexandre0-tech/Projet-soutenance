@@ -32,4 +32,4 @@ async function rattacherProfesseursALaPaie(etablissementId) {
   return crees;
 }
 
-module.exports = { rattacherProfesseursALaPaie, posteEnseignant };
+module.exports = { rattacherProfesseursALaPaie };

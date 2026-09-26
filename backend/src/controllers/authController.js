@@ -2,7 +2,8 @@ const bcrypt = require('bcryptjs');
 const { Utilisateur, Etablissement, Eleve } = require('../models');
 const { signSession } = require('../utils/jwt');
 const { envoyerEmail } = require('../services/emailService');
-const { emailCodeConnexion, emailReinitialisation, emailRappelMatricule } = require('../services/modelesEmail');
+const { emailCodeConnexion, emailReinitialisation, emailRappelMatricule, emailRappelParent } = require('../services/modelesEmail');
+const { dossiersDuParent } = require('../services/familleService');
 const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
 const { lienReinitialisation } = require('../utils/liens');
@@ -11,30 +12,56 @@ const { maintenanceEnCours, repondreMaintenance, journaliser } = require('../ser
 const DUREE_CODE_2FA_MIN = 10;
 const DUREE_RESET_MIN = 30;
 
-const ROLES_AVEC_2FA = ['etudiant', 'parent'];
+const ROLES_AVEC_2FA = ['etudiant'];
+
+function memeAdresse(a, b) {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
+
+// Le compte dont c'est l'adresse ; à défaut (ou si le mot de passe ne lui
+// correspond pas), un compte étudiant dont c'est l'adresse du PARENT : le
+// parent se connecte avec son propre e-mail et le mot de passe de son
+// enfant, qui désigne aussi l'enfant quand il en a plusieurs.
+async function identifier(email, motDePasse) {
+  const utilisateur = await Utilisateur.scope('avecMotDePasse').findOne({ where: { email } });
+  if (utilisateur && await bcrypt.compare(motDePasse, utilisateur.motDePasse)) {
+    return { utilisateur, parent: false };
+  }
+  for (const dossier of await dossiersDuParent(email)) {
+    if (await bcrypt.compare(motDePasse, dossier.compteEtudiant.motDePasse)) {
+      return { utilisateur: dossier.compteEtudiant, parent: true, emailParent: dossier.emailParent };
+    }
+  }
+  return null;
+}
+
+// Profil renvoyé au frontend : en session parent, c'est le compte de
+// l'enfant, présenté comme l'Espace Parents.
+async function profilDeSession(utilisateur, sessionParent) {
+  const profil = utilisateur.toPublicJSON();
+  if (!sessionParent) return profil;
+  const eleve = await Eleve.findOne({ where: { compteEtudiantId: utilisateur.id }, attributes: ['emailParent'] });
+  return { ...profil, modeParent: true, emailParent: eleve?.emailParent || null };
+}
 
 // Diagramme 3 - Authentification :
 // Academie/Etudiant/Finance saisit ses identifiants -> demanderConnexion ->
 // rechercherUtilisateur -> alt [valides]/[invalides].
-// Etudiant passe en plus par une double authentification (code à 6 chiffres
-// envoyé par e-mail) avant que le token ne soit délivré, pour protéger son
-// propre dossier ; Académie, Finance et Superadmin restent en simple
-// facteur.
+// Etudiant (ou son parent) passe en plus par une double authentification
+// (code à 6 chiffres envoyé à l'adresse utilisée pour se connecter) avant
+// que le token ne soit délivré ; Académie, Finance et Superadmin restent en
+// simple facteur.
 async function seConnecter(req, res) {
   const { email, motDePasse } = req.body;
   if (!email || !motDePasse) {
     return res.status(400).json({ erreur: "identifiants incorrects" });
   }
 
-  const utilisateur = await Utilisateur.scope('avecMotDePasse').findOne({ where: { email } });
-  if (!utilisateur) {
+  const connexion = await identifier(email, motDePasse);
+  if (!connexion) {
     return res.status(401).json({ erreur: "identifiants incorrects" });
   }
-
-  const motDePasseValide = await bcrypt.compare(motDePasse, utilisateur.motDePasse);
-  if (!motDePasseValide) {
-    return res.status(401).json({ erreur: "identifiants incorrects" });
-  }
+  const { utilisateur, parent } = connexion;
 
   if (utilisateur.statut === 'verrouille') {
     return res.status(403).json({ erreur: 'compte verrouillé, contactez votre administrateur' });
@@ -55,14 +82,24 @@ async function seConnecter(req, res) {
   }
 
   if (ROLES_AVEC_2FA.includes(utilisateur.role)) {
+    // Le code part à l'adresse saisie : celle de l'étudiant, ou celle de
+    // son parent.
+    const destinataire = parent ? connexion.emailParent : utilisateur.email;
     const code = String(Math.floor(100000 + Math.random() * 900000));
     utilisateur.codeDoubleFacteur = code;
     utilisateur.codeDoubleFacteurExpire = new Date(Date.now() + DUREE_CODE_2FA_MIN * 60 * 1000);
+    utilisateur.codeDoubleFacteurPour = destinataire;
     await utilisateur.save();
     const message = emailCodeConnexion({
-      prenom: utilisateur.prenom, code, minutes: DUREE_CODE_2FA_MIN, etablissement, role: utilisateur.role, email: utilisateur.email,
+      prenom: parent ? null : utilisateur.prenom,
+      code,
+      minutes: DUREE_CODE_2FA_MIN,
+      etablissement,
+      role: parent ? 'parent' : utilisateur.role,
+      email: destinataire,
+      enfant: parent ? `${utilisateur.prenom} ${utilisateur.nom}` : null,
     });
-    await envoyerEmail(utilisateur.email, message.sujet, message.texte, [], { html: message.html });
+    await envoyerEmail(destinataire, message.sujet, message.texte, [], { html: message.html });
     return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id });
   }
 
@@ -99,19 +136,23 @@ async function verifierDoubleFacteur(req, res) {
   const maintenance = await maintenanceEnCours();
   if (maintenance) return repondreMaintenance(res, maintenance);
 
+  // Code envoyé à une autre adresse que celle du compte : c'est le parent
+  // qui se connecte.
+  const parent = !!utilisateur.codeDoubleFacteurPour && !memeAdresse(utilisateur.codeDoubleFacteurPour, utilisateur.email);
   utilisateur.codeDoubleFacteur = null;
   utilisateur.codeDoubleFacteurExpire = null;
+  utilisateur.codeDoubleFacteurPour = null;
   await utilisateur.save();
 
-  const token = signSession({ id: utilisateur.id, role: utilisateur.role });
+  const token = signSession({ id: utilisateur.id, role: utilisateur.role, ...(parent && { parent: true }) });
   return res.json({
     token,
-    profil: utilisateur.toPublicJSON(),
+    profil: await profilDeSession(utilisateur, parent),
   });
 }
 
-// Creation de compte Academie / Finance (utile pour le seed et pour
-// permettre a l'Academie de creer des comptes Finance depuis son espace).
+// Creation de compte Academie / Finance, pour permettre a l'Academie de
+// creer des comptes Finance depuis son espace.
 // Les comptes Etudiant, eux, se créent via l'inscription d'un élève
 // (referenceController.creerEleve), jamais isolément.
 async function creerCompte(req, res) {
@@ -161,6 +202,18 @@ async function demanderReinitialisation(req, res) {
 
   const utilisateur = await Utilisateur.findOne({ where: { email } });
   if (!utilisateur) {
+    // Adresse d'un parent : il n'a pas de mot de passe à lui, on lui
+    // rappelle celui de chacun de ses enfants (leur matricule).
+    const dossiers = await dossiersDuParent(email);
+    if (dossiers.length) {
+      const etablissement = await Etablissement.findByPk(dossiers[0].etablissementId);
+      const message = emailRappelParent({
+        email,
+        enfants: dossiers.map((d) => ({ nom: `${d.prenom} ${d.nom}`, matricule: d.matricule })),
+        etablissement,
+      });
+      await envoyerEmail(email, message.sujet, message.texte, [], { html: message.html });
+    }
     return res.json(MESSAGE_GENERIQUE_RESET);
   }
 
@@ -220,7 +273,7 @@ async function reinitialiserMotDePasse(req, res) {
 }
 
 async function monProfil(req, res) {
-  return res.json({ profil: req.utilisateur.toPublicJSON() });
+  return res.json({ profil: await profilDeSession(req.utilisateur, req.sessionParent) });
 }
 
 // Symétrique de superadminController.mettreAJourMonProfil, pour les trois

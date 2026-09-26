@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Tiroir from '../../components/Tiroir';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
@@ -57,6 +58,10 @@ export default function AlertesDecrochage() {
     charger();
     client.get('/classes').then((res) => setClasses(res.data.classes));
   }, []);
+  useActualisation(() => {
+    charger();
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
+  });
 
   async function lancerAnalyse() {
     setAnalyseEnCours(true);

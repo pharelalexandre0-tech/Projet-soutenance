@@ -25,10 +25,11 @@ function presenter(incident) {
 }
 
 // Signalement par l'Académie. Un incident va à trois endroits : le dossier
-// de l'élève (journal ci-dessous et espace Parents), le score de risque de
-// décrochage (recalculé tout de suite, c'est un des trois signaux du module
-// IA avec les notes et les absences) et, si demandé, le parent (notification
-// et e-mail).
+// de l'élève (journal ci-dessous et rubrique Comportement du compte
+// étudiant, que le parent ouvre avec son adresse), le score de risque de
+// décrochage (recalculé tout de suite, c'est un des signaux du module IA)
+// et, si demandé, le parent (notification sur le compte et e-mail à son
+// adresse).
 async function creerIncident(req, res) {
   const { eleveId, date, gravite, informerParent } = req.body;
   const description = String(req.body.description || '').trim();
@@ -38,7 +39,7 @@ async function creerIncident(req, res) {
   if (description.length > 250) {
     return res.status(400).json({ erreur: 'la description ne doit pas dépasser 250 caractères' });
   }
-  const eleve = await Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'parent' }, Classe] });
+  const eleve = await Eleve.findByPk(eleveId, { include: [{ model: Utilisateur, as: 'compteEtudiant' }, Classe] });
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
@@ -54,20 +55,22 @@ async function creerIncident(req, res) {
   await PredictionIA.create({ eleveId: eleve.id, ...risque });
 
   const nomEleve = `${nomPropre(eleve.prenom)} ${nomPropre(eleve.nom)}`;
-  let parent = { rattache: !!eleve.parent, informe: false, envoye: false };
-  if (eleve.parent && informerParent !== false) {
-    await Notification.create({
-      utilisateurId: eleve.parent.id,
-      contenu: `Incident ${incident.gravite} signalé pour ${nomEleve} le ${dateLisible(date)}.`,
-    });
+  let parent = { rattache: !!eleve.emailParent, informe: false, envoye: false };
+  if (eleve.emailParent && informerParent !== false) {
+    if (eleve.compteEtudiant) {
+      await Notification.create({
+        utilisateurId: eleve.compteEtudiant.id,
+        contenu: `Incident ${incident.gravite} signalé pour ${nomEleve} le ${dateLisible(date)}.`,
+      });
+    }
     const etablissement = await Etablissement.findByPk(eleve.etablissementId);
     const message = emailIncident({
-      prenom: eleve.parent.prenom, eleve: nomEleve, date: dateLisible(date), gravite: incident.gravite, description, etablissement,
+      prenom: null, eleve: nomEleve, date: dateLisible(date), gravite: incident.gravite, description, etablissement,
     });
-    const envoi = await envoyerEmail(eleve.parent.email, message.sujet, message.texte, [], { html: message.html });
+    const envoi = await envoyerEmail(eleve.emailParent, message.sujet, message.texte, [], { html: message.html });
     incident.parentInformeLe = new Date();
     await incident.save();
-    parent = { rattache: true, informe: true, envoye: !envoi.simule, email: eleve.parent.email };
+    parent = { rattache: true, informe: true, envoye: !envoi.simule, email: eleve.emailParent };
   }
 
   incident.Eleve = eleve;
@@ -114,9 +117,6 @@ async function listerIncidentsEleve(req, res) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
-    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
-  }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
   const incidents = await IncidentComportement.findAll({ where: { eleveId }, order: [['date', 'DESC'], ['createdAt', 'DESC']] });

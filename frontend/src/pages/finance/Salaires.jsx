@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
+import Tiroir from '../../components/Tiroir';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 import {
-  IconUsers, IconGraduationCap, IconWallet, IconMail, IconSearch, IconPlus, IconEdit, IconBanknote, IconDownload, IconInfo,
+  IconUsers, IconGraduationCap, IconWallet, IconMail, IconSearch, IconPlus, IconEdit, IconDownload, IconInfo, IconChevronRight,
 } from '../../components/icons';
 
 const FILTRES = [
@@ -34,6 +36,8 @@ function periodeDe(mois) {
 
 // Paie du personnel : les professeurs enregistrés par l'Académie y
 // figurent automatiquement, à côté du personnel ajouté par la Finance.
+// Tableau pleine largeur ; la fiche d'une personne (salaire, historique,
+// versement) s'ouvre dans un tiroir.
 export default function Salaires() {
   const [personnel, setPersonnel] = useState(null);
   const [personnelId, setPersonnelId] = useState('');
@@ -54,9 +58,13 @@ export default function Salaires() {
     client.get(`/finance/personnel/${id}/fiche`).then((res) => setFiche(res.data));
   }
   useEffect(() => {
+    setFiche(null);
     if (personnelId) chargerFiche(personnelId);
-    else setFiche(null);
   }, [personnelId]);
+  useActualisation(() => {
+    chargerPersonnel();
+    if (personnelId) chargerFiche(personnelId);
+  });
 
   const liste = personnel || [];
   const r = recherche.trim().toLowerCase();
@@ -89,110 +97,124 @@ export default function Salaires() {
         </div>
       </div>
 
-      <div className="grille-maitre">
-        <aside className="carte panneau-classes">
-          <div className="entete-carte">
-            <h2>Personnel</h2>
-            <button className="secondaire" onClick={() => setCreation(true)}><IconPlus /> Ajouter</button>
+      <section className="carte">
+        <div className="entete-carte">
+          <h2>Personnel <span className="entete-carte-compteur">{affiches.length}</span></h2>
+          <div className="actions-carte">
+            <button className="primaire" onClick={() => setCreation(true)}><IconPlus /> Ajouter</button>
           </div>
-          <div className="panneau-outils">
-            <label className="champ-recherche compact">
-              <IconSearch />
-              <input type="search" placeholder="Rechercher…" value={recherche} onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher un membre du personnel" />
-            </label>
-            <div className="filtres-puces" role="group" aria-label="Filtrer le personnel">
-              {FILTRES.map((f) => (
-                <button key={f.id} type="button" className={filtre === f.id ? 'actif' : ''} onClick={() => setFiltre(f.id)}>{f.libelle}</button>
-              ))}
-            </div>
-          </div>
-          <ul className="liste-classes liste-personnel-paie">
-            {affiches.map((p) => (
-              <li key={p.id}>
-                <button type="button" className={`choix-classe ${String(p.id) === personnelId ? 'actif' : ''}`} onClick={() => setPersonnelId(String(p.id))}>
-                  <span className="avatar-initiales">{initiales(p)}</span>
-                  <span className="choix-classe-textes"><strong>{p.nom} {p.prenom}</strong><small>{p.poste}</small></span>
-                  {p.enseignant && <span className="badge bleu sans-point">Prof.</span>}
-                </button>
-              </li>
+        </div>
+        <div className="barre-outils">
+          <label className="champ-recherche">
+            <IconSearch />
+            <input type="search" placeholder="Rechercher un nom, un poste…" value={recherche} onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher un membre du personnel" />
+          </label>
+          <div className="filtres-puces" role="group" aria-label="Filtrer le personnel">
+            {FILTRES.map((f) => (
+              <button key={f.id} type="button" className={filtre === f.id ? 'actif' : ''} onClick={() => setFiltre(f.id)}>{f.libelle}</button>
             ))}
-            {personnel && affiches.length === 0 && (
-              <li className="vide">
-                {liste.length === 0
-                  ? "Aucun personnel. Les professeurs enregistrés par l'Académie apparaissent ici automatiquement ; le reste du personnel s'ajoute avec « Ajouter »."
-                  : 'Aucun résultat.'}
-              </li>
-            )}
-            {!personnel && <li className="chargement" style={{ padding: '12px 30px' }}>Chargement…</li>}
-          </ul>
-        </aside>
+          </div>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Nom et prénom</th>
+                <th>Poste</th>
+                <th>Type</th>
+                <th className="chiffre">Salaire de base</th>
+                <th className="chiffre">Versements</th>
+                <th className="chiffre">Total versé</th>
+                <th aria-label="Ouvrir la fiche" />
+              </tr>
+            </thead>
+            <tbody>
+              {affiches.map((p) => (
+                <tr key={p.id} className="ligne-cliquable" onClick={() => setPersonnelId(String(p.id))}>
+                  <td className="cellule-nom">{p.nom} {p.prenom}</td>
+                  <td>{p.poste}</td>
+                  <td>{p.enseignant ? <span className="badge bleu sans-point">Enseignant</span> : <span className="badge gris sans-point">Personnel</span>}</td>
+                  <td className="chiffre">{p.salaireBase ? fcfa(p.salaireBase) : <span className="note-secondaire">Non renseigné</span>}</td>
+                  <td className="chiffre">{p.nbVersements ?? 0}</td>
+                  <td className="chiffre">{fcfa(p.totalVerse)}</td>
+                  <td className="cellule-chevron"><IconChevronRight /></td>
+                </tr>
+              ))}
+              {personnel && affiches.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="vide">
+                    {liste.length === 0
+                      ? "Aucun personnel. Les professeurs enregistrés par l'Académie apparaissent ici automatiquement ; le reste du personnel s'ajoute avec « Ajouter »."
+                      : 'Aucun résultat.'}
+                  </td>
+                </tr>
+              )}
+              {!personnel && <tr><td colSpan={7} className="chargement">Chargement…</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-        <section className="carte">
-          {!personne && (
-            <div className="fiche-paie-vide">
-              <span className="resultat-icone attention"><IconBanknote /></span>
-              <h2>Choisissez un membre du personnel</h2>
-              <p>Sa fiche, son salaire de base et l'historique de ses versements s'affichent ici. Chaque versement génère une fiche de paie PDF envoyée par e-mail.</p>
-            </div>
-          )}
-          {personne && (
+      {personne && String(personne.id) === personnelId && (
+        <Tiroir
+          titre={`${personne.prenom} ${personne.nom}`}
+          sousTitre={personne.poste}
+          icone={<span className="avatar-initiales">{initiales(personne)}</span>}
+          onFermer={() => setPersonnelId('')}
+          pied={(
             <>
-              <div className="entete-carte">
-                <div className="fiche-paie-identite">
-                  <span className="avatar-initiales grand">{initiales(personne)}</span>
-                  <div>
-                    <h2>{personne.prenom} {personne.nom} {personne.enseignant && <span className="badge bleu sans-point">Enseignant</span>}</h2>
-                    <p>{personne.poste}{personne.email ? ` · ${personne.email}` : ''}</p>
-                  </div>
-                </div>
-                <div className="actions-carte">
-                  <button className="secondaire" onClick={() => setEdition(true)}><IconEdit /> Modifier la fiche</button>
-                  <button className="primaire" onClick={() => setVersement(true)}><IconWallet /> Nouveau versement</button>
-                </div>
-              </div>
-              {!personne.email && (
-                <div className="encart-info" style={{ marginBottom: 18 }}>
-                  <IconInfo />
-                  <span>Aucune adresse e-mail : la fiche de paie sera générée mais ne pourra pas être envoyée.</span>
-                </div>
-              )}
-              {personne.enseignant && (
-                <div className="encart-info" style={{ marginBottom: 18 }}>
-                  <IconInfo />
-                  <span>Professeur enregistré par l'Académie : son nom et son e-mail se modifient dans Comptes éphémères.</span>
-                </div>
-              )}
-              <dl className="chiffres-classe chiffres-4">
-                <div><dt>Salaire de base</dt><dd>{personne.salaireBase ? fcfa(personne.salaireBase) : <small>Non renseigné</small>}</dd></div>
-                <div><dt>Versements</dt><dd>{fiche.salaires.filter((s) => s.statut === 'verse').length}</dd></div>
-                <div><dt>Total versé</dt><dd>{fcfa(fiche.salaires.filter((s) => s.statut === 'verse').reduce((a, s) => a + s.montant, 0))}</dd></div>
-                <div><dt>Embauche</dt><dd>{personne.dateEmbauche ? dateLongue(personne.dateEmbauche) : <small>Non renseignée</small>}</dd></div>
-              </dl>
-              <div className="table-scroll">
-                <table>
-                  <thead><tr><th>Période</th><th className="chiffre">Montant</th><th>Statut</th><th>Versé le</th><th aria-label="Fiche de paie" /></tr></thead>
-                  <tbody>
-                    {fiche.salaires.map((s) => (
-                      <tr key={s.id}>
-                        <td className="cellule-nom">{s.periode}</td>
-                        <td className="chiffre">{fcfa(s.montant)}</td>
-                        <td><span className={`badge ${s.statut === 'verse' ? 'vert' : 'gris'}`}>{s.statut === 'verse' ? 'Versé' : 'Prévu'}</span></td>
-                        <td>{s.dateVersement ? dateLongue(s.dateVersement) : <span className="note-secondaire">Non versé</span>}</td>
-                        <td className="cellule-actions">
-                          {s.fichierPDF && (
-                            <a href={s.fichierPDF} target="_blank" rel="noreferrer" className="bouton-lien-secondaire"><IconDownload /> Fiche de paie</a>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {fiche.salaires.length === 0 && <tr><td colSpan={5} className="vide">Aucun versement enregistré pour le moment.</td></tr>}
-                  </tbody>
-                </table>
-              </div>
+              <button className="secondaire" onClick={() => setEdition(true)}><IconEdit /> Modifier la fiche</button>
+              <button className="primaire" onClick={() => setVersement(true)}><IconWallet /> Nouveau versement</button>
             </>
           )}
-        </section>
-      </div>
+        >
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Fiche</h3>
+            <dl className="fiche-compte">
+              <div><dt>Type</dt><dd>{personne.enseignant ? 'Enseignant' : 'Personnel administratif et technique'}</dd></div>
+              <div><dt>E-mail</dt><dd>{personne.email || 'Non renseigné'}</dd></div>
+              <div><dt>Salaire de base</dt><dd>{personne.salaireBase ? fcfa(personne.salaireBase) : 'Non renseigné'}</dd></div>
+              <div><dt>Embauche</dt><dd>{personne.dateEmbauche ? dateLongue(personne.dateEmbauche) : 'Non renseignée'}</dd></div>
+              <div><dt>Total versé</dt><dd>{fcfa(fiche.salaires.filter((x) => x.statut === 'verse').reduce((a, x) => a + x.montant, 0))}</dd></div>
+            </dl>
+            {!personne.email && (
+              <div className="encart-info" style={{ marginTop: 14 }}>
+                <IconInfo />
+                <span>Aucune adresse e-mail : la fiche de paie sera générée mais ne pourra pas être envoyée.</span>
+              </div>
+            )}
+            {personne.enseignant && (
+              <div className="encart-info" style={{ marginTop: 14 }}>
+                <IconInfo />
+                <span>Professeur enregistré par l'Académie : son nom et son e-mail se modifient dans Comptes éphémères.</span>
+              </div>
+            )}
+          </section>
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Versements ({fiche.salaires.filter((x) => x.statut === 'verse').length})</h3>
+            <div className="table-scroll">
+              <table>
+                <thead><tr><th>Période</th><th className="chiffre">Montant</th><th>Versé le</th><th aria-label="Fiche de paie" /></tr></thead>
+                <tbody>
+                  {fiche.salaires.map((x) => (
+                    <tr key={x.id}>
+                      <td className="cellule-nom">{x.periode}</td>
+                      <td className="chiffre">{fcfa(x.montant)}</td>
+                      <td>{x.dateVersement ? dateLongue(x.dateVersement) : <span className="note-secondaire">Non versé</span>}</td>
+                      <td className="cellule-actions">
+                        {x.fichierPDF && (
+                          <a href={x.fichierPDF} target="_blank" rel="noreferrer" className="bouton-lien-secondaire" title="Fiche de paie PDF"><IconDownload /> PDF</a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {fiche.salaires.length === 0 && <tr><td colSpan={4} className="vide">Aucun versement enregistré pour le moment.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </Tiroir>
+      )}
 
       {versement && personne && (
         <FormulaireVersement

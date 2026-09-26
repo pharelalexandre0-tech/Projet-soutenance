@@ -32,14 +32,14 @@ const MODULES_INTEGRES = [
     cle: 'emplois-du-temps',
     nom: 'Emplois du temps',
     description: 'Construction des emplois du temps par classe, export PDF, et consultation par les étudiants et leurs parents.',
-    espaces: ['academie', 'etudiant', 'parent'],
+    espaces: ['academie', 'etudiant'],
     icone: 'CalendarDays',
   },
   {
     cle: 'communication',
     nom: 'Communication',
-    description: "Messages de l'Académie adressés aux classes, lus depuis l'espace Étudiant et l'espace Parents.",
-    espaces: ['academie', 'etudiant', 'parent'],
+    description: "Messages de l'Académie adressés aux classes, lus depuis l'espace Étudiant (que le parent ouvre avec son adresse).",
+    espaces: ['academie', 'etudiant'],
     icone: 'MessagesSquare',
   },
   {
@@ -53,14 +53,15 @@ const MODULES_INTEGRES = [
     cle: 'frais-en-ligne',
     nom: 'Frais et reçus en ligne',
     description: 'Consultation des frais de scolarité, des paiements et des reçus par les étudiants et les parents.',
-    espaces: ['etudiant', 'parent'],
+    espaces: ['etudiant'],
     icone: 'Receipt',
   },
 ];
 
 // Espaces qui peuvent recevoir une fonctionnalité personnalisée (le
-// professeur n'a pas d'espace permanent, seulement des liens temporaires).
-const ESPACES_PERSONNALISABLES = ['academie', 'finance', 'etudiant', 'parent'];
+// professeur n'a pas d'espace permanent, seulement des liens temporaires ;
+// le parent ouvre l'espace Étudiant de son enfant).
+const ESPACES_PERSONNALISABLES = ['academie', 'finance', 'etudiant'];
 
 // Icônes proposées à la création d'une fonctionnalité personnalisée (noms
 // d'icônes Lucide, rendues côté frontend).

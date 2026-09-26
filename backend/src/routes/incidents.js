@@ -9,6 +9,6 @@ const router = express.Router();
 router.get('/', authentifier, autoriserRoles('academie'), listerIncidents);
 router.post('/', authentifier, autoriserRoles('academie'), creerIncident);
 router.delete('/:id', authentifier, autoriserRoles('academie'), supprimerIncident);
-router.get('/eleve/:eleveId', authentifier, listerIncidentsEleve);
+router.get('/eleve/:eleveId', authentifier, autoriserRoles('academie', 'etudiant'), listerIncidentsEleve);
 
 module.exports = router;

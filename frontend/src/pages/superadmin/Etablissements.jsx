@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
@@ -19,8 +20,6 @@ const TRIS = {
   ville: { libelle: 'Ville (A→Z)', fn: (a, b) => a.ville.localeCompare(b.ville) },
   comptes: { libelle: 'Le plus de comptes', fn: (a, b) => b.nbComptes - a.nbComptes },
 };
-
-const COLONNES_LISTE = 'minmax(0, 2.4fr) 120px 150px 110px 130px 20px';
 
 // Échappe pour un CSV correct dès qu'une valeur contient un séparateur, un
 // guillemet ou un retour à la ligne — sinon "Ville, Pays" éclaterait la
@@ -48,14 +47,15 @@ export default function Etablissements({ onNaviguer }) {
   const [creationOuverte, setCreationOuverte] = useState(false);
   const [toast, setToast] = useState(null);
 
-  function charger() {
-    setChargement(true);
+  function charger(silencieux = false) {
+    if (!silencieux) setChargement(true);
     return client.get('/superadmin/etablissements').then((res) => {
       setEtablissements(res.data.etablissements);
       setChargement(false);
     });
   }
   useEffect(() => { charger(); }, []);
+  useActualisation(() => charger(true), { delai: 1500 });
 
   if (ecoleOuverte) {
     return (
@@ -176,36 +176,41 @@ function ListeEtablissements({ etablissements, chargement, onOuvrir, onCreer }) 
           </select>
         </div>
 
-        <div className="liste-donnees">
-          <div className="entete-donnees" style={{ gridTemplateColumns: COLONNES_LISTE }}>
-            <span>École</span><span>Statut</span><span>Fonctionnalités</span><span>Comptes</span><span>Affiliée le</span><span />
-          </div>
-          {chargement && <div className="chargement" style={{ padding: '16px 24px' }}>Chargement…</div>}
-          {!chargement && etablissements.length === 0 && <div className="vide" style={{ margin: 16 }}>Aucune école affiliée pour le moment.</div>}
-          {!chargement && etablissements.length > 0 && affiches.length === 0 && (
-            <div className="vide" style={{ margin: 16 }}>Aucune école ne correspond à cette recherche.</div>
-          )}
-          {affiches.map((etab) => (
-            <button key={etab.id} type="button" className="ligne-donnees" style={{ gridTemplateColumns: COLONNES_LISTE }} onClick={() => onOuvrir(etab.id)}>
-              <div className="cellule-principale">
-                <VignetteLogo logo={etab.logo} />
-                <div className="textes">
-                  <strong>{etab.nom}{etab.sigle ? ` (${etab.sigle})` : ''}</strong>
-                  <small>{etab.ville}, {etab.pays}</small>
-                </div>
-              </div>
-              <span>
-                <span className={`badge ${etab.statut === 'actif' ? 'vert' : 'rouge'}`}>{etab.statut === 'actif' ? 'Active' : 'Verrouillée'}</span>
-              </span>
-              <span className="cellule-secondaire"><span className="libelle-mobile">Fonctionnalités :</span>{etab.nbFonctionnalites ?? 0}</span>
-              <span className="cellule-secondaire">
-                <span className="libelle-mobile">Comptes :</span>{etab.nbComptes}
-                {etab.nbComptesVerrouilles > 0 && <span style={{ color: 'var(--alerte)' }}> ({etab.nbComptesVerrouilles} verr.)</span>}
-              </span>
-              <span className="cellule-secondaire"><span className="libelle-mobile">Affiliée le</span> {new Date(etab.createdAt).toLocaleDateString('fr-FR')}</span>
-              <span className="cellule-droite"><IconChevronRight /></span>
-            </button>
-          ))}
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>École</th>
+                <th>Sigle</th>
+                <th>Ville</th>
+                <th>Statut</th>
+                <th className="chiffre">Fonctionnalités</th>
+                <th className="chiffre">Comptes</th>
+                <th className="chiffre">Verrouillés</th>
+                <th>Affiliée le</th>
+                <th aria-label="Ouvrir la fiche" />
+              </tr>
+            </thead>
+            <tbody>
+              {affiches.map((etab) => (
+                <tr key={etab.id} className="ligne-cliquable" onClick={() => onOuvrir(etab.id)}>
+                  <td className="cellule-nom"><span className="cellule-avec-logo"><VignetteLogo logo={etab.logo} />{etab.nom}</span></td>
+                  <td>{etab.sigle || <span className="note-secondaire">Aucun</span>}</td>
+                  <td>{etab.ville}</td>
+                  <td><span className={`badge ${etab.statut === 'actif' ? 'vert' : 'rouge'}`}>{etab.statut === 'actif' ? 'Active' : 'Verrouillée'}</span></td>
+                  <td className="chiffre">{etab.nbFonctionnalites ?? 0}</td>
+                  <td className="chiffre">{etab.nbComptes}</td>
+                  <td className="chiffre">{etab.nbComptesVerrouilles > 0 ? <span className="texte-alerte">{etab.nbComptesVerrouilles}</span> : 0}</td>
+                  <td>{new Date(etab.createdAt).toLocaleDateString('fr-FR')}</td>
+                  <td className="cellule-chevron"><IconChevronRight /></td>
+                </tr>
+              ))}
+              {chargement && <tr><td colSpan={9} className="chargement">Chargement…</td></tr>}
+              {!chargement && affiches.length === 0 && (
+                <tr><td colSpan={9} className="vide">{etablissements.length === 0 ? 'Aucune école affiliée pour le moment.' : 'Aucune école ne correspond à cette recherche.'}</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </>
@@ -225,6 +230,7 @@ function FicheEtablissement({ etablissementId, onRetour, onSupprime, onNaviguer 
     return client.get('/superadmin/fonctionnalites').then((res) => setCatalogue(res.data.fonctionnalites));
   }
   useEffect(() => { chargerEcole(); chargerCatalogue(); }, [etablissementId]);
+  useActualisation(() => { chargerEcole().catch(() => {}); chargerCatalogue().catch(() => {}); }, { delai: 1500 });
 
   if (!etablissement) return <div className="chargement">Chargement…</div>;
 
@@ -312,23 +318,21 @@ function FonctionnalitesEcole({ etablissement, catalogue, siennes, onCatalogue, 
         <div className="vide">Aucune fonctionnalité optionnelle pour cette école. Ajoute celles dont elle a besoin.</div>
       )}
       {catalogue && siennes.length > 0 && (
-        <div className="liste-donnees">
-          {siennes.map((f) => (
-            <div key={f.cle} className="ligne-donnees" style={{ gridTemplateColumns: 'minmax(0, 2.4fr) 150px minmax(0, 1.4fr) auto' }}>
-              <div className="cellule-principale">
-                <TuileFonctionnalite fonctionnalite={f} />
-                <div className="textes">
-                  <strong>{f.nom}</strong>
-                  <small>{f.description}</small>
-                </div>
-              </div>
-              <span><span className={`badge sans-point ${f.integree ? 'bleu' : 'gris'}`}>{LIBELLES_TYPES[f.type]}</span></span>
-              <div className="puces">{f.espaces.map((e) => <span key={e} className="puce">{LIBELLES_ESPACES[e] || e}</span>)}</div>
-              <span className="cellule-droite">
-                <button className="secondaire" onClick={() => setARetirer(f)}>Retirer</button>
-              </span>
-            </div>
-          ))}
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Fonctionnalité</th><th>Description</th><th>Type</th><th>Espaces</th><th aria-label="Retirer" /></tr></thead>
+            <tbody>
+              {siennes.map((f) => (
+                <tr key={f.cle}>
+                  <td className="cellule-nom"><span className="cellule-avec-logo"><TuileFonctionnalite fonctionnalite={f} />{f.nom}</span></td>
+                  <td className="cellule-description">{f.description}</td>
+                  <td><span className={`badge sans-point ${f.integree ? 'bleu' : 'gris'}`}>{LIBELLES_TYPES[f.type]}</span></td>
+                  <td><div className="puces">{f.espaces.map((e) => <span key={e} className="puce">{LIBELLES_ESPACES[e] || e}</span>)}</div></td>
+                  <td className="cellule-actions"><button className="secondaire" onClick={() => setARetirer(f)}>Retirer</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 

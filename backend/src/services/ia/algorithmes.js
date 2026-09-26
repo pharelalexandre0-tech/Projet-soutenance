@@ -220,5 +220,5 @@ function validationCroisee(X, y, entrainer, k = 5, graine = 11) {
 }
 
 module.exports = {
-  generateur, melanger, entrainerForet, entrainerRegression, predireProbabilite, mesures, validationCroisee, auc,
+  generateur, melanger, entrainerForet, entrainerRegression, predireProbabilite, mesures, validationCroisee,
 };

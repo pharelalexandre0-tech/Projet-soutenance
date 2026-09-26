@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import BulletinDocument from '../../components/BulletinDocument';
 
 // Diagramme 5 : l'Étudiant demande son bulletin -> généré à la volée s'il
@@ -16,10 +17,21 @@ export default function Bulletin({ eleveId, eleve }) {
   useEffect(() => {
     client.get('/semestres').then((res) => setSemestres(res.data.semestres));
   }, []);
+  useActualisation(() => client.get('/semestres').then((res) => setSemestres(res.data.semestres)), { domaines: ['semestres'] });
 
-  // Réutilisé par le parent avec un sélecteur d'enfant (DashboardParent) —
-  // sans ça, changer d'enfant gardait affiché le bulletin du précédent tant
-  // que "Consulter" n'était pas recliqué.
+  // Bulletin affiché : recalculé en direct quand des notes changent.
+  async function rafraichirBulletin() {
+    if (!bulletin) return;
+    const res = await client.get(`/bulletins/${bulletin.eleveId}/${bulletin.semestreId}`).catch(() => null);
+    if (!res) return;
+    setBulletin(res.data.bulletin);
+    setDetail(res.data.detailParUE || null);
+    setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale });
+  }
+  useActualisation(rafraichirBulletin, { domaines: ['notes', 'comptes-ephemeres', 'unites-enseignement', 'matieres', 'semestres'] });
+
+  // Un autre dossier (arrivée du dossier après chargement) : on repart
+  // d'un affichage vide plutôt que de garder le bulletin précédent.
   useEffect(() => {
     setBulletin(null);
     setDetail(null);

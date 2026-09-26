@@ -10,7 +10,7 @@ const communication = exigerFonctionnalite('communication');
 
 router.post('/classes', authentifier, academie, ctrl.creerClasse);
 // Renvoie la liste complète des élèves de CHAQUE classe (noms, dates de
-// naissance...) — jamais destiné à étudiant/parent, qui n'y accédaient que
+// naissance...) — jamais destiné à un compte étudiant, qui n'y accédait que
 // faute d'une restriction de rôle explicite ici (seuls Académie et Finance
 // l'appellent réellement, voir leurs pages respectives).
 router.get('/classes', authentifier, autoriserRoles('academie', 'finance'), ctrl.listerClasses);
@@ -22,13 +22,11 @@ router.post('/professeurs', authentifier, academie, ctrl.creerProfesseur);
 router.get('/professeurs', authentifier, academie, ctrl.listerProfesseurs);
 router.delete('/professeurs/:id', authentifier, academie, ctrl.supprimerProfesseur);
 
-router.get('/parents', authentifier, academie, ctrl.listerParents);
-
 router.post('/eleves', authentifier, academie, ctrl.creerEleve);
 router.get('/eleves', authentifier, ctrl.listerEleves);
 router.delete('/eleves/:id', authentifier, academie, ctrl.supprimerEleve);
-router.put('/eleves/:id/parent', authentifier, academie, ctrl.rattacherParent);
-router.delete('/eleves/:id/parent', authentifier, academie, ctrl.detacherParent);
+router.put('/eleves/:id/parent', authentifier, academie, ctrl.definirEmailParent);
+router.delete('/eleves/:id/parent', authentifier, academie, ctrl.retirerEmailParent);
 router.put('/comptes/:id/mot-de-passe', authentifier, academie, ctrl.reinitialiserMotDePasseCompte);
 
 router.post('/semestres', authentifier, academie, ctrl.creerSemestre);

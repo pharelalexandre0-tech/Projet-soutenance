@@ -314,6 +314,9 @@ export default function Login() {
               <IconLogin className="bouton-connexion-icone" />
               {enCours ? 'Connexion…' : 'Se connecter'}
             </button>
+            <p className="connexion-note-parent">
+              Parent d'élève ? Connectez-vous avec votre adresse e-mail et le matricule de votre enfant.
+            </p>
           </form>
         </div>
       </div>

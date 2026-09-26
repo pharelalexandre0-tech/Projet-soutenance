@@ -11,4 +11,4 @@ function erreurMotDePasseInvalide(motDePasse) {
   return null;
 }
 
-module.exports = { erreurMotDePasseInvalide, LONGUEUR_MIN };
+module.exports = { erreurMotDePasseInvalide };

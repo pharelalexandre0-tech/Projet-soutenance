@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
 import ChampMotDePasse from '../../components/ChampMotDePasse';
@@ -15,14 +16,15 @@ export default function Superadmins() {
   const [modaleAjoutOuverte, setModaleAjoutOuverte] = useState(false);
   const [toast, setToast] = useState(null);
 
-  function charger() {
-    setChargement(true);
+  function charger(silencieux = false) {
+    if (!silencieux) setChargement(true);
     client.get('/superadmin/superadmins').then((res) => {
       setComptes(res.data.comptes);
       setChargement(false);
-    });
+    }).catch(() => setChargement(false));
   }
-  useEffect(charger, []);
+  useEffect(() => { charger(); }, []);
+  useActualisation(() => charger(true));
 
   function surAjoutReussi() {
     setModaleAjoutOuverte(false);

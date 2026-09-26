@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import DetailCompteRendu from '../../components/DetailCompteRendu';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
@@ -19,12 +20,14 @@ export default function FeuillesAppel() {
   const [detail, setDetail] = useState(null);
   const [toast, setToast] = useState(null);
 
-  useEffect(() => {
-    client.get('/classes').then((res) => setClasses(res.data.classes));
+  function charger() {
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
     client.get('/comptes-ephemeres/comptes-rendus', { params: { tache: 'saisie_absences' } })
       .then((res) => setAppels(res.data.comptesRendus))
-      .catch((err) => { setAppels([]); setToast({ message: messageErreur(err, 'impossible de charger les feuilles d’appel'), type: 'erreur' }); });
-  }, []);
+      .catch((err) => { setAppels((a) => a || []); setToast({ message: messageErreur(err, 'impossible de charger les feuilles d’appel'), type: 'erreur' }); });
+  }
+  useEffect(charger, []);
+  useActualisation(charger);
 
   async function ouvrir(a) {
     try {

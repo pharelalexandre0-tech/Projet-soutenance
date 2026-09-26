@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 
 const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '' };
 const MATIERE_VIDE = { code: '', intitule: '', coefficient: '1' };
@@ -31,6 +32,10 @@ export default function UnitesEnseignement() {
     charger();
     chargerSemestres();
   }, []);
+  useActualisation(() => {
+    charger();
+    chargerSemestres().catch(() => {});
+  });
 
   async function creerSemestre(e) {
     e.preventDefault();

@@ -43,16 +43,19 @@ async function etatPublication(classeId) {
   };
 }
 
-// Étudiants et parents de la classe, dédoublonnés (jumeaux, même parent).
+// Une entrée par adresse à prévenir : l'étudiant (notification sur son
+// compte et e-mail) et son parent (e-mail seul : il voit la notification en
+// ouvrant le compte de l'enfant). Dédoublonné (jumeaux, même parent).
 async function destinatairesDe(classeId) {
-  const eleves = await Eleve.findAll({
-    where: { classeId },
-    include: [{ model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }],
-  });
+  const eleves = await Eleve.findAll({ where: { classeId }, include: [{ model: Utilisateur, as: 'compteEtudiant' }] });
   const destinataires = new Map();
   eleves.forEach((e) => {
-    if (e.compteEtudiant) destinataires.set(e.compteEtudiant.id, e.compteEtudiant);
-    if (e.parent) destinataires.set(e.parent.id, e.parent);
+    if (e.compteEtudiant) {
+      destinataires.set(e.compteEtudiant.email.toLowerCase(), { email: e.compteEtudiant.email, prenom: e.compteEtudiant.prenom, compteId: e.compteEtudiant.id });
+    }
+    if (e.emailParent && !destinataires.has(e.emailParent.toLowerCase())) {
+      destinataires.set(e.emailParent.toLowerCase(), { email: e.emailParent, prenom: null, compteId: null });
+    }
   });
   return [...destinataires.values()];
 }
@@ -60,14 +63,16 @@ async function destinatairesDe(classeId) {
 async function prevenir(destinataires, { classe, miseAJour, nbCours, semestre, etablissement }) {
   for (const destinataire of destinataires) {
     try {
-      await Notification.create({
-        utilisateurId: destinataire.id,
-        contenu: `Emploi du temps ${miseAJour ? 'mis à jour' : 'publié'} pour la classe ${classe}.`,
-      });
+      if (destinataire.compteId) {
+        await Notification.create({
+          utilisateurId: destinataire.compteId,
+          contenu: `Emploi du temps ${miseAJour ? 'mis à jour' : 'publié'} pour la classe ${classe}.`,
+        });
+      }
       const message = emailEmploiDuTemps({ prenom: destinataire.prenom, classe, miseAJour, nbCours, semestre, etablissement });
       await envoyerEmail(destinataire.email, message.sujet, message.texte, [], { html: message.html });
     } catch (err) {
-      console.error(`[Emploi du temps] Envoi impossible à ${destinataire.email} :`, err.message);
+      console.error('[Emploi du temps] Envoi impossible :', err.message);
     }
   }
 }

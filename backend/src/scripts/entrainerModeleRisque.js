@@ -8,15 +8,20 @@
 require('dotenv').config();
 const { sequelize } = require('../models');
 const { entrainerModele } = require('../services/ia/entrainement');
+const { publier } = require('../services/evenementsService');
 
+// Les tables existent dès le premier démarrage du serveur (qui applique
+// aussi les migrations) : le script ne les modifie pas.
 (async () => {
-  await sequelize.sync({ alter: true });
+  await sequelize.authenticate();
   const modele = await entrainerModele();
   const { comparaison, metriques, donnees } = modele;
   console.log(`Modèle v${modele.version} actif : ${modele.algorithme} (${modele.dureeMs} ms)`);
   console.log(`Données : ${donnees.total} parcours (${donnees.reels} réels), ${donnees.apprentissage} pour l'apprentissage, ${donnees.test} pour le test`);
   console.log('Validation croisée (AUC) : forêt aléatoire', comparaison.foret_aleatoire.validationCroisee.aucMoyenne, '| régression logistique', comparaison.regression_logistique.validationCroisee.aucMoyenne);
   console.log('Test du modèle retenu :', metriques);
+  // Le serveur recharge le modèle actif sans redémarrer.
+  await publier(null, 'modele-ia');
   await sequelize.close();
 })().catch(async (err) => {
   console.error(err);

@@ -10,6 +10,20 @@ server {
         try_files $uri /index.html;
     }
 
+    # Flux de mise à jour en direct (Server-Sent Events) : transmis sans
+    # tampon et sans coupure après 60 s de silence (le serveur envoie un
+    # battement toutes les 25 s).
+    location = /api/evenements {
+        proxy_pass ${BACKEND_SCHEME}://${BACKEND_HOST}/api/evenements;
+        proxy_ssl_server_name on;
+        proxy_set_header Host ${BACKEND_HOST};
+        proxy_http_version 1.1;
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 1h;
+    }
+
     location /api/ {
         # Défaut nginx (1m) trop bas pour un logo d'établissement envoyé en
         # base64 (~1,4x sa taille binaire, jusqu'à 1 Mo côté frontend) — sans

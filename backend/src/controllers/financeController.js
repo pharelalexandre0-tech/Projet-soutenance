@@ -1,6 +1,7 @@
 const { FraisScolarite, Paiement, Recu, Eleve, Classe, Utilisateur, Notification, Salaire, Personnel } = require('../models');
 const { genererRecuPDF, genererFichePaiePDF } = require('../services/pdfService');
 const { envoyerEmail } = require('../services/emailService');
+const { envoyerALaFamille } = require('../services/familleService');
 const { verifierImpayesService } = require('../services/impayesService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 
@@ -71,9 +72,6 @@ async function listerFraisEleve(req, res) {
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
-    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
-  }
   const frais = await FraisScolarite.findAll({ where: { eleveId }, order: [['dateEcheance', 'ASC']] });
   return res.json({ frais });
 }
@@ -121,20 +119,19 @@ async function enregistrerPaiement(req, res) {
   });
   const recu = await Recu.create({ numero: recuNumero, paiementId: paiement.id, fichierPDF: cheminRelatif });
 
-  let recuEnvoyeA = null;
+  const adresses = await envoyerALaFamille(
+    frais.Eleve,
+    `Reçu de paiement : ${frais.libelle}`,
+    `Votre paiement de ${montant} FCFA a été enregistré. Vous trouverez le reçu ${recuNumero} en pièce jointe.`,
+    [{ contenu, nomFichier: `${recuNumero}.pdf` }]
+  );
   if (frais.Eleve.compteEtudiant) {
-    await envoyerEmail(
-      frais.Eleve.compteEtudiant.email,
-      `Reçu de paiement : ${frais.libelle}`,
-      `Votre paiement de ${montant} FCFA a été enregistré. Vous trouverez le reçu ${recuNumero} en pièce jointe.`,
-      [{ contenu, nomFichier: `${recuNumero}.pdf` }]
-    );
     await Notification.create({
       utilisateurId: frais.Eleve.compteEtudiant.id,
       contenu: `Paiement de ${montant} FCFA reçu pour "${frais.libelle}". Statut du frais : ${frais.statut}.`,
     });
-    recuEnvoyeA = frais.Eleve.compteEtudiant.email;
   }
+  const recuEnvoyeA = adresses.length ? adresses.join(', ') : null;
 
   return res.status(201).json({ paiement, recu, frais, recuEnvoyeA });
 }
@@ -146,9 +143,6 @@ async function listerPaiementsEleve(req, res) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
-    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
-  }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
 
@@ -238,8 +232,8 @@ async function envoyerRelance(req, res) {
   }
   if (!frais.Eleve.compteEtudiant) return res.status(400).json({ erreur: 'aucun compte étudiant associé' });
 
-  await envoyerEmail(
-    frais.Eleve.compteEtudiant.email,
+  await envoyerALaFamille(
+    frais.Eleve,
     `Relance : ${frais.libelle}`,
     `Merci de régulariser le paiement de "${frais.libelle}" (${frais.montant - frais.montantRegle} FCFA restants) dans les meilleurs délais.`
   );

@@ -24,10 +24,9 @@ const {
   CompteEphemere,
   CompteRenduSaisie,
 } = require('../models');
-const { envoyerEmail } = require('../services/emailService');
+const { envoyerALaFamille, erreurEmailParent } = require('../services/familleService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 const { genererEmploiDuTempsPDF } = require('../services/pdfService');
-const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
 const { attribuerMatricule } = require('../services/matriculeService');
@@ -35,19 +34,15 @@ const { calculerBulletin } = require('../services/moyenneService');
 const { etatPublication, publier, versionPubliee } = require('../services/emploiDuTempsService');
 const { rattacherProfesseursALaPaie } = require('../services/paieService');
 
-// Restreint étudiant/parent à LEUR(S) propre(s) classe(s) sur les listes
-// partagées (messages, emploi du temps, cahier de textes) — `null` = pas de
-// restriction (Académie/Finance voient tout l'établissement). Centralisé ici
-// plutôt que réécrit à chaque contrôleur : c'est exactement ce genre de
-// vérification copiée-collée qui, oubliée une seule fois, devient une fuite
-// de données entre familles (cas vécu avec predictionController.js).
+// Restreint un compte étudiant (et donc le parent qui l'ouvre) à SA propre
+// classe sur les listes partagées (messages, emploi du temps, cahier de
+// textes) ; `null` = pas de restriction (Académie/Finance voient tout
+// l'établissement). Centralisé ici plutôt que réécrit à chaque contrôleur :
+// c'est exactement ce genre de vérification copiée-collée qui, oubliée une
+// seule fois, devient une fuite de données entre familles.
 async function classeIdsAutorises(utilisateur) {
   if (utilisateur.role === 'etudiant') {
     const eleves = await Eleve.findAll({ where: { compteEtudiantId: utilisateur.id } });
-    return eleves.map((e) => e.classeId);
-  }
-  if (utilisateur.role === 'parent') {
-    const eleves = await Eleve.findAll({ where: { parentId: utilisateur.id } });
     return eleves.map((e) => e.classeId);
   }
   return null;
@@ -57,8 +52,7 @@ async function classeIdsAutorises(utilisateur) {
 // CASCADE ni RESTRICT) — un simple `eleve.destroy()` ne supprimait donc PAS
 // ses notes/absences/bulletins/frais, il les orphelinait juste (eleveId mis
 // à NULL, lignes invisibles mais jamais nettoyées). Utilisé par la
-// suppression d'un élève seul ET par celle d'une classe entière — jamais le
-// compte Parent, potentiellement rattaché à d'autres enfants.
+// suppression d'un élève seul ET par celle d'une classe entière.
 async function supprimerDonneesEleves(eleveIds) {
   if (eleveIds.length === 0) return;
   const frais = await FraisScolarite.findAll({ where: { eleveId: { [Op.in]: eleveIds } }, attributes: ['id'] });
@@ -76,45 +70,6 @@ async function supprimerDonneesEleves(eleveIds) {
   await Note.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
   await Absence.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
   await IncidentComportement.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
-}
-
-// Trouve un compte Parent existant par e-mail (même établissement — un même
-// parent peut suivre plusieurs enfants, donc réutilisé plutôt que dupliqué),
-// ou en crée un nouveau. Utilisé à l'inscription d'un élève ET pour
-// rattacher un parent à un élève déjà existant — mêmes règles partout,
-// jamais réécrites à chaque appelant.
-async function trouverOuCreerParent({ parentNom, parentPrenom, parentEmail, parentMotDePasse, etablissementId }) {
-  const compteExistant = await Utilisateur.findOne({ where: { email: parentEmail } });
-  if (compteExistant) {
-    if (compteExistant.role !== 'parent' || compteExistant.etablissementId !== etablissementId) {
-      const erreur = new Error('cette adresse e-mail parent est déjà utilisée par un autre compte');
-      erreur.status = 400;
-      throw erreur;
-    }
-    // Compte parent déjà existant (ex. un deuxième enfant) : juste
-    // rattaché, pas besoin d'un nouveau mot de passe.
-    return { compteParent: compteExistant, parentReutilise: true };
-  }
-  if (!parentNom || !parentPrenom || !parentMotDePasse) {
-    const erreur = new Error('nom, prénom et mot de passe du parent sont obligatoires pour créer son compte');
-    erreur.status = 400;
-    throw erreur;
-  }
-  const erreurMotDePasse = erreurMotDePasseInvalide(parentMotDePasse);
-  if (erreurMotDePasse) {
-    const erreur = new Error(erreurMotDePasse);
-    erreur.status = 400;
-    throw erreur;
-  }
-  const compteParent = await Utilisateur.create({
-    nom: parentNom,
-    prenom: parentPrenom,
-    email: parentEmail,
-    motDePasse: await bcrypt.hash(parentMotDePasse, 10),
-    role: 'parent',
-    etablissementId,
-  });
-  return { compteParent, parentReutilise: false };
 }
 
 // Identité de l'établissement (nom, ville…) DE L'UTILISATEUR CONNECTÉ,
@@ -180,8 +135,8 @@ async function modifierClasse(req, res) {
 // d'abord les déplacer ou les retirer, pour ne jamais perdre un dossier
 // élève par effet de bord d'une suppression de classe.
 // Supprimer une classe supprime tout ce qui n'existe que pour elle : ses
-// élèves (et leur compte étudiant — jamais leur compte Parent, qui peut
-// suivre d'autres enfants ailleurs), leurs notes/absences/bulletins/frais,
+// élèves (et leur compte étudiant, que leur parent ouvrait aussi), leurs
+// notes/absences/bulletins/frais,
 // son emploi du temps, son cahier de textes, ses annonces et ses comptes
 // éphémères professeur. Pas de confirmation supplémentaire côté serveur :
 // c'est l'écran de confirmation (frontend) qui protège du clic accidentel,
@@ -234,18 +189,6 @@ async function listerProfesseurs(req, res) {
   const professeurs = await Professeur.findAll({ where: { etablissementId: req.utilisateur.etablissementId } });
   return res.json({ professeurs });
 }
-// Pour le sélecteur "parent existant" à l'inscription/rattachement : évite
-// de faire taper l'e-mail à l'aveugle en espérant une correspondance exacte
-// avec un compte déjà créé (la moindre faute de frappe passait alors
-// inaperçue et créait un second compte parent au lieu de réutiliser le bon).
-async function listerParents(req, res) {
-  const parents = await Utilisateur.findAll({
-    where: { etablissementId: req.utilisateur.etablissementId, role: 'parent' },
-    attributes: ['id', 'nom', 'prenom', 'email'],
-    order: [['nom', 'ASC']],
-  });
-  return res.json({ parents });
-}
 async function supprimerProfesseur(req, res) {
   const professeur = await Professeur.findByPk(req.params.id);
   if (!professeur || professeur.etablissementId !== req.utilisateur.etablissementId) {
@@ -256,13 +199,12 @@ async function supprimerProfesseur(req, res) {
 }
 
 // Inscrire un étudiant crée dans le même geste son propre compte — sans ça,
-// il n'aurait aucun moyen d'accéder à son dossier. Le compte Parent (champs
-// parent* ci-dessous) reste optionnel et indépendant : un même parent
-// couvre plusieurs enfants, donc son e-mail peut déjà exister — dans ce
-// cas on rattache l'élève au compte parent existant plutôt que d'exiger
-// un nouveau mot de passe à chaque inscription.
+// il n'aurait aucun moyen d'accéder à son dossier. Le parent n'a pas de
+// compte : son adresse (optionnelle) est rattachée à l'élève, et il ouvre
+// le compte de l'enfant avec elle et le même mot de passe, le matricule.
 async function creerEleve(req, res) {
-  const { nom, prenom, dateNaissance, classeId, email, parentNom, parentPrenom, parentEmail, parentMotDePasse } = req.body;
+  const { nom, prenom, dateNaissance, classeId, email } = req.body;
+  const emailParent = String(req.body.emailParent || '').trim() || null;
 
   const classe = await Classe.findByPk(classeId);
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
@@ -275,18 +217,8 @@ async function creerEleve(req, res) {
   if (emailExistant) {
     return res.status(400).json({ erreur: 'cette adresse e-mail est déjà utilisée par un autre compte' });
   }
-
-  // Rapporté dans la réponse : le frontend ne doit jamais réafficher le mot
-  // de passe qu'on vient de saisir comme si c'était le sien quand le compte
-  // parent existait déjà (donc gardé son ANCIEN mot de passe, pas le
-  // nouveau tapé ici).
-  let compteParent = null;
-  let parentReutilise = false;
-  if (parentEmail) {
-    ({ compteParent, parentReutilise } = await trouverOuCreerParent({
-      parentNom, parentPrenom, parentEmail, parentMotDePasse, etablissementId: req.utilisateur.etablissementId,
-    }));
-  }
+  const erreurParent = erreurEmailParent(emailParent, email);
+  if (erreurParent) return res.status(400).json({ erreur: erreurParent });
 
   // Mot de passe provisoire, aussitôt remplacé par le matricule (qui n'est
   // connu qu'une fois l'élève enregistré) : le mot de passe d'un étudiant
@@ -302,95 +234,69 @@ async function creerEleve(req, res) {
   const eleve = await Eleve.create({
     nom, prenom, dateNaissance, classeId,
     compteEtudiantId: compteEtudiant.id,
-    parentId: compteParent?.id || null,
+    emailParent,
     etablissementId: req.utilisateur.etablissementId,
   });
   await attribuerMatricule(eleve);
-  return res.status(201).json({
-    eleve,
-    compteEtudiant: compteEtudiant.toPublicJSON(),
-    compteParent: compteParent?.toPublicJSON() || null,
-    parentReutilise,
-  });
+  return res.status(201).json({ eleve, compteEtudiant: compteEtudiant.toPublicJSON() });
 }
 
-// Rattache un parent à un élève déjà inscrit — jusqu'ici, seule
-// l'inscription (creerEleve) le permettait ; un élève importé en masse
-// depuis un fichier Excel/CSV n'a jamais de parent, faute d'un autre moyen
-// de lui en associer un après coup.
-async function rattacherParent(req, res) {
-  const eleve = await Eleve.findByPk(req.params.id);
+// Rattache (ou corrige) l'adresse e-mail du parent d'un élève déjà inscrit,
+// par exemple après un import Excel sans colonne parent.
+async function definirEmailParent(req, res) {
+  const eleve = await Eleve.findByPk(req.params.id, { include: [{ model: Utilisateur, as: 'compteEtudiant', attributes: ['email'] }] });
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  const { parentNom, parentPrenom, parentEmail, parentMotDePasse } = req.body;
-  if (!parentEmail) {
-    return res.status(400).json({ erreur: "l'e-mail du parent est obligatoire" });
-  }
-  const { compteParent, parentReutilise } = await trouverOuCreerParent({
-    parentNom, parentPrenom, parentEmail, parentMotDePasse, etablissementId: req.utilisateur.etablissementId,
-  });
-  eleve.parentId = compteParent.id;
+  const emailParent = String(req.body.emailParent || '').trim();
+  if (!emailParent) return res.status(400).json({ erreur: "l'e-mail du parent est obligatoire" });
+  const erreur = erreurEmailParent(emailParent, eleve.compteEtudiant?.email);
+  if (erreur) return res.status(400).json({ erreur });
+  eleve.emailParent = emailParent;
   await eleve.save();
-  return res.json({ eleve, compteParent: compteParent.toPublicJSON(), parentReutilise });
+  return res.json({ eleve });
 }
 
-// Détache le parent d'un élève (ne supprime jamais son compte — il peut
-// suivre d'autres enfants) ; utile en cas d'erreur de saisie ou pour
-// permettre d'en rattacher un différent ensuite.
-async function detacherParent(req, res) {
+// Retire l'adresse du parent : il ne peut plus ouvrir le compte de l'élève
+// ni recevoir les e-mails qui le concernent.
+async function retirerEmailParent(req, res) {
   const eleve = await Eleve.findByPk(req.params.id);
   if (!eleve || eleve.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
-  eleve.parentId = null;
+  eleve.emailParent = null;
   await eleve.save();
   return res.status(204).send();
 }
 
-// Réinitialise le mot de passe d'un compte Étudiant ou Parent que
-// l'Académie gère déjà — jamais un compte Académie/Finance/Superadmin,
-// même dans son propre établissement : cette route ne doit pas devenir un
-// moyen détourné de prendre la main sur un collègue ou un autre admin.
+// Remet le mot de passe d'un compte étudiant à son matricule. Jamais un
+// compte Académie/Finance/Superadmin, même dans son propre établissement :
+// cette route ne doit pas devenir un moyen détourné de prendre la main sur
+// un collègue ou un autre admin.
 async function reinitialiserMotDePasseCompte(req, res) {
   const compte = await Utilisateur.findByPk(req.params.id);
   if (!compte || compte.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'compte introuvable' });
   }
-  if (!['etudiant', 'parent'].includes(compte.role)) {
-    return res.status(403).json({ erreur: 'seuls les comptes étudiant ou parent peuvent être réinitialisés ici' });
+  if (compte.role !== 'etudiant') {
+    return res.status(403).json({ erreur: 'seuls les comptes étudiant peuvent être réinitialisés ici' });
   }
-  // Étudiant : son mot de passe redevient son matricule.
-  if (compte.role === 'etudiant') {
-    const eleve = await Eleve.findOne({ where: { compteEtudiantId: compte.id } });
-    const matricule = eleve?.matricule || (eleve ? await attribuerMatricule(eleve) : null);
-    if (!matricule) return res.status(404).json({ erreur: 'dossier étudiant introuvable pour ce compte' });
-    compte.motDePasse = await bcrypt.hash(matricule, 10);
-    await compte.save();
-    return res.json({ email: compte.email, motDePasse: matricule, matricule });
-  }
-  const nouveauMotDePasse = motDePasseAleatoire();
-  compte.motDePasse = await bcrypt.hash(nouveauMotDePasse, 10);
+  const eleve = await Eleve.findOne({ where: { compteEtudiantId: compte.id } });
+  const matricule = eleve?.matricule || (eleve ? await attribuerMatricule(eleve) : null);
+  if (!matricule) return res.status(404).json({ erreur: 'dossier étudiant introuvable pour ce compte' });
+  compte.motDePasse = await bcrypt.hash(matricule, 10);
   await compte.save();
-  return res.json({ email: compte.email, motDePasse: nouveauMotDePasse });
+  return res.json({ email: compte.email, motDePasse: matricule, matricule });
 }
 
 async function listerEleves(req, res) {
   const where = { etablissementId: req.utilisateur.etablissementId };
   if (req.query.classeId) where.classeId = req.query.classeId;
   if (req.utilisateur.role === 'etudiant') where.compteEtudiantId = req.utilisateur.id;
-  // Un Parent peut avoir plusieurs enfants — where.parentId filtre déjà sur
-  // tous ses Eleve liés, pas un seul comme pour compteEtudiantId ci-dessus.
-  if (req.utilisateur.role === 'parent') where.parentId = req.utilisateur.id;
-  // Le parent lié (nom/prénom/e-mail seulement) pour que l'écran Académie
-  // affiche l'affiliation sans requête séparée — le scope par défaut
-  // d'Utilisateur exclut déjà motDePasse et les jetons, mais on ne
-  // sélectionne que le strict nécessaire plutôt que tout le profil.
   const eleves = await Eleve.findAll({
     where,
     include: [
       Classe,
-      { model: Utilisateur, as: 'parent', attributes: ['id', 'nom', 'prenom', 'email'] },
       { model: Utilisateur, as: 'compteEtudiant', attributes: ['id', 'email'] },
     ],
   });
@@ -572,8 +478,8 @@ async function ajouterCahierDeTextes(req, res) {
 }
 
 // "Envoyer un message/une annonce/une convocation" (diagramme communication
-// École-Étudiants) : les étudiants de la classe visée sont notifiés dans
-// l'appli ET par e-mail, directement sur leur propre compte.
+// École-Étudiants) : chaque étudiant de la classe visée est notifié sur son
+// compte, et l'e-mail part à lui et à son parent.
 async function envoyerMessage(req, res) {
   const { titre, contenu, type, classeId } = req.body;
   if (!classeId) {
@@ -586,28 +492,20 @@ async function envoyerMessage(req, res) {
 
   const message = await MessageAnnonce.create({ titre, contenu, type, classeId, auteurId: req.utilisateur.id });
 
-  const eleves = await Eleve.findAll({
-    where: { classeId },
-    include: [{ model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }],
-  });
-  // Un élève avec compte étudiant ET parent lié reçoit le message sur les
-  // deux — la Map dédoublonne par id, au cas où le même compte serait
-  // rattaché à plusieurs élèves de la classe (ex. jumeaux).
-  const destinatairesUniques = new Map();
-  eleves.forEach((el) => {
-    if (el.compteEtudiant) destinatairesUniques.set(el.compteEtudiant.id, el.compteEtudiant);
-    if (el.parent) destinatairesUniques.set(el.parent.id, el.parent);
-  });
-
-  for (const destinataire of destinatairesUniques.values()) {
-    await Notification.create({
-      utilisateurId: destinataire.id,
-      contenu: `${LIBELLES_TYPE_MESSAGE[message.type] || 'Message'} : ${titre}`,
-    });
-    await envoyerEmail(destinataire.email, titre, contenu);
+  const eleves = await Eleve.findAll({ where: { classeId }, include: [{ model: Utilisateur, as: 'compteEtudiant' }] });
+  let etudiantsNotifies = 0;
+  for (const eleve of eleves) {
+    if (eleve.compteEtudiant) {
+      await Notification.create({
+        utilisateurId: eleve.compteEtudiant.id,
+        contenu: `${LIBELLES_TYPE_MESSAGE[message.type] || 'Message'} : ${titre}`,
+      });
+      etudiantsNotifies += 1;
+    }
+    await envoyerALaFamille(eleve, titre, contenu);
   }
 
-  return res.status(201).json({ message, etudiantsNotifies: destinatairesUniques.size });
+  return res.status(201).json({ message, etudiantsNotifies });
 }
 
 async function listerMessages(req, res) {
@@ -674,12 +572,11 @@ module.exports = {
   creerProfesseur,
   listerProfesseurs,
   supprimerProfesseur,
-  listerParents,
   creerEleve,
   listerEleves,
   supprimerEleve,
-  rattacherParent,
-  detacherParent,
+  definirEmailParent,
+  retirerEmailParent,
   reinitialiserMotDePasseCompte,
   creerSemestre,
   listerSemestres,

@@ -18,6 +18,9 @@ const predictionsRoutes = require('./routes/predictions');
 const referenceRoutes = require('./routes/reference');
 const superadminRoutes = require('./routes/superadmin');
 const plateformeRoutes = require('./routes/plateforme');
+const evenementsRoutes = require('./routes/evenements');
+const notificationsRoutes = require('./routes/notifications');
+const { diffuserModifications } = require('./services/evenementsService');
 const { DOSSIER_STOCKAGE, lireDocument } = require('./services/pdfService');
 const { regenererDocument } = require('./services/regenerationService');
 
@@ -85,6 +88,12 @@ app.get('/fichiers/:nomFichier', async (req, res, next) => {
 app.use('/fichiers', express.static(DOSSIER_STOCKAGE));
 
 app.get('/api/sante', (req, res) => res.json({ etat: 'ok' }));
+
+// Mise à jour en direct : chaque modification réussie prévient les écrans
+// ouverts de l'école (services/evenementsService.js).
+app.use(diffuserModifications);
+app.use('/api/evenements', evenementsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/comptes-ephemeres', comptesEphemeresRoutes);

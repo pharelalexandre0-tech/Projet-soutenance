@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 import { IconUsers, IconCircleAlert, IconClock, IconWallet, IconSearch, IconSend, IconRocket } from '../../components/icons';
@@ -34,6 +35,7 @@ export default function Impayes() {
     client.get('/finance/impayes/par-classe').then((res) => setNiveaux(res.data.niveaux)).catch(() => setNiveaux([]));
   }
   useEffect(charger, []);
+  useActualisation(charger);
 
   async function verifier() {
     setEnCours(true);

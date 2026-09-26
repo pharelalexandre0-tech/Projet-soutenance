@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Tiroir from '../../components/Tiroir';
@@ -50,6 +51,7 @@ export default function Fonctionnalites() {
       .catch((err) => setErreurChargement(messageErreur(err, 'impossible de charger les fonctionnalités')));
   }
   useEffect(() => { charger(); }, []);
+  useActualisation(charger);
 
   const affichees = useMemo(() => {
     if (!donnees) return [];
@@ -97,41 +99,30 @@ export default function Fonctionnalites() {
           </label>
         </div>
 
-        <div className="liste-donnees">
-          <div className="entete-donnees" style={{ gridTemplateColumns: 'minmax(0, 2.6fr) 150px minmax(0, 1.4fr) 140px 20px' }}>
-            <span>Fonctionnalité</span><span>Type</span><span>Espaces</span><span>Écoles</span><span />
-          </div>
-          {affichees.length === 0 && (
-            <div className="vide" style={{ margin: 16 }}>
-              {donnees.fonctionnalites.length === 0 ? 'Le catalogue est vide.' : 'Aucune fonctionnalité ne correspond à ce filtre.'}
-            </div>
-          )}
-          {affichees.map((f) => (
-            <button
-              key={f.cle}
-              type="button"
-              className="ligne-donnees"
-              style={{ gridTemplateColumns: 'minmax(0, 2.6fr) 150px minmax(0, 1.4fr) 140px 20px' }}
-              onClick={() => setOuverte(f.cle)}
-            >
-              <div className="cellule-principale">
-                <TuileFonctionnalite fonctionnalite={f} />
-                <div className="textes">
-                  <strong>{f.nom}</strong>
-                  <small>{f.description}</small>
-                </div>
-              </div>
-              <span><span className={`badge sans-point ${f.integree ? 'bleu' : 'gris'}`}>{LIBELLES_TYPES[f.type]}</span></span>
-              <div className="puces">
-                {f.espaces.map((e) => <span key={e} className="puce">{LIBELLES_ESPACES[e] || e}</span>)}
-              </div>
-              <div className="jauge-ecoles">
-                <div className="jauge-ecoles-piste"><span style={{ width: `${totalEcoles ? (f.ecoles.length / totalEcoles) * 100 : 0}%` }} /></div>
-                <strong>{f.ecoles.length} / {totalEcoles}</strong>
-              </div>
-              <span className="cellule-droite"><IconChevronRight /></span>
-            </button>
-          ))}
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Fonctionnalité</th><th>Description</th><th>Type</th><th>Espaces</th><th>Écoles</th><th aria-label="Ouvrir la fiche" /></tr></thead>
+            <tbody>
+              {affichees.map((f) => (
+                <tr key={f.cle} className="ligne-cliquable" onClick={() => setOuverte(f.cle)}>
+                  <td className="cellule-nom"><span className="cellule-avec-logo"><TuileFonctionnalite fonctionnalite={f} />{f.nom}</span></td>
+                  <td className="cellule-description">{f.description}</td>
+                  <td><span className={`badge sans-point ${f.integree ? 'bleu' : 'gris'}`}>{LIBELLES_TYPES[f.type]}</span></td>
+                  <td><div className="puces">{f.espaces.map((e) => <span key={e} className="puce">{LIBELLES_ESPACES[e] || e}</span>)}</div></td>
+                  <td>
+                    <div className="jauge-ecoles">
+                      <div className="jauge-ecoles-piste"><span style={{ width: `${totalEcoles ? (f.ecoles.length / totalEcoles) * 100 : 0}%` }} /></div>
+                      <strong>{f.ecoles.length} / {totalEcoles}</strong>
+                    </div>
+                  </td>
+                  <td className="cellule-chevron"><IconChevronRight /></td>
+                </tr>
+              ))}
+              {affichees.length === 0 && (
+                <tr><td colSpan={6} className="vide">{donnees.fonctionnalites.length === 0 ? 'Le catalogue est vide.' : 'Aucune fonctionnalité ne correspond à ce filtre.'}</td></tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -308,7 +299,7 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
     nom: fonctionnalite?.nom || '',
     description: fonctionnalite?.description || '',
     icone: fonctionnalite?.icone || 'FileText',
-    espaces: fonctionnalite?.espaces || ['etudiant', 'parent'],
+    espaces: fonctionnalite?.espaces || ['etudiant'],
     contenu: fonctionnalite?.contenu || '',
     url: fonctionnalite?.url || '',
     libelleBouton: fonctionnalite?.libelleBouton || '',

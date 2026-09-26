@@ -10,7 +10,7 @@ const { version: versionPaquet } = require('../../package.json');
 // que superadminController : on agit sur la plateforme, jamais sur le
 // contenu d'une école.
 
-const ESPACES_NOTES = ['academie', 'finance', 'etudiant', 'parent'];
+const ESPACES_NOTES = ['academie', 'finance', 'etudiant'];
 const TYPES_NOTES = ['nouveaute', 'amelioration', 'correctif'];
 const NIVEAUX_ANNONCE = ['info', 'important'];
 

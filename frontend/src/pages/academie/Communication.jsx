@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 
 const LIBELLES_TYPE = { message: 'gris', annonce: 'or', convocation: 'rouge' };
+const NOMS_TYPE = { message: 'Message', annonce: 'Annonce', convocation: 'Convocation' };
 
 export default function Communication() {
   const [onglet, setOnglet] = useState('messages');
@@ -10,6 +12,7 @@ export default function Communication() {
   useEffect(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes));
   }, []);
+  useActualisation(() => client.get('/classes').then((res) => setClasses(res.data.classes)), { domaines: ['classes'] });
 
   return (
     <div>
@@ -32,6 +35,7 @@ function Messages({ classes }) {
     client.get('/messages').then((res) => setMessages(res.data.messages));
   }
   useEffect(charger, []);
+  useActualisation(charger);
 
   async function envoyer(e) {
     e.preventDefault();
@@ -79,7 +83,7 @@ function Messages({ classes }) {
             <label>Contenu</label>
             <textarea rows={4} value={form.contenu} onChange={(e) => setForm({ ...form, contenu: e.target.value })} required />
           </div>
-          <button className="primaire" type="submit">Envoyer aux étudiants de la classe</button>
+          <button className="primaire" type="submit">Envoyer à la classe (élèves et parents)</button>
           {resultat && <div className="message-succes">{resultat}</div>}
         </form>
         )}
@@ -93,12 +97,12 @@ function Messages({ classes }) {
             <div className="notification-item" key={m.id}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>{m.titre}</strong>
-                <span className={`badge ${LIBELLES_TYPE[m.type]}`}>{m.type}</span>
+                <span className={`badge ${LIBELLES_TYPE[m.type]}`}>{NOMS_TYPE[m.type] || m.type}</span>
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--texte-clair)', margin: '4px 0' }}>{m.contenu}</div>
-              <span className="vide" style={{ border: 'none', background: 'none', padding: 0, textAlign: 'left' }}>
+              <small className="note-secondaire">
                 {m.Classe?.nom}, {new Date(m.dateEnvoi).toLocaleString('fr-FR')}
-              </span>
+              </small>
             </div>
           ))}
           {messages.length === 0 && <div className="vide">Aucun message envoyé</div>}
@@ -118,6 +122,9 @@ function CahierDeTextes({ classes }) {
     if (classeId) client.get(`/cahier-de-textes?classeId=${classeId}`).then((res) => setCahier(res.data.cahier));
     else setCahier([]);
   }, [classeId]);
+  useActualisation(() => {
+    if (classeId) client.get(`/cahier-de-textes?classeId=${classeId}`).then((res) => setCahier(res.data.cahier)).catch(() => {});
+  });
 
   async function ajouter(e) {
     e.preventDefault();

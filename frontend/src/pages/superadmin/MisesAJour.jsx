@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
@@ -48,6 +49,7 @@ export default function MisesAJour({ onNaviguer }) {
     client.get('/superadmin/mises-a-jour').then((res) => setNotes(res.data.misesAJour)).catch(() => setNotes([]));
   }
   useEffect(charger, []);
+  useActualisation(charger);
 
   // Plus haute version connue (brouillons compris), pour proposer la suivante.
   const derniereVersion = [systeme?.version, ...(notes || []).map((n) => n.version)]

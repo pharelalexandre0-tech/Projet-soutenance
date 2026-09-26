@@ -1,18 +1,26 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import { IconBanknote, IconCard } from '../../components/icons';
 
 const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge' };
-const LIBELLE_STATUT = { du: 'dû', partiel: 'partiel', solde: 'soldé', impaye: 'impayé' };
+const LIBELLE_STATUT = { du: 'Dû', partiel: 'Partiel', solde: 'Soldé', impaye: 'Impayé' };
+
+function dateLongue(iso) {
+  return iso ? new Date(`${iso}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+}
 
 export default function FraisEtudiant({ eleveId }) {
   const [frais, setFrais] = useState([]);
   const [paiements, setPaiements] = useState([]);
 
-  useEffect(() => {
-    client.get(`/finance/frais/eleve/${eleveId}`).then((res) => setFrais(res.data.frais));
-    client.get(`/finance/paiements/eleve/${eleveId}`).then((res) => setPaiements(res.data.frais));
-  }, [eleveId]);
+  function charger() {
+    if (!eleveId) return;
+    client.get(`/finance/frais/eleve/${eleveId}`).then((res) => setFrais(res.data.frais)).catch(() => {});
+    client.get(`/finance/paiements/eleve/${eleveId}`).then((res) => setPaiements(res.data.frais)).catch(() => {});
+  }
+  useEffect(charger, [eleveId]);
+  useActualisation(charger);
 
   const recus = paiements.flatMap((f) => (f.Paiements || []).map((p) => ({ ...p, libelleFrais: f.libelle })));
 
@@ -41,59 +49,55 @@ export default function FraisEtudiant({ eleveId }) {
           </div>
         </div>
       )}
-      <div className="grille-2">
-        <div className="carte">
-          <h2>Mes frais et échéances</h2>
-          <div className="table-scroll">
-            <table>
-              <thead><tr><th>Frais</th><th>Échéance</th><th>Réglé</th><th>Statut</th></tr></thead>
-              <tbody>
-                {frais.map((f) => {
-                  const pct = f.montant > 0 ? Math.min(100, Math.round((f.montantRegle / f.montant) * 100)) : 0;
-                  return (
-                    <tr key={f.id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{f.libelle}</div>
-                        <div className="notification-date" style={{ marginTop: 2 }}>{f.montant.toLocaleString('fr-FR')} FCFA</div>
-                      </td>
-                      <td>{f.dateEcheance}</td>
-                      <td>
-                        <div className="jauge-frais">
-                          <div className="jauge-frais-piste"><div className="jauge-frais-remplissage" style={{ width: `${pct}%`, background: pct === 100 ? 'var(--succes)' : pct === 0 ? 'var(--erreur)' : 'var(--alerte)' }} /></div>
-                          <span className="jauge-frais-texte">{f.montantRegle.toLocaleString('fr-FR')} / {f.montant.toLocaleString('fr-FR')} FCFA</span>
-                        </div>
-                      </td>
-                      <td><span className={`badge ${STYLE_STATUT[f.statut]}`}>{LIBELLE_STATUT[f.statut] ?? f.statut}</span></td>
-                    </tr>
-                  );
-                })}
-                {frais.length === 0 && <tr><td colSpan={4} className="vide">Aucun frais enregistré pour le moment</td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="carte">
-          <h2>Mes reçus</h2>
-          <div className="table-scroll">
-            <table>
-              <thead><tr><th>Frais</th><th>Montant</th><th>Mode</th><th>Reçu</th></tr></thead>
-              <tbody>
-                {recus.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.libelleFrais}</td>
-                    <td>{p.montant.toLocaleString('fr-FR')} FCFA</td>
-                    <td><span className="badge gris">{p.modePaiement}</span></td>
+      <div className="carte">
+        <h2>Frais et échéances</h2>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Frais</th><th className="chiffre">Montant</th><th>Échéance</th><th>Réglé</th><th>Statut</th></tr></thead>
+            <tbody>
+              {frais.map((f) => {
+                const pct = f.montant > 0 ? Math.min(100, Math.round((f.montantRegle / f.montant) * 100)) : 0;
+                return (
+                  <tr key={f.id}>
+                    <td className="cellule-nom">{f.libelle}</td>
+                    <td className="chiffre">{f.montant.toLocaleString('fr-FR')} FCFA</td>
+                    <td>{dateLongue(f.dateEcheance)}</td>
                     <td>
-                      {p.Recu?.fichierPDF
-                        ? <a href={p.Recu.fichierPDF} target="_blank" rel="noreferrer" className="secondaire" style={{ display: 'inline-block', textDecoration: 'none', padding: '5px 12px' }}>Télécharger</a>
-                        : <span className="note-secondaire">Indisponible</span>}
+                      <div className="jauge-frais">
+                        <div className="jauge-frais-piste"><div className="jauge-frais-remplissage" style={{ width: `${pct}%`, background: pct === 100 ? 'var(--succes)' : pct === 0 ? 'var(--erreur)' : 'var(--alerte)' }} /></div>
+                        <span className="jauge-frais-texte">{f.montantRegle.toLocaleString('fr-FR')} / {f.montant.toLocaleString('fr-FR')} FCFA</span>
+                      </div>
                     </td>
+                    <td><span className={`badge ${STYLE_STATUT[f.statut]}`}>{LIBELLE_STATUT[f.statut] ?? f.statut}</span></td>
                   </tr>
-                ))}
-                {recus.length === 0 && <tr><td colSpan={4} className="vide">Aucun reçu pour le moment</td></tr>}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+              {frais.length === 0 && <tr><td colSpan={5} className="vide">Aucun frais enregistré pour le moment</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="carte">
+        <h2>Reçus de paiement</h2>
+        <div className="table-scroll">
+          <table>
+            <thead><tr><th>Frais</th><th className="chiffre">Montant</th><th>Mode</th><th>Reçu</th></tr></thead>
+            <tbody>
+              {recus.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.libelleFrais}</td>
+                  <td className="chiffre">{p.montant.toLocaleString('fr-FR')} FCFA</td>
+                  <td><span className="badge gris">{p.modePaiement}</span></td>
+                  <td>
+                    {p.Recu?.fichierPDF
+                      ? <a href={p.Recu.fichierPDF} target="_blank" rel="noreferrer" className="secondaire" style={{ display: 'inline-block', textDecoration: 'none', padding: '5px 12px' }}>Télécharger</a>
+                      : <span className="note-secondaire">Indisponible</span>}
+                  </td>
+                </tr>
+              ))}
+              {recus.length === 0 && <tr><td colSpan={4} className="vide">Aucun reçu pour le moment</td></tr>}
+            </tbody>
+          </table>
         </div>
       </div>
     </>

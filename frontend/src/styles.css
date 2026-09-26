@@ -432,9 +432,8 @@ td { font-variant-numeric: tabular-nums; }
    reste visible pendant le défilement. */
 .table-scroll { overflow: auto; max-height: min(560px, 68vh); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .table-scroll table { min-width: 440px; }
-.table-scroll thead th, .table-cadre thead th { position: sticky; top: 0; z-index: 2; }
-.table-scroll.sans-limite { max-height: none; overflow-y: visible; }
-.table-cadre { max-height: min(560px, 68vh); }
+.table-scroll thead th { position: sticky; top: 0; z-index: 2; }
+
 /* Tableau posé directement dans un panneau : il en occupe toute la largeur,
    bord à bord, comme une vraie grille de données. */
 :where(.carte) > .table-scroll { margin: 0 -30px; }
@@ -443,25 +442,6 @@ td { font-variant-numeric: tabular-nums; }
 :where(.carte) > .table-scroll th:last-child, :where(.carte) > .table-scroll td:last-child { padding-right: 30px; }
 :where(.carte) > .table-scroll:last-child tbody tr:last-child td:first-child { border-bottom-left-radius: var(--radius); }
 :where(.carte) > .table-scroll:last-child tbody tr:last-child td:last-child { border-bottom-right-radius: var(--radius); }
-
-.table-cadre, .tableau-defilant { border: 1px solid var(--bordure); border-radius: 10px; overflow: hidden; }
-.table-cadre { overflow: auto; }
-.table-cadre table, .tableau-defilant table { margin: 0; }
-.tableau-defilant { margin-bottom: 14px; }
-.tableau-defilant-entete {
-  display: flex; align-items: center; gap: 8px;
-  padding: 14px 16px; border-bottom: 1px solid var(--bordure);
-  font-size: 14.5px; font-weight: 600; color: var(--texte);
-}
-.tableau-defilant-titre { flex: 1; }
-.tableau-defilant-compte {
-  font-size: 13px; font-weight: 600; color: var(--texte-clair);
-  background: var(--gris-fond); border-radius: 6px; padding: 1px 8px;
-}
-.tableau-defilant-corps { max-height: 300px; overflow: auto; }
-/* L'en-tête collé doit passer au-dessus des lignes pendant le défilement :
-   sans z-index, les cellules de tbody restaient peintes par-dessus. */
-.tableau-defilant-corps thead th { position: sticky; top: 0; z-index: 1; }
 
 /* ==========================================================================
    Formulaires
@@ -665,9 +645,9 @@ tbody tr:has(> td.vide):hover { background: none; }
 
 .liste-notifications { display: flex; flex-direction: column; gap: 8px; }
 .notification-item {
-  display: flex; align-items: flex-start; gap: 12px;
+  display: flex; flex-direction: column; gap: 4px; min-width: 0;
   padding: 14px 16px; border: 1px solid var(--bordure); border-radius: 10px;
-  font-size: 14.5px; background: var(--carte);
+  font-size: 14.5px; background: var(--carte); overflow-wrap: anywhere;
 }
 .notification-date { font-size: 13px; color: var(--texte-clair); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
@@ -678,17 +658,8 @@ tbody tr:has(> td.vide):hover { background: none; }
 .encart-import-titre { font-weight: 600; font-size: 14px; color: var(--primaire-fonce); margin-bottom: 4px; }
 .encart-import p { font-size: 13.5px; color: var(--texte); line-height: 1.55; margin: 0 0 10px; }
 
-.detail-classe { background: var(--gris-fond); padding: 16px 18px; border-radius: 0 0 10px 10px; animation: tombe-doucement 0.2s ease both; }
-.detail-classe-stats { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; font-size: 13.5px; }
-.detail-classe-chiffre { display: flex; align-items: baseline; gap: 6px; }
-.detail-classe-chiffre strong { font-size: 18px; font-weight: 650; color: var(--primaire); }
-.detail-classe-chiffre span { color: var(--texte-clair); }
-
 /* Appel (accès temporaire professeur) */
-.liste-appel { display: flex; flex-direction: column; gap: 4px; max-height: 420px; overflow-y: auto; border: 1px solid var(--bordure); border-radius: 10px; padding: 6px; }
-.ligne-appel { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 8px; border-radius: 8px; flex-wrap: wrap; }
-.ligne-appel:hover { background: var(--gris-fond); }
-.ligne-appel-nom { font-size: 14px; }
+
 .ligne-appel-options { display: flex; gap: 6px; flex: none; }
 .case-statut {
   border: 1px solid var(--bordure-controle); background: var(--carte); color: var(--texte-clair);
@@ -700,42 +671,7 @@ tbody tr:has(> td.vide):hover { background: none; }
 .case-statut.absence.actif { background: var(--erreur-fond); color: var(--erreur); border-color: var(--erreur); }
 .case-statut.retard.actif { background: var(--alerte-fond); color: var(--alerte); border-color: var(--alerte); }
 
-/* Maître-détail (paie) */
-.maitre-detail { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 960px) { .maitre-detail { grid-template-columns: minmax(0, 1fr); } }
-.liste-personnel { display: flex; flex-direction: column; gap: 4px; }
-.personnel-item {
-  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
-  padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; background: transparent;
-  font-family: var(--police); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease;
-}
-.personnel-item:hover { background: var(--gris-fond); }
-.personnel-item.actif { background: var(--primaire-clair); border-color: color-mix(in srgb, var(--primaire) 30%, transparent); }
-.personnel-avatar {
-  width: 34px; height: 34px; flex: none; border-radius: 50%;
-  background: var(--gris-fond); color: var(--texte-clair);
-  display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;
-}
-.personnel-item.actif .personnel-avatar { background: var(--primaire); color: #fff; }
-.personnel-texte { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.personnel-texte strong { font-size: 15px; font-weight: 600; color: var(--texte); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.personnel-texte small { font-size: 13px; color: var(--texte-clair); }
-.fiche-paie-entete { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
-.fiche-paie-identite { display: flex; align-items: center; gap: 14px; }
-.fiche-paie-avatar {
-  width: 48px; height: 48px; border-radius: 50%; flex: none;
-  background: var(--primaire-clair); color: var(--primaire);
-  display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 650;
-}
-.fiche-paie-identite h3 { margin: 0; font-size: 16px; font-weight: 600; }
-.fiche-paie-identite p { margin: 2px 0 0; color: var(--texte-clair); font-size: 13px; }
-
-.roster-niveau { margin-bottom: 22px; }
-.roster-niveau-titre {
-  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--texte-clair); margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--bordure);
-}
-
+/* Jauge de paiement des frais */
 .jauge-frais { display: flex; flex-direction: column; gap: 5px; min-width: 110px; }
 .jauge-frais-piste { background: var(--gris-fond); height: 6px; border-radius: 4px; overflow: hidden; }
 .jauge-frais-remplissage { height: 100%; border-radius: 4px; background: var(--succes); transition: width 0.5s ease; }
@@ -766,30 +702,7 @@ tbody tr:has(> td.vide):hover { background: none; }
 .table-releve tr.ligne-ue td { background: var(--primaire-clair); font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; text-transform: uppercase; color: var(--primaire-fonce); padding: 8px 12px; }
 .table-releve tr.ligne-ue td.chiffre { text-align: right; font-size: 13.5px; text-transform: none; }
 .table-releve tr.ligne-matiere td:first-child { padding-left: 24px; color: var(--texte-clair); font-size: 13px; }
-.releve-pied {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px; margin-top: 20px; padding-top: 18px; border-top: 2px solid var(--primaire);
-}
-.releve-pied div { text-align: center; }
-.releve-pied span { display: block; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--texte-clair); margin-bottom: 4px; }
-.releve-pied strong { font-family: var(--police-serif); font-size: 1.3rem; font-weight: 700; color: var(--texte); }
-.releve-pied strong.reussite { color: var(--succes); }
-.releve-pied strong.echec { color: var(--erreur); }
-.releve-signature { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 34px; font-size: 13px; color: var(--texte-clair); }
-.releve-signature .cachet {
-  width: 92px; height: 92px; border: 1.5px dashed var(--bordure-controle); border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--texte-clair); opacity: 0.7; transform: rotate(-8deg);
-}
-.document-officiel { background: var(--papier); border: 1px solid var(--bordure); border-radius: 10px; padding: 28px 30px 26px; position: relative; overflow: hidden; }
-.document-officiel::before {
-  content: "OFFICIEL"; position: absolute; top: 46%; left: 50%; transform: translate(-50%, -50%) rotate(-20deg);
-  font-family: var(--police-serif); font-size: 6rem; font-weight: 700;
-  color: var(--primaire); opacity: 0.04; letter-spacing: 0.14em; white-space: nowrap; pointer-events: none;
-}
-.document-officiel > * { position: relative; }
-.releve-reference { text-align: center; font-size: 12px; color: var(--texte-clair); letter-spacing: 0.04em; margin: -10px 0 20px; font-variant-numeric: tabular-nums; }
+
 .document-suivi .releve-entete { border-bottom-color: var(--edu-or); }
 .document-suivi .table-releve thead th { background: var(--edu-or); border-color: var(--edu-or); color: var(--edu-marine); }
 .document-suivi .table-releve tr.ligne-ue td { background: color-mix(in srgb, var(--edu-or) 15%, var(--carte)); color: #7A5210; }
@@ -799,7 +712,7 @@ tbody tr:has(> td.vide):hover { background: none; }
 .releve-bilan-item strong { font-family: var(--police-serif); font-size: 1.15rem; font-weight: 700; }
 .releve-bilan-item strong.reussite { color: var(--succes); }
 .releve-bilan-item strong.echec { color: var(--erreur); }
-@media (max-width: 640px) { .document-academique, .document-officiel { padding: 20px 16px; } }
+@media (max-width: 640px) { .document-academique { padding: 20px 16px; } }
 
 /* ==========================================================================
    Fenêtres, tiroirs, notifications
@@ -878,30 +791,6 @@ tbody tr:has(> td.vide):hover { background: none; }
    Listes de données (lignes réactives)
    ========================================================================== */
 
-.liste-donnees { border-top: 1px solid var(--bordure); }
-:where(.carte) > .liste-donnees { margin: 0 -30px -26px; }
-.ligne-donnees {
-  display: grid; align-items: center; gap: 18px;
-  padding: 17px 30px; border-bottom: 1px solid var(--bordure);
-  background: none; border-left: none; border-right: none; border-top: none;
-  width: 100%; text-align: left; font: inherit; color: inherit;
-  transition: background 0.12s ease;
-}
-.ligne-donnees:last-child { border-bottom: none; border-radius: 0 0 var(--radius) var(--radius); }
-button.ligne-donnees { cursor: pointer; }
-button.ligne-donnees:hover { background: color-mix(in srgb, var(--gris-fond) 55%, var(--carte)); }
-.entete-donnees {
-  display: grid; gap: 18px; padding: 11px 30px;
-  background: var(--gris-fond); border-bottom: 1px solid var(--bordure);
-  font-size: 13px; font-weight: 600; color: var(--texte-clair);
-}
-.cellule-principale { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.cellule-principale .textes { display: flex; flex-direction: column; min-width: 0; }
-.cellule-principale strong { font-size: 15px; font-weight: 600; color: var(--texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cellule-principale small { font-size: 13.5px; color: var(--texte-clair); overflow: hidden; text-overflow: ellipsis; }
-.cellule-secondaire { font-size: 14.5px; color: var(--texte-clair); min-width: 0; }
-.cellule-droite { justify-self: end; display: flex; align-items: center; gap: 8px; color: var(--texte-clair); }
-.cellule-droite svg { width: 16px; height: 16px; }
 .vignette-logo {
   width: 42px; height: 42px; flex: none; border-radius: 9px;
   border: 1px solid var(--bordure); background: var(--carte);
@@ -909,16 +798,6 @@ button.ligne-donnees:hover { background: color-mix(in srgb, var(--gris-fond) 55%
 }
 .vignette-logo img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
 .vignette-logo svg { width: 18px; height: 18px; }
-.libelle-mobile { display: none; }
-@media (max-width: 760px) {
-  .entete-donnees { display: none; }
-  .ligne-donnees { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 16px 18px; }
-  :where(.carte) > .liste-donnees { margin: 0 -18px -20px; }
-  .ligne-donnees > .cellule-principale { flex: 1 1 100%; }
-  .ligne-donnees > .cellule-droite { margin-left: auto; }
-  .ligne-donnees .jauge-ecoles { min-width: 120px; }
-  .libelle-mobile { display: inline; color: var(--texte-clair); font-size: 12px; margin-right: 4px; }
-}
 
 .puces { display: flex; flex-wrap: wrap; gap: 6px; }
 .puce {
@@ -1146,6 +1025,10 @@ button.ligne-donnees:hover { background: color-mix(in srgb, var(--gris-fond) 55%
   align-self: flex-end; margin-top: -8px; padding: 2px 0;
 }
 .connexion-mot-de-passe-oublie:hover { text-decoration: underline; text-underline-offset: 3px; }
+.connexion-note-parent {
+  margin: -8px 0 0; text-align: center;
+  color: var(--texte-clair); font-size: 13px; line-height: 1.5;
+}
 .connexion-maintenance {
   display: flex; align-items: flex-start; gap: 12px; text-align: left;
   background: var(--alerte-fond); color: #6E4A0B;
@@ -1189,7 +1072,7 @@ button.ligne-donnees:hover { background: color-mix(in srgb, var(--gris-fond) 55%
   padding: 36px 32px; box-shadow: var(--ombre-flottante);
 }
 .carte-connexion h1 { font-size: 20px; font-weight: 650; margin: 0 0 10px; color: var(--texte); letter-spacing: -0.01em; }
-.carte-connexion .sous-titre { color: var(--texte-clair); font-size: 14px; margin: -2px 0 22px; line-height: 1.55; }
+
 @media (max-width: 560px) { .carte-connexion { padding: 26px 20px; border-radius: 14px; } }
 
 /* Ouverture de session après connexion */
@@ -1478,7 +1361,7 @@ button.bouton-fort { padding: 0 16px; min-height: var(--hauteur-controle); font-
 .fiche-entete-textes { flex: 1; min-width: 200px; }
 .fiche-entete-textes h2 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .fiche-entete-textes p { margin: 3px 0 0; font-size: 15px; color: var(--texte-clair); }
-.fiche-entete-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 .retour-liste { margin-bottom: 14px; }
 
 .zone-risque { border: 1px solid color-mix(in srgb, var(--erreur) 30%, var(--bordure)); border-radius: 10px; overflow: hidden; }
@@ -1699,23 +1582,16 @@ button.bouton-fort { padding: 0 16px; min-height: var(--hauteur-controle); font-
    Accès temporaires (comptes éphémères des professeurs)
    ========================================================================== */
 
-.grille-principale { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 24px; align-items: start; }
-.grille-principale > .carte { margin-bottom: 0; }
-@media (max-width: 1240px) { .grille-principale { grid-template-columns: minmax(0, 1fr); } }
-
 .avatar-initiales {
   width: 40px; height: 40px; flex: none; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   background: var(--primaire-clair); color: var(--primaire);
   font-size: 13.5px; font-weight: 600; letter-spacing: 0.02em;
 }
-.cellule-mission { display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 14.5px; color: var(--texte); }
-.cellule-mission > span:last-child { min-width: 0; overflow-wrap: anywhere; }
-.cellule-mission .badge { flex: none; }
+
 .temps-restant { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--succes); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .temps-restant svg { width: 15px; height: 15px; }
 
-.actions-ligne { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
 button.bouton-icone-texte {
   display: inline-flex; align-items: center; gap: 6px;
   min-height: 34px; padding: 0 10px;
@@ -1729,14 +1605,6 @@ button.bouton-icone-texte:hover { background: var(--gris-fond); border-color: va
 button.bouton-icone-texte.danger { color: var(--erreur); }
 button.bouton-icone-texte.danger:hover { background: var(--erreur-fond); border-color: color-mix(in srgb, var(--erreur) 35%, var(--bordure)); }
 button.bouton-icone-texte:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.liste-professeurs { list-style: none; margin: -22px -30px -26px; padding: 0; max-height: 640px; overflow-y: auto; }
-.liste-professeurs li { display: flex; align-items: center; gap: 12px; padding: 14px 30px; border-bottom: 1px solid var(--bordure); }
-.liste-professeurs li:last-child { border-bottom: none; }
-.liste-professeurs .textes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.liste-professeurs strong { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.liste-professeurs small { font-size: 13px; color: var(--texte-clair); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.liste-professeurs .actions-ligne { flex: none; flex-wrap: nowrap; }
 
 .resultat-acces-temporaire { text-align: center; padding: 4px 0 22px; }
 .resultat-acces-temporaire h3 { margin: 14px 0 6px; font-size: 18px; font-weight: 600; color: var(--texte); text-wrap: balance; }
@@ -1885,58 +1753,16 @@ button.bouton-icone-texte:disabled { opacity: 0.55; cursor: not-allowed; }
   .acces-minuteur { font-size: 12.5px; padding: 6px 10px; }
 }
 
-@media (max-width: 760px) {
-  .liste-professeurs { margin: -18px -18px -20px; }
-  .liste-professeurs li { padding: 14px 18px; flex-wrap: wrap; }
-  .ligne-donnees > .cellule-mission { flex: 1 1 100%; }
-  .ligne-donnees > .actions-ligne { flex: 1 1 100%; justify-content: flex-start; }
-}
 @media (max-width: 480px) {
   .lien-copiable { flex-direction: column; }
-  .liste-professeurs .actions-ligne { margin-left: 52px; }
-}
 
+}
 
 /* ==========================================================================
-   Élèves et classes : liste des classes à gauche, élèves à droite
+   Élèves et classes : chiffres clés et barre compacte des classes
    ========================================================================== */
 
-.grille-maitre { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 24px; align-items: start; margin-bottom: 24px; }
-.grille-maitre > .carte { margin-bottom: 0; }
-@media (max-width: 1100px) { .grille-maitre { grid-template-columns: minmax(0, 1fr); } }
-
 .stat-tile .valeur .valeur-sur { font-size: 18px; font-weight: 500; color: var(--texte-clair); letter-spacing: 0; }
-
-.liste-classes { list-style: none; margin: -22px -30px -26px; padding: 8px 0; max-height: min(640px, 70vh); overflow-y: auto; }
-.liste-classes li { position: relative; display: flex; align-items: center; }
-.liste-classes li.vide { margin: 8px 20px; }
-.choix-classe {
-  flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px;
-  padding: 11px 64px 11px 30px; border: none; background: none; text-align: left;
-  font: inherit; color: var(--texte); cursor: pointer; position: relative;
-  transition: background 0.12s ease;
-}
-.choix-classe:hover { background: color-mix(in srgb, var(--gris-fond) 60%, var(--carte)); }
-.choix-classe.actif { background: var(--primaire-clair); }
-.choix-classe.actif::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--primaire); }
-.choix-classe-textes { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
-.choix-classe-textes strong { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.choix-classe.actif .choix-classe-textes strong { color: var(--primaire-fonce); }
-.choix-classe-textes small { font-size: 13px; color: var(--texte-clair); }
-.choix-classe-compte {
-  flex: none; min-width: 30px; padding: 2px 8px; border-radius: 999px; text-align: center;
-  background: var(--gris-fond); font-size: 13px; font-weight: 600; color: var(--texte-clair); font-variant-numeric: tabular-nums;
-}
-.choix-classe.actif .choix-classe-compte { background: var(--carte); color: var(--primaire); }
-.choix-classe-modifier {
-  position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
-  width: 32px; height: 32px; border-radius: var(--rayon-controle);
-  border: 1px solid transparent; background: none; color: var(--texte-clair);
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
-}
-.choix-classe-modifier svg { width: 15px; height: 15px; }
-.choix-classe-modifier:hover { background: var(--carte); border-color: var(--bordure); color: var(--primaire); }
 
 .entete-carte h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .entete-carte h2 .entete-carte-compteur { font-size: 13px; }
@@ -1974,9 +1800,7 @@ td.mono { font-family: var(--police-mono); font-size: 13.5px; white-space: nowra
 .case-a-cocher input { width: 17px; height: 17px; min-height: 0; margin: 0; accent-color: var(--primaire); }
 
 @media (max-width: 760px) {
-  .liste-classes { margin: -18px -18px -20px; }
-  .choix-classe { padding-left: 18px; }
-  .choix-classe-modifier { right: 10px; }
+
   .pied-liste { margin: 0 -18px -20px; padding: 12px 18px; }
   .chiffres-classe dd { font-size: 19px; }
 }
@@ -2148,23 +1972,10 @@ a.bouton-lien-secondaire svg { width: 17px; height: 17px; }
 .table-appels td { white-space: nowrap; }
 .table-appels .chiffre { text-align: right; }
 
-.panneau-outils { display: flex; flex-direction: column; gap: 10px; margin: -22px -30px 0; padding: 14px 30px; border-bottom: 1px solid var(--bordure); }
-.panneau-outils .champ-recherche { min-width: 0; }
-.panneau-outils + .liste-classes { margin-top: 0; }
-.liste-personnel-paie .choix-classe { padding-right: 30px; }
-.liste-personnel-paie .badge { flex: none; }
-.avatar-initiales.grand { width: 48px; height: 48px; font-size: 15px; }
-.fiche-paie-identite { display: flex; align-items: center; gap: 14px; min-width: 0; }
-.fiche-paie-identite h2 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 !important; }
-.fiche-paie-identite p { margin: 2px 0 0; font-size: 14px; color: var(--texte-clair); overflow-wrap: anywhere; }
-.fiche-paie-vide { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 48px 20px; }
-.fiche-paie-vide h2 { margin: 16px 0 8px !important; padding: 0 !important; border: none !important; font-size: 19px; }
-.fiche-paie-vide p { margin: 0; max-width: 52ch; font-size: 14.5px; line-height: 1.6; color: var(--texte-clair); }
 .stat-tile .valeur.valeur-montant { font-size: 26px; }
 
 @media (max-width: 760px) {
-  .panneau-outils { margin: -18px -18px 0; padding: 12px 18px; }
-  .liste-personnel-paie .choix-classe { padding-right: 18px; }
+
   .chiffres-classe.chiffres-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chiffres-classe.chiffres-4 > div:nth-child(3) { border-left: none; }
   .chiffres-classe.chiffres-4 > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
@@ -2175,26 +1986,13 @@ a.bouton-lien-secondaire svg { width: 17px; height: 17px; }
    ========================================================================== */
 
 .table-scroll { overflow-y: scroll; }
-.table-scroll.sans-limite { overflow-y: visible; }
-.table-scroll::-webkit-scrollbar,
-.table-cadre::-webkit-scrollbar,
-.liste-classes::-webkit-scrollbar,
-.liste-professeurs::-webkit-scrollbar,
-.tiroir-corps::-webkit-scrollbar { width: 11px; height: 11px; }
-.table-scroll::-webkit-scrollbar-track,
-.table-cadre::-webkit-scrollbar-track,
-.liste-classes::-webkit-scrollbar-track,
-.liste-professeurs::-webkit-scrollbar-track,
-.tiroir-corps::-webkit-scrollbar-track { background: var(--gris-fond); }
-.table-scroll::-webkit-scrollbar-thumb,
-.table-cadre::-webkit-scrollbar-thumb,
-.liste-classes::-webkit-scrollbar-thumb,
-.liste-professeurs::-webkit-scrollbar-thumb,
-.tiroir-corps::-webkit-scrollbar-thumb { background: var(--bordure-controle); border-radius: 6px; border: 2px solid var(--gris-fond); }
-.table-scroll::-webkit-scrollbar-thumb:hover,
-.table-cadre::-webkit-scrollbar-thumb:hover { background: var(--texte-clair); }
+
+.table-scroll::-webkit-scrollbar, .tiroir-corps::-webkit-scrollbar { width: 11px; height: 11px; }
+.table-scroll::-webkit-scrollbar-track, .tiroir-corps::-webkit-scrollbar-track { background: var(--gris-fond); }
+.table-scroll::-webkit-scrollbar-thumb, .tiroir-corps::-webkit-scrollbar-thumb { background: var(--bordure-controle); border-radius: 6px; border: 2px solid var(--gris-fond); }
+.table-scroll::-webkit-scrollbar-thumb:hover { background: var(--texte-clair); }
 @supports not selector(::-webkit-scrollbar) {
-  .table-scroll, .table-cadre, .liste-classes, .liste-professeurs, .tiroir-corps { scrollbar-width: thin; scrollbar-color: var(--bordure-controle) var(--gris-fond); }
+  .table-scroll, .tiroir-corps { scrollbar-width: thin; scrollbar-color: var(--bordure-controle) var(--gris-fond); }
 }
 .table-scroll.defilement-visible { max-height: min(620px, 70vh); }
 
@@ -2216,42 +2014,6 @@ tbody tr.ligne-groupe:hover { background: none; }
    Classes en tuiles (Élèves & classes)
    ========================================================================== */
 
-.grille-classes {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;
-  max-height: min(440px, 58vh); overflow-y: auto; padding: 3px; margin: -3px;
-}
-.tuile-classe {
-  display: flex; flex-direction: column; gap: 10px; min-height: 138px;
-  padding: 18px 18px 16px; border: 1px solid var(--bordure); border-radius: var(--radius);
-  background: var(--carte); cursor: pointer; text-align: left;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-.tuile-classe:hover { border-color: var(--bordure-controle); box-shadow: var(--ombre); }
-.tuile-classe:focus-visible { outline: 2px solid var(--primaire); outline-offset: 2px; }
-.tuile-classe.active {
-  border-color: var(--primaire);
-  background: color-mix(in srgb, var(--primaire-clair) 55%, var(--carte));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primaire) 14%, transparent);
-}
-.tuile-classe-haut { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; }
-.tuile-classe-icone { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--primaire-clair); color: var(--primaire); }
-.tuile-classe-icone svg { width: 18px; height: 18px; }
-.tuile-classe-nom { font-size: 18px; font-weight: 650; line-height: 1.3; color: var(--texte); overflow-wrap: anywhere; }
-.tuile-classe.active .tuile-classe-nom { color: var(--primaire-fonce); }
-.tuile-classe-effectif { margin-top: auto; font-size: 14px; color: var(--texte-clair); }
-.tuile-classe-effectif b { margin-right: 4px; font-size: 22px; font-weight: 650; color: var(--texte); font-variant-numeric: tabular-nums; }
-.tuile-classe-gerer {
-  width: 34px; height: 34px; flex: none; border: 1px solid var(--bordure); border-radius: var(--rayon-controle);
-  background: var(--carte); color: var(--texte-clair); display: flex; align-items: center; justify-content: center; cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease;
-}
-.tuile-classe-gerer svg { width: 16px; height: 16px; }
-.tuile-classe-gerer:hover { color: var(--primaire); border-color: var(--primaire); }
-.grille-classes-vide { grid-column: 1 / -1; }
-.grille-classes::-webkit-scrollbar { width: 11px; }
-.grille-classes::-webkit-scrollbar-track { background: var(--gris-fond); border-radius: 6px; }
-.grille-classes::-webkit-scrollbar-thumb { background: var(--bordure-controle); border-radius: 6px; border: 2px solid var(--gris-fond); }
-
 .puce-filtre {
   display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
   border: 1px solid color-mix(in srgb, var(--primaire) 35%, var(--bordure)); border-radius: 999px;
@@ -2259,12 +2021,6 @@ tbody tr.ligne-groupe:hover { background: none; }
 }
 .puce-filtre svg { width: 14px; height: 14px; }
 .puce-filtre:hover { background: color-mix(in srgb, var(--primaire-clair) 70%, var(--primaire)); color: #fff; }
-
-@media (max-width: 760px) {
-  .grille-classes { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-  .tuile-classe { min-height: 120px; padding: 14px; }
-  .tuile-classe-nom { font-size: 16px; }
-}
 
 /* Barre compacte des classes (Élèves & classes) */
 .carte-barre-classes { padding-top: 18px; padding-bottom: 18px; }
@@ -2347,3 +2103,33 @@ tbody tr.ligne-groupe:hover { background: none; }
   .metriques-ia > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
   .modele-ia-importances li { grid-template-columns: minmax(0, 1fr) 70px 46px; }
 }
+
+/* ---- Notifications du compte (cloche de la barre supérieure) ---- */
+.notifications-compte { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.notifications-compte li {
+  display: grid; grid-template-columns: 10px 1fr; gap: 12px; align-items: start;
+  padding: 14px 4px; border-bottom: 1px solid var(--bordure);
+}
+.notifications-compte li:last-child { border-bottom: none; }
+.notifications-compte p { margin: 0 0 4px; font-size: 14.5px; line-height: 1.5; color: var(--texte); overflow-wrap: anywhere; }
+.notifications-compte time { font-size: 12.5px; color: var(--texte-clair); }
+.notifications-compte-point { width: 8px; height: 8px; border-radius: 50%; margin-top: 7px; background: transparent; }
+.notifications-compte li.non-lue .notifications-compte-point { background: var(--primaire); }
+.notifications-compte li.non-lue p { font-weight: 600; }
+
+/* Lien personnel d'un accès temporaire, dans son tiroir */
+.lien-acces {
+  margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 8px;
+  background: var(--gris-fond); overflow-wrap: anywhere; line-height: 1.5;
+}
+.table-acces td { white-space: nowrap; }
+
+/* Cellule de tableau avec vignette (logo d'école, tuile de fonctionnalité)
+   devant le nom, et description longue qui passe à la ligne. */
+.cellule-avec-logo { display: inline-flex; align-items: center; gap: 12px; }
+.cellule-avec-logo .vignette-logo, .cellule-avec-logo .tuile-fonctionnalite { flex: none; }
+td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal; color: var(--texte-clair); line-height: 1.5; }
+.texte-alerte { color: var(--alerte); font-weight: 600; }
+/* Dans un tiroir, une valeur de tableau (montant, date, période) reste sur
+   une ligne : le tableau défile plutôt que de couper les cellules. */
+.tiroir-corps td { white-space: nowrap; }

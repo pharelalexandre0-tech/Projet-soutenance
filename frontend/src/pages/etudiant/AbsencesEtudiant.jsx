@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import { IconCalendarAlert, IconAlertTriangle } from '../../components/icons';
 
 export default function AbsencesEtudiant({ eleveId }) {
@@ -7,14 +8,16 @@ export default function AbsencesEtudiant({ eleveId }) {
   const [motifs, setMotifs] = useState({});
   const [chargement, setChargement] = useState(true);
 
-  function charger() {
-    setChargement(true);
+  function charger(silencieux = false) {
+    if (!eleveId) return;
+    if (!silencieux) setChargement(true);
     client.get(`/absences/eleve/${eleveId}`).then((res) => {
       setAbsences(res.data.absences);
       setChargement(false);
-    });
+    }).catch(() => setChargement(false));
   }
-  useEffect(charger, [eleveId]);
+  useEffect(() => { charger(); }, [eleveId]);
+  useActualisation(() => charger(true));
 
   async function transmettreJustificatif(id) {
     await client.post(`/absences/${id}/justificatif`, { motif: motifs[id] || 'justificatif transmis' });

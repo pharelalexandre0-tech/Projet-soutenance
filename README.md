@@ -1,188 +1,130 @@
-# Plateforme de Gestion Scolaire — Espace Établissement / Espace Étudiant
+# EduSphere : plateforme de gestion scolaire multi-établissements
 
-Implémentation (backend + frontend) des 9 diagrammes UML du dossier de conception
-(*Diagrammes_UML_Plateforme_Scolaire.pdf*) : cas d'utilisation, classes, et les flux
-détaillés en séquence/activité (authentification, saisie des notes via compte
-éphémère, bulletin, absences, paiement, impayés, prédiction IA).
+EduSphere réunit la vie d'un établissement d'enseignement supérieur : inscriptions et
+matricules, notes et bulletins (règles LMD), absences, comportement, emplois du temps,
+frais de scolarité et reçus, paie du personnel, communication avec les familles et
+détection précoce du décrochage par apprentissage automatique. Chaque école a ses propres
+données, totalement isolées des autres ; un superadmin pilote la plateforme sans jamais
+voir le contenu des écoles.
 
-Stack : **Node.js + Express** (API) / **PostgreSQL + Sequelize** (données) /
-**React + Vite** (interface).
+Stack : **Node.js + Express** (API), **PostgreSQL + Sequelize** (toutes les données, y
+compris les PDF, le journal des e-mails et les modèles d'IA), **React + Vite** (interface).
 
-## 1. Prérequis
+## 1. Les espaces
 
-- Node.js 18+ et npm
-- PostgreSQL 14+ installé et démarré localement
+| Espace | Qui | Ce qu'on y fait |
+|---|---|---|
+| Superadmin | Équipe EduSphere | Écoles affiliées, fonctionnalités ouvertes école par école, fonctionnalités sans code, notes de version, annonces et maintenance, journal. |
+| Académie | Scolarité de l'école | Classes et élèves (matricule automatique), UE et matières, notes, bulletins, emplois du temps publiés, feuilles d'appel, comportement, alertes de décrochage, accès temporaires des professeurs, communication. |
+| Finance | Service financier | Frais par classe, paiements et reçus PDF, impayés et relances, paie du personnel (les professeurs y figurent d'office) et fiches de paie. |
+| Étudiant / Parents | L'élève et sa famille | Bulletin, relevé de notes, absences et justificatifs, comportement, emploi du temps, frais et reçus, messages, notifications. |
+| Professeur | Sans compte | Un lien personnel à durée limitée, reçu par e-mail, pour saisir des notes ou faire l'appel ; il se ferme dès l'envoi. |
 
-## 2. Mise en route
+**Parents.** Le parent n'a pas de compte à lui : son adresse e-mail est rattachée à
+l'élève (fiche élève, inscription ou import Excel). Il se connecte au compte de son enfant
+avec **sa propre adresse** et **le même mot de passe, le matricule** ; le code de double
+authentification lui est envoyé à lui. L'interface devient alors l'« Espace Parents ». Les
+e-mails de l'établissement (absences, bulletins, reçus, relances, signalements, emploi du
+temps, messages) partent à l'élève et à son parent.
 
-### Base de données
+**Matricule.** Attribué à l'inscription (ex. `IDE-2A-0061` : sigle de l'école, code de
+deux caractères, numéro d'ordre), il sert de mot de passe et ne se modifie pas.
+
+**Mise à jour en direct.** Toute modification enregistrée (inscription, note, absence,
+paiement, publication, signalement...) est signalée aux écrans ouverts de la même école,
+qui rechargent leurs données aussitôt, sans recherche ni changement d'onglet. Le serveur
+diffuse ces signaux par un flux SSE (`/api/evenements`) ; ils transitent par PostgreSQL
+(`NOTIFY` / `LISTEN`), si bien que les scripts planifiés en produisent aussi. Un signal ne
+contient jamais de donnée scolaire, seulement l'école et le domaine touchés.
+
+**Alertes de décrochage.** Onze signaux précoces par élève (notes de contrôle continu,
+assiduité, comportement, paiements). Une forêt aléatoire et une régression logistique sont
+entraînées et comparées par validation croisée (AUC) ; la meilleure est retenue, évaluée
+sur un jeu de test et enregistrée, versionnée, dans PostgreSQL (`modeles_ia`). Chaque
+score est expliqué par les signaux qui le font monter.
+
+## 2. Installation locale
+
+Prérequis : Node.js 18 ou plus, PostgreSQL 14 ou plus.
 
 ```bash
-sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
-sudo -u postgres psql -c "CREATE DATABASE plateforme_scolaire;"
+createdb plateforme_scolaire
 ```
-
-(Adapte `DATABASE_URL` dans `backend/.env` si tu utilises un autre utilisateur/mot de passe.)
 
 ### Backend
 
 ```bash
 cd backend
-cp .env.example .env      # déjà fourni avec des valeurs de dev fonctionnelles
+cp .env.example .env        # adapter DATABASE_URL si besoin
 npm install
-npm run seed               # crée les tables (sync) + des données de démonstration
-npm run dev                 # démarre l'API sur http://localhost:4000
+npm run dev                 # crée ou met à jour les tables, puis écoute sur le port 4000
 ```
 
-Comptes créés par le seed (mot de passe pour tous : `password123`) :
+Premier démarrage d'une base vide : créer le compte superadmin (non destructif, sans effet
+s'il en existe déjà un), puis, si besoin, l'école de démonstration.
 
-| Rôle     | E-mail                  |
-|----------|--------------------------|
-| Académie | academie@ecole.ga       |
-| Finance  | finance@ecole.ga        |
-| Étudiant | pharelalexandre0@gmail.com            |
-| Étudiant | pharelalexandre0+etudiant2@gmail.com  |
+```bash
+SUPERADMIN_EMAIL=vous@exemple.com SUPERADMIN_MOT_DE_PASSE='un-mot-de-passe-solide' npm run init:superadmin
+npm run seed:demo           # école « IDE » : 60 élèves, notes, absences, frais, paie...
+```
 
-Le rôle Étudiant demande en plus un code à 6 chiffres envoyé par e-mail
-(double authentification). Le premier compte utilise l'adresse Gmail
-telle quelle (sans alias) : c'est la seule que Resend, en mode sandbox
-sans domaine vérifié, accepte comme destinataire — utilisez ce compte
-pour tester le flux 2FA en démo. Le second reste utile pour les autres
-écrans mais ne recevra pas de vrai code tant qu'aucun domaine n'est
-vérifié sur Resend.
+Les comptes de démonstration sont affichés à la fin de `seed:demo` (Académie et Finance :
+`academie@ide.example.com`, `finance@ide.example.com` ; élèves : leur matricule ;
+parents : leur adresse et le matricule de l'enfant).
 
-Le Professeur (Charly Obame) n'a volontairement pas de mot de passe : conforme au
-diagramme de cas d'utilisation, il n'accède à la plateforme que via un lien
-d'accès temporaire généré par l'Académie (onglet *Comptes éphémères*).
+Sans configuration d'envoi (voir `.env.example` : SendGrid, Resend ou SMTP), les e-mails
+sont simulés et restent visibles dans le journal des e-mails du superadmin.
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev                 # démarre l'interface sur http://localhost:5173
+npm run dev                 # http://localhost:5173 (relaie /api vers le port 4000)
 ```
 
-Ouvre `http://localhost:5173`, connecte-toi avec un des comptes ci-dessus.
+### Scripts utiles (backend)
 
-### Tâches planifiées (à automatiser en production, ex. cron)
-
-```bash
-cd backend
-npm run check:impayes       # diagramme 9 : marque les frais en retard + notifie
-npm run check:prediction    # diagramme 7 : lance l'analyse de risque IA
-```
-
-## 3. Où trouver quoi (correspondance avec les diagrammes)
-
-| Diagramme UML | Code |
+| Commande | Rôle |
 |---|---|
-| 1. Cas d'utilisation global | `backend/src/routes/*`, séparation des rôles dans `middlewares/auth.js` (`autoriserRoles`) |
-| 2. Classes (modèle de domaine) | `backend/src/models/*` + associations dans `models/index.js` |
-| 3. Authentification | `controllers/authController.js`, `middlewares/auth.js` |
-| 4. Saisie des notes via compte éphémère | `models/CompteEphemere.js`, `middlewares/ephemeralAuth.js`, `controllers/comptesEphemeresController.js`, page `frontend/src/pages/AccesTemporaire.jsx` |
-| 5. Bulletin scolaire | `services/moyenneService.js`, `services/pdfService.js`, `controllers/bulletinController.js` |
-| 6. Gestion des absences | `controllers/absencesController.js` |
-| 7. Prédiction IA | `services/riskService.js` (heuristique explicable, volontairement pas un vrai modèle ML entraîné), `controllers/predictionController.js`, `scripts/runPrediction.js` |
-| 8. Paiement des frais | `controllers/financeController.js` (`enregistrerPaiement`), `services/pdfService.js` (reçu) |
-| 9. Suivi des impayés | `services/impayesService.js`, `scripts/checkImpayes.js` |
+| `npm run init:superadmin` | Crée le premier superadmin d'une installation neuve. |
+| `npm run seed:demo` | Ajoute l'école de démonstration (sans toucher aux autres). |
+| `npm run check:impayes` | Marque les frais échus et prévient les familles (tâche quotidienne). |
+| `npm run check:prediction` | Recalcule le risque de décrochage de chaque école (tâche périodique). |
+| `npm run train:risque` | Réentraîne le modèle de prédiction (aussi possible depuis l'Académie). |
+| `npm run backup` | Exporte une sauvegarde des tables. |
 
-## 4. Choix d'implémentation à connaître pour la soutenance
+## 3. Où trouver quoi
 
-- **Professeur sans compte permanent** : modélisé comme une fiche (`Professeur`)
-  sans mot de passe. L'accès passe uniquement par `CompteEphemere` (jeton aléatoire,
-  portée classe+UE+évaluation, expiration, révocation automatique après usage).
-- **Séparation Académie / Finance** : appliquée au niveau des routes via le
-  middleware `autoriserRoles`, pas seulement dans l'interface — un token JWT
-  Finance ne peut pas appeler les routes notes/absences, et inversement.
-- **Le mot de passe n'est jamais renvoyé** dans les réponses JSON, y compris via
-  les relations imbriquées (`scope` Sequelize par défaut sur `Utilisateur`).
-- **Prédiction IA** : heuristique simple et explicable (moyenne des notes +
-  absences non justifiées) plutôt qu'un modèle de machine learning entraîné —
-  choix assumé et à justifier ainsi à l'oral : un prototype de soutenance n'a pas
-  besoin d'un vrai modèle pour démontrer l'architecture et le flux (collecte →
-  score → seuil → alerte → décision humaine).
-- **E-mails** : envoyés pour de vrai dès que `RESEND_API_KEY` (recommandé —
-  Render bloque le SMTP sortant sur son plan gratuit) ou les variables
-  `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS` sont renseignées (voir `.env.example`) ;
-  sans aucune des deux, simulation par `console.log` pour ne pas dépendre
-  d'identifiants externes en dev local.
+| Sujet | Code |
+|---|---|
+| Rôles et accès | `backend/src/middlewares/auth.js` (`authentifier`, `autoriserRoles`, session parent) |
+| Connexion, double authentification, parents | `controllers/authController.js`, `services/familleService.js` |
+| Élèves, classes, matricule | `controllers/referenceController.js`, `services/matriculeService.js` |
+| Accès temporaires des professeurs | `controllers/comptesEphemeresController.js`, `middlewares/ephemeralAuth.js`, `frontend/src/pages/AccesTemporaire.jsx` |
+| Moyennes et bulletin (LMD) | `services/moyenneService.js`, `controllers/bulletinController.js`, `services/pdfService.js` |
+| Absences, comportement | `controllers/absencesController.js`, `controllers/incidentsController.js` |
+| Frais, reçus, impayés, paie | `controllers/financeController.js`, `controllers/personnelController.js`, `services/impayesService.js` |
+| Prédiction du décrochage | `services/ia/` (signaux, algorithmes, entraînement), `services/riskService.js` |
+| Mise à jour en direct | `services/evenementsService.js`, `routes/evenements.js`, `frontend/src/api/tempsReel.js`, `frontend/src/hooks/useActualisation.js` |
+| E-mails | `services/emailService.js`, `services/modelesEmail.js` |
+| Pilotage de la plateforme | `controllers/superadminController.js`, `controllers/pilotageController.js`, `controllers/fonctionnalitesController.js` |
 
-## 5. Déploiement (Docker + Render, gratuit)
+Au démarrage, `server.js` applique les migrations (dont le passage des anciens comptes
+parents à l'adresse rattachée à l'élève), synchronise les tables, puis prépare les données
+dérivées (matricules manquants, publications, comptes rendus, paie, modèle d'IA).
 
-Le projet est dockerisé : `backend/Dockerfile` (API Node) et `frontend/Dockerfile`
-(build Vite servi par Nginx, qui fait aussi office de reverse proxy vers l'API —
-le code frontend appelle toujours `/api` en relatif, sans rien à changer).
+## 4. Déploiement (Docker, Render)
 
-### 5.1 Tester en local avec Docker (optionnel)
+`backend/Dockerfile` construit l'API ; `frontend/Dockerfile` construit l'interface, servie
+par nginx qui relaie aussi `/api` et `/fichiers` vers l'API (flux `/api/evenements` sans
+tampon). `render.yaml` décrit la base PostgreSQL et les deux services.
 
-Si Docker Desktop est installé :
+En local avec Docker : `docker compose up --build`, puis http://localhost:8080 et
+`docker compose exec backend npm run init:superadmin` (avec les variables `SUPERADMIN_*`).
 
-```bash
-docker compose up --build
-```
-
-Puis ouvrir `http://localhost:8080`. `docker-compose.yml` lance PostgreSQL, l'API
-et le frontend ensemble. La base est vide au premier lancement : lancer le seed
-une fois les conteneurs démarrés :
-
-```bash
-docker compose exec backend npm run seed
-```
-
-### 5.2 Mettre en ligne gratuitement sur Render
-
-Render construit lui-même les images à partir des `Dockerfile` — Docker n'a pas
-besoin d'être installé sur ta machine pour déployer, seulement pour tester en local.
-
-1. **Pousser le projet sur GitHub** (dépôt public ou privé) :
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit"
-   git branch -M main
-   git remote add origin <URL_DU_DEPOT_GITHUB>
-   git push -u origin main
-   ```
-2. Créer un compte sur [render.com](https://render.com) (gratuit, connexion possible
-   via GitHub).
-3. Dans le dashboard Render : **New +** → **Blueprint**, choisir le dépôt GitHub —
-   Render détecte automatiquement `render.yaml` à la racine et propose de créer
-   les 3 ressources : `edusphere-db` (Postgres gratuit), `edusphere-backend` et
-   `edusphere-frontend` (services Docker gratuits). Cliquer **Apply**.
-4. Le premier déploiement prend quelques minutes (build des images). Une fois les
-   deux services "Live" :
-   - noter l'URL publique de `edusphere-frontend` (ex.
-     `https://edusphere-frontend.onrender.com`) ;
-   - si Render a dû renommer `edusphere-backend` (nom déjà pris ailleurs sur
-     Render), ouvrir le service `edusphere-frontend` → **Environment** → corriger
-     la variable `BACKEND_HOST` avec le vrai nom d'hôte, puis **Manual Deploy**.
-   - ouvrir le service `edusphere-backend` → **Environment** → renseigner
-     `EPHEMERE_LIEN_BASE_URL` avec `https://<url-du-frontend>/acces-temporaire`,
-     puis sauvegarder (redéploie automatiquement).
-5. **Créer les données de démonstration** : la base Postgres gratuite reste
-   vide tant qu'on ne lance pas le seed. Depuis ta machine, avec l'"External
-   Database URL" affichée dans le dashboard Render (onglet du service
-   `edusphere-db` → **Connect**) :
-   ```bash
-   cd backend
-   DATABASE_URL="<external-database-url-render>" npm run seed
-   ```
-
-**Limites du plan gratuit Render à connaître** (suffisant pour une soutenance) :
-- les services web gratuits se mettent en veille après 15 min sans trafic, et
-  redémarrent en ~1 min à la requête suivante — penser à ouvrir le site quelques
-  minutes avant la démo pour éviter le temps de réveil en direct ;
-- le système de fichiers est éphémère : les PDF générés (bulletins, reçus) sont
-  perdus à chaque redémarrage/redéploiement — sans impact fonctionnel, ils sont
-  régénérés à la demande ;
-- la base Postgres gratuite expire 30 jours après sa création (+ 14 jours de
-  grâce) — largement suffisant d'ici le dépôt du rapport, mais à surveiller si
-  la plateforme doit rester en ligne plus longtemps.
-
-## 6. Aller plus loin
-
-- Remplacer `sequelize.sync({ alter: true })` par de vraies migrations
-  (`sequelize-cli`) avant tout déploiement.
-- Ajouter des tests automatisés (Jest + supertest) sur les contrôleurs.
-- Brancher un vrai service d'e-mail et un vrai plan de sauvegarde de la base.
+Sur Render : créer le Blueprint depuis le dépôt, renseigner les variables marquées
+`sync: false` (clé d'envoi d'e-mails, `EPHEMERE_LIEN_BASE_URL`), puis lancer
+`init:superadmin` une fois avec l'URL externe de la base. Les PDF sont stockés dans
+PostgreSQL : un redémarrage ne les perd pas. Le plan gratuit met les services en veille
+après 15 minutes sans trafic (le workflow `.github/workflows/keep-alive.yml` les réveille).

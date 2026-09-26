@@ -1,13 +1,13 @@
 const { Absence, Eleve, Utilisateur, Notification } = require('../models');
-const { envoyerEmail } = require('../services/emailService');
+const { envoyerALaFamille } = require('../services/familleService');
 const { consignerAppel } = require('../services/compteRenduService');
 
 // Coeur du diagramme d'activité 6 : enregistrer l'absence, la classer
-// justifiée ou non, et notifier automatiquement l'étudiant si elle ne l'est
-// pas à la saisie.
+// justifiée ou non, et prévenir automatiquement l'étudiant et son parent si
+// elle ne l'est pas à la saisie.
 async function enregistrerAbsence({ eleveId, date, cours, type, justifie, motif, saisiParAcademieId, compteEphemereId, etablissementId }) {
   const eleve = await Eleve.findByPk(eleveId, {
-    include: [{ model: Utilisateur, as: 'compteEtudiant' }, { model: Utilisateur, as: 'parent' }],
+    include: [{ model: Utilisateur, as: 'compteEtudiant' }],
   });
   if (!eleve || (etablissementId && eleve.etablissementId !== etablissementId)) {
     throw Object.assign(new Error('élève introuvable'), { status: 404 });
@@ -36,17 +36,17 @@ async function enregistrerAbsence({ eleveId, date, cours, type, justifie, motif,
 
   if (creee && !absence.justifie) {
     const libelleType = typeFinal === 'retard' ? 'Retard' : 'Absence';
-    for (const destinataire of [eleve.compteEtudiant, eleve.parent].filter(Boolean)) {
+    if (eleve.compteEtudiant) {
       await Notification.create({
-        utilisateurId: destinataire.id,
+        utilisateurId: eleve.compteEtudiant.id,
         contenu: `${libelleType} non justifié${typeFinal === 'retard' ? '' : 'e'} de ${eleve.prenom} ${eleve.nom} le ${date}${cours ? ' en ' + cours : ''}.`,
       });
-      await envoyerEmail(
-        destinataire.email,
-        `${libelleType} signalé${typeFinal === 'retard' ? '' : 'e'} pour ${eleve.prenom} ${eleve.nom}`,
-        `${typeFinal === 'retard' ? 'Un retard' : 'Une absence'} non justifié${typeFinal === 'retard' ? '' : 'e'} a été enregistré${typeFinal === 'retard' ? '' : 'e'} le ${date}. Vous pouvez transmettre un justificatif depuis votre espace.`
-      );
     }
+    await envoyerALaFamille(
+      eleve,
+      `${libelleType} signalé${typeFinal === 'retard' ? '' : 'e'} pour ${eleve.prenom} ${eleve.nom}`,
+      `${typeFinal === 'retard' ? 'Un retard' : 'Une absence'} non justifié${typeFinal === 'retard' ? '' : 'e'} a été enregistré${typeFinal === 'retard' ? '' : 'e'} le ${date}. Vous pouvez transmettre un justificatif depuis votre espace.`
+    );
   }
 
   return absence;
@@ -136,9 +136,6 @@ async function listerAbsencesEleve(req, res) {
     return res.status(404).json({ erreur: 'élève introuvable' });
   }
   if (req.utilisateur.role === 'etudiant' && eleve.compteEtudiantId !== req.utilisateur.id) {
-    return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
-  }
-  if (req.utilisateur.role === 'parent' && eleve.parentId !== req.utilisateur.id) {
     return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
   }
   const absences = await Absence.findAll({ where: { eleveId }, order: [['date', 'DESC']] });

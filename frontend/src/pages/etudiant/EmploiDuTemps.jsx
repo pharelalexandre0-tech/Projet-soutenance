@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import GrilleEmploiDuTemps from '../../components/GrilleEmploiDuTemps';
 
 // Même grille que côté Académie, en lecture seule.
@@ -8,15 +9,17 @@ export default function EmploiDuTemps({ classeId }) {
   const [publication, setPublication] = useState(null);
   const [chargement, setChargement] = useState(true);
 
-  useEffect(() => {
+  function charger(silencieux = false) {
     if (!classeId) { setChargement(false); return; }
-    setChargement(true);
+    if (!silencieux) setChargement(true);
     client.get(`/emplois-du-temps?classeId=${classeId}`).then((res) => {
       setEmplois(res.data.emplois);
       setPublication(res.data.publication || null);
       setChargement(false);
-    });
-  }, [classeId]);
+    }).catch(() => setChargement(false));
+  }
+  useEffect(() => { charger(); }, [classeId]);
+  useActualisation(() => charger(true), { domaines: ['emplois-du-temps', 'classes', 'eleves'] });
 
   return (
     <div className="carte">

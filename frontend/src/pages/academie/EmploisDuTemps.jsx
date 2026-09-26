@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
@@ -36,8 +37,8 @@ export default function EmploisDuTemps() {
     });
   }, []);
 
-  function charger(id) {
-    setChargement(true);
+  function charger(id, silencieux = false) {
+    if (!silencieux) setChargement(true);
     client.get(`/emplois-du-temps?classeId=${id}`)
       .then((res) => setEmplois(res.data.emplois))
       .finally(() => setChargement(false));
@@ -49,6 +50,11 @@ export default function EmploisDuTemps() {
     setEtat(null);
     if (classeId) charger(classeId); else setEmplois([]);
   }, [classeId]);
+  useActualisation(() => {
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
+    client.get('/semestres').then((res) => setSemestres(res.data.semestres)).catch(() => {});
+    if (classeId) charger(classeId, true);
+  });
 
   async function supprimer() {
     await client.delete(`/emplois-du-temps/${creneauASupprimer.id}`);

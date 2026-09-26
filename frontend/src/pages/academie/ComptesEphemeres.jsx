@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
+import Tiroir from '../../components/Tiroir';
 import Toast from '../../components/Toast';
 import DetailCompteRendu from '../../components/DetailCompteRendu';
 import { messageErreur } from '../../utils/erreurs';
 import {
   IconPlus, IconPencil, IconCalendarAlert, IconKey, IconUsers, IconCheck, IconCircleCheck, IconClock,
-  IconMail, IconClose, IconSend, IconDocument, IconTrash, IconEye,
+  IconMail, IconClose, IconSend, IconDocument, IconTrash, IconEye, IconSearch, IconChevronRight, IconCopy,
 } from '../../components/icons';
 
 const DUREES = [
@@ -24,8 +26,6 @@ const FILTRES = [
   { id: 'termines', libelle: 'Terminés' },
   { id: '', libelle: 'Tous' },
 ];
-
-const COLONNES = 'minmax(0, 1.3fr) minmax(0, 1.6fr) 150px 130px auto';
 
 function initiales(p) {
   return `${p?.prenom?.[0] ?? ''}${p?.nom?.[0] ?? ''}`.toUpperCase();
@@ -54,9 +54,27 @@ function statutAcces(a) {
 function detailSaisie(a) {
   if (a.tache === 'saisie_absences') {
     if (a.saisies > 0) return `${a.saisies} absence${a.saisies > 1 ? 's' : ''} ou retard${a.saisies > 1 ? 's' : ''}`;
-    return a.saisieEnvoyeeLe ? 'tous présents' : null;
+    return a.saisieEnvoyeeLe ? 'Tous présents' : null;
   }
   return a.saisies > 0 ? `${a.saisies} note${a.saisies > 1 ? 's' : ''}` : null;
+}
+
+function nomProfesseur(a) {
+  return a.professeur ? `${a.professeur.prenom} ${a.professeur.nom}` : 'Professeur retiré';
+}
+
+function libelleEvaluation(a) {
+  if (a.tache === 'saisie_absences') return null;
+  return `${a.categorie === 'examen' ? 'Examen' : 'Contrôle continu'}${a.evaluation ? `, ${a.evaluation}` : ''}`;
+}
+
+// Une seule information pour la colonne « Validité » : le temps restant
+// d'un accès ouvert, sinon la date qui l'a clos.
+function validite(a, statut) {
+  if (statut.ouvert) return tempsRestant(a.dateExpiration) || 'Expire maintenant';
+  if (a.saisieEnvoyeeLe) return `Reçue le ${dateCourte(a.saisieEnvoyeeLe)}`;
+  if (a.statut === 'expire') return `Expiré le ${dateCourte(a.dateExpiration)}`;
+  return `Créé le ${dateCourte(a.dateCreation)}`;
 }
 
 async function copier(texte) {
@@ -81,6 +99,10 @@ export default function ComptesEphemeres() {
   const [professeurASupprimer, setProfesseurASupprimer] = useState(null);
   const [renvoiEnCours, setRenvoiEnCours] = useState(null);
   const [compteRendu, setCompteRendu] = useState(null);
+  const [accesOuvertId, setAccesOuvertId] = useState(null);
+  const [professeurOuvertId, setProfesseurOuvertId] = useState(null);
+  const [recherche, setRecherche] = useState('');
+  const [rechercheProfesseur, setRechercheProfesseur] = useState('');
   const [toast, setToast] = useState(null);
   const [, setTic] = useState(0);
 
@@ -92,6 +114,7 @@ export default function ComptesEphemeres() {
     client.get('/professeurs').then((res) => setProfesseurs(res.data.professeurs));
   }
   useEffect(charger, []);
+  useActualisation(charger);
 
   // Le temps restant de chaque accès se met à jour tout seul.
   useEffect(() => {
@@ -102,12 +125,19 @@ export default function ComptesEphemeres() {
   const liste = acces || [];
   const ouverts = liste.filter((a) => a.statut === 'actif' && new Date(a.dateExpiration) > new Date());
   const saisiesRecues = liste.filter((a) => a.saisieEnvoyeeLe || a.saisies > 0).length;
+  const rechercheNette = recherche.trim().toLowerCase();
   const affiches = liste.filter((a) => {
     const ouvert = a.statut === 'actif' && new Date(a.dateExpiration) > new Date();
-    if (filtre === 'ouverts') return ouvert;
-    if (filtre === 'termines') return !ouvert;
-    return true;
+    if (filtre === 'ouverts' && !ouvert) return false;
+    if (filtre === 'termines' && ouvert) return false;
+    return !rechercheNette || `${nomProfesseur(a)} ${a.classe?.nom || ''} ${a.matiere?.intitule || ''}`.toLowerCase().includes(rechercheNette);
   });
+  const rechercheProfNette = rechercheProfesseur.trim().toLowerCase();
+  const professeursAffiches = professeurs
+    .filter((p) => !rechercheProfNette || `${p.prenom} ${p.nom} ${p.matiere || ''} ${p.email || ''}`.toLowerCase().includes(rechercheProfNette))
+    .sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`, 'fr'));
+  const accesOuvert = liste.find((a) => a.id === accesOuvertId) || null;
+  const professeurOuvert = professeurs.find((p) => p.id === professeurOuvertId) || null;
   const accesParProfesseur = useMemo(() => {
     const compte = new Map();
     liste.forEach((a) => { if (a.professeur) compte.set(a.professeur.id, (compte.get(a.professeur.id) || 0) + 1); });
@@ -153,6 +183,7 @@ export default function ComptesEphemeres() {
   async function supprimerProfesseur() {
     await client.delete(`/professeurs/${professeurASupprimer.id}`);
     setProfesseurASupprimer(null);
+    setProfesseurOuvertId(null);
     setToast({ message: 'Professeur retiré.', type: 'succes' });
     charger();
   }
@@ -178,120 +209,201 @@ export default function ComptesEphemeres() {
         </div>
       </div>
 
-      <div className="grille-principale">
-        <div className="carte">
-          <div className="entete-carte">
-            <h2>Accès temporaires</h2>
+      <section className="carte">
+        <div className="entete-carte">
+          <h2>Accès temporaires <span className="entete-carte-compteur">{affiches.length}</span></h2>
+          <div className="actions-carte">
             <button className="primaire" onClick={() => setCreation({})} disabled={professeurs.length === 0}>
               <IconPlus /> Nouvel accès
             </button>
           </div>
-          <div className="barre-outils">
-            <div className="filtres-puces" role="group" aria-label="Filtrer les accès">
-              {FILTRES.map((f) => (
-                <button key={f.id} className={filtre === f.id ? 'actif' : ''} onClick={() => setFiltre(f.id)}>{f.libelle}</button>
-              ))}
-            </div>
-          </div>
-          {professeurs.length === 0 && (
-            <div className="vide">Ajoute d'abord un professeur (panneau de droite) pour pouvoir lui ouvrir un accès.</div>
-          )}
-          {!acces && <div className="chargement">Chargement…</div>}
-          {acces && professeurs.length > 0 && affiches.length === 0 && (
-            <div className="vide">
-              {filtre === 'ouverts' ? 'Aucun accès ouvert en ce moment.' : 'Aucun accès dans cette liste.'}
-            </div>
-          )}
-          {affiches.length > 0 && (
-            <div className="liste-donnees">
-              <div className="entete-donnees" style={{ gridTemplateColumns: COLONNES }}>
-                <span>Professeur</span><span>Mission</span><span>Validité</span><span>Statut</span><span />
-              </div>
-              {affiches.map((a) => {
-                const statut = statutAcces(a);
-                const restant = statut.ouvert ? tempsRestant(a.dateExpiration) : null;
-                return (
-                  <div key={a.id} className="ligne-donnees" style={{ gridTemplateColumns: COLONNES }}>
-                    <div className="cellule-principale">
-                      <span className="avatar-initiales">{initiales(a.professeur)}</span>
-                      <div className="textes">
-                        <strong>{a.professeur ? `${a.professeur.prenom} ${a.professeur.nom}` : 'Professeur retiré'}</strong>
-                        <small>{a.professeur?.email}</small>
-                      </div>
-                    </div>
-                    <div className="cellule-mission">
-                      <span className={`badge sans-point ${a.tache === 'saisie_absences' ? 'or' : 'bleu'}`}>
-                        {a.tache === 'saisie_absences' ? 'Appel' : 'Notes'}
-                      </span>
-                      <span>
-                        {a.classe?.nom}
-                        {a.matiere ? ` · ${a.matiere.intitule}` : ''}
-                        {a.tache !== 'saisie_absences' ? ` · ${a.categorie === 'examen' ? 'Examen' : 'CC'}${a.evaluation ? `, ${a.evaluation}` : ''}` : ''}
-                      </span>
-                    </div>
-                    <div className="cellule-secondaire">
-                      {restant ? <strong className="temps-restant"><IconClock />{restant}</strong> : null}
-                      <small className="note-secondaire" style={{ display: 'block' }}>
-                        {statut.ouvert ? `jusqu'au ${dateCourte(a.dateExpiration)}` : a.saisieEnvoyeeLe ? `reçue le ${dateCourte(a.saisieEnvoyeeLe)}` : `créé le ${dateCourte(a.dateCreation)}`}
-                      </small>
-                    </div>
-                    <span>
-                      <span className={`badge ${statut.badge}`}>{statut.texte}</span>
-                      {detailSaisie(a) && <small className="note-secondaire" style={{ display: 'block', marginTop: 4 }}>{detailSaisie(a)}</small>}
-                    </span>
-                    <div className="actions-ligne">
-                      {statut.ouvert && (
-                        <>
-                          <button className="bouton-icone-texte" onClick={() => copierLien(a)} title="Copier le lien"><IconDocument /> Copier</button>
-                          <button className="bouton-icone-texte" onClick={() => renvoyer(a)} disabled={renvoiEnCours === a.id} title="Renvoyer l'e-mail">
-                            <IconMail /> {renvoiEnCours === a.id ? 'Envoi…' : 'Renvoyer'}
-                          </button>
-                          <button className="bouton-icone-texte danger" onClick={() => setAFermer(a)} title="Fermer l'accès"><IconClose /> Fermer</button>
-                        </>
-                      )}
-                      {!statut.ouvert && (a.saisieEnvoyeeLe || a.saisies > 0) && (
-                        <button className="bouton-icone-texte" onClick={() => voirSaisie(a)} title="Voir ce que le professeur a envoyé">
-                          <IconEye /> Voir la saisie
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
+        <div className="barre-outils">
+          <label className="champ-recherche">
+            <IconSearch />
+            <input type="search" placeholder="Rechercher un professeur, une classe, une matière…" value={recherche} onChange={(e) => setRecherche(e.target.value)} aria-label="Rechercher un accès" />
+          </label>
+          <div className="filtres-puces" role="group" aria-label="Filtrer les accès">
+            {FILTRES.map((f) => (
+              <button key={f.id} className={filtre === f.id ? 'actif' : ''} onClick={() => setFiltre(f.id)}>{f.libelle}</button>
+            ))}
+          </div>
+        </div>
+        {professeurs.length === 0 && acces && (
+          <div className="vide">Ajoute d'abord un professeur (tableau « Professeurs » ci-dessous) pour pouvoir lui ouvrir un accès.</div>
+        )}
+        {professeurs.length > 0 && (
+          <div className="table-scroll">
+            <table className="table-acces">
+              <thead>
+                <tr>
+                  <th>Professeur</th>
+                  <th>Mission</th>
+                  <th>Classe</th>
+                  <th>Matière</th>
+                  <th>Évaluation</th>
+                  <th>Validité</th>
+                  <th>Statut</th>
+                  <th>Saisie reçue</th>
+                  <th aria-label="Ouvrir le détail" />
+                </tr>
+              </thead>
+              <tbody>
+                {affiches.map((a) => {
+                  const statut = statutAcces(a);
+                  return (
+                    <tr key={a.id} className="ligne-cliquable" onClick={() => setAccesOuvertId(a.id)}>
+                      <td className="cellule-nom">{nomProfesseur(a)}</td>
+                      <td>
+                        <span className={`badge sans-point ${a.tache === 'saisie_absences' ? 'or' : 'bleu'}`}>
+                          {a.tache === 'saisie_absences' ? 'Appel' : 'Notes'}
+                        </span>
+                      </td>
+                      <td>{a.classe?.nom || <span className="note-secondaire">Classe retirée</span>}</td>
+                      <td>{a.matiere?.intitule || <span className="note-secondaire">Non précisée</span>}</td>
+                      <td>{libelleEvaluation(a) || <span className="note-secondaire">Sans objet</span>}</td>
+                      <td>{statut.ouvert ? <span className="temps-restant"><IconClock />{validite(a, statut)}</span> : validite(a, statut)}</td>
+                      <td><span className={`badge ${statut.badge}`}>{statut.texte}</span></td>
+                      <td>{detailSaisie(a) || <span className="note-secondaire">Aucune</span>}</td>
+                      <td className="cellule-chevron"><IconChevronRight /></td>
+                    </tr>
+                  );
+                })}
+                {acces && affiches.length === 0 && (
+                  <tr><td colSpan={9} className="vide">{filtre === 'ouverts' && !rechercheNette ? 'Aucun accès ouvert en ce moment.' : 'Aucun accès dans cette liste.'}</td></tr>
+                )}
+                {!acces && <tr><td colSpan={9} className="chargement">Chargement…</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
-        <div className="carte">
-          <div className="entete-carte">
-            <h2>Professeurs</h2>
+      <section className="carte">
+        <div className="entete-carte">
+          <h2>Professeurs <span className="entete-carte-compteur">{professeurs.length}</span></h2>
+          <div className="actions-carte">
+            <label className="champ-recherche compact">
+              <IconSearch />
+              <input type="search" placeholder="Rechercher…" value={rechercheProfesseur} onChange={(e) => setRechercheProfesseur(e.target.value)} aria-label="Rechercher un professeur" />
+            </label>
             <button className="secondaire" onClick={() => setAjoutProfesseur(true)}><IconPlus /> Ajouter</button>
           </div>
-          {professeurs.length === 0 && <div className="vide">Aucun professeur enregistré.</div>}
-          {professeurs.length > 0 && (
-            <ul className="liste-professeurs">
-              {professeurs.map((p) => (
-                <li key={p.id}>
-                  <span className="avatar-initiales">{initiales(p)}</span>
-                  <div className="textes">
-                    <strong>{p.prenom} {p.nom}</strong>
-                    <small>{p.matiere || 'Matière non renseignée'} · {p.email}</small>
-                    <small>{accesParProfesseur.get(p.id) || 0} accès délivré{(accesParProfesseur.get(p.id) || 0) > 1 ? 's' : ''}</small>
-                  </div>
-                  <div className="actions-ligne">
-                    <button className="bouton-icone-texte" onClick={() => setCreation({ professeurId: String(p.id) })} title={`Ouvrir un accès à ${p.prenom} ${p.nom}`}>
-                      <IconKey /> Accès
-                    </button>
-                    <button className="bouton-icone-texte danger" onClick={() => setProfesseurASupprimer(p)} title="Retirer ce professeur" aria-label={`Retirer ${p.prenom} ${p.nom}`}>
-                      <IconTrash />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
-      </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Nom et prénom</th>
+                <th>Matière</th>
+                <th>E-mail</th>
+                <th className="chiffre">Accès délivrés</th>
+                <th aria-label="Ouvrir la fiche" />
+              </tr>
+            </thead>
+            <tbody>
+              {professeursAffiches.map((p) => (
+                <tr key={p.id} className="ligne-cliquable" onClick={() => setProfesseurOuvertId(p.id)}>
+                  <td className="cellule-nom">{p.nom} {p.prenom}</td>
+                  <td>{p.matiere || <span className="note-secondaire">Non renseignée</span>}</td>
+                  <td className="cellule-email">{p.email}</td>
+                  <td className="chiffre">{accesParProfesseur.get(p.id) || 0}</td>
+                  <td className="cellule-chevron"><IconChevronRight /></td>
+                </tr>
+              ))}
+              {professeursAffiches.length === 0 && (
+                <tr><td colSpan={5} className="vide">{professeurs.length === 0 ? 'Aucun professeur enregistré.' : 'Aucun professeur ne correspond.'}</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {accesOuvert && (() => {
+        const statut = statutAcces(accesOuvert);
+        const aSaisie = accesOuvert.saisieEnvoyeeLe || accesOuvert.saisies > 0;
+        return (
+          <Tiroir
+            titre={nomProfesseur(accesOuvert)}
+            sousTitre={`${accesOuvert.tache === 'saisie_absences' ? 'Appel' : 'Saisie des notes'}, ${accesOuvert.classe?.nom || 'classe retirée'}`}
+            icone={<span className="avatar-initiales">{initiales(accesOuvert.professeur)}</span>}
+            onFermer={() => setAccesOuvertId(null)}
+            pied={(
+              <>
+                {aSaisie && <button className="secondaire" onClick={() => { setAccesOuvertId(null); voirSaisie(accesOuvert); }}><IconEye /> Voir la saisie</button>}
+                {statut.ouvert && (
+                  <>
+                    <button className="secondaire" onClick={() => renvoyer(accesOuvert)} disabled={renvoiEnCours === accesOuvert.id}>
+                      <IconMail /> {renvoiEnCours === accesOuvert.id ? 'Envoi…' : "Renvoyer l'e-mail"}
+                    </button>
+                    <button className="secondaire danger" onClick={() => setAFermer(accesOuvert)}><IconClose /> Fermer l'accès</button>
+                  </>
+                )}
+              </>
+            )}
+          >
+            <section className="tiroir-section">
+              <h3 className="tiroir-section-titre">Mission</h3>
+              <dl className="fiche-compte">
+                <div><dt>Tâche</dt><dd>{accesOuvert.tache === 'saisie_absences' ? "Faire l'appel" : 'Saisir les notes'}</dd></div>
+                <div><dt>Classe</dt><dd>{accesOuvert.classe?.nom || 'Classe retirée'}</dd></div>
+                {accesOuvert.matiere && <div><dt>Matière</dt><dd>{accesOuvert.matiere.intitule}</dd></div>}
+                {libelleEvaluation(accesOuvert) && <div><dt>Évaluation</dt><dd>{libelleEvaluation(accesOuvert)}</dd></div>}
+                <div><dt>Professeur</dt><dd>{nomProfesseur(accesOuvert)}</dd></div>
+                {accesOuvert.professeur?.email && <div><dt>E-mail</dt><dd>{accesOuvert.professeur.email}</dd></div>}
+              </dl>
+            </section>
+            <section className="tiroir-section">
+              <h3 className="tiroir-section-titre">Suivi</h3>
+              <dl className="fiche-compte">
+                <div><dt>Statut</dt><dd><span className={`badge ${statut.badge}`}>{statut.texte}</span></dd></div>
+                <div><dt>Créé le</dt><dd>{dateCourte(accesOuvert.dateCreation)}</dd></div>
+                <div><dt>{statut.ouvert ? 'Expire le' : 'Validité prévue'}</dt><dd>{dateCourte(accesOuvert.dateExpiration)}</dd></div>
+                {statut.ouvert && <div><dt>Temps restant</dt><dd>{tempsRestant(accesOuvert.dateExpiration) || 'Expire maintenant'}</dd></div>}
+                {accesOuvert.saisieEnvoyeeLe && <div><dt>Saisie reçue le</dt><dd>{dateCourte(accesOuvert.saisieEnvoyeeLe)}</dd></div>}
+                <div><dt>Contenu reçu</dt><dd>{detailSaisie(accesOuvert) || 'Aucune saisie pour le moment'}</dd></div>
+              </dl>
+            </section>
+            {statut.ouvert && accesOuvert.lien && (
+              <section className="tiroir-section">
+                <h3 className="tiroir-section-titre">Lien personnel du professeur</h3>
+                <p className="lien-acces mono">{accesOuvert.lien}</p>
+                <button className="secondaire" onClick={() => copierLien(accesOuvert)}><IconCopy /> Copier le lien</button>
+              </section>
+            )}
+          </Tiroir>
+        );
+      })()}
+
+      {professeurOuvert && (
+        <Tiroir
+          titre={`${professeurOuvert.prenom} ${professeurOuvert.nom}`}
+          sousTitre={professeurOuvert.matiere || 'Matière non renseignée'}
+          icone={<span className="avatar-initiales">{initiales(professeurOuvert)}</span>}
+          onFermer={() => setProfesseurOuvertId(null)}
+          pied={(
+            <>
+              <button className="secondaire danger" onClick={() => setProfesseurASupprimer(professeurOuvert)}><IconTrash /> Retirer</button>
+              <button className="primaire" onClick={() => { setProfesseurOuvertId(null); setCreation({ professeurId: String(professeurOuvert.id) }); }}>
+                <IconKey /> Ouvrir un accès
+              </button>
+            </>
+          )}
+        >
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Fiche</h3>
+            <dl className="fiche-compte">
+              <div><dt>Matière</dt><dd>{professeurOuvert.matiere || 'Non renseignée'}</dd></div>
+              <div><dt>E-mail</dt><dd>{professeurOuvert.email}</dd></div>
+              <div><dt>Accès délivrés</dt><dd>{accesParProfesseur.get(professeurOuvert.id) || 0}</dd></div>
+            </dl>
+            <p className="note-secondaire" style={{ margin: '14px 0 0' }}>
+              Le professeur n'a pas de compte : chaque accès lui envoie un lien personnel, valable pour une seule mission.
+              Il figure aussi dans la paie du personnel (espace Finance).
+            </p>
+          </section>
+        </Tiroir>
+      )}
 
       {creation && (
         <NouvelAcces

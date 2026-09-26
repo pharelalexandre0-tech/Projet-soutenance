@@ -1,12 +1,14 @@
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
+import useActualisation from '../hooks/useActualisation';
 import {
-  IconLogout, IconMenu, IconClose, IconSettings, IconSearch, IconBell, IconMegaphone, IconChevronRight,
+  IconLogout, IconMenu, IconClose, IconSettings, IconSearch, IconBell, IconMegaphone, IconChevronRight, IconSparkles,
   IconeFonctionnalite,
 } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
 import ModaleNouveautes from './ModaleNouveautes';
+import TiroirNotifications from './TiroirNotifications';
 import PaletteCommandes from './PaletteCommandes';
 import PageExtension from './PageExtension';
 import { PlateformeContext } from '../context/PlateformeContext';
@@ -17,10 +19,19 @@ const LIBELLES_ROLE = {
   academie: 'Espace Académie',
   finance: 'Espace Finance',
   etudiant: 'Espace Étudiant',
-  parent: 'Espace Parents',
 };
 
-const DELAI_RAFRAICHISSEMENT_MS = 60 * 1000;
+// Le parent ouvre le compte étudiant de son enfant : même espace, présenté
+// comme l'Espace Parents.
+function libelleEspace(profil) {
+  if (profil?.modeParent) return 'Espace Parents';
+  return LIBELLES_ROLE[profil?.role] || 'Espace';
+}
+
+// Filet de sécurité : les changements arrivent en direct (flux
+// d'événements) ; ce délai ne rattrape que ce qui expire tout seul (une
+// annonce arrivée à échéance).
+const DELAI_RAFRAICHISSEMENT_MS = 5 * 60 * 1000;
 const CLE_ANNONCE_MASQUEE = 'edusphere_annonce_masquee';
 const GROUPE_EXTENSIONS = "Services de l'établissement";
 
@@ -54,32 +65,51 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   const nomAffiche = etablissement?.nom || 'EduSphere';
 
   // État de la plateforme vu depuis une école : fonctionnalités ajoutées
-  // par le superadmin, annonce en cours, notes de version. Rafraîchi chaque
-  // minute et au retour sur l'onglet.
+  // par le superadmin, annonce en cours, notes de version. Mis à jour en
+  // direct à chaque changement, et au retour sur l'onglet.
   const estEcole = Boolean(profil?.role) && profil.role !== 'superadmin';
   const [etatPlateforme, setEtatPlateforme] = useState(null);
   const [nouveautesOuvertes, setNouveautesOuvertes] = useState(false);
   const [annonceMasquee, setAnnonceMasquee] = useState(lireAnnonceMasquee);
+  const premierChargement = useRef(true);
+
+  const chargerEtat = useCallback(() => {
+    if (!estEcole) return;
+    client.get('/plateforme/etat').then((res) => {
+      setEtatPlateforme(res.data);
+      // Ouverture automatique une seule fois, à l'arrivée dans l'espace.
+      if (premierChargement.current && res.data.nonLues > 0) setNouveautesOuvertes(true);
+      premierChargement.current = false;
+    }).catch(() => {});
+  }, [estEcole]);
+
+  // Notifications du compte (absence signalée, paiement reçu, alerte...).
+  const [notifications, setNotifications] = useState(null);
+  const [notificationsOuvertes, setNotificationsOuvertes] = useState(false);
+  const chargerNotifications = useCallback(() => {
+    if (!estEcole) return;
+    client.get('/notifications').then((res) => setNotifications(res.data)).catch(() => {});
+  }, [estEcole]);
 
   useEffect(() => {
-    if (!estEcole) return undefined;
-    let premierChargement = true;
-    function charger() {
-      client.get('/plateforme/etat').then((res) => {
-        setEtatPlateforme(res.data);
-        // Ouverture automatique une seule fois, à l'arrivée dans l'espace.
-        if (premierChargement && res.data.nonLues > 0) setNouveautesOuvertes(true);
-        premierChargement = false;
-      }).catch(() => {});
-    }
-    charger();
-    const minuteur = setInterval(charger, DELAI_RAFRAICHISSEMENT_MS);
-    window.addEventListener('focus', charger);
+    chargerEtat();
+    chargerNotifications();
+    const minuteur = setInterval(chargerEtat, DELAI_RAFRAICHISSEMENT_MS);
+    window.addEventListener('focus', chargerEtat);
     return () => {
       clearInterval(minuteur);
-      window.removeEventListener('focus', charger);
+      window.removeEventListener('focus', chargerEtat);
     };
-  }, [estEcole]);
+  }, [chargerEtat, chargerNotifications]);
+  useActualisation(() => { chargerEtat(); chargerNotifications(); }, { plateforme: true });
+
+  function fermerNotifications() {
+    setNotificationsOuvertes(false);
+    if (notifications?.nonLues > 0) {
+      client.put('/notifications/lues').catch(() => {});
+      setNotifications((n) => ({ nonLues: 0, notifications: n.notifications.map((x) => ({ ...x, lu: true })) }));
+    }
+  }
 
   // Fonctionnalités personnalisées de l'école : un onglet de plus chacune,
   // regroupées à la fin du menu.
@@ -149,12 +179,22 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     setAnnonceMasquee(annonce.publieeLe);
   }
   const nonLues = etatPlateforme?.nonLues || 0;
+  const notificationsNonLues = notifications?.nonLues || 0;
 
   const boutonNouveautes = estEcole && (
-    <button className="bouton-icone" onClick={() => setNouveautesOuvertes(true)} title="Nouveautés" aria-label={`Nouveautés${nonLues ? `, ${nonLues} non lue${nonLues > 1 ? 's' : ''}` : ''}`}>
-      <IconBell />
-      {nonLues > 0 && <span className="pastille-compteur">{nonLues}</span>}
-    </button>
+    <>
+      <button
+        className="bouton-icone" onClick={() => setNotificationsOuvertes(true)} title="Notifications"
+        aria-label={`Notifications${notificationsNonLues ? `, ${notificationsNonLues} non lue${notificationsNonLues > 1 ? 's' : ''}` : ''}`}
+      >
+        <IconBell />
+        {notificationsNonLues > 0 && <span className="pastille-compteur">{notificationsNonLues > 99 ? '99+' : notificationsNonLues}</span>}
+      </button>
+      <button className="bouton-icone" onClick={() => setNouveautesOuvertes(true)} title="Nouveautés" aria-label={`Nouveautés${nonLues ? `, ${nonLues} non lue${nonLues > 1 ? 's' : ''}` : ''}`}>
+        <IconSparkles />
+        {nonLues > 0 && <span className="pastille-compteur">{nonLues}</span>}
+      </button>
+    </>
   );
 
   return (
@@ -174,7 +214,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
           <span className="marque-pastille"><img src={logoAffiche} alt="" /></span>
           <div className="marque-texte">
             <strong>{nomAffiche}</strong>
-            <small>{LIBELLES_ROLE[profil?.role] || 'Espace'}</small>
+            <small>{libelleEspace(profil)}</small>
           </div>
           <button className="bouton-fermer-menu" onClick={() => setMenuOuvert(false)} aria-label="Fermer le menu">
             <IconClose width={18} height={18} />
@@ -207,8 +247,8 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
         <div className="profil-lateral">
           <div className="avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
           <div className="profil-info">
-            <strong>{profil?.prenom} {profil?.nom}</strong>
-            <small>{profil?.email}</small>
+            <strong>{profil?.modeParent ? `Parent de ${profil.prenom}` : `${profil?.prenom ?? ''} ${profil?.nom ?? ''}`}</strong>
+            <small>{profil?.modeParent ? profil.emailParent : profil?.email}</small>
           </div>
           {profil?.role !== 'superadmin' && (
             <button className="bouton-parametres-compte" onClick={() => setCompteOuvert(true)} title="Mon compte" aria-label="Mon compte">
@@ -224,7 +264,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
       <div className="colonne-principale">
         <header className="barre-superieure">
           <nav className="fil-ariane" aria-label="Fil d'Ariane">
-            <span>{LIBELLES_ROLE[profil?.role] || 'Espace'}</span>
+            <span>{libelleEspace(profil)}</span>
             {section?.groupe && <><IconChevronRight /><span>{section.groupe}</span></>}
             <IconChevronRight />
             <strong>{section?.label}</strong>
@@ -283,6 +323,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
       )}
       {compteOuvert && <ModaleMonCompte onFermer={() => setCompteOuvert(false)} />}
       {nouveautesOuvertes && <ModaleNouveautes nouveautes={etatPlateforme?.nouveautes || []} onFermer={fermerNouveautes} />}
+      {notificationsOuvertes && <TiroirNotifications notifications={notifications?.notifications || []} onFermer={fermerNotifications} />}
     </div>
   );
 }

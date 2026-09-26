@@ -21,7 +21,7 @@ const finance = autoriserRoles('finance');
 const paie = exigerFonctionnalite('paie');
 // La Finance garde toujours la main sur les frais ; seule la consultation
 // par les familles dépend du module "Frais et reçus en ligne".
-const fraisEnLigne = exigerFonctionnalite('frais-en-ligne', { roles: ['etudiant', 'parent'] });
+const fraisEnLigne = exigerFonctionnalite('frais-en-ligne', { roles: ['etudiant'] });
 
 // Un frais ne se définit plus pour un seul élève à la fois (definirFrais a
 // été retiré) — toujours pour une classe, un niveau ou l'établissement

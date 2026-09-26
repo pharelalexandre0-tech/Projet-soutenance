@@ -1,5 +1,5 @@
 const { FraisScolarite, Eleve, Utilisateur, Notification } = require('../models');
-const { envoyerEmail } = require('./emailService');
+const { envoyerALaFamille } = require('./familleService');
 
 // Logique du diagramme d'activité 9, factorisée pour être appelée aussi
 // bien depuis l'API (Finance qui déclenche une vérification manuelle) que
@@ -27,8 +27,8 @@ async function verifierImpayesService(etablissementId) {
           utilisateurId: frais.Eleve.compteEtudiant.id,
           contenu: `Le frais "${frais.libelle}" est en retard de paiement (échéance dépassée).`,
         });
-        await envoyerEmail(
-          frais.Eleve.compteEtudiant.email,
+        await envoyerALaFamille(
+          frais.Eleve,
           `Frais de scolarité impayé : ${frais.libelle}`,
           `L'échéance du ${frais.dateEcheance} est dépassée sans paiement complet.`
         );

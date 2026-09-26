@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
+import useActualisation from '../../hooks/useActualisation';
 import BulletinDocument from '../../components/BulletinDocument';
 
 // Consultation du bulletin côté Académie : même document que celui vu par
@@ -29,6 +30,22 @@ export default function Bulletins() {
     else setEleves([]);
     setEleveId('');
   }, [classeId]);
+  useActualisation(() => {
+    client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
+    client.get('/semestres').then((res) => setSemestres(res.data.semestres)).catch(() => {});
+    if (classeId) client.get(`/eleves?classeId=${classeId}`).then((res) => setEleves(res.data.eleves)).catch(() => {});
+  });
+
+  // Bulletin affiché : recalculé en direct quand des notes changent.
+  async function rafraichirBulletin() {
+    if (!bulletin) return;
+    const res = await client.get(`/bulletins/${bulletin.eleveId}/${bulletin.semestreId}`).catch(() => null);
+    if (!res) return;
+    setBulletin(res.data.bulletin);
+    setDetail(res.data.detailParUE || null);
+    setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale });
+  }
+  useActualisation(rafraichirBulletin, { domaines: ['notes', 'comptes-ephemeres', 'unites-enseignement', 'matieres', 'semestres'] });
 
   const eleve = eleves.find((e) => String(e.id) === eleveId);
   const semestre = semestres.find((s) => String(s.id) === String(semestreId));
