@@ -1,4 +1,4 @@
-name: Keep Render backend awake
+name: Keep backend awake
 
 on:
   schedule:
@@ -18,12 +18,18 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 350
+    # Adresses réglables sans modifier ce fichier : variables du dépôt
+    # URL_BACKEND et URL_FRONTEND (Settings > Secrets and variables >
+    # Actions > Variables), par exemple après un changement d'hébergeur.
+    env:
+      URL_BACKEND: ${{ vars.URL_BACKEND || 'https://edusphere-backend-fh30.onrender.com' }}
+      URL_FRONTEND: ${{ vars.URL_FRONTEND || 'https://edusphere-frontend-pryg.onrender.com' }}
     steps:
       - name: Ping toutes les 5 minutes pendant ~5h40
         run: |
           fin=$((SECONDS + 340 * 60))
           while [ $SECONDS -lt $fin ]; do
-            curl -fsS -o /dev/null https://edusphere-backend-fh30.onrender.com/api/sante || true
-            curl -fsS -o /dev/null https://edusphere-frontend-pryg.onrender.com/ || true
+            curl -fsS -o /dev/null "$URL_BACKEND/api/sante" || true
+            curl -fsS -o /dev/null "$URL_FRONTEND/" || true
             sleep 300
           done

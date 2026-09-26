@@ -92,7 +92,8 @@ npm run dev                 # http://localhost:5173 (relaie /api vers le port 40
 | `npm run check:impayes` | Marque les frais échus et prévient les familles (tâche quotidienne). |
 | `npm run check:prediction` | Recalcule le risque de décrochage de chaque école (tâche périodique). |
 | `npm run train:risque` | Réentraîne le modèle de prédiction (aussi possible depuis l'Académie). |
-| `npm run backup` | Exporte une sauvegarde des tables. |
+| `npm run backup` | Sauvegarde complète de la base (toutes les tables, PDF et mots de passe hachés compris). |
+| `npm run restore` | Recharge une sauvegarde dans une autre base (changement d'hébergeur, voir section 5). |
 
 ## 3. Où trouver quoi
 
@@ -128,3 +129,34 @@ Sur Render : créer le Blueprint depuis le dépôt, renseigner les variables mar
 `init:superadmin` une fois avec l'URL externe de la base. Les PDF sont stockés dans
 PostgreSQL : un redémarrage ne les perd pas. Le plan gratuit met les services en veille
 après 15 minutes sans trafic (le workflow `.github/workflows/keep-alive.yml` les réveille).
+
+## 5. Changer d'hébergeur sans rien perdre
+
+Le code est entièrement dans ce dépôt ; **les données, elles, sont dans la base
+PostgreSQL de l'hébergeur** (écoles, élèves, notes, paiements, PDF, modèle d'IA). Une base
+PostgreSQL gratuite peut expirer : sauvegarde-la régulièrement.
+
+1. **Sauvegarder** la base actuelle (depuis `backend/`, avec son adresse externe, sur Render :
+   page de la base > Connect > External Database URL) :
+   ```bash
+   DATABASE_URL="<adresse externe de la base actuelle>" npm run backup
+   ```
+   Le fichier est écrit dans `backend/storage/sauvegardes/` (jamais envoyé sur GitHub).
+   Copie-le en lieu sûr : il contient toutes les données, mots de passe hachés compris.
+2. **Déployer** sur le nouvel hébergeur les deux conteneurs (`backend/Dockerfile`,
+   `frontend/Dockerfile`) et une base PostgreSQL, avec ces variables :
+   - backend : `DATABASE_URL`, `JWT_SECRET` (nouvelle valeur au hasard), `FRONTEND_URL` et
+     `BACKEND_URL` (adresses publiques des deux services), la clé d'envoi d'e-mails
+     (`SENDGRID_API_KEY` et `SENDGRID_FROM`, ou `RESEND_*`, ou `SMTP_*`) ;
+   - frontend : `BACKEND_SCHEME` (`https`) et `BACKEND_HOST` (nom d'hôte du backend).
+3. **Démarrer une fois** le backend (il crée les tables), puis **restaurer** :
+   ```bash
+   DATABASE_URL="<adresse de la nouvelle base>" npm run restore -- chemin/vers/sauvegarde.json --remplacer
+   ```
+   et redémarrer le backend. Tout est restauré à l'identique ; chacun devra seulement se
+   reconnecter (nouvelle clé `JWT_SECRET`).
+4. Pour le réveil automatique, renseigner sur GitHub les variables du dépôt `URL_BACKEND`
+   et `URL_FRONTEND` (Settings > Secrets and variables > Actions > Variables).
+
+Autre possibilité, avec les outils PostgreSQL : `pg_dump -Fc "<ancienne base>" -f edusphere.dump`
+puis `pg_restore --no-owner -d "<nouvelle base>" edusphere.dump`.
