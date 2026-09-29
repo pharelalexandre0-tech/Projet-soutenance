@@ -36,6 +36,10 @@ function diffuserLocalement(evenement) {
 // annonce, fonctionnalités), diffusé à toutes les écoles.
 async function publier(etablissementId, domaine) {
   const evenement = { etablissementId: etablissementId || null, domaine, le: Date.now() };
+  if (!ecouteActivee()) {
+    diffuserLocalement(evenement);
+    return;
+  }
   try {
     await sequelize.query('SELECT pg_notify(:canal, :charge)', {
       replacements: { canal: CANAL_PG, charge: JSON.stringify(evenement) },
@@ -60,6 +64,19 @@ function abonner(etablissementId, ecouteur, { tout = false } = {}) {
 let ecoute = null;
 let relance = null;
 
+// Base Neon (offre gratuite) : une connexion en LISTEN ouverte en permanence
+// l'empêcherait de se mettre en veille et épuiserait son quota de calcul.
+// Sans écoute, les événements du serveur sont relayés directement en mémoire
+// (un seul processus) : les écrans se mettent toujours à jour, seuls les
+// scripts lancés à part ne les rafraîchissent plus. ECOUTE_POSTGRES=oui|non
+// force le choix.
+function ecouteActivee() {
+  const choix = String(process.env.ECOUTE_POSTGRES || '').toLowerCase();
+  if (choix === 'oui') return true;
+  if (choix === 'non') return false;
+  return !/neon\.tech/.test(process.env.DATABASE_URL || '');
+}
+
 function optionsConnexion() {
   const url = process.env.DATABASE_URL || '';
   const local = /localhost|127\.0\.0\.1|@db[:/]/.test(url);
@@ -73,6 +90,10 @@ function programmerRelance() {
 }
 
 async function demarrerEcoute() {
+  if (!ecouteActivee()) {
+    console.log('[Temps réel] Écoute PostgreSQL désactivée : événements relayés en mémoire.');
+    return;
+  }
   const client = new Client(optionsConnexion());
   client.on('notification', (message) => {
     try { diffuserLocalement(JSON.parse(message.payload)); } catch { /* charge illisible : ignorée */ }

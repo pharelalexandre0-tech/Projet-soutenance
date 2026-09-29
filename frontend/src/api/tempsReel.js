@@ -5,6 +5,8 @@
 // puis un événement « resynchronisation » pour que chaque page recharge ce
 // qu'elle a pu manquer.
 
+import { ORIGINE_API } from './client';
+
 const DELAI_MIN_MS = 2000;
 const DELAI_MAX_MS = 30000;
 
@@ -35,7 +37,7 @@ async function ouvrir() {
   const courant = new AbortController();
   controleur = courant;
   try {
-    const reponse = await fetch('/api/evenements', {
+    const reponse = await fetch(`${ORIGINE_API}/api/evenements`, {
       headers: { Authorization: `Bearer ${jeton}`, Accept: 'text/event-stream' },
       signal: courant.signal,
       cache: 'no-store',

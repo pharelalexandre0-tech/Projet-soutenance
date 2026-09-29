@@ -27,13 +27,12 @@ const { regenererDocument } = require('./services/regenerationService');
 
 const app = express();
 
-// En prod comme en dev, le navigateur ne parle jamais directement au
-// backend : le frontend (Vite en dev, son propre proxy Docker en prod)
-// relaie /api en interne, donc toujours same-origin de son point de vue —
-// cors() n'a d'effet que si quelqu'un appelle le backend depuis un AUTRE
-// site (le seul cas concerné par la protection CORS d'un navigateur).
-// Liste blanche plutôt que cors() ouvert à tout site, en profondeur en
-// plus du token bearer (pas un cookie) déjà résistant au CSRF classique.
+// En dev et dans Docker, le frontend relaie /api (proxy de Vite ou de
+// nginx) : même origine, cors() n'intervient pas. Sur Vercel, le site
+// appelle directement ce serveur depuis son propre domaine : FRONTEND_URL
+// doit alors valoir l'adresse du site Vercel. Liste blanche plutôt que
+// cors() ouvert à tout site, en plus du token bearer (pas un cookie) déjà
+// résistant au CSRF classique.
 const origineFrontendProd = process.env.FRONTEND_URL || 'https://edusphere-frontend-pryg.onrender.com';
 app.use(cors({
   origin(origine, callback) {

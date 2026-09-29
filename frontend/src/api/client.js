@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const client = axios.create({ baseURL: '/api' });
+// Adresse du serveur. Vide : même origine (proxy de Vite en local, de nginx
+// dans Docker). Sur Vercel, VITE_API_URL = adresse publique du backend.
+export const ORIGINE_API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+const client = axios.create({ baseURL: `${ORIGINE_API}/api` });
 
 client.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('pgs_token');
