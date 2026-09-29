@@ -5,7 +5,7 @@ import Tiroir from '../../components/Tiroir';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 import {
-  IconUsers, IconAlertTriangle, IconActivity, IconClock, IconSearch, IconChevronRight, IconRocket, IconTrendingDown, IconDatabase,
+  IconUsers, IconAlertTriangle, IconActivity, IconClock, IconSearch, IconChevronRight, IconRocket, IconTrendingDown,
 } from '../../components/icons';
 
 const NIVEAUX = [
@@ -16,10 +16,6 @@ const NIVEAUX = [
 ];
 const STYLE_NIVEAU = { faible: 'vert', moyen: 'or', eleve: 'rouge' };
 const LIBELLE_NIVEAU = { faible: 'Faible', moyen: 'Moyen', eleve: 'Élevé' };
-const ALGORITHMES = { foret_aleatoire: 'Forêt aléatoire', regression_logistique: 'Régression logistique' };
-
-const pct = (v) => `${Math.round((v || 0) * 1000) / 10}`.replace('.', ',');
-const dec = (v) => (v ?? 0).toFixed(3).replace('.', ',');
 
 // Facteurs expliquant le score (JSON produit par le modèle, ou ancien texte).
 function lireFacteurs(brut) {
@@ -38,21 +34,20 @@ function dateCourte(d) {
 // Diagramme d'activité 7 : déclencher l'analyse -> le modèle d'apprentissage
 // automatique calcule la probabilité d'échec de chaque élève -> alerte au-delà
 // du seuil -> l'Académie consulte le dossier et décide d'une action humaine.
+// Le modèle lui-même (algorithme, mesures, entraînement) reste côté serveur :
+// l'Académie ne voit que l'analyse et ses résultats.
 export default function AlertesDecrochage() {
   const [alertes, setAlertes] = useState(null);
-  const [modele, setModele] = useState(null);
   const [classes, setClasses] = useState([]);
   const [niveau, setNiveau] = useState('');
   const [classeId, setClasseId] = useState('');
   const [recherche, setRecherche] = useState('');
   const [analyseEnCours, setAnalyseEnCours] = useState(false);
-  const [entrainementEnCours, setEntrainementEnCours] = useState(false);
   const [dossier, setDossier] = useState(null);
   const [toast, setToast] = useState(null);
 
   function charger() {
     client.get('/predictions/alertes').then((res) => setAlertes(res.data.alertes)).catch(() => setAlertes([]));
-    client.get('/predictions/modele').then((res) => setModele(res.data.modele)).catch(() => setModele(null));
   }
   useEffect(() => {
     charger();
@@ -76,19 +71,6 @@ export default function AlertesDecrochage() {
     }
   }
 
-  async function reentrainer() {
-    setEntrainementEnCours(true);
-    try {
-      const res = await client.post('/predictions/modele/entrainer');
-      setToast({ message: `Modèle v${res.data.modele.version} entraîné (${ALGORITHMES[res.data.modele.algorithme]}, AUC ${dec(res.data.modele.metriques.auc)}), scores recalculés.`, type: 'succes' });
-      charger();
-    } catch (err) {
-      setToast({ message: messageErreur(err, "l'entraînement a échoué"), type: 'erreur' });
-    } finally {
-      setEntrainementEnCours(false);
-    }
-  }
-
   async function ouvrirDossier(a) {
     setDossier({ alerte: a, historique: null });
     const res = await client.get(`/predictions/eleve/${a.eleveId}`).catch(() => null);
@@ -103,8 +85,6 @@ export default function AlertesDecrochage() {
     .filter((a) => !classeId || String(a.Eleve?.classeId) === classeId)
     .filter((a) => !r || `${a.Eleve?.prenom} ${a.Eleve?.nom} ${a.Eleve?.nom} ${a.Eleve?.prenom}`.toLowerCase().includes(r));
   const derniere = liste.reduce((d, a) => (!d || new Date(a.dateCalcul) > new Date(d) ? a.dateCalcul : d), null);
-  const autre = modele && Object.entries(modele.comparaison).find(([cle]) => cle !== modele.algorithme);
-  const importanceMax = modele ? Math.max(...modele.importances.map((i) => i.importance), 0.001) : 1;
 
   return (
     <div>
@@ -129,64 +109,10 @@ export default function AlertesDecrochage() {
 
       <section className="carte">
         <div className="entete-carte">
-          <h2>Modèle de prédiction {modele && <span className="entete-carte-compteur">v{modele.version}</span>}</h2>
-          <div className="actions-carte">
-            <button type="button" className="secondaire" onClick={reentrainer} disabled={entrainementEnCours || analyseEnCours}>
-              <IconDatabase /> {entrainementEnCours ? 'Entraînement…' : 'Réentraîner le modèle'}
-            </button>
-            <button type="button" className="primaire" onClick={lancerAnalyse} disabled={analyseEnCours || entrainementEnCours}>
-              <IconRocket /> {analyseEnCours ? 'Analyse…' : "Lancer l'analyse"}
-            </button>
-          </div>
-        </div>
-        {!modele && <div className="chargement">Chargement du modèle…</div>}
-        {modele && (
-          <div className="modele-ia">
-            <div className="modele-ia-fiche">
-              <p className="modele-ia-resume">
-                Apprentissage automatique supervisé : le modèle estime la <strong>probabilité qu'un élève ne valide pas son semestre</strong> à
-                partir de {modele.importances.length} signaux observés en cours de semestre (notes de contrôle continu, assiduité,
-                comportement, paiements).
-              </p>
-              <dl className="fiche-compte">
-                <div><dt>Algorithme retenu</dt><dd>{ALGORITHMES[modele.algorithme]}</dd></div>
-                <div>
-                  <dt>Choisi face à</dt>
-                  <dd>
-                    {autre ? `${ALGORITHMES[autre[0]]} (AUC ${dec(autre[1].validationCroisee.aucMoyenne)} contre ${dec(modele.comparaison[modele.algorithme].validationCroisee.aucMoyenne)}, validation croisée à 5 plis)` : ''}
-                  </dd>
-                </div>
-                <div><dt>Données d'apprentissage</dt><dd>{modele.donnees.total.toLocaleString('fr-FR')} parcours, dont {modele.donnees.reels} dossiers réels ; {modele.donnees.test} gardés pour le test</dd></div>
-                <div><dt>Entraîné le</dt><dd>{new Date(modele.entraineLe).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}</dd></div>
-              </dl>
-              <div className="metriques-ia">
-                <div><span>AUC</span><strong>{dec(modele.metriques.auc)}</strong></div>
-                <div><span>Exactitude</span><strong>{pct(modele.metriques.exactitude)} %</strong></div>
-                <div><span>Précision</span><strong>{pct(modele.metriques.precision)} %</strong></div>
-                <div><span>Rappel</span><strong>{pct(modele.metriques.rappel)} %</strong></div>
-                <div><span>F1</span><strong>{dec(modele.metriques.f1)}</strong></div>
-              </div>
-              <p className="note-secondaire modele-ia-note">Mesures sur le jeu de test ({modele.donnees.test} parcours jamais vus pendant l'apprentissage).</p>
-            </div>
-            <div className="modele-ia-importances">
-              <h3>Signaux les plus déterminants</h3>
-              <ul>
-                {modele.importances.slice(0, 7).map((i) => (
-                  <li key={i.cle}>
-                    <span className="importance-libelle">{i.libelle}</span>
-                    <span className="importance-piste"><span style={{ width: `${(i.importance / importanceMax) * 100}%` }} /></span>
-                    <span className="importance-valeur">{pct(i.importance)} %</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-      </section>
-
-      <section className="carte">
-        <div className="entete-carte">
           <h2>Élèves à suivre <span className="entete-carte-compteur">{affichees.length}</span></h2>
+          <button type="button" className="primaire" onClick={lancerAnalyse} disabled={analyseEnCours}>
+            <IconRocket /> {analyseEnCours ? 'Analyse…' : "Lancer l'analyse"}
+          </button>
         </div>
         <div className="barre-outils">
           <label className="champ-recherche">

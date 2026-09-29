@@ -20,7 +20,7 @@ const ONGLETS = [
   { id: 'etablissements', label: 'Établissements', composant: Etablissements, icone: IconBuilding, groupe: 'Écoles',
     description: 'Écoles affiliées, leurs fonctionnalités et leurs accès.' },
   { id: 'fonctionnalites', label: 'Fonctionnalités', composant: Fonctionnalites, icone: IconToggle, groupe: 'Écoles',
-    description: 'Catalogue des fonctionnalités, création de nouvelles et attribution école par école.' },
+    description: 'Catalogue des fonctionnalités et attribution école par école.' },
   { id: 'mises-a-jour', label: 'Mises à jour', composant: MisesAJour, icone: IconRocket, groupe: 'Plateforme',
     description: 'Version en production et notes de version présentées aux écoles.' },
   { id: 'annonces', label: 'Annonces & maintenance', composant: AnnoncesMaintenance, icone: IconMegaphone, groupe: 'Plateforme',

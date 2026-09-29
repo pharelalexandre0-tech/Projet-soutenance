@@ -40,7 +40,6 @@ router.get('/config-email', authentifier, superadmin, ctrl.obtenirConfigEmail);
 router.post('/email-test', authentifier, superadmin, ctrl.envoyerEmailTest);
 
 router.get('/fonctionnalites', authentifier, superadmin, fonctionnalites.listerCatalogue);
-router.post('/fonctionnalites', authentifier, superadmin, fonctionnalites.creerFonctionnalite);
 router.put('/fonctionnalites/:cle', authentifier, superadmin, fonctionnalites.modifierFonctionnalite);
 router.delete('/fonctionnalites/:cle', authentifier, superadmin, fonctionnalites.supprimerFonctionnalite);
 router.put('/fonctionnalites/:cle/ecoles', authentifier, superadmin, fonctionnalites.definirEcoles);

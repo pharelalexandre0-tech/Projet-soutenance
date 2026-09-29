@@ -38,14 +38,15 @@ export function TuileFonctionnalite({ fonctionnalite, grande = false }) {
 // Catalogue de toutes les fonctionnalités de la plateforme. Aucune n'est
 // imposée à toutes les écoles : chacune s'ajoute école par école (ici,
 // depuis sa fiche, ou depuis la fiche de l'école dans "Établissements").
-// Les fonctionnalités personnalisées se créent ici, sans développement.
+// Les fonctionnalités personnalisées existantes se modifient ou se
+// suppriment ici ; on n'en crée plus depuis l'application.
 export default function Fonctionnalites() {
   const [donnees, setDonnees] = useState(null);
   const [erreurChargement, setErreurChargement] = useState('');
   const [filtre, setFiltre] = useState('');
   const [recherche, setRecherche] = useState('');
   const [ouverte, setOuverte] = useState(null); // clé de la fonctionnalité affichée dans le tiroir
-  const [formulaire, setFormulaire] = useState(null); // null | {} (création) | { fonctionnalite } (modification)
+  const [enModification, setEnModification] = useState(null); // fonctionnalité en cours de modification
   const [toast, setToast] = useState(null);
 
   function charger() {
@@ -75,7 +76,6 @@ export default function Fonctionnalites() {
       <div className="carte">
         <div className="entete-carte">
           <h2>Catalogue</h2>
-          <button className="primaire" onClick={() => setFormulaire({})}><IconPlus /> Créer une fonctionnalité</button>
         </div>
 
         <div className="encart-info" style={{ marginBottom: 16 }}>
@@ -83,9 +83,9 @@ export default function Fonctionnalites() {
           <span>
             Chaque école ne reçoit que les fonctionnalités que tu lui ajoutes. Les <strong>modules intégrés</strong> font
             partie du code d'EduSphere : ouvre leur fiche pour les ajouter aux écoles qui en ont besoin. Les
-            fonctionnalités <strong>personnalisées</strong> se créent ici, sans développement, selon la demande d'une
-            école : assistant qui répond aux questions, formulaire de demande traité par l'Académie, registre tenu
-            par l'Académie, page d'information ou service en ligne. Chacune devient un vrai onglet dans les espaces choisis.
+            fonctionnalités <strong>personnalisées</strong> (assistant, formulaire de demande, registre, page
+            d'information ou service en ligne) apparaissent comme un onglet dans les espaces choisis : ouvre leur fiche
+            pour les attribuer, les modifier ou les supprimer.
           </span>
         </div>
 
@@ -136,7 +136,7 @@ export default function Fonctionnalites() {
           fonctionnalite={fonctionnaliteOuverte}
           ecoles={donnees.ecoles}
           onFermer={() => setOuverte(null)}
-          onModifier={() => setFormulaire({ fonctionnalite: fonctionnaliteOuverte })}
+          onModifier={() => setEnModification(fonctionnaliteOuverte)}
           onMisAJour={(nouvellesDonnees, message) => {
             if (nouvellesDonnees) setDonnees(nouvellesDonnees);
             else charger();
@@ -150,17 +150,15 @@ export default function Fonctionnalites() {
         />
       )}
 
-      {formulaire && (
+      {enModification && (
         <FormulaireFonctionnalite
-          fonctionnalite={formulaire.fonctionnalite}
-          ecoles={donnees.ecoles}
+          fonctionnalite={enModification}
           icones={donnees.icones}
-          onFermer={() => setFormulaire(null)}
-          onEnregistree={(f, creation) => {
-            setFormulaire(null);
+          onFermer={() => setEnModification(null)}
+          onEnregistree={(f) => {
+            setEnModification(null);
             charger();
-            if (creation) setOuverte(f.cle);
-            setToast({ message: creation ? `« ${f.nom} » a été créée.` : `« ${f.nom} » a été modifiée.`, type: 'succes' });
+            setToast({ message: `« ${f.nom} » a été modifiée.`, type: 'succes' });
           }}
         />
       )}
@@ -318,14 +316,6 @@ function GestionFonctionnalite({ fonctionnalite: f, ecoles, onFermer, onModifier
   );
 }
 
-const TYPES_CREATION = [
-  { id: 'assistant', icone: 'Bot', titre: 'Assistant (chatbot)', aide: "Répond sur-le-champ aux questions fréquentes (examens, frais, inscriptions…). Les questions sans réponse remontent à l'Académie." },
-  { id: 'formulaire', icone: 'ClipboardList', titre: 'Formulaire de demande', aide: "Attestation, stage, réclamation… Les demandes arrivent à l'Académie, qui les traite et répond." },
-  { id: 'registre', icone: 'Table2', titre: 'Registre', aide: "Offres de stage, objets trouvés, clubs… Une liste tenue par l'Académie et consultée dans les espaces." },
-  { id: 'page', icone: 'FileText', titre: "Page d'information", aide: 'Règlement intérieur, calendrier académique, procédures… Un texte affiché dans un onglet.' },
-  { id: 'lien', icone: 'Globe', titre: 'Service en ligne', aide: 'Bibliothèque numérique, cours en ligne, visioconférence… Un onglet qui ouvre ce service.' },
-];
-
 const LIBELLES_CHAMPS = {
   texte: 'Texte court', long: 'Texte long', nombre: 'Nombre', date: 'Date', choix: 'Liste de choix', email: 'E-mail', telephone: 'Téléphone', lien: 'Lien',
 };
@@ -355,28 +345,20 @@ function configurationEditable(type, configuration) {
   return null;
 }
 
-function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, onEnregistree }) {
-  const edition = Boolean(fonctionnalite);
+// Modification d'une fonctionnalité personnalisée existante (son type ne
+// change pas).
+function FormulaireFonctionnalite({ fonctionnalite, icones, onFermer, onEnregistree }) {
   const [form, setForm] = useState(() => ({
-    type: fonctionnalite?.type || 'assistant',
-    nom: fonctionnalite?.nom || '',
-    description: fonctionnalite?.description || '',
-    icone: fonctionnalite?.icone || 'Bot',
-    espaces: fonctionnalite?.espaces || ['etudiant'],
-    contenu: fonctionnalite?.contenu || '',
-    url: fonctionnalite?.url || '',
-    libelleBouton: fonctionnalite?.libelleBouton || '',
-    ecoles: [],
+    type: fonctionnalite.type,
+    nom: fonctionnalite.nom || '',
+    description: fonctionnalite.description || '',
+    icone: fonctionnalite.icone || 'FileText',
+    espaces: fonctionnalite.espaces || ['etudiant'],
+    contenu: fonctionnalite.contenu || '',
+    url: fonctionnalite.url || '',
+    libelleBouton: fonctionnalite.libelleBouton || '',
   }));
-  // Réglages de chaque type actif, gardés séparément : changer de type
-  // pendant la création ne perd pas ce qui a déjà été saisi.
-  const [reglages, setReglages] = useState(() => ({
-    assistant: configurationEditable('assistant', fonctionnalite?.type === 'assistant' ? fonctionnalite.configuration : null),
-    formulaire: configurationEditable('formulaire', fonctionnalite?.type === 'formulaire' ? fonctionnalite.configuration : null),
-    registre: configurationEditable('registre', fonctionnalite?.type === 'registre' ? fonctionnalite.configuration : null),
-  }));
-  const majReglages = (valeur) => setReglages((r) => ({ ...r, [form.type]: valeur }));
-  const [iconeChoisie, setIconeChoisie] = useState(edition);
+  const [reglages, setReglages] = useState(() => configurationEditable(fonctionnalite.type, fonctionnalite.configuration));
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
 
@@ -391,11 +373,8 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
     setEnCours(true);
     setErreur('');
     try {
-      const corps = { ...form, configuration: reglages[form.type] || null };
-      const res = edition
-        ? await client.put(`/superadmin/fonctionnalites/${fonctionnalite.cle}`, corps)
-        : await client.post('/superadmin/fonctionnalites', corps);
-      onEnregistree(res.data.fonctionnalite, !edition);
+      const res = await client.put(`/superadmin/fonctionnalites/${fonctionnalite.cle}`, { ...form, configuration: reglages });
+      onEnregistree(res.data.fonctionnalite);
     } catch (err) {
       setErreur(messageErreur(err, "impossible d'enregistrer cette fonctionnalité"));
       setEnCours(false);
@@ -403,28 +382,8 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
   }
 
   return (
-    <Modal titre={edition ? `Modifier « ${fonctionnalite.nom} »` : 'Créer une fonctionnalité'} onFermer={onFermer} largeur={720}>
+    <Modal titre={`Modifier « ${fonctionnalite.nom} »`} onFermer={onFermer} largeur={720}>
       <form className="formulaire" onSubmit={soumettre}>
-        {!edition && (
-          <div className="champ">
-            <label>Type</label>
-            <div className="choix-type">
-              {TYPES_CREATION.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`option-type ${form.type === t.id ? 'choisie' : ''}`}
-                  onClick={() => setForm((f) => ({ ...f, type: t.id, icone: iconeChoisie ? f.icone : t.icone }))}
-                  aria-pressed={form.type === t.id}
-                >
-                  <span className="tuile-fonctionnalite personnalisee"><IconeFonctionnalite nom={t.icone} /></span>
-                  <span><strong>{t.titre}</strong><small>{t.aide}</small></span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="champ">
           <label htmlFor="f-nom">Nom de l'onglet</label>
           <input id="f-nom" value={form.nom} onChange={(e) => maj('nom', e.target.value)} maxLength={80}
@@ -442,7 +401,7 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
             {icones.map((nom) => {
               const Icone = ICONES_FONCTIONNALITES[nom];
               return (
-                <button key={nom} type="button" className={`option-icone ${form.icone === nom ? 'choisie' : ''}`} onClick={() => { maj('icone', nom); setIconeChoisie(true); }} aria-label={nom} aria-pressed={form.icone === nom}>
+                <button key={nom} type="button" className={`option-icone ${form.icone === nom ? 'choisie' : ''}`} onClick={() => maj('icone', nom)} aria-label={nom} aria-pressed={form.icone === nom}>
                   {Icone && <Icone />}
                 </button>
               );
@@ -465,9 +424,9 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
           </div>
         </div>
 
-        {form.type === 'assistant' && <EditeurAssistant valeur={reglages.assistant} onChange={majReglages} />}
-        {form.type === 'formulaire' && <EditeurFormulaire valeur={reglages.formulaire} onChange={majReglages} />}
-        {form.type === 'registre' && <EditeurRegistre valeur={reglages.registre} onChange={majReglages} />}
+        {form.type === 'assistant' && <EditeurAssistant valeur={reglages} onChange={setReglages} />}
+        {form.type === 'formulaire' && <EditeurFormulaire valeur={reglages} onChange={setReglages} />}
+        {form.type === 'registre' && <EditeurRegistre valeur={reglages} onChange={setReglages} />}
         {form.type === 'page' && (
           <div className="champ">
             <label htmlFor="f-contenu">Contenu de la page</label>
@@ -488,29 +447,11 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
           </div>
         )}
 
-        {!edition && ecoles.length > 0 && (
-          <div className="champ">
-            <label>Ajouter tout de suite à des écoles (facultatif)</label>
-            <div className="cases-choix">
-              {ecoles.map((e) => {
-                const choisie = form.ecoles.includes(e.id);
-                return (
-                  <button key={e.id} type="button" className={`case-choix ${choisie ? 'choisie' : ''}`} onClick={() => basculer('ecoles', e.id)} aria-pressed={choisie}>
-                    <span className="case-choix-coche">{choisie && <IconCheck />}</span>
-                    <span>{e.nom}</span>
-                    <small>{e.ville}</small>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {erreur && <div className="message-erreur">{erreur}</div>}
         <div className="confirmation-actions">
           <button type="button" className="secondaire" onClick={onFermer}>Annuler</button>
           <button type="submit" className="primaire" disabled={enCours}>
-            {enCours ? 'Enregistrement…' : edition ? 'Enregistrer les modifications' : 'Créer la fonctionnalité'}
+            {enCours ? 'Enregistrement…' : 'Enregistrer les modifications'}
           </button>
         </div>
       </form>

@@ -1,11 +1,10 @@
-const crypto = require('crypto');
 const { Etablissement, FonctionnalitePersonnalisee, ActivationFonctionnalite, EntreeExtension } = require('../models');
 const { MODULES_INTEGRES, ESPACES_PERSONNALISABLES, ICONES_PERSONNALISABLES } = require('../config/fonctionnalites');
 const { catalogue, invaliderCache, journaliser } = require('../services/plateformeService');
 const { TYPES_INTERACTIFS, lireConfiguration } = require('../services/extensionService');
 
 // Fonctionnalités des écoles, pilotées par le superadmin : le catalogue
-// (modules intégrés + fonctionnalités personnalisées qu'il crée lui-même),
+// (modules intégrés + fonctionnalités personnalisées existantes, modifiables),
 // et leur ajout école par école, selon les besoins de chacune.
 
 function erreur400(res, message) {
@@ -65,31 +64,6 @@ async function idsEcolesValides(liste) {
   if (demandees.length === 0) return [];
   const ecoles = await Etablissement.findAll({ where: { id: demandees }, attributes: ['id', 'nom'] });
   return ecoles;
-}
-
-async function creerFonctionnalite(req, res) {
-  const { erreur, donnees } = lireFonctionnalite(req.body);
-  if (erreur) return erreur400(res, erreur);
-
-  const fonctionnalite = await FonctionnalitePersonnalisee.create({
-    ...donnees,
-    cle: `perso-${crypto.randomBytes(4).toString('hex')}`,
-    auteurId: req.utilisateur.id,
-  });
-  // Écoles choisies dès la création (facultatif) : sinon la fonctionnalité
-  // attend dans le catalogue qu'on l'ajoute à une école.
-  const ecoles = await idsEcolesValides(req.body.ecoles);
-  if (ecoles.length) {
-    await ActivationFonctionnalite.bulkCreate(
-      ecoles.map((e) => ({ etablissementId: e.id, cle: fonctionnalite.cle })),
-      { ignoreDuplicates: true }
-    );
-  }
-  invaliderCache();
-  await journaliser(req.utilisateur, 'fonctionnalite', ecoles.length
-    ? `Création de « ${fonctionnalite.nom} », ajoutée à ${ecoles.map((e) => e.nom).join(', ')}`
-    : `Création de « ${fonctionnalite.nom} » (pas encore ajoutée à une école)`);
-  return res.status(201).json({ fonctionnalite });
 }
 
 async function modifierFonctionnalite(req, res) {
@@ -172,7 +146,6 @@ async function retirerDeEcole(req, res) {
 
 module.exports = {
   listerCatalogue,
-  creerFonctionnalite,
   modifierFonctionnalite,
   supprimerFonctionnalite,
   definirEcoles,

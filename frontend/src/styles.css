@@ -2131,26 +2131,9 @@ tbody tr.ligne-groupe:hover { background: none; }
 }
 
 /* ==========================================================================
-   Alertes décrochage : modèle d'apprentissage et élèves à suivre
+   Alertes décrochage : élèves à suivre
    ========================================================================== */
 
-.modele-ia { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; align-items: start; }
-@media (max-width: 1100px) { .modele-ia { grid-template-columns: minmax(0, 1fr); } }
-.modele-ia-resume { margin: 0 0 16px; max-width: 72ch; font-size: 14.5px; line-height: 1.6; color: var(--texte-clair); }
-.modele-ia-resume strong { color: var(--texte); }
-.metriques-ia { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 16px; border: 1px solid var(--bordure); border-radius: 10px; }
-.metriques-ia > div { padding: 12px 14px; }
-.metriques-ia > div + div { border-left: 1px solid var(--bordure); }
-.metriques-ia span { display: block; font-size: 12.5px; font-weight: 600; color: var(--texte-clair); }
-.metriques-ia strong { display: block; margin-top: 2px; font-size: 21px; font-weight: 650; color: var(--texte); font-variant-numeric: tabular-nums; }
-.modele-ia-note { margin: 8px 0 0; font-size: 13px; }
-.modele-ia-importances h3 { margin: 0 0 12px !important; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texte-clair); }
-.modele-ia-importances ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
-.modele-ia-importances li { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 52px; align-items: center; gap: 12px; font-size: 14px; }
-.importance-libelle { color: var(--texte); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.importance-piste { height: 8px; border-radius: 4px; background: var(--gris-fond); overflow: hidden; }
-.importance-piste span { display: block; height: 100%; border-radius: 4px; background: var(--primaire); }
-.importance-valeur { text-align: right; font-size: 13px; font-weight: 600; color: var(--texte-clair); font-variant-numeric: tabular-nums; }
 
 .table-alertes td { white-space: nowrap; }
 .jauge-risque { display: inline-flex; align-items: center; gap: 10px; min-width: 170px; }
@@ -2175,13 +2158,6 @@ tbody tr.ligne-groupe:hover { background: none; }
 .facteurs-dossier li, .historique-risque li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; font-size: 14px; }
 .facteurs-dossier li + li, .historique-risque li + li { border-top: 1px solid var(--bordure); }
 .facteurs-dossier strong { color: var(--erreur); font-variant-numeric: tabular-nums; }
-
-@media (max-width: 760px) {
-  .metriques-ia { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .metriques-ia > div:nth-child(odd) { border-left: none; }
-  .metriques-ia > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
-  .modele-ia-importances li { grid-template-columns: minmax(0, 1fr) 70px 46px; }
-}
 
 /* ---- Notifications du compte (cloche de la barre supérieure) ---- */
 .notifications-compte { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -2420,14 +2396,6 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 .case-inline { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .case-inline input { width: 16px; height: 16px; }
 .liste-reglages { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; max-height: 240px; overflow-y: auto; }
-/* Cinq types : les trois fonctionnalités actives sur une ligne, les deux simples dessous. */
-.choix-type { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-.choix-type > .option-type { grid-column: span 2; }
-.choix-type > .option-type:nth-child(n + 4) { grid-column: span 3; }
-@media (max-width: 720px) {
-  .choix-type { grid-template-columns: minmax(0, 1fr); }
-  .choix-type > .option-type, .choix-type > .option-type:nth-child(n + 4) { grid-column: auto; }
-}
 
 /* En-tête de carte avec compteur et action (journal) */
 .entete-carte-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
