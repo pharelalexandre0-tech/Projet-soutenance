@@ -1,6 +1,56 @@
 import { useRef, useState } from 'react';
 
-const TAILLE_LOGO_MAX = 1024 * 1024;
+const TAILLE_LOGO_MAX = 5 * 1024 * 1024;
+const COTE_LOGO = 512;
+
+// Prépare le logo une fois pour toutes, pour qu'il remplisse bien chaque
+// emplacement (menu, e-mails, PDF) : marges vides ou blanches rognées,
+// image centrée dans un carré transparent, 512 px au plus, en PNG (lu par
+// toutes les messageries et par le générateur de PDF).
+function normaliserLogo(source) {
+  return new Promise((resoudre, rejeter) => {
+    const image = new Image();
+    image.onload = () => {
+      const l = image.naturalWidth;
+      const h = image.naturalHeight;
+      const toile = document.createElement('canvas');
+      toile.width = l;
+      toile.height = h;
+      const ctx = toile.getContext('2d');
+      ctx.drawImage(image, 0, 0);
+      const { data } = ctx.getImageData(0, 0, l, h);
+      let x0 = l; let y0 = h; let x1 = -1; let y1 = -1;
+      for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < l; x += 1) {
+          const i = (y * l + x) * 4;
+          const vide = data[i + 3] < 16 || (data[i] > 245 && data[i + 1] > 245 && data[i + 2] > 245);
+          if (!vide) {
+            if (x < x0) x0 = x;
+            if (x > x1) x1 = x;
+            if (y < y0) y0 = y;
+            if (y > y1) y1 = y;
+          }
+        }
+      }
+      if (x1 < 0) { x0 = 0; y0 = 0; x1 = l - 1; y1 = h - 1; }
+      const largeur = x1 - x0 + 1;
+      const hauteur = y1 - y0 + 1;
+      const cote = Math.round(Math.max(largeur, hauteur) * 1.08);
+      const echelle = Math.min(1, COTE_LOGO / cote);
+      const final = document.createElement('canvas');
+      final.width = Math.max(1, Math.round(cote * echelle));
+      final.height = final.width;
+      const fctx = final.getContext('2d');
+      fctx.imageSmoothingQuality = 'high';
+      const dl = largeur * echelle;
+      const dh = hauteur * echelle;
+      fctx.drawImage(toile, x0, y0, largeur, hauteur, (final.width - dl) / 2, (final.height - dh) / 2, dl, dh);
+      resoudre(final.toDataURL('image/png'));
+    };
+    image.onerror = () => rejeter(new Error('image illisible'));
+    image.src = source;
+  });
+}
 
 // Réutilisé partout où l'identité d'un établissement se saisit — à la
 // création d'une école (Superadmin) comme pour en modifier une déjà
@@ -24,11 +74,15 @@ export default function ChampLogo({ valeur, onChange, label = "Logo de l'établi
       return;
     }
     if (fichier.size > TAILLE_LOGO_MAX) {
-      setErreur('le logo doit faire moins de 1 Mo');
+      setErreur('le logo doit faire moins de 5 Mo');
       return;
     }
     const lecteur = new FileReader();
-    lecteur.onload = () => onChange(lecteur.result);
+    lecteur.onload = () => {
+      normaliserLogo(lecteur.result)
+        .then(onChange)
+        .catch(() => setErreur("impossible de lire cette image, essaie un autre fichier"));
+    };
     lecteur.readAsDataURL(fichier);
   }
 
@@ -58,7 +112,7 @@ export default function ChampLogo({ valeur, onChange, label = "Logo de l'établi
       </div>
       {erreur
         ? <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem', color: 'var(--erreur)' }}>{erreur}</p>
-        : <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem' }}>PNG, JPEG ou WebP, 1 Mo maximum. Un fond transparent (PNG) rend mieux sur les documents.</p>}
+        : <p className="note-secondaire" style={{ marginTop: 6, marginBottom: 0, fontSize: '0.76rem' }}>PNG, JPEG ou WebP. Les marges vides sont rognées et le logo est centré automatiquement.</p>}
     </div>
   );
 }

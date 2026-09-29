@@ -28,4 +28,15 @@ Etablissement.init(
   { sequelize, modelName: 'Etablissement', tableName: 'etablissements' }
 );
 
+// Tout logo enregistré est préparé (rogné, centré, 512 px, PNG), quel que
+// soit le chemin d'envoi : il remplit ainsi son emplacement partout.
+Etablissement.beforeSave((etablissement) => {
+  if (!etablissement.logo || !etablissement.changed('logo')) return;
+  const { normaliserLogo } = require('../services/logoService');
+  try {
+    const prepare = normaliserLogo(etablissement.logo);
+    if (prepare) etablissement.logo = prepare;
+  } catch { /* image illisible : conservée telle quelle */ }
+});
+
 module.exports = Etablissement;

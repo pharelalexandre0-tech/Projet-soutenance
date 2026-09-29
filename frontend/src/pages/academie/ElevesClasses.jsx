@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
+import { useAuth } from '../../context/AuthContext';
 import { lireFichierExcel } from '../../utils/excel';
 import { NIVEAUX } from '../../utils/niveaux';
 import { messageErreur } from '../../utils/erreurs';
@@ -18,11 +19,15 @@ const ELEVE_VIDE = { nom: '', prenom: '', classeId: '', email: '', emailParent: 
 // démonte ce composant, ce qui vidait le journal des identifiants même si
 // l'Académie n'avait fait que jeter un œil ailleurs entre-temps. Le mot de
 // passe affiché est toujours le matricule actuel de l'élève (celui de
-// l'étudiant comme celui de son parent).
-const CLE_IDENTIFIANTS = 'es_identifiants_session_v2';
-function chargerIdentifiantsSession() {
+// l'étudiant comme celui de son parent). La liste est propre au compte
+// connecté (clé par compte) et vidée à la déconnexion : une autre école qui
+// se connecte dans le même navigateur ne la voit jamais.
+function cleIdentifiants(profil) {
+  return `es_identifiants_${profil?.etablissementId ?? 'x'}_${profil?.id ?? 'x'}`;
+}
+function chargerIdentifiantsSession(cle) {
   try {
-    const brut = JSON.parse(sessionStorage.getItem(CLE_IDENTIFIANTS) || '[]');
+    const brut = JSON.parse(sessionStorage.getItem(cle) || '[]');
     return Array.isArray(brut) ? brut : [];
   } catch {
     return [];
@@ -53,6 +58,8 @@ async function copier(texte) {
 }
 
 export default function ElevesClasses() {
+  const { profil } = useAuth();
+  const CLE_IDENTIFIANTS = cleIdentifiants(profil);
   const [classes, setClasses] = useState([]);
   const [eleves, setEleves] = useState([]);
   const [chargement, setChargement] = useState(true);
@@ -60,11 +67,11 @@ export default function ElevesClasses() {
 
   // Tous les identifiants à transmettre pendant CETTE visite (inscription,
   // import, adresse parent), tenus à part de la liste des élèves.
-  const [identifiantsCrees, setIdentifiantsCrees] = useState(chargerIdentifiantsSession);
+  const [identifiantsCrees, setIdentifiantsCrees] = useState(() => chargerIdentifiantsSession(CLE_IDENTIFIANTS));
   const [rechercheIdentifiants, setRechercheIdentifiants] = useState('');
   useEffect(() => {
     try { sessionStorage.setItem(CLE_IDENTIFIANTS, JSON.stringify(identifiantsCrees)); } catch { /* stockage indisponible : reste en mémoire pour cette page */ }
-  }, [identifiantsCrees]);
+  }, [identifiantsCrees, CLE_IDENTIFIANTS]);
 
   const [classeChoisie, setClasseChoisie] = useState('');
   const [recherche, setRecherche] = useState('');
@@ -132,7 +139,9 @@ export default function ElevesClasses() {
     return matriculeParCompte.get(entree.compteId) || entree.matricule;
   }
   const rechercheIdNettoyee = rechercheIdentifiants.trim().toLowerCase();
+  // Par sécurité, seuls les comptes d'élèves de CETTE école sont affichés.
   const identifiantsAffiches = identifiantsCrees
+    .filter((it) => chargement || matriculeParCompte.has(it.compteId))
     .filter((it) => !rechercheIdNettoyee || `${it.prenom} ${it.nom} ${it.email} ${it.classeNom}`.toLowerCase().includes(rechercheIdNettoyee));
 
   async function copierAvecToast(texte, libelle) {
@@ -180,7 +189,7 @@ export default function ElevesClasses() {
         </div>
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Identifiants créés (cette visite)</span><span className="puce-icone petite"><IconKey /></span></div>
-          <div className="valeur">{identifiantsCrees.length}</div>
+          <div className="valeur">{identifiantsAffiches.length}</div>
         </div>
       </div>
 
@@ -289,7 +298,7 @@ export default function ElevesClasses() {
 
       <section className="carte">
         <div className="entete-carte">
-          <h2>Identifiants de connexion <span className="entete-carte-compteur">{identifiantsCrees.length}</span></h2>
+          <h2>Identifiants de connexion <span className="entete-carte-compteur">{identifiantsAffiches.length}</span></h2>
           <div className="actions-carte">
             <label className="champ-recherche compact">
               <IconSearch />

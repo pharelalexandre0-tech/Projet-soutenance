@@ -1,5 +1,6 @@
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const MailComposer = require('nodemailer/lib/mail-composer');
 
 const { emailGenerique } = require('./modelesEmail');
 
@@ -83,7 +84,66 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   });
 }
 
-async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointes) {
+// Expéditeur affiché (le nom de l'école) et adresse de réponse (celle de
+// l'école) : un message qui porte un nom reconnu et auquel on peut répondre
+// est bien mieux traité par les filtres anti-spam qu'un « EduSphere »
+// anonyme qui interdit la réponse.
+function enTetes(etablissement) {
+  const nom = String(etablissement?.nom || 'EduSphere').replace(/["<>]/g, '').slice(0, 70);
+  const email = etablissement?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(etablissement.email) ? etablissement.email : null;
+  return { nom, repondreA: email };
+}
+
+// Gmail (API HTTPS, jamais bloquée par l'hébergeur) : le message part des
+// serveurs de Google, au nom de l'adresse Gmail elle-même. Les contrôles
+// SPF, DKIM et DMARC de gmail.com sont donc valides : c'est la voie qui
+// évite les spams sans posséder de nom de domaine. Configuration : voir
+// .env.example (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN,
+// GMAIL_FROM).
+let jetonGmail = { valeur: null, expire: 0 };
+async function jetonAccesGmail() {
+  if (jetonGmail.valeur && Date.now() < jetonGmail.expire - 60000) return jetonGmail.valeur;
+  const reponse = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GMAIL_CLIENT_ID,
+      client_secret: process.env.GMAIL_CLIENT_SECRET,
+      refresh_token: process.env.GMAIL_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+    signal: AbortSignal.timeout(8000),
+  });
+  const donnees = await reponse.json().catch(() => ({}));
+  if (!reponse.ok || !donnees.access_token) throw new Error(`Google a refusé le jeton (${reponse.status}) : ${donnees.error || 'inconnu'}`);
+  jetonGmail = { valeur: donnees.access_token, expire: Date.now() + (donnees.expires_in || 3600) * 1000 };
+  return jetonGmail.valeur;
+}
+
+async function envoyerViaGmail(destinataire, sujet, corps, html, piecesJointes, entetes) {
+  const message = new MailComposer({
+    from: { name: entetes.nom, address: process.env.GMAIL_FROM },
+    to: destinataire,
+    ...(entetes.repondreA && { replyTo: entetes.repondreA }),
+    subject: sujet,
+    text: corps,
+    html,
+    attachments: piecesJointes.map((p) => ({ filename: p.nomFichier, content: contenuPiece(p) })),
+  });
+  const brut = await message.compile().build();
+  const reponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${await jetonAccesGmail()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ raw: brut.toString('base64url') }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!reponse.ok) {
+    const detail = await reponse.text();
+    throw new Error(`Gmail a refusé l'envoi (${reponse.status}) : ${detail.slice(0, 200)}`);
+  }
+}
+
+async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointes, entetes) {
   const reponse = await fetch('https://api.sendgrid.com/v3/mail/send', {
     method: 'POST',
     headers: {
@@ -92,8 +152,16 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointe
     },
     body: JSON.stringify({
       personalizations: [{ to: [{ email: destinataire }] }],
-      from: { email: process.env.SENDGRID_FROM, name: 'EduSphere' },
+      from: { email: process.env.SENDGRID_FROM, name: entetes.nom },
+      ...(entetes.repondreA && { reply_to: { email: entetes.repondreA, name: entetes.nom } }),
       subject: sujet,
+      // Suivi des clics et des ouvertures coupé : il réécrit chaque lien vers
+      // un domaine de SendGrid et ajoute un pixel espion, deux signaux que
+      // les filtres anti-spam pénalisent.
+      tracking_settings: {
+        click_tracking: { enable: false, enable_text: false },
+        open_tracking: { enable: false },
+      },
       // L'alternative texte brut doit être listée avant le HTML (ordre
       // attendu par SendGrid) — les deux ensemble plutôt que HTML seul,
       // meilleur signal anti-spam qu'un message mono-format.
@@ -124,7 +192,7 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointe
   }
 }
 
-async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes) {
+async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes, entetes) {
   const reponse = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -134,6 +202,7 @@ async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes)
     body: JSON.stringify({
       from: process.env.RESEND_FROM || 'EduSphere <onboarding@resend.dev>',
       to: destinataire,
+      ...(entetes.repondreA && { reply_to: entetes.repondreA }),
       subject: sujet,
       text: corps,
       html,
@@ -163,24 +232,37 @@ async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes)
 // bulletin, relance...) porte lui aussi son logo et ses coordonnées.
 async function etablissementDuDestinataire(email) {
   try {
-    const { Utilisateur, Etablissement } = require('../models');
+    const { Utilisateur, Etablissement, Eleve } = require('../models');
     const utilisateur = await Utilisateur.findOne({ where: { email }, attributes: ['etablissementId'] });
-    return utilisateur?.etablissementId ? await Etablissement.findByPk(utilisateur.etablissementId) : null;
+    // Adresse d'un parent : l'école de son enfant.
+    const etablissementId = utilisateur?.etablissementId
+      || (await Eleve.findOne({ where: { emailParent: email }, attributes: ['etablissementId'] }))?.etablissementId;
+    return etablissementId ? await Etablissement.findByPk(etablissementId) : null;
   } catch {
     return null;
   }
 }
 
 async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], options = {}) {
-  const html = options.html || emailGenerique(corps, {
-    titre: sujet,
-    etablissement: options.etablissement || await etablissementDuDestinataire(destinataire),
-  });
+  const etablissement = options.etablissement || await etablissementDuDestinataire(destinataire);
+  const html = options.html || emailGenerique(corps, { titre: sujet, etablissement });
+  const entetes = enTetes(typeof etablissement === 'object' ? etablissement : null);
   const erreurs = [];
+
+  if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN && process.env.GMAIL_FROM) {
+    try {
+      await envoyerViaGmail(destinataire, sujet, corps, html, piecesJointes, entetes);
+      consigner(destinataire, sujet, 'gmail', erreurs);
+      return { envoye: true, service: 'gmail', erreurs };
+    } catch (err) {
+      erreurs.push({ service: 'gmail', message: err.message.slice(0, 300) });
+      console.error(`[Service E-mail] Échec Gmail pour ${destinataire}, repli :`, err.message);
+    }
+  }
 
   if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM) {
     try {
-      await envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointes);
+      await envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointes, entetes);
       consigner(destinataire, sujet, 'sendgrid', erreurs);
       return { envoye: true, service: 'sendgrid', erreurs };
     } catch (err) {
@@ -191,7 +273,7 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], opti
 
   if (process.env.RESEND_API_KEY) {
     try {
-      await envoyerViaResend(destinataire, sujet, corps, html, piecesJointes);
+      await envoyerViaResend(destinataire, sujet, corps, html, piecesJointes, entetes);
       consigner(destinataire, sujet, 'resend', erreurs);
       return { envoye: true, service: 'resend', erreurs };
     } catch (err) {
@@ -206,7 +288,8 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], opti
   if (transporteurSMTP) {
     try {
       await transporteurSMTP.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        from: { name: entetes.nom, address: (String(process.env.SMTP_FROM || '').match(/<([^>]+)>/) || [])[1] || process.env.SMTP_FROM || process.env.SMTP_USER },
+        ...(entetes.repondreA && { replyTo: entetes.repondreA }),
         to: destinataire,
         subject: sujet,
         text: corps,

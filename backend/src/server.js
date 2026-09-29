@@ -9,6 +9,7 @@ const { rattacherProfesseursALaPaie } = require('./services/paieService');
 const { assurerModeleIA, oublierModele } = require('./services/riskService');
 const { migrerComptesParents, fusionnerEspaceParents } = require('./services/migrationParents');
 const { demarrerEcoute, abonner } = require('./services/evenementsService');
+const { normaliserLogosEnregistres } = require('./services/logoService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 4000;
     await sequelize.sync({ alter: true });
     console.log('Connexion à PostgreSQL établie, modèles synchronisés.');
     await fusionnerEspaceParents();
+    await normaliserLogosEnregistres();
     await initialiserActivations();
     await attribuerMatriculesManquants();
     await initialiserPublicationsEmplois();

@@ -47,6 +47,10 @@ export function AuthProvider({ children }) {
 
   function seDeconnecter() {
     sessionStorage.removeItem('pgs_token');
+    // Rien de l'école précédente ne doit rester pour le compte suivant.
+    try {
+      Object.keys(sessionStorage).filter((cle) => cle.startsWith('es_identifiants')).forEach((cle) => sessionStorage.removeItem(cle));
+    } catch { /* stockage indisponible */ }
     reinitialiserFlux();
     setProfil(null);
   }

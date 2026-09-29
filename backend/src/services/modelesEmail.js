@@ -119,7 +119,11 @@ function maintenant() {
   return new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Libreville' });
 }
 
-// Cadre commun : bandeau d'identité, contenu, signature, pied de page.
+// Cadre commun. Structure : filet aux couleurs de la plateforme, en-tête
+// blanc avec le logo de l'école (carré de 64 px : les logos sont préparés
+// en carré à l'enregistrement, donc jamais déformés ni minuscules) et son
+// nom, puis le message, la signature, la raison de l'envoi et les
+// coordonnées de l'école. Largeur 600 px, tableaux et styles en ligne.
 function cadre({ surtitre, titre, contenu, etablissement, preEntete }) {
   const etab = identite(etablissement);
   const annee = new Date().getFullYear();
@@ -128,37 +132,45 @@ function cadre({ surtitre, titre, contenu, etablissement, preEntete }) {
   const lieu = [etab?.ville, etab?.pays].filter(Boolean).join(', ');
   const contacts = [etab?.boitePostale, etab?.telephone, etab?.email].filter(Boolean).map(echapper).join(' &nbsp;·&nbsp; ');
   const signature = etab?.nom ? `Le service de la scolarité<br><strong>${echapper(etab.nom)}</strong>` : "<strong>L'équipe EduSphere</strong>";
+  const raison = etab?.nom
+    ? `Vous recevez ce message parce que votre adresse est enregistrée auprès de ${echapper(etab.nom)} sur la plateforme EduSphere.`
+    : 'Vous recevez ce message parce que votre adresse est enregistrée sur la plateforme EduSphere.';
+  const reponse = etab?.email
+    ? `Une question ? Répondez simplement à ce message, il parviendra à ${echapper(etab.nom)}.`
+    : 'Message automatique : pour toute question, adressez-vous au service de la scolarité.';
 
   return `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light only"><title>${echapper(titre || nom)}</title></head>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${echapper(titre || nom)}</title></head>
 <body style="margin:0; padding:0; background-color:${COULEURS.fond}; -webkit-text-size-adjust:100%;">
 ${preEntete ? `<div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">${echapper(preEntete)}</div>` : ''}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${COULEURS.fond};">
-<tr><td align="center" style="padding:36px 12px 28px;">
+<tr><td align="center" style="padding:32px 12px 28px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
-    <tr><td style="background-color:${COULEURS.marine}; border-radius:10px 10px 0 0; padding:20px 32px;">
+    <tr><td style="background-color:${COULEURS.marine}; height:6px; line-height:6px; font-size:0; border-radius:10px 10px 0 0;">&nbsp;</td></tr>
+    <tr><td style="background-color:#ffffff; padding:24px 40px 22px; border-left:1px solid ${COULEURS.bordure}; border-right:1px solid ${COULEURS.bordure}; border-bottom:1px solid ${COULEURS.bordure};">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-        <td style="width:44px; height:44px; background-color:#ffffff; border-radius:8px; text-align:center; vertical-align:middle;">
-          <img src="${echapper(logo)}" width="34" height="34" alt="" style="display:block; margin:5px; width:34px; height:34px; object-fit:contain; border:0;">
+        <td width="72" style="width:72px; height:72px; border:1px solid ${COULEURS.bordure}; border-radius:12px; background-color:#ffffff; text-align:center; vertical-align:middle;">
+          <img src="${echapper(logo)}" width="64" height="64" alt="${echapper(nom)}" style="display:block; margin:4px; width:64px; height:64px; border:0; outline:none; text-decoration:none;">
         </td>
-        <td style="padding-left:14px; ${POLICE}">
-          <div style="font-size:16px; font-weight:bold; line-height:1.3; color:#ffffff;">${echapper(nom)}</div>
-          ${lieu ? `<div style="font-size:12.5px; line-height:1.4; color:#AEBBD0; margin-top:2px;">${echapper(lieu)}</div>` : ''}
+        <td style="padding-left:16px; vertical-align:middle; ${POLICE}">
+          <div style="font-size:18px; font-weight:bold; line-height:1.3; color:${COULEURS.marine};">${echapper(nom)}</div>
+          ${lieu ? `<div style="font-size:13px; line-height:1.4; color:${COULEURS.texteClair}; margin-top:3px;">${echapper(lieu)}</div>` : ''}
         </td>
       </tr></table>
     </td></tr>
-    <tr><td style="background-color:#ffffff; padding:36px 40px 32px; border-left:1px solid ${COULEURS.bordure}; border-right:1px solid ${COULEURS.bordure};">
-      ${surtitre ? `<div style="${POLICE} font-size:11.5px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; color:${COULEURS.bleu}; margin:0 0 8px;">${echapper(surtitre)}</div>` : ''}
-      ${titre ? `<h1 style="margin:0 0 22px; ${POLICE} font-size:23px; line-height:1.3; font-weight:bold; color:${COULEURS.texte};">${echapper(titre)}</h1>` : ''}
+    <tr><td style="background-color:#ffffff; padding:32px 40px 30px; border-left:1px solid ${COULEURS.bordure}; border-right:1px solid ${COULEURS.bordure};">
+      ${surtitre ? `<div style="${POLICE} font-size:12px; font-weight:bold; letter-spacing:1px; color:${COULEURS.bleu}; margin:0 0 8px;">${echapper(surtitre)}</div>` : ''}
+      ${titre ? `<h1 style="margin:0 0 22px; ${POLICE} font-size:22px; line-height:1.35; font-weight:bold; color:${COULEURS.texte};">${echapper(titre)}</h1>` : ''}
       ${contenu}
       ${paragraphe(`Cordialement,<br>${signature}`, '26px 0 0')}
     </td></tr>
     <tr><td style="background-color:${COULEURS.zone}; border:1px solid ${COULEURS.bordure}; border-radius:0 0 10px 10px; padding:20px 40px; ${POLICE} font-size:12px; line-height:1.65; color:${COULEURS.texteClair};">
       <strong style="color:${COULEURS.texte};">${echapper(nom)}</strong>${lieu ? `, ${echapper(lieu)}` : ''}<br>
       ${contacts ? `${contacts}<br>` : ''}
-      Message automatique envoyé via la plateforme EduSphere. Merci de ne pas y répondre directement.
+      ${reponse}<br>
+      <span style="color:${COULEURS.texteDiscret};">${raison}</span>
     </td></tr>
-    <tr><td align="center" style="padding:18px 12px 0; ${POLICE} font-size:11.5px; color:${COULEURS.texteDiscret};">
+    <tr><td align="center" style="padding:16px 12px 0; ${POLICE} font-size:11.5px; color:${COULEURS.texteDiscret};">
       © ${annee} EduSphere, plateforme de gestion scolaire
     </td></tr>
   </table>

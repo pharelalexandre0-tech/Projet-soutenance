@@ -9,7 +9,7 @@ import {
   IconCircleCheck,
 } from '../../components/icons';
 
-const LIBELLE_SERVICE = { sendgrid: 'SendGrid', resend: 'Resend', smtp: 'SMTP' };
+const LIBELLE_SERVICE = { gmail: 'Gmail', sendgrid: 'SendGrid', resend: 'Resend', smtp: 'SMTP' };
 
 // Vue d'ensemble de la plateforme, jamais du contenu d'une école précise :
 // des totaux additionnés sur tous les établissements affiliés, la tendance
@@ -143,7 +143,7 @@ export default function TableauDeBord({ onNaviguer }) {
             {configEmail && (
               <>
                 <ul className="liste-services">
-                  {['sendgrid', 'resend', 'smtp'].map((service) => (
+                  {['gmail', 'sendgrid', 'resend', 'smtp'].map((service) => (
                     <li key={service}>
                       <span>
                         {LIBELLE_SERVICE[service]}
@@ -157,7 +157,7 @@ export default function TableauDeBord({ onNaviguer }) {
                 </ul>
                 <p className="note-secondaire" style={{ margin: '14px 0', fontSize: 14 }}>
                   {configEmail.actif
-                    ? 'Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité SendGrid, puis Resend, puis SMTP).'
+                    ? "Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité Gmail, puis SendGrid, Resend et SMTP). Seul l'envoi par Gmail, ou un nom de domaine authentifié, évite durablement les courriers indésirables."
                     : 'Aucun service configuré : les e-mails sont seulement écrits dans le journal du serveur.'}
                 </p>
                 <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>
