@@ -36,10 +36,10 @@ function lienPlateforme() {
 // Logo de l'établissement servi en image (les messageries bloquent les
 // images intégrées en data URI) ; celui d'EduSphere est un fichier statique
 // du frontend.
-function urlLogoEtablissement(etablissement) {
+function urlLogoEtablissement(etablissement, taille = 128) {
   if (!etablissement?.id || !etablissement?.logo) return null;
   const version = String(etablissement.logo.length);
-  return `${BACKEND}/api/plateforme/etablissements/${etablissement.id}/logo?v=${version}`;
+  return `${BACKEND}/api/plateforme/etablissements/${etablissement.id}/logo?taille=${taille}&v=${version}`;
 }
 
 function urlLogoEduSphere() {

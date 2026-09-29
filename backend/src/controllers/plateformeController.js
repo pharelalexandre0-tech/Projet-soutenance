@@ -58,10 +58,34 @@ async function marquerNouveautesVues(req, res) {
 // Logo d'un établissement servi comme une vraie image : les e-mails ne
 // peuvent pas afficher un data URI, il leur faut une adresse publique.
 // Seul le logo sort d'ici (déjà visible sur les documents de l'école).
+// Versions réduites déjà calculées (copie de données de PostgreSQL, pas un
+// stockage) : clé = école, taille et longueur du logo (change avec lui).
+const logosReduits = new Map();
+
 async function logoEtablissement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id, { attributes: ['logo'] });
   const correspondance = etablissement?.logo?.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/);
   if (!correspondance) return res.status(404).end();
+  const taille = Number(req.query.taille);
+  if ([64, 128, 256].includes(taille)) {
+    const cle = `${req.params.id}:${taille}:${etablissement.logo.length}`;
+    if (!logosReduits.has(cle)) {
+      try {
+        const { redimensionnerLogo } = require('../services/logoService');
+        logosReduits.set(cle, redimensionnerLogo(etablissement.logo, taille));
+        if (logosReduits.size > 200) logosReduits.delete(logosReduits.keys().next().value);
+      } catch {
+        logosReduits.set(cle, null);
+      }
+    }
+    const reduit = logosReduits.get(cle);
+    if (reduit) {
+      res.set('Content-Type', 'image/png');
+      res.set('Cache-Control', 'public, max-age=86400');
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      return res.send(reduit);
+    }
+  }
   res.set('Content-Type', correspondance[1] === 'image/jpg' ? 'image/jpeg' : correspondance[1]);
   res.set('Cache-Control', 'public, max-age=86400');
   res.set('Cross-Origin-Resource-Policy', 'cross-origin');

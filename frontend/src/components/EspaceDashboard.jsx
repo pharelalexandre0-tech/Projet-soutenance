@@ -62,6 +62,17 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     }
   }, [profil?.role]);
   const logoAffiche = etablissement?.logo || logoIcon;
+  // Une école sans logo affiche ses initiales, jamais le logo d'EduSphere.
+  const sansLogo = profil?.role !== 'superadmin' && etablissement && !etablissement.logo;
+  const initialesEcole = (() => {
+    const sigle = String(etablissement?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
+    if (sigle) return sigle.slice(0, 4).toUpperCase();
+    const mots = String(etablissement?.nom || '').split(/[\s'’-]+/).filter((m) => m.length > 2 || /^[A-Z]/.test(m));
+    return (mots.map((m) => m[0]).join('').slice(0, 3) || 'E').toUpperCase();
+  })();
+  const vignette = sansLogo
+    ? <span className="marque-initiales" aria-hidden="true">{initialesEcole}</span>
+    : <img src={logoAffiche} alt="" />;
   const nomAffiche = etablissement?.nom || 'EduSphere';
 
   // État de la plateforme vu depuis une école : fonctionnalités ajoutées
@@ -201,7 +212,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     <div className="espace">
       <header className="entete-mobile">
         <button className="bouton-icone" onClick={() => setMenuOuvert(true)} aria-label="Ouvrir le menu"><IconMenu /></button>
-        <span className="marque-pastille"><img src={logoAffiche} alt="" /></span>
+        <span className="marque-pastille">{vignette}</span>
         <span className="entete-mobile-nom">{nomAffiche}</span>
         <button className="bouton-icone" onClick={() => setPaletteOuverte(true)} aria-label="Rechercher une page"><IconSearch /></button>
         {boutonNouveautes}
@@ -211,7 +222,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
 
       <aside className={`panneau-lateral ${menuOuvert ? 'ouvert' : ''}`} aria-label="Navigation principale">
         <div className="marque-laterale">
-          <span className="marque-pastille"><img src={logoAffiche} alt="" /></span>
+          <span className="marque-pastille">{vignette}</span>
           <div className="marque-texte">
             <strong>{nomAffiche}</strong>
             <small>{libelleEspace(profil)}</small>

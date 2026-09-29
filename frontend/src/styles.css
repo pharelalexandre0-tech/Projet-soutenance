@@ -2133,3 +2133,9 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 /* Dans un tiroir, une valeur de tableau (montant, date, période) reste sur
    une ligne : le tableau défile plutôt que de couper les cellules. */
 .tiroir-corps td { white-space: nowrap; }
+/* École sans logo : ses initiales dans la vignette, à la place d'un logo. */
+.marque-initiales {
+  font-weight: 800; font-size: 15px; letter-spacing: 0.02em; color: var(--edu-marine);
+  line-height: 1; white-space: nowrap;
+}
+.entete-mobile .marque-initiales { font-size: 12px; }

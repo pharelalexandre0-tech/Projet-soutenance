@@ -8,6 +8,15 @@
 
 const { urlLogoEtablissement, urlLogoEduSphere, lienPlateforme } = require('../utils/liens');
 
+// Initiales d'une école sans logo (sigle, sinon premières lettres des mots
+// importants du nom) : c'est l'école qui s'affiche, jamais EduSphere.
+function initialesEcole(etab) {
+  const sigle = String(etab?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
+  if (sigle) return sigle.slice(0, 4).toUpperCase();
+  const mots = String(etab?.nom || '').split(/[\s'’-]+/).filter((m) => m.length > 2 || /^[A-Z]/.test(m));
+  return (mots.map((m) => m[0]).join('').slice(0, 3) || 'E').toUpperCase();
+}
+
 const COULEURS = {
   marine: '#0B1E3D',
   bleu: '#1D5FA8',
@@ -148,7 +157,14 @@ function maintenant() {
 function cadre({ surtitre, titre, contenu, etablissement, preEntete }) {
   const etab = identite(etablissement);
   const annee = new Date().getFullYear();
-  const logo = urlLogoEtablissement(etab) || urlLogoEduSphere();
+  // Logo de l'école ; sans logo, ses initiales ; EduSphere seulement pour
+  // un message qui ne vient d'aucune école (superadmin).
+  const logo = urlLogoEtablissement(etab) || (etab?.nom ? null : urlLogoEduSphere());
+  const initiales = initialesEcole(etab);
+  const tailleInitiales = initiales.length > 3 ? 19 : initiales.length > 2 ? 22 : 26;
+  const vignette = logo
+    ? `<img src="${echapper(logo)}" width="64" height="64" alt="${echapper(etab?.nom || 'EduSphere')}" style="display:block; width:64px; height:64px; border:0; outline:none; text-decoration:none;">`
+    : `<div style="${POLICE} font-size:${tailleInitiales}px; font-weight:bold; letter-spacing:1px; color:${COULEURS.marine}; line-height:76px; text-align:center;">${echapper(initiales)}</div>`;
   const nom = etab?.nom || 'EduSphere';
   const lieu = [etab?.ville, etab?.pays].filter(Boolean).join(', ');
   const contacts = [etab?.boitePostale, etab?.telephone, etab?.email].filter(Boolean).map(echapper).join(' &nbsp;·&nbsp; ');
@@ -177,7 +193,7 @@ ${preEntete ? `<div style="display:none; max-height:0; overflow:hidden; opacity:
     <tr><td class="marge" style="${DEGRADE} padding:34px 40px 38px;">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
         <td width="76" height="76" align="center" valign="middle" style="width:76px; height:76px; background-color:#ffffff; border-radius:18px; box-shadow:0 6px 18px rgba(0, 0, 0, 0.18);">
-          <img src="${echapper(logo)}" width="64" height="64" alt="${echapper(nom)}" style="display:block; width:64px; height:64px; border:0; outline:none; text-decoration:none;">
+          ${vignette}
         </td>
         <td style="padding-left:18px; vertical-align:middle; ${POLICE}">
           <div style="font-size:19px; font-weight:bold; line-height:1.3; color:#ffffff;">${echapper(nom)}</div>

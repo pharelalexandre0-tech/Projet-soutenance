@@ -88,6 +88,23 @@ function normaliserLogo(dataUri) {
   return `data:image/png;base64,${PNG.sync.write(sortie).toString('base64')}`;
 }
 
+// Version réduite (PNG, carré de `cote` px) d'un logo déjà préparé : les
+// e-mails n'ont besoin que de 128 px (affiché en 64 px, net sur écran haute
+// densité), pas des 512 px enregistrés.
+function redimensionnerLogo(dataUri, cote) {
+  const image = decoder(dataUri);
+  if (!image) return null;
+  const { largeur: l, hauteur: h, pixels: p } = image;
+  const echelle = Math.min(1, cote / Math.max(l, h));
+  const dw = Math.max(1, Math.round(l * echelle));
+  const dh = Math.max(1, Math.round(h * echelle));
+  const dl = Math.max(dw, dh);
+  const sortie = new PNG({ width: dl, height: dl });
+  sortie.data.fill(0);
+  echantillonner(p, l, 0, 0, l, h, sortie.data, dl, Math.floor((dl - dw) / 2), Math.floor((dl - dh) / 2), dw, dh);
+  return PNG.sync.write(sortie);
+}
+
 // Au démarrage : prépare les logos d'écoles enregistrés avant cette règle.
 async function normaliserLogosEnregistres() {
   const { Etablissement } = require('../models');
@@ -108,4 +125,4 @@ async function normaliserLogosEnregistres() {
   if (prepares) console.log(`[Logo] ${prepares} logo(s) d'école préparé(s) (rognés, centrés, 512 px).`);
 }
 
-module.exports = { normaliserLogo, normaliserLogosEnregistres };
+module.exports = { normaliserLogo, normaliserLogosEnregistres, redimensionnerLogo };
