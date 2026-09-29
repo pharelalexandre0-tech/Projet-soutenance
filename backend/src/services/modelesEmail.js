@@ -264,22 +264,21 @@ function emailCodeConnexion({ prenom, code, minutes, etablissement, role, email,
     '',
     "Vous n'êtes pas à l'origine de cette connexion ? Ignorez ce message : sans ce code, personne ne peut accéder à votre compte. Ne le communiquez à personne, même à un membre de l'administration.",
   ], etablissement);
+  // Un message, pas un ticket : quelques phrases autour du code, sans
+  // tableau de détails.
+  const ecole = etab?.nom ? ` (${echapper(etab.nom)})` : '';
+  const pour = enfant ? ` pour suivre le dossier de <strong>${echapper(enfant)}</strong>` : '';
   const html = cadre({
-    surtitre: 'Sécurité du compte',
-    titre: 'Confirmez votre connexion',
+    surtitre: 'Votre code de connexion',
+    titre: prenom ? `${nomPropre(prenom)}, voici votre code` : 'Voici votre code de connexion',
     etablissement,
     preEntete: `Votre code de connexion est ${code}. Il expire dans ${minutes} minutes.`,
     contenu: [
       paragraphe(salutation(prenom)),
-      paragraphe('Une connexion à votre compte vient d\'être demandée. Pour la confirmer, saisissez le code ci-dessous sur la page de connexion.'),
-      blocCode(code, `Expire dans ${minutes} minutes · usage unique`),
-      tableauDetails([
-        ['Compte', email],
-        ['Espace', espace],
-        ['Dossier de', enfant],
-        ['Date', maintenant()],
-      ], 'Détails de la demande'),
-      note("Vous n'êtes pas à l'origine de cette demande ?", 'Ignorez ce message : sans ce code, personne ne peut accéder à votre compte. Ne communiquez jamais ce code, même à un membre de l\'administration.'),
+      paragraphe(`Vous venez de demander à vous connecter à votre ${echapper(espace)}${ecole}${pour}. Saisissez simplement ce code sur la page de connexion pour continuer :`),
+      blocCode(code, `Valable ${minutes} minutes, une seule fois`),
+      paragraphe(`Demande reçue le ${echapper(maintenant())} pour le compte <strong>${echapper(email)}</strong>.`, '0 0 22px'),
+      note("Ce n'était pas vous ?", "Aucune inquiétude : sans ce code, personne ne peut entrer dans votre compte. Ignorez ce message et ne le transmettez à personne, même à un membre de l'administration."),
     ].join(''),
   });
   return { sujet, texte, html };

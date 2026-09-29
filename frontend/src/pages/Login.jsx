@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
+import SaisieCodeLiquide from '../components/SaisieCodeLiquide';
 import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
@@ -98,6 +99,11 @@ export default function Login() {
   // passe cède la place à celui du code reçu par e-mail.
   const [attenteCode, setAttenteCode] = useState(null); // { utilisateurId } | null
   const [code, setCode] = useState('');
+  const [etatCode, setEtatCode] = useState('saisie'); // saisie | verification | succes | erreur
+  // Nouveau code possible 50 secondes après le précédent (même règle côté serveur).
+  const [finAttente, setFinAttente] = useState(0);
+  const [maintenantMs, setMaintenantMs] = useState(Date.now());
+  const [renvoi, setRenvoi] = useState(''); // '' | 'envoi' | 'envoye'
   // "Mot de passe oublié" : mini-formulaire à la place du formulaire de
   // connexion, pas une page séparée — évite un aller-retour complet pour
   // une action qui ne quitte jamais vraiment l'écran de connexion.
@@ -119,6 +125,14 @@ export default function Login() {
       .catch(() => {});
   }, []);
 
+  // Chronomètre du bouton « Renvoyer le code ».
+  useEffect(() => {
+    if (!attenteCode) return undefined;
+    const minuteur = setInterval(() => setMaintenantMs(Date.now()), 250);
+    return () => clearInterval(minuteur);
+  }, [attenteCode]);
+  const secondesRestantes = Math.max(0, Math.ceil((finAttente - maintenantMs) / 1000));
+
   if (ouverture) return <TransitionOuverture />;
   if (profil) return <Navigate to="/" replace />;
 
@@ -138,6 +152,10 @@ export default function Login() {
       const resultat = await seConnecter(mailUtilise, motDePasseUtilise);
       if (resultat.doubleFacteurRequis) {
         setAttenteCode({ utilisateurId: resultat.utilisateurId });
+        setCode('');
+        setEtatCode('saisie');
+        setRenvoi('');
+        setFinAttente(Date.now() + (resultat.delaiRenvoi || 50) * 1000);
         setEnCours(false);
         return;
       }
@@ -148,16 +166,40 @@ export default function Login() {
     }
   }
 
-  async function validerCode(e) {
-    e.preventDefault();
+  async function validerCode(saisi = code) {
+    if (saisi.length !== 6 || etatCode !== 'saisie') return;
     setErreur('');
-    setEnCours(true);
+    setEtatCode('verification');
+    const debut = Date.now();
+    // Laisse le temps à l'animation (bulles qui se rassemblent) d'être vue.
+    const pause = () => new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - debut))));
     try {
-      await verifierDoubleFacteur(attenteCode.utilisateurId, code);
-      ouvrirSession();
+      await verifierDoubleFacteur(attenteCode.utilisateurId, saisi);
+      await pause();
+      setEtatCode('succes');
+      setTimeout(ouvrirSession, 900);
     } catch (err) {
+      await pause();
+      setEtatCode('erreur');
       setErreur(messageErreur(err, 'code incorrect'));
-      setEnCours(false);
+      setTimeout(() => { setCode(''); setEtatCode('saisie'); }, 1500);
+    }
+  }
+
+  async function renvoyerCode() {
+    setRenvoi('envoi');
+    setErreur('');
+    try {
+      const res = await client.post('/auth/connexion/renvoyer-code', { utilisateurId: attenteCode.utilisateurId });
+      setFinAttente(Date.now() + (res.data.delai || 50) * 1000);
+      setRenvoi('envoye');
+      setCode('');
+      setEtatCode('saisie');
+    } catch (err) {
+      const attente = err.response?.data?.attente;
+      if (attente) setFinAttente(Date.now() + attente * 1000);
+      setErreur(messageErreur(err, "impossible d'envoyer un nouveau code"));
+      setRenvoi('');
     }
   }
 
@@ -233,27 +275,33 @@ export default function Login() {
             <p className="acces-eyebrow">Étape 2</p>
             <h2>Vérification</h2>
             <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail. Saisis-le pour continuer.</p>
-            <form className="formulaire-connexion" onSubmit={validerCode}>
-              <Champ label="Code de vérification" icone={IconLock} erreur={Boolean(erreur)}>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  value={code}
-                  onChange={(e) => { setCode(e.target.value.replace(/\D/g, '')); setErreur(''); }}
-                  autoFocus
-                  required
-                />
-              </Champ>
-              {erreur && <AlerteErreur>{erreur}</AlerteErreur>}
-              <button className="bouton-connexion" type="submit" disabled={enCours || code.length !== 6}>
-                {enCours ? 'Vérification…' : 'Valider'}
+            <form className="formulaire-connexion" onSubmit={(e) => { e.preventDefault(); validerCode(); }}>
+              <SaisieCodeLiquide
+                valeur={code}
+                onChange={(v) => { setCode(v); setErreur(''); }}
+                onComplet={validerCode}
+                etat={etatCode}
+              />
+              {erreur && etatCode !== 'verification' && (
+                <p className="message-code-erreur" role="alert">{erreur.charAt(0).toUpperCase() + erreur.slice(1)}.</p>
+              )}
+              <button className="bouton-connexion" type="submit" disabled={etatCode !== 'saisie' || code.length !== 6}>
+                {etatCode === 'verification' ? 'Vérification…' : etatCode === 'succes' ? 'Code accepté' : etatCode === 'erreur' ? 'Code refusé' : 'Valider'}
               </button>
+              <p className="connexion-renvoi" aria-live="polite">
+                {secondesRestantes > 0 ? (
+                  <>
+                    {renvoi === 'envoye' && <span className="connexion-renvoi-ok">Nouveau code envoyé. </span>}
+                    Pas reçu ? Nouveau code possible dans <strong>0:{String(secondesRestantes).padStart(2, '0')}</strong>
+                  </>
+                ) : (
+                  <>Pas reçu ? <button type="button" onClick={renvoyerCode} disabled={renvoi === 'envoi'}>{renvoi === 'envoi' ? 'Envoi…' : 'Renvoyer le code'}</button></>
+                )}
+              </p>
               <button
                 type="button"
                 className="connexion-retour"
-                onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); }}
+                onClick={() => { setAttenteCode(null); setCode(''); setErreur(''); setEtatCode('saisie'); }}
               >
                 Retour
               </button>

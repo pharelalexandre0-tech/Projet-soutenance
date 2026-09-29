@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-  seConnecter, verifierDoubleFacteur, creerCompte, monProfil, mettreAJourMonProfil,
+  seConnecter, verifierDoubleFacteur, renvoyerCode, creerCompte, monProfil, mettreAJourMonProfil,
   demanderReinitialisation, reinitialiserMotDePasse,
 } = require('../controllers/authController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
@@ -9,6 +9,7 @@ const router = express.Router();
 
 router.post('/connexion', seConnecter);
 router.post('/connexion/double-facteur', verifierDoubleFacteur);
+router.post('/connexion/renvoyer-code', renvoyerCode);
 router.post('/mot-de-passe-oublie', demanderReinitialisation);
 router.post('/reinitialiser-mot-de-passe', reinitialiserMotDePasse);
 // Réservé à l'Académie : évite qu'un compte non authentifié s'auto-crée un

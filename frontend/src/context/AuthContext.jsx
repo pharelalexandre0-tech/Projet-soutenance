@@ -31,7 +31,7 @@ export function AuthProvider({ children }) {
   async function seConnecter(email, motDePasse) {
     const res = await client.post('/auth/connexion', { email, motDePasse });
     if (res.data.doubleFacteurRequis) {
-      return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId };
+      return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId, delaiRenvoi: res.data.delaiRenvoi };
     }
     sessionStorage.setItem('pgs_token', res.data.token);
     setProfil(res.data.profil);

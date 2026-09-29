@@ -2139,3 +2139,73 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
   line-height: 1; white-space: nowrap;
 }
 .entete-mobile .marque-initiales { font-size: 12px; }
+
+/* ---- Saisie du code de vérification : six bulles « liquides » ---- */
+.code-liquide {
+  --ecart: 6px; --case: calc((100% - 5 * var(--ecart)) / 6);
+  position: relative; width: 100%; max-width: 380px; height: 68px; margin: 4px auto 0;
+}
+.code-liquide-filtre { position: absolute; width: 0; height: 0; }
+.code-liquide-bulles { position: absolute; inset: 0; filter: url(#filtre-liquide); }
+.code-liquide .bulle {
+  position: absolute; top: 5px; height: 58px; width: var(--case);
+  left: calc(var(--i) * (var(--case) + var(--ecart)));
+  border-radius: 18px; background: #DCE2EA;
+  transition: left .55s cubic-bezier(.65, 0, .35, 1), width .55s cubic-bezier(.65, 0, .35, 1), height .55s, top .55s,
+    border-radius .55s, background-color .3s ease, transform .25s ease;
+  transition-delay: calc(var(--i) * 25ms);
+}
+.code-liquide .bulle.remplie { background: color-mix(in srgb, var(--edu-bleu) 32%, #fff); }
+.code-liquide .bulle.active { background: color-mix(in srgb, var(--edu-bleu) 20%, #fff); transform: scale(1.07); }
+.code-liquide:not(.etat-saisie) .bulle {
+  left: calc(50% - 32px); width: 64px; height: 64px; top: 2px; border-radius: 50%;
+  background: var(--edu-bleu); transform: none;
+}
+.code-liquide.etat-verification .code-liquide-bulles { animation: code-pulsation 1s ease-in-out .5s infinite; }
+.code-liquide.etat-succes .bulle { background: var(--succes); }
+.code-liquide.etat-erreur .bulle { background: var(--erreur); }
+.code-liquide.etat-erreur { animation: code-tremblement .45s ease .5s; }
+.code-liquide-cases {
+  position: absolute; inset: 0; display: grid; grid-template-columns: repeat(6, 1fr); gap: var(--ecart);
+  transition: opacity .2s ease;
+}
+.code-liquide-cases input {
+  width: 100%; height: 68px; min-width: 0; padding: 0; border: none; outline: none; background: transparent;
+  text-align: center; font: 700 24px var(--police); color: var(--edu-marine); caret-color: var(--edu-bleu);
+  box-shadow: none;
+}
+.code-liquide-cases input:focus { box-shadow: none; }
+.code-liquide:not(.etat-saisie) .code-liquide-cases { opacity: 0; pointer-events: none; }
+.code-liquide-resultat {
+  position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.code-liquide-resultat svg { width: 100%; height: 100%; fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.code-liquide-resultat .trace { stroke-dasharray: 32; stroke-dashoffset: 32; animation: code-trace .4s ease .45s forwards; }
+@keyframes code-pulsation { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes code-tremblement { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+@keyframes code-trace { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .code-liquide .bulle, .code-liquide-cases { transition: none; }
+  .code-liquide.etat-verification .code-liquide-bulles, .code-liquide.etat-erreur { animation: none; }
+}
+.connexion-renvoi { text-align: center; font-size: 13.5px; color: var(--texte-clair); margin: -4px 0 0; }
+.connexion-renvoi strong { color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.connexion-renvoi button {
+  background: none; border: none; padding: 2px 0; font: 600 13.5px var(--police); color: var(--primaire); cursor: pointer;
+}
+.connexion-renvoi button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.connexion-renvoi-ok { color: var(--succes); font-weight: 600; }
+.message-code-erreur { text-align: center; color: var(--erreur); font-size: 13.5px; font-weight: 600; margin: -6px 0 0; }
+
+/* Ouverture : identité de l'école du compte */
+.sceau-ouverture { animation: sceau-apparition .6s cubic-bezier(.22, 1, .36, 1) .15s both; }
+@keyframes sceau-apparition { from { opacity: 0; transform: scale(.6) rotate(-8deg); } to { opacity: 1; transform: none; } }
+.sceau-initiales { font-family: var(--police-marque); font-weight: 800; font-size: 30px; color: var(--edu-marine); letter-spacing: .02em; }
+.marque-lettres.nom-long { font-size: 1.6rem; max-width: min(90vw, 720px); line-height: 1.25; padding: 0 16px; }
+.ouverture-plateforme {
+  position: absolute; bottom: 28px; left: 0; right: 0; text-align: center;
+  font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: rgba(255, 255, 255, .5);
+  animation: tombe-doucement .4s ease 1.1s both;
+}
+@media (prefers-reduced-motion: reduce) { .sceau-ouverture, .ouverture-plateforme { animation: none; } }

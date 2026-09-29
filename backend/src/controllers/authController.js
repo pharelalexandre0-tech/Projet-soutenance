@@ -11,6 +11,7 @@ const { maintenanceEnCours, repondreMaintenance, journaliser } = require('../ser
 
 const DUREE_CODE_2FA_MIN = 10;
 const DUREE_RESET_MIN = 30;
+const DELAI_RENVOI_S = 50;
 
 const ROLES_AVEC_2FA = ['etudiant'];
 
@@ -100,7 +101,7 @@ async function seConnecter(req, res) {
       enfant: parent ? `${utilisateur.prenom} ${utilisateur.nom}` : null,
     });
     await envoyerEmail(destinataire, message.sujet, message.texte, [], { html: message.html });
-    return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id });
+    return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id, delaiRenvoi: DELAI_RENVOI_S });
   }
 
   if (utilisateur.role === 'superadmin') {
@@ -112,6 +113,37 @@ async function seConnecter(req, res) {
     token,
     profil: utilisateur.toPublicJSON(),
   });
+}
+
+// Nouveau code, au plus toutes les 50 secondes, envoyé à la même adresse
+// que le précédent (l'élève, ou son parent).
+async function renvoyerCode(req, res) {
+  const { utilisateurId } = req.body;
+  const utilisateur = utilisateurId ? await Utilisateur.scope('avecMotDePasse').findByPk(utilisateurId) : null;
+  if (!utilisateur || !utilisateur.codeDoubleFacteurExpire || !utilisateur.codeDoubleFacteurPour) {
+    return res.status(400).json({ erreur: 'aucune vérification en cours, reconnecte-toi' });
+  }
+  const envoyeLe = new Date(utilisateur.codeDoubleFacteurExpire).getTime() - DUREE_CODE_2FA_MIN * 60 * 1000;
+  const attente = Math.ceil((envoyeLe + DELAI_RENVOI_S * 1000 - Date.now()) / 1000);
+  if (attente > 0) return res.status(429).json({ erreur: `patiente encore ${attente} s avant de demander un nouveau code`, attente });
+
+  const etablissement = utilisateur.etablissementId ? await Etablissement.findByPk(utilisateur.etablissementId) : null;
+  const parent = !memeAdresse(utilisateur.codeDoubleFacteurPour, utilisateur.email);
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  utilisateur.codeDoubleFacteur = code;
+  utilisateur.codeDoubleFacteurExpire = new Date(Date.now() + DUREE_CODE_2FA_MIN * 60 * 1000);
+  await utilisateur.save();
+  const message = emailCodeConnexion({
+    prenom: parent ? null : utilisateur.prenom,
+    code,
+    minutes: DUREE_CODE_2FA_MIN,
+    etablissement,
+    role: parent ? 'parent' : utilisateur.role,
+    email: utilisateur.codeDoubleFacteurPour,
+    enfant: parent ? `${utilisateur.prenom} ${utilisateur.nom}` : null,
+  });
+  await envoyerEmail(utilisateur.codeDoubleFacteurPour, message.sujet, message.texte, [], { html: message.html, etablissement });
+  return res.json({ renvoye: true, delai: DELAI_RENVOI_S });
 }
 
 // Deuxième étape de la connexion Etudiant : vérifie le code reçu par
@@ -306,6 +338,7 @@ async function mettreAJourMonProfil(req, res) {
 
 module.exports = {
   seConnecter,
+  renvoyerCode,
   verifierDoubleFacteur,
   creerCompte,
   monProfil,
