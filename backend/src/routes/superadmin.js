@@ -9,6 +9,7 @@ const superadmin = autoriserRoles('superadmin');
 
 router.get('/etablissements', authentifier, superadmin, ctrl.listerEtablissements);
 router.get('/etablissements/:id', authentifier, superadmin, ctrl.obtenirEtablissement);
+router.post('/etablissements/export', authentifier, superadmin, ctrl.exporterEtablissements);
 router.post('/etablissements', authentifier, superadmin, ctrl.creerEtablissement);
 router.put('/etablissements/:id', authentifier, superadmin, ctrl.modifierEtablissement);
 router.delete('/etablissements/:id', authentifier, superadmin, ctrl.supprimerEtablissement);

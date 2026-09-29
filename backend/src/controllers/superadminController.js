@@ -17,10 +17,9 @@ const {
 // comptes, statuts), jamais le contenu pédagogique d'une école (nombre
 // d'élèves, de classes, de professeurs — ça, c'est le travail de l'Académie
 // de chaque établissement, pas du superadmin).
-async function listerEtablissements(req, res) {
+async function etablissementsAvecCompteurs() {
   const etablissements = await Etablissement.findAll({ order: [['nom', 'ASC']] });
-
-  const avecCompteurs = await Promise.all(
+  return Promise.all(
     etablissements.map(async (etab) => {
       const nbComptes = await Utilisateur.count({ where: { etablissementId: etab.id } });
       const nbComptesVerrouilles = await Utilisateur.count({ where: { etablissementId: etab.id, statut: 'verrouille' } });
@@ -28,8 +27,23 @@ async function listerEtablissements(req, res) {
       return { ...etab.toJSON(), nbComptes, nbComptesVerrouilles, nbFonctionnalites };
     })
   );
+}
 
-  return res.json({ etablissements: avecCompteurs });
+async function listerEtablissements(req, res) {
+  return res.json({ etablissements: await etablissementsAvecCompteurs() });
+}
+
+// Export PDF de la liste (celle affichée à l'écran : `ids`, dans son ordre).
+async function exporterEtablissements(req, res) {
+  const { genererExportEtablissementsPDF } = require('../services/exportService');
+  const tous = await etablissementsAvecCompteurs();
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(Number) : null;
+  const liste = ids ? ids.map((id) => tous.find((e) => e.id === id)).filter(Boolean) : tous;
+  const pdf = await genererExportEtablissementsPDF(liste);
+  await journaliser(req.utilisateur, 'etablissement', `Export PDF de ${liste.length} établissement${liste.length > 1 ? 's' : ''}`);
+  res.set('Content-Type', 'application/pdf');
+  res.set('Content-Disposition', `attachment; filename="etablissements-edusphere-${new Date().toISOString().slice(0, 10)}.pdf"`);
+  return res.send(pdf);
 }
 
 // Volontairement dépourvu de la liste des comptes de l'école : le superadmin
@@ -402,6 +416,7 @@ async function mettreAJourMonProfil(req, res) {
 }
 
 module.exports = {
+  exporterEtablissements,
   listerEtablissements,
   obtenirEtablissement,
   creerEtablissement,

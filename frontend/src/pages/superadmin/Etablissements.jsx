@@ -21,14 +21,6 @@ const TRIS = {
   comptes: { libelle: 'Le plus de comptes', fn: (a, b) => b.nbComptes - a.nbComptes },
 };
 
-// Échappe pour un CSV correct dès qu'une valeur contient un séparateur, un
-// guillemet ou un retour à la ligne — sinon "Ville, Pays" éclaterait la
-// ligne en deux colonnes à l'ouverture dans un tableur.
-function celluleCsv(valeur) {
-  const texte = String(valeur ?? '');
-  return /[",\n]/.test(texte) ? `"${texte.replace(/"/g, '""')}"` : texte;
-}
-
 function VignetteLogo({ logo }) {
   return (
     <span className="vignette-logo">
@@ -99,6 +91,7 @@ function ListeEtablissements({ etablissements, chargement, onOuvrir, onCreer }) 
   const [recherche, setRecherche] = useState('');
   const [filtreStatut, setFiltreStatut] = useState('');
   const [tri, setTri] = useState('recent');
+  const [erreurExport, setErreurExport] = useState('');
 
   const totalActives = etablissements.filter((e) => e.statut === 'actif').length;
   const totalComptes = etablissements.reduce((s, e) => s + e.nbComptes, 0);
@@ -112,20 +105,24 @@ function ListeEtablissements({ etablissements, chargement, onOuvrir, onCreer }) 
       .sort(TRIS[tri].fn);
   }, [etablissements, recherche, filtreStatut, tri]);
 
-  function exporterCsv() {
-    const entetes = ['Nom', 'Sigle', 'Ville', 'Pays', 'Statut', 'Fonctionnalités', 'Comptes', 'Comptes verrouillés', "Date d'affiliation"];
-    const lignes = affiches.map((e) => [
-      e.nom, e.sigle || '', e.ville, e.pays, e.statut, e.nbFonctionnalites ?? '', e.nbComptes, e.nbComptesVerrouilles,
-      new Date(e.createdAt).toLocaleDateString('fr-FR'),
-    ]);
-    // BOM UTF-8 en tête : sans lui, Excel sous Windows lit les accents du
-    // fichier comme du Latin-1 et affiche "Ã©cole" à la place de "école".
-    const contenu = '﻿' + [entetes, ...lignes].map((ligne) => ligne.map(celluleCsv).join(',')).join('\n');
-    const lien = document.createElement('a');
-    lien.href = URL.createObjectURL(new Blob([contenu], { type: 'text/csv;charset=utf-8' }));
-    lien.download = `etablissements-edusphere-${new Date().toISOString().slice(0, 10)}.csv`;
-    lien.click();
-    URL.revokeObjectURL(lien.href);
+  // Export PDF mis en page par le serveur (bandeau, chiffres clés, tableau
+  // des écoles avec leur logo), pour la liste telle qu'elle est affichée.
+  const [exportEnCours, setExportEnCours] = useState(false);
+  async function exporterPdf() {
+    setExportEnCours(true);
+    setErreurExport('');
+    try {
+      const res = await client.post('/superadmin/etablissements/export', { ids: affiches.map((e) => e.id) }, { responseType: 'blob' });
+      const lien = document.createElement('a');
+      lien.href = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      lien.download = `etablissements-edusphere-${new Date().toISOString().slice(0, 10)}.pdf`;
+      lien.click();
+      setTimeout(() => URL.revokeObjectURL(lien.href), 2000);
+    } catch {
+      setErreurExport("Impossible de générer l'export PDF pour le moment.");
+    } finally {
+      setExportEnCours(false);
+    }
   }
 
   return (
@@ -153,8 +150,8 @@ function ListeEtablissements({ etablissements, chargement, onOuvrir, onCreer }) 
         <div className="entete-carte">
           <h2>Écoles affiliées</h2>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button className="secondaire" onClick={exporterCsv} disabled={affiches.length === 0} title="Exporter la liste affichée en CSV">
-              <IconDownload /> Exporter
+            <button className="secondaire" onClick={exporterPdf} disabled={affiches.length === 0 || exportEnCours} title="Exporter la liste affichée en PDF">
+              <IconDownload /> {exportEnCours ? 'Préparation du PDF…' : 'Exporter en PDF'}
             </button>
             <button className="primaire" onClick={onCreer}><IconPlus /> Affilier une école</button>
           </div>
@@ -213,6 +210,7 @@ function ListeEtablissements({ etablissements, chargement, onOuvrir, onCreer }) 
           </table>
         </div>
       </div>
+      {erreurExport && <Toast message={erreurExport} type="erreur" onFermer={() => setErreurExport('')} />}
     </>
   );
 }
