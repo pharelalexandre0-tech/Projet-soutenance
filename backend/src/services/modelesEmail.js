@@ -73,18 +73,13 @@ function paragraphe(html, marge = '0 0 16px') {
   return `<p style="margin:${marge}; ${POLICE} font-size:15.5px; line-height:1.7; color:${COULEURS.texte};">${html}</p>`;
 }
 
-// Code à 6 chiffres : un chiffre par case, lisible d'un coup d'œil.
-function blocCode(code, validite) {
-  const cases = String(code).split('').map((chiffre, i) => `${i === 3 ? '<td width="14" style="width:14px;">&nbsp;</td>' : ''}
-      <td class="case-code" align="center" width="50" height="62" style="width:50px; height:62px; background-color:#ffffff; border:1px solid ${COULEURS.bordure}; border-bottom:3px solid ${COULEURS.bleu}; border-radius:12px; ${MONO} font-size:30px; font-weight:bold; color:${COULEURS.marine};">${chiffre}</td>
-      ${i < 5 && i !== 2 ? '<td width="8" style="width:8px;">&nbsp;</td>' : ''}`).join('');
+// Code à 6 chiffres, écrit en grand en deux groupes de trois (plus facile
+// à recopier), sur un simple fond teinté.
+function blocCode(code) {
+  const texte = String(code).replace(/^(\d{3})(\d{3})$/, '$1&nbsp;$2');
   return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;">
-  <tr><td align="center" style="background-color:${COULEURS.teinteBleue}; border-radius:16px; padding:26px 12px 22px;">
-    <div style="${POLICE} font-size:12px; font-weight:bold; letter-spacing:1.6px; text-transform:uppercase; color:${COULEURS.bleu}; margin-bottom:16px;">Votre code de vérification</div>
-    <table role="presentation" cellpadding="0" cellspacing="0"><tr>${cases}</tr></table>
-    ${validite ? `<div style="${POLICE} font-size:13px; color:${COULEURS.texteClair}; margin-top:16px;">&#9201;&nbsp; ${validite}</div>` : ''}
-  </td></tr>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:4px 0 20px;">
+  <tr><td class="bloc-code" style="background-color:${COULEURS.teinteBleue}; border-radius:12px; padding:14px 26px; ${MONO} font-size:34px; font-weight:bold; letter-spacing:6px; color:${COULEURS.marine};">${texte}</td></tr>
 </table>`;
 }
 
@@ -143,6 +138,14 @@ function note(titre, html) {
 </table>`;
 }
 
+// Vignette du logo. Texte de remplacement = initiales mises en forme : si
+// l'image ne se charge pas, la case affiche « IUSN » proprement plutôt qu'un
+// nom coupé.
+function imageLogo(url, taille, initiales) {
+  const police = Math.round(taille * (initiales.length > 3 ? 0.28 : 0.34));
+  return `<img src="${echapper(url)}" width="${taille}" height="${taille}" alt="${echapper(initiales)}" style="display:block; width:${taille}px; height:${taille}px; border:0; outline:none; text-decoration:none; ${POLICE} font-size:${police}px; font-weight:bold; line-height:${taille}px; text-align:center; color:${COULEURS.marine};">`;
+}
+
 function maintenant() {
   return new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Libreville' });
 }
@@ -163,7 +166,7 @@ function cadre({ surtitre, titre, contenu, etablissement, preEntete }) {
   const initiales = initialesEcole(etab);
   const tailleInitiales = initiales.length > 3 ? 19 : initiales.length > 2 ? 22 : 26;
   const vignette = logo
-    ? `<img src="${echapper(logo)}" width="64" height="64" alt="${echapper(etab?.nom || 'EduSphere')}" style="display:block; width:64px; height:64px; border:0; outline:none; text-decoration:none;">`
+    ? imageLogo(logo, 64, etab ? initiales : 'ES')
     : `<div style="${POLICE} font-size:${tailleInitiales}px; font-weight:bold; letter-spacing:1px; color:${COULEURS.marine}; line-height:76px; text-align:center;">${echapper(initiales)}</div>`;
   const nom = etab?.nom || 'EduSphere';
   const lieu = [etab?.ville, etab?.pays].filter(Boolean).join(', ');
@@ -230,6 +233,54 @@ ${preEntete ? `<div style="display:none; max-height:0; overflow:hidden; opacity:
 </body></html>`;
 }
 
+function cadreCourt({ contenu, etablissement, preEntete, titre }) {
+  const etab = identite(etablissement);
+  const logo = urlLogoEtablissement(etab) || (etab?.nom ? null : urlLogoEduSphere());
+  const initiales = etab?.nom ? initialesEcole(etab) : 'ES';
+  const nom = etab?.nom || 'EduSphere';
+  const lieu = [etab?.ville, etab?.pays].filter(Boolean).join(', ');
+  const vignette = logo
+    ? imageLogo(logo, 44, initiales)
+    : `<div style="${POLICE} font-size:${initiales.length > 3 ? 13 : 15}px; font-weight:bold; color:${COULEURS.marine}; line-height:44px; text-align:center;">${echapper(initiales)}</div>`;
+  const signature = etab?.nom ? `Le service de la scolarité, ${echapper(etab.nom)}` : "L'équipe EduSphere";
+
+  return `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${echapper(titre || nom)}</title>
+<style>
+  @media (max-width: 560px) {
+    .marge { padding-left: 22px !important; padding-right: 22px !important; }
+    .bloc-code { font-size: 28px !important; letter-spacing: 4px !important; padding: 12px 18px !important; }
+  }
+</style></head>
+<body style="margin:0; padding:0; background-color:${COULEURS.fond}; -webkit-text-size-adjust:100%;">
+${preEntete ? `<div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">${echapper(preEntete)}</div>` : ''}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${COULEURS.fond};">
+<tr><td align="center" style="padding:28px 10px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px; background-color:#ffffff; border:1px solid ${COULEURS.bordure}; border-radius:16px; overflow:hidden;">
+    <tr><td style="height:5px; line-height:5px; font-size:0; ${DEGRADE}">&nbsp;</td></tr>
+    <tr><td class="marge" style="padding:22px 32px 0;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td width="44" height="44" align="center" valign="middle" style="width:44px; height:44px; border:1px solid ${COULEURS.bordure}; border-radius:10px; background-color:#ffffff;">${vignette}</td>
+        <td style="padding-left:12px; vertical-align:middle; ${POLICE}">
+          <div style="font-size:15px; font-weight:bold; line-height:1.3; color:${COULEURS.marine};">${echapper(nom)}</div>
+          ${lieu ? `<div style="font-size:12.5px; line-height:1.4; color:${COULEURS.texteClair};">${echapper(lieu)}</div>` : ''}
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td class="marge" style="padding:22px 32px 6px;">
+      ${contenu}
+    </td></tr>
+    <tr><td class="marge" style="padding:0 32px 22px;">
+      <div style="border-top:1px solid ${COULEURS.bordure}; padding-top:14px; ${POLICE} font-size:12px; line-height:1.6; color:${COULEURS.texteDiscret};">
+        ${signature} &nbsp;·&nbsp; <a href="${echapper(lienPlateforme())}confidentialite" style="color:${COULEURS.texteDiscret}; text-decoration:underline;">Confidentialité</a>
+      </div>
+    </td></tr>
+  </table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
 function salutation(prenom) {
   return prenom ? `Bonjour ${echapper(nomPropre(prenom))},` : 'Bonjour,';
 }
@@ -249,7 +300,7 @@ const ESPACES = {
 
 // Code de double authentification (étudiants, et parents qui ouvrent le
 // compte de leur enfant : `enfant` est alors renseigné).
-function emailCodeConnexion({ prenom, code, minutes, etablissement, role, email, enfant }) {
+function emailCodeConnexion({ prenom, code, minutes, etablissement, role, enfant }) {
   const etab = identite(etablissement);
   const espace = ESPACES[role] ? `Espace ${ESPACES[role]}` : 'Votre espace';
   const sujet = `${code} est votre code de connexion`;
@@ -264,21 +315,18 @@ function emailCodeConnexion({ prenom, code, minutes, etablissement, role, email,
     '',
     "Vous n'êtes pas à l'origine de cette connexion ? Ignorez ce message : sans ce code, personne ne peut accéder à votre compte. Ne le communiquez à personne, même à un membre de l'administration.",
   ], etablissement);
-  // Un message, pas un ticket : quelques phrases autour du code, sans
-  // tableau de détails.
-  const ecole = etab?.nom ? ` (${echapper(etab.nom)})` : '';
+  // Court comme un message : bonjour, une phrase, le code, une ligne.
   const pour = enfant ? ` pour suivre le dossier de <strong>${echapper(enfant)}</strong>` : '';
-  const html = cadre({
-    surtitre: 'Votre code de connexion',
-    titre: prenom ? `${nomPropre(prenom)}, voici votre code` : 'Voici votre code de connexion',
+  const petit = `margin:0; ${POLICE} font-size:13.5px; line-height:1.6; color:${COULEURS.texteClair};`;
+  const html = cadreCourt({
+    titre: 'Votre code de connexion',
     etablissement,
     preEntete: `Votre code de connexion est ${code}. Il expire dans ${minutes} minutes.`,
     contenu: [
-      paragraphe(salutation(prenom)),
-      paragraphe(`Vous venez de demander à vous connecter à votre ${echapper(espace)}${ecole}${pour}. Saisissez simplement ce code sur la page de connexion pour continuer :`),
-      blocCode(code, `Valable ${minutes} minutes, une seule fois`),
-      paragraphe(`Demande reçue le ${echapper(maintenant())} pour le compte <strong>${echapper(email)}</strong>.`, '0 0 22px'),
-      note("Ce n'était pas vous ?", "Aucune inquiétude : sans ce code, personne ne peut entrer dans votre compte. Ignorez ce message et ne le transmettez à personne, même à un membre de l'administration."),
+      paragraphe(salutation(prenom), '0 0 10px'),
+      paragraphe(`Voici votre code pour vous connecter à votre ${echapper(espace)}${pour} :`, '0 0 14px'),
+      blocCode(code),
+      `<p style="${petit}">Il expire dans ${minutes} minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez simplement ce message.</p>`,
     ].join(''),
   });
   return { sujet, texte, html };

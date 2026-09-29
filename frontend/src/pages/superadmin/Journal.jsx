@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import { messageErreur } from '../../utils/erreurs';
-import { IconSearch } from '../../components/icons';
+import ConfirmModal from '../../components/ConfirmModal';
+import Toast from '../../components/Toast';
+import { IconSearch, IconTrash } from '../../components/icons';
 
 const CATEGORIES = {
   etablissement: 'Établissements',
@@ -32,6 +34,8 @@ export default function Journal() {
   const [erreur, setErreur] = useState('');
   const [categorie, setCategorie] = useState('');
   const [recherche, setRecherche] = useState('');
+  const [confirmation, setConfirmation] = useState(false);
+  const [toast, setToast] = useState(null);
 
   function charger() {
     client.get('/superadmin/journal')
@@ -53,13 +57,32 @@ export default function Journal() {
     else parJour.push({ libelle, entrees: [e] });
   });
 
+  async function vider() {
+    const res = await client.delete('/superadmin/journal', { params: categorie ? { categorie } : {} });
+    setConfirmation(false);
+    const n = res.data.supprimees;
+    setToast({ message: `${n} action${n > 1 ? 's' : ''} supprimée${n > 1 ? 's' : ''} du journal.`, type: 'succes' });
+    charger();
+  }
+  const concernees = categorie ? (entrees || []).filter((e) => e.categorie === categorie) : (entrees || []);
+  const aVider = concernees.length;
+  // Il ne reste que la trace d'une purge précédente : rien à vider.
+  const videDeja = concernees.every((e) => e.libelle.startsWith('Journal vidé'));
+
   const categoriesPresentes = Object.keys(CATEGORIES).filter((c) => (entrees || []).some((e) => e.categorie === c));
 
   return (
     <div className="carte">
       <div className="entete-carte">
         <h2>Actions des superadmins</h2>
-        {entrees && <span className="entete-carte-compteur">{affichees.length} action{affichees.length > 1 ? 's' : ''}</span>}
+        <div className="entete-carte-actions">
+          {entrees && <span className="entete-carte-compteur">{affichees.length} action{affichees.length > 1 ? 's' : ''}</span>}
+          {aVider > 0 && !videDeja && (
+            <button className="secondaire danger" onClick={() => setConfirmation(true)}>
+              <IconTrash /> {categorie ? `Vider « ${CATEGORIES[categorie]} »` : 'Vider le journal'}
+            </button>
+          )}
+        </div>
       </div>
       <p className="note-secondaire texte-aide">
         Chaque action sur la plateforme (écoles, modules, versions, annonces, maintenance, comptes superadmin,
@@ -104,6 +127,19 @@ export default function Journal() {
           </ol>
         </section>
       ))}
+
+      {confirmation && (
+        <ConfirmModal
+          titre={categorie ? `Vider la catégorie « ${CATEGORIES[categorie]} » ?` : 'Vider tout le journal ?'}
+          boutonConfirmer="Vider"
+          onConfirmer={vider}
+          onAnnuler={() => setConfirmation(false)}
+        >
+          {aVider} action{aVider > 1 ? 's' : ''} {aVider > 1 ? 'seront supprimées' : 'sera supprimée'} définitivement. Une seule
+          ligne restera, indiquant qui a vidé le journal et quand.
+        </ConfirmModal>
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
   );
 }

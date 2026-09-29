@@ -72,7 +72,7 @@ Les comptes de démonstration sont affichés à la fin de `seed:demo` (Académie
 `academie@ide.example.com`, `finance@ide.example.com` ; élèves : leur matricule ;
 parents : leur adresse et le matricule de l'enfant).
 
-Sans configuration d'envoi (voir `.env.example` : SendGrid, Resend ou SMTP), les e-mails
+Sans configuration d'envoi (voir `.env.example` : Brevo, SendGrid ou SMTP), les e-mails
 sont simulés et restent visibles dans le journal des e-mails du superadmin.
 
 ### Frontend

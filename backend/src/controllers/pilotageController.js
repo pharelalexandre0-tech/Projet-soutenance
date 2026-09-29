@@ -190,7 +190,31 @@ async function listerJournal(req, res) {
   return res.json({ entrees });
 }
 
+// Vider le journal (tout, ou une seule catégorie). Une ligne reste pour
+// dire qui l'a vidé et quand : sans elle, un journal vide ne prouverait
+// plus rien.
+const CATEGORIES_JOURNAL = {
+  etablissement: 'Établissements',
+  fonctionnalite: 'Fonctionnalités',
+  'mise-a-jour': 'Mises à jour',
+  annonce: 'Annonces',
+  maintenance: 'Maintenance',
+  compte: 'Comptes',
+  connexion: 'Connexions',
+  systeme: 'Système',
+};
+
+async function viderJournal(req, res) {
+  const categorie = CATEGORIES_JOURNAL[req.query.categorie] ? String(req.query.categorie) : null;
+  const supprimees = await JournalAdministration.destroy({ where: categorie ? { categorie } : {} });
+  await journaliser(req.utilisateur, 'systeme', categorie
+    ? `Journal vidé pour la catégorie « ${CATEGORIES_JOURNAL[categorie]} » (${supprimees} action${supprimees > 1 ? 's' : ''} supprimée${supprimees > 1 ? 's' : ''})`
+    : `Journal vidé (${supprimees} action${supprimees > 1 ? 's' : ''} supprimée${supprimees > 1 ? 's' : ''})`);
+  return res.json({ supprimees });
+}
+
 module.exports = {
+  viderJournal,
   listerMisesAJour,
   creerMiseAJour,
   modifierMiseAJour,

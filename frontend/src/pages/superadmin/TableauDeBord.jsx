@@ -9,7 +9,9 @@ import {
   IconCircleCheck,
 } from '../../components/icons';
 
-const LIBELLE_SERVICE = { gmail: 'Gmail', sendgrid: 'SendGrid', resend: 'Resend', smtp: 'SMTP' };
+// Gmail et Resend : services abandonnés, gardés pour les anciens envois du
+// journal.
+const LIBELLE_SERVICE = { brevo: 'Brevo', sendgrid: 'SendGrid', smtp: 'SMTP', gmail: 'Gmail', resend: 'Resend' };
 
 // Vue d'ensemble de la plateforme, jamais du contenu d'une école précise :
 // des totaux additionnés sur tous les établissements affiliés, la tendance
@@ -87,19 +89,19 @@ export default function TableauDeBord({ onNaviguer }) {
       <EtatPlateforme pilotage={pilotage} onNaviguer={onNaviguer} />
 
       <div className="grille-2">
-        <div className="carte carte-etiree">
+        <div className="carte carte-histogramme">
           <h2>Écoles affiliées par mois</h2>
           {!stats && <div className="chargement">Chargement…</div>}
           {stats && (
             <>
-              <div className="barres-liste">
+              <div className="histogramme" role="list">
                 {stats.croissance.map((m) => (
-                  <div className="barre-ligne" key={m.libelle}>
-                    <span style={{ textTransform: 'capitalize' }}>{m.libelle}</span>
-                    <div className="barre-piste">
-                      <div className="barre-remplissage" style={{ width: `${(m.total / maxMois) * 100}%` }} />
+                  <div className="histogramme-colonne" key={m.libelle} role="listitem" aria-label={`${m.libelle} : ${m.total}`}>
+                    <strong className={m.total ? '' : 'nul'}>{m.total}</strong>
+                    <div className="histogramme-piste">
+                      <div className="histogramme-barre" style={{ height: `${m.total ? Math.max(6, (m.total / maxMois) * 100) : 0}%` }} />
                     </div>
-                    <span>{m.total}</span>
+                    <span>{m.libelle}</span>
                   </div>
                 ))}
               </div>
@@ -143,7 +145,7 @@ export default function TableauDeBord({ onNaviguer }) {
             {configEmail && (
               <>
                 <ul className="liste-services">
-                  {['gmail', 'sendgrid', 'resend', 'smtp'].map((service) => (
+                  {['brevo', 'sendgrid', 'smtp'].map((service) => (
                     <li key={service}>
                       <span>
                         {LIBELLE_SERVICE[service]}
@@ -157,7 +159,7 @@ export default function TableauDeBord({ onNaviguer }) {
                 </ul>
                 <p className="note-secondaire" style={{ margin: '14px 0', fontSize: 14 }}>
                   {configEmail.actif
-                    ? "Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité Gmail, puis SendGrid, Resend et SMTP). Seul l'envoi par Gmail, ou un nom de domaine authentifié, évite durablement les courriers indésirables."
+                    ? "Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité Brevo, puis SendGrid et SMTP). Brevo authentifie lui-même les envois, ce qui les tient à l'écart des courriers indésirables."
                     : 'Aucun service configuré : les e-mails sont seulement écrits dans le journal du serveur.'}
                 </p>
                 <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>

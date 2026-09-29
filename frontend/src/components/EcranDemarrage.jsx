@@ -3,7 +3,7 @@ import logoIcon from '../assets/logo-icon.png';
 
 const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
 const NOM = 'EduSphere';
-const DUREE_AFFICHAGE_MS = 3000;
+const DUREE_AFFICHAGE_MS = 2600;
 const DUREE_TRANSITION_MS = 850;
 const COURBE = 'cubic-bezier(.65, 0, .35, 1)';
 
@@ -102,17 +102,9 @@ export default function EcranDemarrage({ onTermine }) {
 
   return (
     <div className={`ecran-demarrage ${depart ? 'depart' : ''}`} ref={racineRef} aria-hidden="true">
-      <div className="demarrage-embleme">
-        <svg className="demarrage-anneaux" viewBox="0 0 200 200">
-          <circle className="anneau anneau-exterieur" cx="100" cy="100" r="94" />
-          <circle className="anneau anneau-interieur" cx="100" cy="100" r="78" />
-        </svg>
-        <span className="demarrage-orbite"><span /></span>
-        <span className="demarrage-sceau" ref={sceauRef}>
-          <img src={logoIcon} alt="" />
-          <span className="demarrage-reflet" />
-        </span>
-      </div>
+      <span className="demarrage-sceau" ref={sceauRef}>
+        <img src={logoIcon} alt="" />
+      </span>
       <h1 className="demarrage-nom" ref={nomRef}>
         <span className="demarrage-lettres">
           {NOM.split('').map((lettre, i) => (

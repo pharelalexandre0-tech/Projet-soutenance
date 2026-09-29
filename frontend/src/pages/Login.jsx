@@ -9,6 +9,9 @@ import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
 
+// Temps pendant lequel « code accepté » (coche) reste à l'écran.
+const DUREE_SUCCES_MS = 1800;
+
 // Neuvième passe : deux cartes qui se chevauchent plutôt qu'une seule carte
 // coupée en deux (référence donnée par l'utilisateur) — la carte blanche du
 // formulaire est posée par-dessus la carte bleue, avec des formes
@@ -174,10 +177,12 @@ export default function Login() {
     // Laisse le temps à l'animation (bulles qui se rassemblent) d'être vue.
     const pause = () => new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - debut))));
     try {
-      await verifierDoubleFacteur(attenteCode.utilisateurId, saisi);
+      const session = await verifierDoubleFacteur(attenteCode.utilisateurId, saisi);
       await pause();
       setEtatCode('succes');
-      setTimeout(ouvrirSession, 900);
+      // La coche reste affichée le temps d'être lue, puis la session s'ouvre
+      // (profil et écran de chargement de l'école en même temps).
+      setTimeout(() => { session.appliquer(); ouvrirSession(); }, DUREE_SUCCES_MS);
     } catch (err) {
       await pause();
       setEtatCode('erreur');

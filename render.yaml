@@ -24,25 +24,13 @@ services:
         sync: false
         # Valeur définie manuellement dans le dashboard Render (non versionnée
         # ici pour ne pas être écrasée) : https://edusphere-frontend-pryg.onrender.com/acces-temporaire
-      - key: RESEND_API_KEY
+      # Envoi des e-mails par l'API de Brevo (HTTPS : Render bloque le SMTP
+      # sortant sur son plan gratuit). Valeurs saisies dans le tableau de
+      # bord, voir backend/.env.example. Sans elles, repli sur SendGrid,
+      # sinon simulation (console.log).
+      - key: BREVO_API_KEY
         sync: false
-      - key: RESEND_FROM
-        sync: false
-        # Render bloque le SMTP sortant sur son plan gratuit — Resend (API
-        # HTTP) est la voie qui fonctionne ici. Les variables SMTP_* restent
-        # supportées par le code pour un dev local ou un hébergeur qui
-        # autorise le SMTP, mais RESEND_API_KEY est prioritaire si présente.
-        # Sans aucune des deux, les e-mails sont simulés (console.log). Voir
-        # backend/.env.example pour le détail des deux options.
-      # Envoi par l'API Gmail (recommandé contre les courriers indésirables,
-      # voir backend/.env.example) : valeurs saisies dans le tableau de bord.
-      - key: GMAIL_CLIENT_ID
-        sync: false
-      - key: GMAIL_CLIENT_SECRET
-        sync: false
-      - key: GMAIL_REFRESH_TOKEN
-        sync: false
-      - key: GMAIL_FROM
+      - key: BREVO_FROM
         sync: false
 
   - name: edusphere-frontend

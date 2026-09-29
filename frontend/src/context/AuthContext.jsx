@@ -38,11 +38,14 @@ export function AuthProvider({ children }) {
     return { profil: res.data.profil };
   }
 
+  // Le profil n'est appliqué qu'à l'appel de `appliquer()` : l'écran de
+  // connexion garde ainsi le temps de montrer « code accepté » avant de
+  // céder la place à l'espace (un profil posé tout de suite le redirigeait
+  // aussitôt, animation coupée).
   async function verifierDoubleFacteur(utilisateurId, code) {
     const res = await client.post('/auth/connexion/double-facteur', { utilisateurId, code });
     sessionStorage.setItem('pgs_token', res.data.token);
-    setProfil(res.data.profil);
-    return res.data.profil;
+    return { profil: res.data.profil, appliquer: () => setProfil(res.data.profil) };
   }
 
   function seDeconnecter() {

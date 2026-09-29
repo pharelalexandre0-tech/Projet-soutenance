@@ -362,12 +362,11 @@ async function reinitialiserMotDePasseAcademie(req, res) {
 // n'est jamais arrivé" sans aller fouiller les variables d'environnement du
 // serveur à la main. Même ordre de priorité que emailService.envoyerEmail.
 async function obtenirConfigEmail(req, res) {
-  const gmail = Boolean(process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN && process.env.GMAIL_FROM);
+  const brevo = Boolean(process.env.BREVO_API_KEY && process.env.BREVO_FROM);
   const sendgrid = Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM);
-  const resend = Boolean(process.env.RESEND_API_KEY);
   const smtp = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-  const actif = gmail ? 'gmail' : sendgrid ? 'sendgrid' : resend ? 'resend' : smtp ? 'smtp' : null;
-  return res.json({ gmail, sendgrid, resend, smtp, actif, derniersEnvois: await derniersEnvois() });
+  const actif = brevo ? 'brevo' : sendgrid ? 'sendgrid' : smtp ? 'smtp' : null;
+  return res.json({ brevo, sendgrid, smtp, actif, derniersEnvois: await derniersEnvois() });
 }
 
 // Envoie un e-mail de test à l'adresse du superadmin lui-même — jamais à un

@@ -60,6 +60,7 @@ router.delete('/annonce', authentifier, superadmin, pilotage.retirerAnnonce);
 router.put('/maintenance', authentifier, superadmin, pilotage.definirMaintenance);
 
 router.get('/journal', authentifier, superadmin, pilotage.listerJournal);
+router.delete('/journal', authentifier, superadmin, pilotage.viderJournal);
 
 router.get('/superadmins', authentifier, superadmin, ctrl.listerSuperadmins);
 router.post('/comptes', authentifier, superadmin, ctrl.creerSuperadmin);

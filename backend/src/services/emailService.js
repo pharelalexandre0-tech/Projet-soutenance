@@ -1,6 +1,5 @@
 const fs = require('fs');
 const nodemailer = require('nodemailer');
-const MailComposer = require('nodemailer/lib/mail-composer');
 
 const { emailGenerique } = require('./modelesEmail');
 
@@ -57,16 +56,11 @@ function contenuPiece(p) {
   return p.contenu || fs.readFileSync(p.cheminAbsolu);
 }
 
-// Render bloque le SMTP sortant (ports 25/465/587) sur son plan gratuit —
+// Render bloque le SMTP sortant (ports 25/465/587) sur son plan gratuit :
 // une API HTTP (port 443, jamais bloqué) est donc la voie prioritaire.
-// SendGrid passe avant Resend : sa "Single Sender Verification" ne vérifie
-// qu'UNE adresse d'expédition (clic sur un lien reçu par mail, aucun DNS)
-// et envoie ensuite vers n'importe quel destinataire réel — alors que le
-// mode sandbox de Resend (sans domaine vérifié) refuse tout destinataire
-// qui n'est pas exactement le compte vérifié, alias compris. SMTP reste
-// utilisable en dev local ou sur un hébergeur qui l'autorise ; sans aucune
-// config, simulation par console.log pour ne pas dépendre d'identifiants
-// externes.
+// Ordre : Brevo, puis SendGrid, puis SMTP (dev local ou hébergeur qui
+// l'autorise) ; sans aucune configuration, simulation par console.log pour
+// ne pas dépendre d'identifiants externes.
 let transporteurSMTP = null;
 if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
   transporteurSMTP = nodemailer.createTransport({
@@ -76,7 +70,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
     // Sans ça, une connexion qui ne répond jamais (port SMTP bloqué par
     // l'hébergeur, ex. Render) bloquait la requête ~2 minutes avant
-    // d'échouer — même défaut que le fetch() de Resend/SendGrid avant leur
+    // d'échouer, même défaut que le fetch() de Brevo/SendGrid avant leur
     // AbortSignal.timeout, ici couvert par les propres options de nodemailer.
     connectionTimeout: 8000,
     greetingTimeout: 8000,
@@ -94,52 +88,37 @@ function enTetes(etablissement) {
   return { nom, repondreA: email };
 }
 
-// Gmail (API HTTPS, jamais bloquée par l'hébergeur) : le message part des
-// serveurs de Google, au nom de l'adresse Gmail elle-même. Les contrôles
-// SPF, DKIM et DMARC de gmail.com sont donc valides : c'est la voie qui
-// évite les spams sans posséder de nom de domaine. Configuration : voir
-// .env.example (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN,
-// GMAIL_FROM).
-let jetonGmail = { valeur: null, expire: 0 };
-async function jetonAccesGmail() {
-  if (jetonGmail.valeur && Date.now() < jetonGmail.expire - 60000) return jetonGmail.valeur;
-  const reponse = await fetch('https://oauth2.googleapis.com/token', {
+// Brevo (API HTTPS). L'expéditeur est une adresse vérifiée dans Brevo
+// (Expéditeurs > Ajouter) ; quand c'est une adresse gratuite (@gmail.com),
+// Brevo l'envoie sous son propre domaine authentifié (@brevosend.com), ce
+// qui passe les contrôles SPF, DKIM et DMARC des messageries. Le nom
+// affiché reste celui de l'école et les réponses vont à l'école.
+async function envoyerViaBrevo(destinataire, sujet, corps, html, piecesJointes, entetes) {
+  const reponse = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GMAIL_CLIENT_ID,
-      client_secret: process.env.GMAIL_CLIENT_SECRET,
-      refresh_token: process.env.GMAIL_REFRESH_TOKEN,
-      grant_type: 'refresh_token',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { email: process.env.BREVO_FROM, name: entetes.nom },
+      to: [{ email: destinataire }],
+      ...(entetes.repondreA && { replyTo: { email: entetes.repondreA, name: entetes.nom } }),
+      subject: sujet,
+      htmlContent: html,
+      textContent: corps,
+      // Brevo refuse une liste vide : la clé n'est envoyée qu'avec au moins
+      // une pièce jointe (le nom doit porter l'extension, ex. recu.pdf).
+      ...(piecesJointes.length > 0 && {
+        attachment: piecesJointes.map((p) => ({ name: p.nomFichier, content: contenuPiece(p).toString('base64') })),
+      }),
     }),
     signal: AbortSignal.timeout(8000),
   });
-  const donnees = await reponse.json().catch(() => ({}));
-  if (!reponse.ok || !donnees.access_token) throw new Error(`Google a refusé le jeton (${reponse.status}) : ${donnees.error || 'inconnu'}`);
-  jetonGmail = { valeur: donnees.access_token, expire: Date.now() + (donnees.expires_in || 3600) * 1000 };
-  return jetonGmail.valeur;
-}
-
-async function envoyerViaGmail(destinataire, sujet, corps, html, piecesJointes, entetes) {
-  const message = new MailComposer({
-    from: { name: entetes.nom, address: process.env.GMAIL_FROM },
-    to: destinataire,
-    ...(entetes.repondreA && { replyTo: entetes.repondreA }),
-    subject: sujet,
-    text: corps,
-    html,
-    attachments: piecesJointes.map((p) => ({ filename: p.nomFichier, content: contenuPiece(p) })),
-  });
-  const brut = await message.compile().build();
-  const reponse = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${await jetonAccesGmail()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ raw: brut.toString('base64url') }),
-    signal: AbortSignal.timeout(10000),
-  });
   if (!reponse.ok) {
     const detail = await reponse.text();
-    throw new Error(`Gmail a refusé l'envoi (${reponse.status}) : ${detail.slice(0, 200)}`);
+    throw new Error(`Brevo a refusé l'envoi (${reponse.status}) : ${detail.slice(0, 200)}`);
   }
 }
 
@@ -170,9 +149,8 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointe
         { type: 'text/html', value: html },
       ],
       // SendGrid refuse la requête entière si `attachments` est présent
-      // mais vide ("must have at least one attachment") — la clé ne doit
-      // apparaître que lorsqu'il y a vraiment une pièce jointe, jamais en
-      // tableau vide comme pour Resend (qui l'accepte sans problème).
+      // mais vide ("must have at least one attachment") : la clé ne doit
+      // apparaître que lorsqu'il y a vraiment une pièce jointe.
       ...(piecesJointes.length > 0 && {
         attachments: piecesJointes.map((p) => ({
           content: contenuPiece(p).toString('base64'),
@@ -189,37 +167,6 @@ async function envoyerViaSendGrid(destinataire, sujet, corps, html, piecesJointe
   if (!reponse.ok) {
     const detail = await reponse.text();
     throw new Error(`SendGrid a refusé l'envoi (${reponse.status}) : ${detail}`);
-  }
-}
-
-async function envoyerViaResend(destinataire, sujet, corps, html, piecesJointes, entetes) {
-  const reponse = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: process.env.RESEND_FROM || 'EduSphere <onboarding@resend.dev>',
-      to: destinataire,
-      ...(entetes.repondreA && { reply_to: entetes.repondreA }),
-      subject: sujet,
-      text: corps,
-      html,
-      attachments: piecesJointes.map((p) => ({
-        filename: p.nomFichier,
-        content: contenuPiece(p).toString('base64'),
-      })),
-    }),
-    // `fetch` n'a par défaut aucune limite de temps — un Resend qui traîne
-    // (ou un simple souci réseau sortant) bloquait la requête entière au
-    // lieu de basculer vers le repli, y compris pour la 2FA qui dépend de
-    // cet appel avant de répondre au navigateur.
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!reponse.ok) {
-    const detail = await reponse.text();
-    throw new Error(`Resend a refusé l'envoi (${reponse.status}) : ${detail}`);
   }
 }
 
@@ -249,14 +196,16 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], opti
   const entetes = enTetes(typeof etablissement === 'object' ? etablissement : null);
   const erreurs = [];
 
-  if (process.env.GMAIL_CLIENT_ID && process.env.GMAIL_CLIENT_SECRET && process.env.GMAIL_REFRESH_TOKEN && process.env.GMAIL_FROM) {
+  if (process.env.BREVO_API_KEY && process.env.BREVO_FROM) {
     try {
-      await envoyerViaGmail(destinataire, sujet, corps, html, piecesJointes, entetes);
-      consigner(destinataire, sujet, 'gmail', erreurs);
-      return { envoye: true, service: 'gmail', erreurs };
+      await envoyerViaBrevo(destinataire, sujet, corps, html, piecesJointes, entetes);
+      consigner(destinataire, sujet, 'brevo', erreurs);
+      return { envoye: true, service: 'brevo', erreurs };
     } catch (err) {
-      erreurs.push({ service: 'gmail', message: err.message.slice(0, 300) });
-      console.error(`[Service E-mail] Échec Gmail pour ${destinataire}, repli :`, err.message);
+      // Un e-mail 2FA qui échoue ne doit jamais bloquer la connexion : on
+      // passe au service suivant.
+      erreurs.push({ service: 'brevo', message: err.message.slice(0, 300) });
+      console.error(`[Service E-mail] Échec Brevo pour ${destinataire}, repli :`, err.message);
     }
   }
 
@@ -268,20 +217,6 @@ async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], opti
     } catch (err) {
       erreurs.push({ service: 'sendgrid', message: err.message.slice(0, 300) });
       console.error(`[Service E-mail] Échec SendGrid pour ${destinataire}, repli :`, err.message);
-    }
-  }
-
-  if (process.env.RESEND_API_KEY) {
-    try {
-      await envoyerViaResend(destinataire, sujet, corps, html, piecesJointes, entetes);
-      consigner(destinataire, sujet, 'resend', erreurs);
-      return { envoye: true, service: 'resend', erreurs };
-    } catch (err) {
-      // Le mode sandbox de Resend (aucun domaine vérifié) refuse tout
-      // destinataire qui n'est pas le compte vérifié. Un e-mail 2FA qui
-      // échoue ne doit jamais bloquer la connexion : on continue.
-      erreurs.push({ service: 'resend', message: err.message.slice(0, 300) });
-      console.error(`[Service E-mail] Échec Resend pour ${destinataire}, repli :`, err.message);
     }
   }
 
