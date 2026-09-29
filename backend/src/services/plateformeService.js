@@ -139,6 +139,8 @@ function repondreMaintenance(res, maintenance) {
       ? `EduSphere est en maintenance. ${maintenance.message}`
       : 'EduSphere est en maintenance, réessaie un peu plus tard.',
     maintenance: true,
+    detail: maintenance.message || null,
+    depuis: maintenance.depuis || null,
     finPrevue: maintenance.finPrevue || null,
   });
 }

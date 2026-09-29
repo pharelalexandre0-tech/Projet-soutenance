@@ -3,12 +3,13 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import {
-  IconLogout, IconMenu, IconClose, IconSettings, IconSearch, IconBell, IconMegaphone, IconChevronRight, IconSparkles,
+  IconLogout, IconMenu, IconClose, IconSettings, IconSearch, IconBell, IconChevronRight, IconSparkles,
   IconeFonctionnalite,
 } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
 import ModaleNouveautes from './ModaleNouveautes';
 import TiroirNotifications from './TiroirNotifications';
+import BandeauAnnonce from './BandeauAnnonce';
 import PaletteCommandes from './PaletteCommandes';
 import PageExtension from './PageExtension';
 import { PlateformeContext } from '../context/PlateformeContext';
@@ -293,16 +294,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
         <main className="espace-contenu">
           <div className="espace-contenu-interieur" key={section?.id}>
             {annonceVisible && (
-              <div className={`bandeau-annonce ${annonce.niveau === 'important' ? 'important' : ''}`} role="status">
-                <span className="bandeau-annonce-icone"><IconMegaphone /></span>
-                <div className="bandeau-annonce-texte">
-                  <strong>{annonce.niveau === 'important' ? 'Annonce importante' : 'Annonce'} de l'équipe EduSphere</strong>
-                  <p>{annonce.message}</p>
-                </div>
-                <button className="bandeau-annonce-fermer" onClick={masquerAnnonce} aria-label="Masquer l'annonce">
-                  <IconClose width={15} height={15} />
-                </button>
-              </div>
+              <BandeauAnnonce niveau={annonce.niveau} message={annonce.message} publieeLe={annonce.publieeLe} onMasquer={masquerAnnonce} />
             )}
             {avantContenu}
             {!bloquerContenu && (

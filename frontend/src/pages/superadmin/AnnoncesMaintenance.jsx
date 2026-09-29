@@ -5,7 +5,8 @@ import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 import { dateHeure, depuis, versIso, versLocale } from '../../utils/plateforme';
-import { IconMegaphone, IconWrench, IconClose } from '../../components/icons';
+import { IconWrench } from '../../components/icons';
+import BandeauAnnonce from '../../components/BandeauAnnonce';
 
 const MESSAGE_MAINTENANCE_DEFAUT = 'Mise à jour de la plateforme en cours.';
 
@@ -123,14 +124,7 @@ function CarteAnnonce({ annonce, onMiseAJour }) {
 
         <div className="apercu-bloc">
           <span className="apercu-libelle">Aperçu</span>
-          <div className={`bandeau-annonce ${niveau === 'important' ? 'important' : ''}`} aria-hidden="true">
-            <span className="bandeau-annonce-icone"><IconMegaphone width={18} height={18} /></span>
-            <div className="bandeau-annonce-texte">
-              <strong>{niveau === 'important' ? 'Annonce importante' : 'Annonce'} de l'équipe EduSphere</strong>
-              <p>{message || 'Ton message apparaîtra ici.'}</p>
-            </div>
-            <span className="bandeau-annonce-fermer"><IconClose width={14} height={14} /></span>
-          </div>
+          <BandeauAnnonce niveau={niveau} message={message || 'Ton message apparaîtra ici.'} publieeLe={new Date().toISOString()} apercu />
         </div>
 
         {erreur && <div className="message-erreur">{erreur}</div>}

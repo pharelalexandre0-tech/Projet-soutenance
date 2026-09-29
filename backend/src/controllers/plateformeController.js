@@ -8,7 +8,7 @@ async function statutPublic(req, res) {
   const maintenance = await maintenanceEnCours();
   return res.json({
     maintenance: maintenance
-      ? { actif: true, message: maintenance.message || null, finPrevue: maintenance.finPrevue || null }
+      ? { actif: true, message: maintenance.message || null, depuis: maintenance.depuis || null, finPrevue: maintenance.finPrevue || null }
       : { actif: false },
   });
 }
