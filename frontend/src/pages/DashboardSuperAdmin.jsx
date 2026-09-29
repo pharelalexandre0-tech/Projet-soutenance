@@ -1,7 +1,7 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
-  IconDashboard, IconBuilding, IconShield, IconUserCog, IconToggle, IconRocket, IconMegaphone, IconHistory,
+  IconDashboard, IconBuilding, IconShield, IconUserCog, IconToggle, IconRocket, IconMegaphone, IconHistory, IconDocument,
 } from '../components/icons';
 
 const TableauDeBord = lazy(() => import('./superadmin/TableauDeBord'));
@@ -12,6 +12,7 @@ const AnnoncesMaintenance = lazy(() => import('./superadmin/AnnoncesMaintenance'
 const Journal = lazy(() => import('./superadmin/Journal'));
 const Superadmins = lazy(() => import('./superadmin/Superadmins'));
 const MonProfil = lazy(() => import('./superadmin/MonProfil'));
+const PolitiqueConfidentialite = lazy(() => import('./superadmin/PolitiqueConfidentialite'));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
@@ -24,6 +25,8 @@ const ONGLETS = [
     description: 'Version en production et notes de version présentées aux écoles.' },
   { id: 'annonces', label: 'Annonces & maintenance', composant: AnnoncesMaintenance, icone: IconMegaphone, groupe: 'Plateforme',
     description: 'Bandeau d’information dans tous les espaces et mise en maintenance de la plateforme.' },
+  { id: 'confidentialite', label: 'Confidentialité', composant: PolitiqueConfidentialite, icone: IconDocument, groupe: 'Plateforme',
+    description: 'Politique de confidentialité publiée pour les écoles, les élèves et les familles.' },
   { id: 'journal', label: "Journal d'activité", composant: Journal, icone: IconHistory, groupe: 'Plateforme',
     description: 'Historique des actions effectuées par les superadmins.' },
   { id: 'superadmins', label: 'Superadmins', composant: Superadmins, icone: IconShield, groupe: 'Administration',

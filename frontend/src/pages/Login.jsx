@@ -365,6 +365,7 @@ export default function Login() {
             <p className="connexion-note-parent">
               Parent d'élève ? Connectez-vous avec votre adresse e-mail et le matricule de votre enfant.
             </p>
+            <a className="lien-confidentialite" href="/confidentialite">Politique de confidentialité</a>
           </form>
         </div>
       </div>

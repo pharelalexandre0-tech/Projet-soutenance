@@ -2209,3 +2209,51 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
   animation: tombe-doucement .4s ease 1.1s both;
 }
 @media (prefers-reduced-motion: reduce) { .sceau-ouverture, .ouverture-plateforme { animation: none; } }
+
+/* ---- Politique de confidentialité (page publique) ---- */
+.page-confidentialite { min-height: 100vh; background: var(--fond); display: flex; flex-direction: column; }
+.confidentialite-bandeau { background: var(--degrade-plateforme); color: #fff; border-bottom: 4px solid var(--edu-or); }
+.confidentialite-bandeau-interieur { max-width: 1080px; margin: 0 auto; padding: 28px 24px 44px; }
+.confidentialite-retour { display: inline-flex; align-items: center; gap: 8px; color: rgba(255, 255, 255, .85); font-size: 14px; text-decoration: none; }
+.confidentialite-retour:hover { color: #fff; text-decoration: underline; text-underline-offset: 3px; }
+.confidentialite-retour svg { width: 16px; height: 16px; }
+.confidentialite-marque { display: flex; align-items: center; gap: 10px; margin: 28px 0 22px; font-weight: 700; font-size: 15px; }
+.confidentialite-logo { width: 38px; height: 38px; border-radius: 10px; background: #fff; padding: 3px; display: inline-flex; }
+.confidentialite-logo img { width: 100%; height: 100%; object-fit: contain; }
+.confidentialite-pastille {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px; border-radius: 999px;
+  background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28);
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+}
+.confidentialite-pastille svg { width: 14px; height: 14px; }
+.confidentialite-bandeau h1 { font-size: clamp(28px, 4vw, 40px); margin: 14px 0 12px; letter-spacing: -.02em; text-wrap: balance; }
+.confidentialite-bandeau p { max-width: 680px; margin: 0; line-height: 1.65; color: rgba(255, 255, 255, .85); font-size: 16px; }
+.confidentialite-corps { flex: 1; width: 100%; max-width: 1080px; margin: 0 auto; padding: 36px 24px 56px; }
+.confidentialite-grille { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 36px; align-items: start; }
+.confidentialite-sommaire {
+  position: sticky; top: 24px; background: var(--carte); border: 1px solid var(--bordure); border-radius: 14px; padding: 20px 20px 14px;
+}
+.confidentialite-sommaire strong { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--texte-clair); }
+.confidentialite-sommaire ol { margin: 12px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 9px; font-size: 14px; line-height: 1.4; }
+.confidentialite-sommaire a { color: var(--texte); text-decoration: none; }
+.confidentialite-sommaire a:hover { color: var(--primaire); text-decoration: underline; text-underline-offset: 3px; }
+.confidentialite-texte { background: var(--carte); border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 36px 28px; }
+.confidentialite-texte section { padding: 24px 0 6px; border-bottom: 1px solid var(--bordure); scroll-margin-top: 20px; }
+.confidentialite-texte section:last-child { border-bottom: none; }
+.confidentialite-texte h2 { display: flex; align-items: baseline; gap: 12px; font-size: 19px; margin: 0 0 12px; color: var(--edu-marine); }
+.confidentialite-texte h2 span { font-size: 13px; font-weight: 800; color: var(--primaire); font-variant-numeric: tabular-nums; }
+.confidentialite-texte p { margin: 0 0 14px; line-height: 1.75; font-size: 15.5px; color: var(--texte); max-width: 68ch; }
+.confidentialite-pied { text-align: center; padding: 18px 16px 26px; color: var(--texte-clair); font-size: 13px; }
+@media (max-width: 860px) {
+  .confidentialite-grille { grid-template-columns: minmax(0, 1fr); }
+  .confidentialite-sommaire { position: static; }
+  .confidentialite-texte { padding: 6px 20px 20px; }
+}
+.lien-confidentialite { display: block; text-align: center; margin-top: -6px; font-size: 12.5px; color: var(--texte-clair); }
+.lien-confidentialite:hover { color: var(--primaire); }
+.sections-politique { display: flex; flex-direction: column; gap: 16px; }
+.section-politique { border: 1px solid var(--bordure); border-radius: 12px; padding: 14px; background: var(--carte); }
+.section-politique-entete { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.section-politique-entete input { flex: 1; font-weight: 600; }
+.section-politique-numero { font-weight: 800; color: var(--primaire); font-variant-numeric: tabular-nums; min-width: 22px; }
+.section-politique textarea { width: 100%; resize: vertical; line-height: 1.6; }

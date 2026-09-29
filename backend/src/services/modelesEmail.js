@@ -217,7 +217,7 @@ ${preEntete ? `<div style="display:none; max-height:0; overflow:hidden; opacity:
       ${lieu ? `${echapper(lieu)}<br>` : ''}
       ${contacts ? `${contacts}<br>` : ''}
       <div style="margin-top:12px; color:#D3E1F2;">${reponse}</div>
-      <div style="margin-top:6px; color:#8C9AB3; font-size:11.5px;">${raison}</div>
+      <div style="margin-top:6px; color:#8C9AB3; font-size:11.5px;">${raison} <a href="${echapper(lienPlateforme())}confidentialite" style="color:#D3E1F2; text-decoration:underline;">Politique de confidentialité</a></div>
     </td></tr>
   </table>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">

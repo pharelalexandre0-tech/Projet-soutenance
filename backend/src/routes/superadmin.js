@@ -10,6 +10,25 @@ const superadmin = autoriserRoles('superadmin');
 router.get('/etablissements', authentifier, superadmin, ctrl.listerEtablissements);
 router.get('/etablissements/:id', authentifier, superadmin, ctrl.obtenirEtablissement);
 router.post('/etablissements/export', authentifier, superadmin, ctrl.exporterEtablissements);
+router.put('/confidentialite', authentifier, superadmin, async (req, res) => {
+  const { enregistrerPolitique } = require('../services/confidentialiteService');
+  const { journaliser } = require('../services/plateformeService');
+  try {
+    const politique = await enregistrerPolitique(req.body.sections);
+    await journaliser(req.utilisateur, 'systeme', 'Mise à jour de la politique de confidentialité');
+    return res.json(politique);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ erreur: err.message });
+    throw err;
+  }
+});
+router.delete('/confidentialite', authentifier, superadmin, async (req, res) => {
+  const { reinitialiserPolitique } = require('../services/confidentialiteService');
+  const { journaliser } = require('../services/plateformeService');
+  const politique = await reinitialiserPolitique();
+  await journaliser(req.utilisateur, 'systeme', 'Retour au texte par défaut de la politique de confidentialité');
+  return res.json(politique);
+});
 router.post('/etablissements', authentifier, superadmin, ctrl.creerEtablissement);
 router.put('/etablissements/:id', authentifier, superadmin, ctrl.modifierEtablissement);
 router.delete('/etablissements/:id', authentifier, superadmin, ctrl.supprimerEtablissement);
