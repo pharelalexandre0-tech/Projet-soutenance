@@ -94,15 +94,22 @@ function enTetes(etablissement) {
 // qui passe les contrôles SPF, DKIM et DMARC des messageries. Le nom
 // affiché reste celui de l'école et les réponses vont à l'école.
 async function envoyerViaBrevo(destinataire, sujet, corps, html, piecesJointes, entetes) {
+  // Espaces, retours à la ligne ou guillemets collés avec la clé dans le
+  // tableau de bord de l'hébergeur : ignorés.
+  const cle = String(process.env.BREVO_API_KEY).trim().replace(/^["']|["']$/g, '');
+  // Erreur fréquente : la clé SMTP (xsmtpsib-) au lieu de la clé API (xkeysib-).
+  if (cle.startsWith('xsmtpsib-')) {
+    throw new Error("BREVO_API_KEY contient une clé SMTP (xsmtpsib-) : il faut une clé API, onglet « Clés API », qui commence par xkeysib-");
+  }
   const reponse = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
-      'api-key': process.env.BREVO_API_KEY,
+      'api-key': cle,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
     body: JSON.stringify({
-      sender: { email: process.env.BREVO_FROM, name: entetes.nom },
+      sender: { email: String(process.env.BREVO_FROM).trim(), name: entetes.nom },
       to: [{ email: destinataire }],
       ...(entetes.repondreA && { replyTo: { email: entetes.repondreA, name: entetes.nom } }),
       subject: sujet,
