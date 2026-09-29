@@ -11,16 +11,23 @@ const { urlLogoEtablissement, urlLogoEduSphere, lienPlateforme } = require('../u
 const COULEURS = {
   marine: '#0B1E3D',
   bleu: '#1D5FA8',
+  teal: '#157A8C',
+  vert: '#1F8A54',
+  or: '#F0AD2E',
   texte: '#1C2321',
   texteClair: '#5F6765',
   texteDiscret: '#8A918E',
   bordure: '#E2E5E1',
   fond: '#EEF1F4',
   zone: '#F5F7FA',
+  teinteBleue: '#EEF4FB',
   succes: '#136B44',
   erreur: '#A23B2E',
   alerte: '#9C6B12',
 };
+// Dégradé de la plateforme (même que l'application), avec une couleur de
+// repli pour les messageries qui ignorent les dégradés (Outlook).
+const DEGRADE = `background-color:${COULEURS.bleu}; background-image:linear-gradient(135deg, ${COULEURS.marine} 0%, ${COULEURS.bleu} 48%, ${COULEURS.teal} 76%, ${COULEURS.vert} 100%);`;
 const POLICE = "font-family:'Segoe UI',Arial,'Helvetica Neue',Helvetica,sans-serif;";
 const MONO = "font-family:'SFMono-Regular',Consolas,'Courier New',Courier,monospace;";
 
@@ -54,36 +61,39 @@ function identite(etablissement) {
 }
 
 function paragraphe(html, marge = '0 0 16px') {
-  return `<p style="margin:${marge}; ${POLICE} font-size:15px; line-height:1.65; color:${COULEURS.texte};">${html}</p>`;
+  return `<p style="margin:${marge}; ${POLICE} font-size:15.5px; line-height:1.7; color:${COULEURS.texte};">${html}</p>`;
 }
 
+// Code à 6 chiffres : un chiffre par case, lisible d'un coup d'œil.
 function blocCode(code, validite) {
-  const espace = `${code.slice(0, 3)}&nbsp;${code.slice(3)}`;
+  const cases = String(code).split('').map((chiffre, i) => `${i === 3 ? '<td width="14" style="width:14px;">&nbsp;</td>' : ''}
+      <td class="case-code" align="center" width="50" height="62" style="width:50px; height:62px; background-color:#ffffff; border:1px solid ${COULEURS.bordure}; border-bottom:3px solid ${COULEURS.bleu}; border-radius:12px; ${MONO} font-size:30px; font-weight:bold; color:${COULEURS.marine};">${chiffre}</td>
+      ${i < 5 && i !== 2 ? '<td width="8" style="width:8px;">&nbsp;</td>' : ''}`).join('');
   return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 26px;">
-  <tr><td align="center" style="background-color:${COULEURS.zone}; border:1px solid ${COULEURS.bordure}; border-radius:8px; padding:24px 16px 20px;">
-    <div style="${POLICE} font-size:11px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; color:${COULEURS.texteClair};">Code de vérification</div>
-    <div style="${MONO} font-size:36px; font-weight:bold; letter-spacing:6px; color:${COULEURS.marine}; margin-top:10px;">${espace}</div>
-    ${validite ? `<div style="${POLICE} font-size:13px; color:${COULEURS.texteClair}; margin-top:10px;">${validite}</div>` : ''}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 28px;">
+  <tr><td align="center" style="background-color:${COULEURS.teinteBleue}; border-radius:16px; padding:26px 12px 22px;">
+    <div style="${POLICE} font-size:12px; font-weight:bold; letter-spacing:1.6px; text-transform:uppercase; color:${COULEURS.bleu}; margin-bottom:16px;">Votre code de vérification</div>
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>${cases}</tr></table>
+    ${validite ? `<div style="${POLICE} font-size:13px; color:${COULEURS.texteClair}; margin-top:16px;">&#9201;&nbsp; ${validite}</div>` : ''}
   </td></tr>
 </table>`;
 }
 
 function blocValeur(libelle, valeur) {
   return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 26px;">
-  <tr><td align="center" style="background-color:${COULEURS.zone}; border:1px solid ${COULEURS.bordure}; border-radius:8px; padding:22px 16px;">
-    <div style="${POLICE} font-size:11px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; color:${COULEURS.texteClair};">${echapper(libelle)}</div>
-    <div style="${MONO} font-size:26px; font-weight:bold; letter-spacing:2px; color:${COULEURS.marine}; margin-top:8px;">${echapper(valeur)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 26px;">
+  <tr><td align="center" style="background-color:${COULEURS.teinteBleue}; border-radius:16px; padding:24px 16px;">
+    <div style="${POLICE} font-size:12px; font-weight:bold; letter-spacing:1.6px; text-transform:uppercase; color:${COULEURS.bleu};">${echapper(libelle)}</div>
+    <div style="${MONO} font-size:28px; font-weight:bold; letter-spacing:2px; color:${COULEURS.marine}; margin-top:10px;">${echapper(valeur)}</div>
   </td></tr>
 </table>`;
 }
 
 function bouton(libelle, lien) {
   return `
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
-  <tr><td style="background-color:${COULEURS.marine}; border-radius:6px;">
-    <a href="${echapper(lien)}" style="display:inline-block; padding:14px 30px; ${POLICE} font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:6px;">${echapper(libelle)}</a>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:10px 0 26px;">
+  <tr><td style="${DEGRADE} border-radius:999px;">
+    <a href="${echapper(lien)}" style="display:inline-block; padding:16px 34px; ${POLICE} font-size:15.5px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:999px;">${echapper(libelle)}&nbsp;&nbsp;&rarr;</a>
   </td></tr>
 </table>`;
 }
@@ -96,21 +106,30 @@ function lienDeSecours(lien) {
 function tableauDetails(lignes, titre) {
   const rangees = lignes.filter(([, v]) => v !== undefined && v !== null && v !== '').map(([cle, valeur], i) => `
     <tr>
-      <td style="padding:11px 16px; ${POLICE} font-size:13.5px; color:${COULEURS.texteClair}; width:38%; vertical-align:top; ${i ? `border-top:1px solid ${COULEURS.bordure};` : ''}">${echapper(cle)}</td>
-      <td style="padding:11px 16px; ${POLICE} font-size:14px; font-weight:bold; color:${COULEURS.texte}; vertical-align:top; ${i ? `border-top:1px solid ${COULEURS.bordure};` : ''}">${echapper(valeur)}</td>
+      <td style="padding:13px 18px; ${POLICE} font-size:13.5px; color:${COULEURS.texteClair}; width:40%; vertical-align:top; background-color:${i % 2 ? '#ffffff' : COULEURS.zone};">${echapper(cle)}</td>
+      <td style="padding:13px 18px; ${POLICE} font-size:14px; font-weight:bold; color:${COULEURS.marine}; vertical-align:top; background-color:${i % 2 ? '#ffffff' : COULEURS.zone};">${echapper(valeur)}</td>
     </tr>`).join('');
   return `
-${titre ? `<div style="${POLICE} font-size:11px; font-weight:bold; letter-spacing:1.5px; text-transform:uppercase; color:${COULEURS.texteClair}; margin:4px 0 8px;">${echapper(titre)}</div>` : ''}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px; border:1px solid ${COULEURS.bordure}; border-radius:8px; border-collapse:separate;">${rangees}</table>`;
+${titre ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:6px 0 10px;"><tr>
+  <td width="10" style="width:10px; height:10px; ${DEGRADE} border-radius:3px; font-size:0; line-height:0;">&nbsp;</td>
+  <td style="padding-left:10px; ${POLICE} font-size:12px; font-weight:bold; letter-spacing:1.4px; text-transform:uppercase; color:${COULEURS.texte};">${echapper(titre)}</td>
+</tr></table>` : ''}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 26px; border:1px solid ${COULEURS.bordure}; border-radius:14px; border-collapse:separate; overflow:hidden;">${rangees}</table>`;
 }
 
-// Note de bas de message (sécurité, bon à savoir) : texte discret séparé
-// par un filet, sans encadré coloré.
+// Encadré d'information (sécurité, bon à savoir) avec pastille « i ».
 function note(titre, html) {
   return `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 0;">
-  <tr><td style="border-top:1px solid ${COULEURS.bordure}; padding-top:18px; ${POLICE} font-size:13px; line-height:1.6; color:${COULEURS.texteClair};">
-    ${titre ? `<strong style="color:${COULEURS.texte};">${echapper(titre)}</strong><br>` : ''}${html}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 0;">
+  <tr><td style="background-color:${COULEURS.zone}; border:1px solid ${COULEURS.bordure}; border-radius:14px; padding:18px 20px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+      <td width="30" valign="top" style="width:30px;">
+        <div style="width:26px; height:26px; border-radius:13px; background-color:${COULEURS.bleu}; color:#ffffff; ${POLICE} font-size:14px; font-weight:bold; line-height:26px; text-align:center;">i</div>
+      </td>
+      <td style="padding-left:12px; ${POLICE} font-size:13.5px; line-height:1.6; color:${COULEURS.texteClair};">
+        ${titre ? `<strong style="color:${COULEURS.marine}; font-size:14px;">${echapper(titre)}</strong><br>` : ''}${html}
+      </td>
+    </tr></table>
   </td></tr>
 </table>`;
 }
@@ -119,11 +138,13 @@ function maintenant() {
   return new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Libreville' });
 }
 
-// Cadre commun. Structure : filet aux couleurs de la plateforme, en-tête
-// blanc avec le logo de l'école (carré de 64 px : les logos sont préparés
-// en carré à l'enregistrement, donc jamais déformés ni minuscules) et son
-// nom, puis le message, la signature, la raison de l'envoi et les
-// coordonnées de l'école. Largeur 600 px, tableaux et styles en ligne.
+// Cadre commun. Structure : bandeau en dégradé aux couleurs d'EduSphere
+// (logo de l'école en vignette blanche de 64 px : les logos sont préparés en
+// carré à l'enregistrement, donc jamais déformés ni minuscules, nom de
+// l'école, surtitre en pastille et titre), liseré doré, message, signature,
+// puis pied de page sombre avec les coordonnées de l'école, la possibilité
+// de répondre et la raison de l'envoi. Tableaux et styles en ligne pour les
+// messageries ; adaptation téléphone par une règle @media.
 function cadre({ surtitre, titre, contenu, etablissement, preEntete }) {
   const etab = identite(etablissement);
   const annee = new Date().getFullYear();
@@ -131,47 +152,61 @@ function cadre({ surtitre, titre, contenu, etablissement, preEntete }) {
   const nom = etab?.nom || 'EduSphere';
   const lieu = [etab?.ville, etab?.pays].filter(Boolean).join(', ');
   const contacts = [etab?.boitePostale, etab?.telephone, etab?.email].filter(Boolean).map(echapper).join(' &nbsp;·&nbsp; ');
-  const signature = etab?.nom ? `Le service de la scolarité<br><strong>${echapper(etab.nom)}</strong>` : "<strong>L'équipe EduSphere</strong>";
+  const signature = etab?.nom ? `Le service de la scolarité<br><strong style="color:${COULEURS.marine};">${echapper(etab.nom)}</strong>` : `<strong style="color:${COULEURS.marine};">L'équipe EduSphere</strong>`;
   const raison = etab?.nom
     ? `Vous recevez ce message parce que votre adresse est enregistrée auprès de ${echapper(etab.nom)} sur la plateforme EduSphere.`
     : 'Vous recevez ce message parce que votre adresse est enregistrée sur la plateforme EduSphere.';
   const reponse = etab?.email
     ? `Une question ? Répondez simplement à ce message, il parviendra à ${echapper(etab.nom)}.`
-    : 'Message automatique : pour toute question, adressez-vous au service de la scolarité.';
+    : 'Pour toute question, adressez-vous au service de la scolarité.';
 
   return `<!DOCTYPE html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${echapper(titre || nom)}</title></head>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${echapper(titre || nom)}</title>
+<style>
+  @media (max-width: 620px) {
+    .marge { padding-left: 22px !important; padding-right: 22px !important; }
+    .titre-principal { font-size: 23px !important; }
+    .case-code { width: 40px !important; height: 52px !important; font-size: 24px !important; }
+  }
+</style></head>
 <body style="margin:0; padding:0; background-color:${COULEURS.fond}; -webkit-text-size-adjust:100%;">
 ${preEntete ? `<div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">${echapper(preEntete)}</div>` : ''}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${COULEURS.fond};">
-<tr><td align="center" style="padding:32px 12px 28px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
-    <tr><td style="background-color:${COULEURS.marine}; height:6px; line-height:6px; font-size:0; border-radius:10px 10px 0 0;">&nbsp;</td></tr>
-    <tr><td style="background-color:#ffffff; padding:24px 40px 22px; border-left:1px solid ${COULEURS.bordure}; border-right:1px solid ${COULEURS.bordure}; border-bottom:1px solid ${COULEURS.bordure};">
+<tr><td align="center" style="padding:32px 10px 30px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background-color:#ffffff; border-radius:20px; overflow:hidden; box-shadow:0 12px 40px rgba(11, 30, 61, 0.12);">
+    <tr><td class="marge" style="${DEGRADE} padding:34px 40px 38px;">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-        <td width="72" style="width:72px; height:72px; border:1px solid ${COULEURS.bordure}; border-radius:12px; background-color:#ffffff; text-align:center; vertical-align:middle;">
-          <img src="${echapper(logo)}" width="64" height="64" alt="${echapper(nom)}" style="display:block; margin:4px; width:64px; height:64px; border:0; outline:none; text-decoration:none;">
+        <td width="76" height="76" align="center" valign="middle" style="width:76px; height:76px; background-color:#ffffff; border-radius:18px; box-shadow:0 6px 18px rgba(0, 0, 0, 0.18);">
+          <img src="${echapper(logo)}" width="64" height="64" alt="${echapper(nom)}" style="display:block; width:64px; height:64px; border:0; outline:none; text-decoration:none;">
         </td>
-        <td style="padding-left:16px; vertical-align:middle; ${POLICE}">
-          <div style="font-size:18px; font-weight:bold; line-height:1.3; color:${COULEURS.marine};">${echapper(nom)}</div>
-          ${lieu ? `<div style="font-size:13px; line-height:1.4; color:${COULEURS.texteClair}; margin-top:3px;">${echapper(lieu)}</div>` : ''}
+        <td style="padding-left:18px; vertical-align:middle; ${POLICE}">
+          <div style="font-size:19px; font-weight:bold; line-height:1.3; color:#ffffff;">${echapper(nom)}</div>
+          ${lieu ? `<div style="font-size:13px; line-height:1.4; color:#D3E1F2; margin-top:4px;">${echapper(lieu)}</div>` : ''}
         </td>
       </tr></table>
+      ${surtitre ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:30px 0 12px;"><tr><td style="background-color:rgba(255, 255, 255, 0.16); border:1px solid rgba(255, 255, 255, 0.28); border-radius:999px; padding:6px 14px; ${POLICE} font-size:11.5px; font-weight:bold; letter-spacing:1.4px; text-transform:uppercase; color:#ffffff;">${echapper(surtitre)}</td></tr></table>` : '<div style="height:26px; line-height:26px; font-size:0;">&nbsp;</div>'}
+      ${titre ? `<h1 class="titre-principal" style="margin:0; ${POLICE} font-size:27px; line-height:1.25; font-weight:bold; color:#ffffff;">${echapper(titre)}</h1>` : ''}
     </td></tr>
-    <tr><td style="background-color:#ffffff; padding:32px 40px 30px; border-left:1px solid ${COULEURS.bordure}; border-right:1px solid ${COULEURS.bordure};">
-      ${surtitre ? `<div style="${POLICE} font-size:12px; font-weight:bold; letter-spacing:1px; color:${COULEURS.bleu}; margin:0 0 8px;">${echapper(surtitre)}</div>` : ''}
-      ${titre ? `<h1 style="margin:0 0 22px; ${POLICE} font-size:22px; line-height:1.35; font-weight:bold; color:${COULEURS.texte};">${echapper(titre)}</h1>` : ''}
+    <tr><td style="height:4px; line-height:4px; font-size:0; background-color:${COULEURS.or};">&nbsp;</td></tr>
+    <tr><td class="marge" style="padding:34px 40px 10px;">
       ${contenu}
-      ${paragraphe(`Cordialement,<br>${signature}`, '26px 0 0')}
     </td></tr>
-    <tr><td style="background-color:${COULEURS.zone}; border:1px solid ${COULEURS.bordure}; border-radius:0 0 10px 10px; padding:20px 40px; ${POLICE} font-size:12px; line-height:1.65; color:${COULEURS.texteClair};">
-      <strong style="color:${COULEURS.texte};">${echapper(nom)}</strong>${lieu ? `, ${echapper(lieu)}` : ''}<br>
+    <tr><td class="marge" style="padding:18px 40px 34px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top:1px solid ${COULEURS.bordure}; padding-top:22px; ${POLICE} font-size:15px; line-height:1.6; color:${COULEURS.texte};">
+        Cordialement,<br>${signature}
+      </td></tr></table>
+    </td></tr>
+    <tr><td class="marge" style="background-color:${COULEURS.marine}; padding:26px 40px 28px; ${POLICE} font-size:12.5px; line-height:1.7; color:#AEBBD0;">
+      <div style="font-size:14px; font-weight:bold; color:#ffffff; margin-bottom:4px;">${echapper(nom)}</div>
+      ${lieu ? `${echapper(lieu)}<br>` : ''}
       ${contacts ? `${contacts}<br>` : ''}
-      ${reponse}<br>
-      <span style="color:${COULEURS.texteDiscret};">${raison}</span>
+      <div style="margin-top:12px; color:#D3E1F2;">${reponse}</div>
+      <div style="margin-top:6px; color:#8C9AB3; font-size:11.5px;">${raison}</div>
     </td></tr>
-    <tr><td align="center" style="padding:16px 12px 0; ${POLICE} font-size:11.5px; color:${COULEURS.texteDiscret};">
-      © ${annee} EduSphere, plateforme de gestion scolaire
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
+    <tr><td align="center" style="padding:18px 12px 0; ${POLICE} font-size:11.5px; color:${COULEURS.texteDiscret};">
+      © ${annee} EduSphere · plateforme de gestion scolaire
     </td></tr>
   </table>
 </td></tr>
