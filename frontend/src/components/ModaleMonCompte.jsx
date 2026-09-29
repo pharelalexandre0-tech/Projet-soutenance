@@ -63,7 +63,8 @@ function CompteEtudiant({ profil }) {
 
 function CompteModifiable() {
   const { profil, mettreAJourProfil } = useAuth();
-  const [form, setForm] = useState({ nom: profil?.nom || '', prenom: profil?.prenom || '', motDePasse: '' });
+  const [form, setForm] = useState({ nom: profil?.nom || '', prenom: profil?.prenom || '', email: profil?.email || '', motDePasse: '', motDePasseActuel: '' });
+  const emailModifie = form.email.trim().toLowerCase() !== (profil?.email || '').toLowerCase();
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
   const [succes, setSucces] = useState('');
@@ -74,11 +75,12 @@ function CompteModifiable() {
     setErreur('');
     setSucces('');
     try {
-      const payload = { nom: form.nom, prenom: form.prenom };
+      const payload = { nom: form.nom, prenom: form.prenom, email: form.email.trim() };
       if (form.motDePasse) payload.motDePasse = form.motDePasse;
+      if (emailModifie || form.motDePasse) payload.motDePasseActuel = form.motDePasseActuel;
       const res = await client.put('/auth/mon-profil', payload);
       mettreAJourProfil(res.data.profil);
-      setForm({ ...form, motDePasse: '' });
+      setForm({ ...form, email: res.data.profil.email, motDePasse: '', motDePasseActuel: '' });
       setSucces('Compte mis à jour.');
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'échec de la mise à jour');
@@ -89,7 +91,10 @@ function CompteModifiable() {
 
   return (
     <form className="formulaire" onSubmit={enregistrer}>
-      <div className="champ"><label>Adresse e-mail</label><input value={profil?.email || ''} disabled /></div>
+      <div className="champ">
+        <label>Adresse e-mail (identifiant de connexion)</label>
+        <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+      </div>
       <div className="ligne-champs">
         <div className="champ"><label>Prénom</label><input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} required /></div>
         <div className="champ"><label>Nom</label><input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
@@ -98,6 +103,12 @@ function CompteModifiable() {
         <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
         <ChampMotDePasse autoComplete="new-password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={6} />
       </div>
+      {(emailModifie || form.motDePasse) && (
+        <div className="champ">
+          <label>Mot de passe actuel (pour confirmer)</label>
+          <ChampMotDePasse autoComplete="current-password" value={form.motDePasseActuel} onChange={(e) => setForm({ ...form, motDePasseActuel: e.target.value })} required />
+        </div>
+      )}
       {erreur && <div className="message-erreur">{erreur}</div>}
       {succes && <div className="message-succes">{succes}</div>}
       <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer'}</button>

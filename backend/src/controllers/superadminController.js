@@ -408,10 +408,26 @@ async function mettreAJourMonProfil(req, res) {
     }
     req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
   }
+  // Nouvelle adresse (identifiant de connexion) : mot de passe actuel exigé,
+  // adresse valide et libre.
+  const nouvelEmail = String(req.body.email || '').trim();
+  const changeEmail = nouvelEmail && nouvelEmail.toLowerCase() !== String(req.utilisateur.email).toLowerCase();
+  if (changeEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nouvelEmail)) return res.status(400).json({ erreur: 'adresse e-mail invalide' });
+    const avecMotDePasse = await Utilisateur.scope('avecMotDePasse').findByPk(req.utilisateur.id);
+    if (!req.body.motDePasseActuel || !(await bcrypt.compare(req.body.motDePasseActuel, avecMotDePasse.motDePasse))) {
+      return res.status(400).json({ erreur: 'mot de passe actuel incorrect' });
+    }
+    if (await Utilisateur.findOne({ where: { email: nouvelEmail } })) {
+      return res.status(400).json({ erreur: 'cette adresse est déjà utilisée par un autre compte' });
+    }
+    req.utilisateur.email = nouvelEmail;
+  }
   req.utilisateur.nom = nom;
   req.utilisateur.prenom = prenom;
   await req.utilisateur.save();
   if (motDePasse) await journaliser(req.utilisateur, 'compte', 'Changement de son propre mot de passe');
+  if (changeEmail) await journaliser(req.utilisateur, 'compte', 'Changement de son adresse e-mail de connexion');
   return res.json({ profil: req.utilisateur.toPublicJSON() });
 }
 

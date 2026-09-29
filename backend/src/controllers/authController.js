@@ -323,6 +323,23 @@ async function mettreAJourMonProfil(req, res) {
   if (!nom || !prenom) {
     return res.status(400).json({ erreur: 'nom et prénom sont obligatoires' });
   }
+  // Changer d'identifiant (e-mail) ou de mot de passe demande le mot de
+  // passe actuel : une session laissée ouverte ne suffit pas.
+  const nouvelEmail = String(req.body.email || '').trim();
+  const changeEmail = nouvelEmail && nouvelEmail.toLowerCase() !== String(req.utilisateur.email).toLowerCase();
+  if (changeEmail || motDePasse) {
+    const avecMotDePasse = await Utilisateur.scope('avecMotDePasse').findByPk(req.utilisateur.id);
+    if (!req.body.motDePasseActuel || !(await bcrypt.compare(req.body.motDePasseActuel, avecMotDePasse.motDePasse))) {
+      return res.status(400).json({ erreur: 'mot de passe actuel incorrect' });
+    }
+  }
+  if (changeEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nouvelEmail)) return res.status(400).json({ erreur: 'adresse e-mail invalide' });
+    if (await Utilisateur.findOne({ where: { email: nouvelEmail } })) {
+      return res.status(400).json({ erreur: 'cette adresse est déjà utilisée par un autre compte' });
+    }
+    req.utilisateur.email = nouvelEmail;
+  }
   req.utilisateur.nom = nom;
   req.utilisateur.prenom = prenom;
   if (motDePasse) {

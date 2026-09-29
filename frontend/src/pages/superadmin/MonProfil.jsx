@@ -148,17 +148,24 @@ export default function MonProfil({ onNaviguer }) {
 }
 
 function InformationsPersonnelles({ profil, onEnregistre }) {
-  const [form, setForm] = useState({ prenom: profil?.prenom || '', nom: profil?.nom || '' });
+  const [form, setForm] = useState({ prenom: profil?.prenom || '', nom: profil?.nom || '', email: profil?.email || '' });
+  const [motDePasseActuel, setMotDePasseActuel] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
-  const modifie = form.prenom !== profil?.prenom || form.nom !== profil?.nom;
+  const emailModifie = form.email.trim().toLowerCase() !== (profil?.email || '').toLowerCase();
+  const modifie = form.prenom !== profil?.prenom || form.nom !== profil?.nom || emailModifie;
 
   async function enregistrer(e) {
     e.preventDefault();
     setEnCours(true);
     setErreur('');
     try {
-      const res = await client.put('/superadmin/mon-profil', form);
+      const res = await client.put('/superadmin/mon-profil', {
+        prenom: form.prenom, nom: form.nom, email: form.email.trim(),
+        ...(emailModifie && { motDePasseActuel }),
+      });
+      setMotDePasseActuel('');
+      setForm({ prenom: res.data.profil.prenom, nom: res.data.profil.nom, email: res.data.profil.email });
       onEnregistre(res.data.profil);
     } catch (err) {
       setErreur(messageErreur(err, 'échec de la mise à jour'));
@@ -176,10 +183,17 @@ function InformationsPersonnelles({ profil, onEnregistre }) {
           <div className="champ"><label htmlFor="p-nom">Nom</label><input id="p-nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} required /></div>
         </div>
         <div className="champ">
-          <label htmlFor="p-email">Adresse e-mail</label>
-          <input id="p-email" value={profil?.email || ''} disabled />
-          <small className="note-secondaire">C'est ton identifiant de connexion : il ne se modifie pas.</small>
+          <label htmlFor="p-email">Adresse e-mail (identifiant de connexion)</label>
+          <input id="p-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
+          <small className="note-secondaire">Enregistrée dans la base : elle devient aussitôt ton identifiant pour te connecter.</small>
         </div>
+        {emailModifie && (
+          <div className="champ">
+            <label htmlFor="p-mdp-actuel">Mot de passe actuel</label>
+            <input id="p-mdp-actuel" type="password" autoComplete="current-password" value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)} required />
+            <small className="note-secondaire">Demandé pour confirmer le changement d'identifiant.</small>
+          </div>
+        )}
         {erreur && <div className="message-erreur">{erreur}</div>}
         <button className="primaire" type="submit" disabled={enCours || !modifie}>{enCours ? 'Enregistrement…' : 'Enregistrer'}</button>
       </form>
