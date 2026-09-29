@@ -16,6 +16,9 @@ export const LIBELLES_TYPES = {
   module: 'Module intégré',
   page: "Page d'information",
   lien: 'Service en ligne',
+  assistant: 'Assistant (chatbot)',
+  formulaire: 'Formulaire de demande',
+  registre: 'Registre',
 };
 
 const FILTRES = [
@@ -79,8 +82,10 @@ export default function Fonctionnalites() {
           <IconInfo />
           <span>
             Chaque école ne reçoit que les fonctionnalités que tu lui ajoutes. Les <strong>modules intégrés</strong> font
-            partie du code d'EduSphere ; les fonctionnalités <strong>personnalisées</strong> (page d'information ou service
-            en ligne) se créent ici, sans développement, et apparaissent comme un nouvel onglet dans les espaces choisis.
+            partie du code d'EduSphere : ouvre leur fiche pour les ajouter aux écoles qui en ont besoin. Les
+            fonctionnalités <strong>personnalisées</strong> se créent ici, sans développement, selon la demande d'une
+            école : assistant qui répond aux questions, formulaire de demande traité par l'Académie, registre tenu
+            par l'Académie, page d'information ou service en ligne. Chacune devient un vrai onglet dans les espaces choisis.
           </span>
         </div>
 
@@ -236,6 +241,32 @@ function GestionFonctionnalite({ fonctionnalite: f, ecoles, onFermer, onModifier
             <p className="note-secondaire" style={{ margin: '6px 0 0', fontSize: 13 }}>Bouton affiché : « {f.libelleBouton} »</p>
           </section>
         )}
+        {f.type === 'assistant' && f.configuration && (
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Ce que l'assistant sait ({f.configuration.questions.length} réponses)</h3>
+            <ul className="liste-reglages">
+              {f.configuration.questions.map((q) => <li key={q.question}>{q.question}</li>)}
+            </ul>
+          </section>
+        )}
+        {f.type === 'formulaire' && f.configuration && (
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Champs du formulaire</h3>
+            <ul className="liste-reglages">
+              {f.configuration.champs.map((c) => (
+                <li key={c.id}>{c.libelle} <span className="note-secondaire">({LIBELLES_CHAMPS[c.type]}{c.obligatoire ? ', obligatoire' : ''})</span></li>
+              ))}
+            </ul>
+            <p className="note-secondaire" style={{ margin: '8px 0 0', fontSize: 13 }}>Les demandes arrivent dans l'onglet du même nom de l'espace Académie.</p>
+          </section>
+        )}
+        {f.type === 'registre' && f.configuration && (
+          <section className="tiroir-section">
+            <h3 className="tiroir-section-titre">Colonnes du registre</h3>
+            <div className="puces">{f.configuration.colonnes.map((c) => <span key={c.id} className="puce">{c.libelle}</span>)}</div>
+            <p className="note-secondaire" style={{ margin: '8px 0 0', fontSize: 13 }}>Tenu par l'Académie, consulté dans les espaces choisis.</p>
+          </section>
+        )}
         {f.type === 'page' && (
           <section className="tiroir-section">
             <h3 className="tiroir-section-titre">Contenu de la page</h3>
@@ -288,23 +319,64 @@ function GestionFonctionnalite({ fonctionnalite: f, ecoles, onFermer, onModifier
 }
 
 const TYPES_CREATION = [
-  { id: 'page', titre: "Page d'information", aide: 'Règlement intérieur, calendrier académique, procédures… Un texte affiché dans un onglet.' },
-  { id: 'lien', titre: 'Service en ligne', aide: 'Bibliothèque numérique, cours en ligne, visioconférence… Un onglet qui ouvre ce service.' },
+  { id: 'assistant', icone: 'Bot', titre: 'Assistant (chatbot)', aide: "Répond sur-le-champ aux questions fréquentes (examens, frais, inscriptions…). Les questions sans réponse remontent à l'Académie." },
+  { id: 'formulaire', icone: 'ClipboardList', titre: 'Formulaire de demande', aide: "Attestation, stage, réclamation… Les demandes arrivent à l'Académie, qui les traite et répond." },
+  { id: 'registre', icone: 'Table2', titre: 'Registre', aide: "Offres de stage, objets trouvés, clubs… Une liste tenue par l'Académie et consultée dans les espaces." },
+  { id: 'page', icone: 'FileText', titre: "Page d'information", aide: 'Règlement intérieur, calendrier académique, procédures… Un texte affiché dans un onglet.' },
+  { id: 'lien', icone: 'Globe', titre: 'Service en ligne', aide: 'Bibliothèque numérique, cours en ligne, visioconférence… Un onglet qui ouvre ce service.' },
 ];
+
+const LIBELLES_CHAMPS = {
+  texte: 'Texte court', long: 'Texte long', nombre: 'Nombre', date: 'Date', choix: 'Liste de choix', email: 'E-mail', telephone: 'Téléphone', lien: 'Lien',
+};
+const TYPES_CHAMPS = ['texte', 'long', 'nombre', 'date', 'choix', 'email', 'telephone'];
+const TYPES_COLONNES = ['texte', 'long', 'nombre', 'date', 'lien'];
+
+// Réglages mis en forme pour l'édition (listes saisies séparées par des
+// virgules) ; le serveur accepte les deux formes.
+function configurationEditable(type, configuration) {
+  if (type === 'assistant') {
+    return {
+      accueil: configuration?.accueil || '',
+      questions: (configuration?.questions || [{ question: '', reponse: '', motsCles: [] }])
+        .map((q) => ({ question: q.question, reponse: q.reponse, motsCles: (q.motsCles || []).join(', ') })),
+    };
+  }
+  if (type === 'formulaire') {
+    return {
+      messageConfirmation: configuration?.messageConfirmation || '',
+      champs: (configuration?.champs || [{ libelle: '', type: 'texte', obligatoire: true, options: [] }])
+        .map((c) => ({ libelle: c.libelle, type: c.type, obligatoire: c.obligatoire, options: (c.options || []).join(', ') })),
+    };
+  }
+  if (type === 'registre') {
+    return { colonnes: (configuration?.colonnes || [{ libelle: '', type: 'texte' }]).map((c) => ({ libelle: c.libelle, type: c.type })) };
+  }
+  return null;
+}
 
 function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, onEnregistree }) {
   const edition = Boolean(fonctionnalite);
   const [form, setForm] = useState(() => ({
-    type: fonctionnalite?.type || 'page',
+    type: fonctionnalite?.type || 'assistant',
     nom: fonctionnalite?.nom || '',
     description: fonctionnalite?.description || '',
-    icone: fonctionnalite?.icone || 'FileText',
+    icone: fonctionnalite?.icone || 'Bot',
     espaces: fonctionnalite?.espaces || ['etudiant'],
     contenu: fonctionnalite?.contenu || '',
     url: fonctionnalite?.url || '',
     libelleBouton: fonctionnalite?.libelleBouton || '',
     ecoles: [],
   }));
+  // Réglages de chaque type actif, gardés séparément : changer de type
+  // pendant la création ne perd pas ce qui a déjà été saisi.
+  const [reglages, setReglages] = useState(() => ({
+    assistant: configurationEditable('assistant', fonctionnalite?.type === 'assistant' ? fonctionnalite.configuration : null),
+    formulaire: configurationEditable('formulaire', fonctionnalite?.type === 'formulaire' ? fonctionnalite.configuration : null),
+    registre: configurationEditable('registre', fonctionnalite?.type === 'registre' ? fonctionnalite.configuration : null),
+  }));
+  const majReglages = (valeur) => setReglages((r) => ({ ...r, [form.type]: valeur }));
+  const [iconeChoisie, setIconeChoisie] = useState(edition);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
 
@@ -319,9 +391,10 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
     setEnCours(true);
     setErreur('');
     try {
+      const corps = { ...form, configuration: reglages[form.type] || null };
       const res = edition
-        ? await client.put(`/superadmin/fonctionnalites/${fonctionnalite.cle}`, form)
-        : await client.post('/superadmin/fonctionnalites', form);
+        ? await client.put(`/superadmin/fonctionnalites/${fonctionnalite.cle}`, corps)
+        : await client.post('/superadmin/fonctionnalites', corps);
       onEnregistree(res.data.fonctionnalite, !edition);
     } catch (err) {
       setErreur(messageErreur(err, "impossible d'enregistrer cette fonctionnalité"));
@@ -330,15 +403,21 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
   }
 
   return (
-    <Modal titre={edition ? `Modifier « ${fonctionnalite.nom} »` : 'Créer une fonctionnalité'} onFermer={onFermer} largeur={640}>
+    <Modal titre={edition ? `Modifier « ${fonctionnalite.nom} »` : 'Créer une fonctionnalité'} onFermer={onFermer} largeur={720}>
       <form className="formulaire" onSubmit={soumettre}>
         {!edition && (
           <div className="champ">
             <label>Type</label>
             <div className="choix-type">
               {TYPES_CREATION.map((t) => (
-                <button key={t.id} type="button" className={`option-type ${form.type === t.id ? 'choisie' : ''}`} onClick={() => maj('type', t.id)} aria-pressed={form.type === t.id}>
-                  <span className="tuile-fonctionnalite personnalisee"><IconeFonctionnalite nom={t.id === 'page' ? 'FileText' : 'Globe'} /></span>
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`option-type ${form.type === t.id ? 'choisie' : ''}`}
+                  onClick={() => setForm((f) => ({ ...f, type: t.id, icone: iconeChoisie ? f.icone : t.icone }))}
+                  aria-pressed={form.type === t.id}
+                >
+                  <span className="tuile-fonctionnalite personnalisee"><IconeFonctionnalite nom={t.icone} /></span>
                   <span><strong>{t.titre}</strong><small>{t.aide}</small></span>
                 </button>
               ))}
@@ -349,7 +428,7 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
         <div className="champ">
           <label htmlFor="f-nom">Nom de l'onglet</label>
           <input id="f-nom" value={form.nom} onChange={(e) => maj('nom', e.target.value)} maxLength={80}
-            placeholder={form.type === 'page' ? 'Ex. Règlement intérieur' : 'Ex. Bibliothèque numérique'} required />
+            placeholder={EXEMPLES_NOMS[form.type]} required />
         </div>
         <div className="champ">
           <label htmlFor="f-desc">Description</label>
@@ -363,7 +442,7 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
             {icones.map((nom) => {
               const Icone = ICONES_FONCTIONNALITES[nom];
               return (
-                <button key={nom} type="button" className={`option-icone ${form.icone === nom ? 'choisie' : ''}`} onClick={() => maj('icone', nom)} aria-label={nom} aria-pressed={form.icone === nom}>
+                <button key={nom} type="button" className={`option-icone ${form.icone === nom ? 'choisie' : ''}`} onClick={() => { maj('icone', nom); setIconeChoisie(true); }} aria-label={nom} aria-pressed={form.icone === nom}>
                   {Icone && <Icone />}
                 </button>
               );
@@ -386,13 +465,17 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
           </div>
         </div>
 
-        {form.type === 'page' ? (
+        {form.type === 'assistant' && <EditeurAssistant valeur={reglages.assistant} onChange={majReglages} />}
+        {form.type === 'formulaire' && <EditeurFormulaire valeur={reglages.formulaire} onChange={majReglages} />}
+        {form.type === 'registre' && <EditeurRegistre valeur={reglages.registre} onChange={majReglages} />}
+        {form.type === 'page' && (
           <div className="champ">
             <label htmlFor="f-contenu">Contenu de la page</label>
             <textarea id="f-contenu" rows={8} maxLength={8000} value={form.contenu} onChange={(e) => maj('contenu', e.target.value)}
               placeholder="Le texte affiché dans l'onglet. Les retours à la ligne sont conservés." required />
           </div>
-        ) : (
+        )}
+        {form.type === 'lien' && (
           <div className="ligne-champs">
             <div className="champ" style={{ flex: 2 }}>
               <label htmlFor="f-url">Adresse du service</label>
@@ -432,5 +515,136 @@ function FormulaireFonctionnalite({ fonctionnalite, ecoles, icones, onFermer, on
         </div>
       </form>
     </Modal>
+  );
+}
+
+const EXEMPLES_NOMS = {
+  assistant: 'Ex. Assistant de scolarité',
+  formulaire: 'Ex. Demande de document',
+  registre: 'Ex. Offres de stage',
+  page: 'Ex. Règlement intérieur',
+  lien: 'Ex. Bibliothèque numérique',
+};
+
+// Petite liste éditable : une carte par élément, ajout et retrait.
+function ListeEditable({ titre, elements, nouveau, max, libelleAjout, onChange, rendu }) {
+  const modifier = (i, champ, v) => onChange(elements.map((e, j) => (j === i ? { ...e, [champ]: v } : e)));
+  return (
+    <div className="champ">
+      <label>{titre} ({elements.length}/{max})</label>
+      <div className="editeur-lignes">
+        {elements.map((e, i) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <div key={i} className="editeur-ligne">
+            <div className="editeur-ligne-entete">
+              <strong>N° {i + 1}</strong>
+              {elements.length > 1 && (
+                <button type="button" className="bouton-icone" aria-label="Retirer" onClick={() => onChange(elements.filter((_, j) => j !== i))}>
+                  <IconTrash />
+                </button>
+              )}
+            </div>
+            {rendu(e, (champ, v) => modifier(i, champ, v))}
+          </div>
+        ))}
+      </div>
+      {elements.length < max && (
+        <button type="button" className="secondaire" style={{ marginTop: 10, alignSelf: 'flex-start' }} onClick={() => onChange([...elements, nouveau])}>
+          <IconPlus /> {libelleAjout}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EditeurAssistant({ valeur, onChange }) {
+  return (
+    <>
+      <div className="champ">
+        <label htmlFor="f-accueil">Message d'accueil</label>
+        <textarea id="f-accueil" rows={2} maxLength={300} value={valeur.accueil} onChange={(e) => onChange({ ...valeur, accueil: e.target.value })}
+          placeholder="Bonjour, je suis l'assistant de l'école. Posez-moi votre question." />
+      </div>
+      <ListeEditable
+        titre="Questions et réponses"
+        elements={valeur.questions}
+        nouveau={{ question: '', reponse: '', motsCles: '' }}
+        max={60}
+        libelleAjout="Ajouter une question"
+        onChange={(questions) => onChange({ ...valeur, questions })}
+        rendu={(q, maj) => (
+          <>
+            <input value={q.question} onChange={(e) => maj('question', e.target.value)} maxLength={200} placeholder="Question, ex. Quand ont lieu les examens ?" aria-label="Question" />
+            <textarea rows={3} value={q.reponse} onChange={(e) => maj('reponse', e.target.value)} maxLength={2000} placeholder="Réponse donnée par l'assistant" aria-label="Réponse" />
+            <input value={q.motsCles} onChange={(e) => maj('motsCles', e.target.value)} placeholder="Mots-clés séparés par des virgules, ex. examen, partiel, session" aria-label="Mots-clés" />
+          </>
+        )}
+      />
+    </>
+  );
+}
+
+function EditeurFormulaire({ valeur, onChange }) {
+  return (
+    <>
+      <ListeEditable
+        titre="Champs à remplir"
+        elements={valeur.champs}
+        nouveau={{ libelle: '', type: 'texte', obligatoire: true, options: '' }}
+        max={15}
+        libelleAjout="Ajouter un champ"
+        onChange={(champs) => onChange({ ...valeur, champs })}
+        rendu={(c, maj) => (
+          <>
+            <div className="ligne-champs">
+              <div className="champ" style={{ flex: 2 }}>
+                <input value={c.libelle} onChange={(e) => maj('libelle', e.target.value)} maxLength={80} placeholder="Intitulé, ex. Document demandé" aria-label="Intitulé du champ" />
+              </div>
+              <div className="champ">
+                <select value={c.type} onChange={(e) => maj('type', e.target.value)} aria-label="Type de champ">
+                  {TYPES_CHAMPS.map((t) => <option key={t} value={t}>{LIBELLES_CHAMPS[t]}</option>)}
+                </select>
+              </div>
+            </div>
+            {c.type === 'choix' && (
+              <input value={c.options} onChange={(e) => maj('options', e.target.value)} placeholder="Choix proposés, séparés par des virgules" aria-label="Choix proposés" />
+            )}
+            <label className="case-inline">
+              <input type="checkbox" checked={c.obligatoire} onChange={(e) => maj('obligatoire', e.target.checked)} /> Obligatoire
+            </label>
+          </>
+        )}
+      />
+      <div className="champ">
+        <label htmlFor="f-confirmation">Message affiché après l'envoi (facultatif)</label>
+        <input id="f-confirmation" maxLength={300} value={valeur.messageConfirmation} onChange={(e) => onChange({ ...valeur, messageConfirmation: e.target.value })}
+          placeholder="Votre demande a bien été transmise à l'Académie." />
+      </div>
+    </>
+  );
+}
+
+function EditeurRegistre({ valeur, onChange }) {
+  return (
+    <ListeEditable
+      titre="Colonnes du registre"
+      elements={valeur.colonnes}
+      nouveau={{ libelle: '', type: 'texte' }}
+      max={8}
+      libelleAjout="Ajouter une colonne"
+      onChange={(colonnes) => onChange({ ...valeur, colonnes })}
+      rendu={(c, maj) => (
+        <div className="ligne-champs">
+          <div className="champ" style={{ flex: 2 }}>
+            <input value={c.libelle} onChange={(e) => maj('libelle', e.target.value)} maxLength={60} placeholder="Intitulé, ex. Entreprise" aria-label="Intitulé de la colonne" />
+          </div>
+          <div className="champ">
+            <select value={c.type} onChange={(e) => maj('type', e.target.value)} aria-label="Type de colonne">
+              {TYPES_COLONNES.map((t) => <option key={t} value={t}>{LIBELLES_CHAMPS[t]}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+    />
   );
 }

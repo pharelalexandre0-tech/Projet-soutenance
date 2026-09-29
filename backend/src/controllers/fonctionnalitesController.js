@@ -1,7 +1,8 @@
 const crypto = require('crypto');
-const { Etablissement, FonctionnalitePersonnalisee, ActivationFonctionnalite } = require('../models');
+const { Etablissement, FonctionnalitePersonnalisee, ActivationFonctionnalite, EntreeExtension } = require('../models');
 const { MODULES_INTEGRES, ESPACES_PERSONNALISABLES, ICONES_PERSONNALISABLES } = require('../config/fonctionnalites');
 const { catalogue, invaliderCache, journaliser } = require('../services/plateformeService');
+const { TYPES_INTERACTIFS, lireConfiguration } = require('../services/extensionService');
 
 // Fonctionnalités des écoles, pilotées par le superadmin : le catalogue
 // (modules intégrés + fonctionnalités personnalisées qu'il crée lui-même),
@@ -32,7 +33,7 @@ async function listerCatalogue(req, res) {
 }
 
 function lireFonctionnalite(body) {
-  if (!['page', 'lien'].includes(body.type)) return { erreur: 'type de fonctionnalité invalide' };
+  if (!['page', 'lien', ...TYPES_INTERACTIFS].includes(body.type)) return { erreur: 'type de fonctionnalité invalide' };
   const nom = String(body.nom || '').trim();
   if (nom.length < 2 || nom.length > 80) return { erreur: 'le nom doit faire entre 2 et 80 caractères' };
   const description = String(body.description || '').trim();
@@ -41,8 +42,12 @@ function lireFonctionnalite(body) {
   const espaces = Array.isArray(body.espaces) ? [...new Set(body.espaces.filter((e) => ESPACES_PERSONNALISABLES.includes(e)))] : [];
   if (espaces.length === 0) return { erreur: 'choisis au moins un espace où la fonctionnalité apparaîtra' };
 
-  const donnees = { type: body.type, nom, description, icone, espaces, contenu: null, url: null, libelleBouton: null };
-  if (body.type === 'page') {
+  const donnees = { type: body.type, nom, description, icone, espaces, contenu: null, url: null, libelleBouton: null, configuration: null };
+  if (TYPES_INTERACTIFS.includes(body.type)) {
+    const { erreur, configuration } = lireConfiguration(body.type, body.configuration);
+    if (erreur) return { erreur };
+    donnees.configuration = configuration;
+  } else if (body.type === 'page') {
     const contenu = String(body.contenu || '').trim();
     if (!contenu || contenu.length > 8000) return { erreur: 'le contenu de la page est obligatoire (8000 caractères au plus)' };
     donnees.contenu = contenu;
@@ -102,6 +107,9 @@ async function supprimerFonctionnalite(req, res) {
   const fonctionnalite = await FonctionnalitePersonnalisee.findOne({ where: { cle: req.params.cle } });
   if (!fonctionnalite) return res.status(404).json({ erreur: 'seules les fonctionnalités personnalisées peuvent être supprimées' });
   const nbEcoles = await ActivationFonctionnalite.destroy({ where: { cle: fonctionnalite.cle } });
+  // Questions, demandes et lignes de registre n'ont plus d'onglet où
+  // apparaître : elles partent avec la fonctionnalité.
+  await EntreeExtension.destroy({ where: { cle: fonctionnalite.cle } });
   await fonctionnalite.destroy();
   invaliderCache();
   await journaliser(req.utilisateur, 'fonctionnalite', `Suppression de « ${fonctionnalite.nom} »${nbEcoles ? ` (retirée de ${nbEcoles} école${nbEcoles > 1 ? 's' : ''})` : ''}`);

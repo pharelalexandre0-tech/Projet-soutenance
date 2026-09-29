@@ -5,7 +5,8 @@ import {
   TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, Plus, ExternalLink,
   Link2, Library, Video, Globe, Trash2, Pencil, Info, Send, Calendar, Newspaper, LifeBuoy, Briefcase, Award,
   Bus, Utensils, HandCoins, ArrowLeft, Database, Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye,
-  EyeOff, Upload, UserPlus, Copy, School, Flag, Sparkles,
+  EyeOff, Upload, UserPlus, Copy, School, Flag, Sparkles, Bot, Inbox, Table2, MessageCircleQuestion, ListChecks,
+  Trophy, HeartPulse, SendHorizontal,
 } from 'lucide-react';
 
 // Jeu d'icônes Lucide (trait régulier, dessin sobre) à la place des icônes
@@ -110,7 +111,19 @@ export const ICONES_FONCTIONNALITES = {
   MessagesSquare: avecTrait(MessagesSquare),
   Wallet: avecTrait(Wallet),
   Receipt: avecTrait(Receipt),
+  Bot: avecTrait(Bot),
+  MessageCircleQuestion: avecTrait(MessageCircleQuestion),
+  Inbox: avecTrait(Inbox),
+  Table2: avecTrait(Table2),
+  ListChecks: avecTrait(ListChecks),
+  Trophy: avecTrait(Trophy),
+  HeartPulse: avecTrait(HeartPulse),
 };
+
+export const IconBot = avecTrait(Bot);
+export const IconEnvoyer = avecTrait(SendHorizontal);
+export const IconInbox = avecTrait(Inbox);
+export const IconTable = avecTrait(Table2);
 
 export function IconeFonctionnalite({ nom, ...props }) {
   const Icone = ICONES_FONCTIONNALITES[nom] || ICONES_FONCTIONNALITES.FileText;

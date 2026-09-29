@@ -7,9 +7,10 @@
 //   (un nouveau module de ce type arrive par un déploiement, puis s'ajoute
 //   école par école) ;
 // - les fonctionnalités personnalisées, créées directement depuis l'espace
-//   Superadmin sans écrire de code (FonctionnalitePersonnalisee) : une page
-//   d'information ou l'accès à un service en ligne, ajoutée comme un nouvel
-//   onglet dans les espaces choisis.
+//   Superadmin sans écrire de code (FonctionnalitePersonnalisee), à la
+//   demande d'une école : page d'information, service en ligne, assistant
+//   qui répond aux questions, formulaire de demande, registre tenu par
+//   l'Académie. Chacune devient un nouvel onglet dans les espaces choisis.
 //
 // Le socle (élèves, classes, UE, notes, bulletins, frais côté Finance)
 // n'apparaît volontairement pas ici : sans lui, une école ne fonctionne pas.
@@ -69,6 +70,7 @@ const ICONES_PERSONNALISABLES = [
   'FileText', 'BookOpen', 'Library', 'GraduationCap', 'Calendar', 'ClipboardList',
   'Newspaper', 'Megaphone', 'Video', 'Globe', 'Link2', 'LifeBuoy',
   'Briefcase', 'Award', 'Bus', 'Utensils', 'HandCoins', 'Info',
+  'Bot', 'MessageCircleQuestion', 'Inbox', 'Table2', 'ListChecks', 'Trophy', 'HeartPulse',
 ];
 
 module.exports = { MODULES_INTEGRES, ESPACES_PERSONNALISABLES, ICONES_PERSONNALISABLES };

@@ -28,6 +28,7 @@ const Etablissement = require('./Etablissement');
 // annonce/maintenance, journal) — sans lien avec le contenu d'une école.
 const FonctionnalitePersonnalisee = require('./FonctionnalitePersonnalisee');
 const ActivationFonctionnalite = require('./ActivationFonctionnalite');
+const EntreeExtension = require('./EntreeExtension');
 const ParametrePlateforme = require('./ParametrePlateforme');
 const MiseAJour = require('./MiseAJour');
 const JournalAdministration = require('./JournalAdministration');
@@ -159,6 +160,10 @@ Bulletin.belongsTo(Semestre, { foreignKey: 'semestreId' });
 Eleve.hasMany(PredictionIA, { foreignKey: 'eleveId' });
 PredictionIA.belongsTo(Eleve, { foreignKey: 'eleveId' });
 
+// Données produites dans les fonctionnalités personnalisées d'une école.
+Etablissement.hasMany(EntreeExtension, { foreignKey: 'etablissementId' });
+EntreeExtension.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+
 // ---- Messagerie / notifications --------------------------------------------
 Utilisateur.hasMany(MessageAnnonce, { foreignKey: 'auteurId' });
 MessageAnnonce.belongsTo(Utilisateur, { foreignKey: 'auteurId', as: 'auteur' });
@@ -215,6 +220,7 @@ module.exports = {
   Etablissement,
   FonctionnalitePersonnalisee,
   ActivationFonctionnalite,
+  EntreeExtension,
   ParametrePlateforme,
   MiseAJour,
   JournalAdministration,

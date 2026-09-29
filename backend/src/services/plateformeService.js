@@ -2,6 +2,7 @@ const {
   sequelize, Etablissement, FonctionnalitePersonnalisee, ActivationFonctionnalite, ParametrePlateforme, JournalAdministration,
 } = require('../models');
 const { MODULES_INTEGRES } = require('../config/fonctionnalites');
+const { TYPES_INTERACTIFS, configurationPublique } = require('./extensionService');
 
 // Heure de démarrage du processus, affichée dans "Mises à jour" (depuis quand
 // la version actuelle tourne).
@@ -68,15 +69,41 @@ async function fonctionnalitesPour(etablissementId) {
 
 // Fonctionnalités personnalisées ajoutées à l'école ET destinées à ce rôle :
 // chacune devient un onglet de plus dans l'espace de l'utilisateur.
+// L'Académie reçoit en plus, pour les fonctionnalités actives (assistant,
+// formulaire, registre), l'onglet de gestion : questions posées, demandes
+// reçues, lignes du registre.
+function extensionVisible(p, role) {
+  if (Array.isArray(p.espaces) && p.espaces.includes(role)) return true;
+  return role === 'academie' && TYPES_INTERACTIFS.includes(p.type);
+}
+
 async function extensionsPour(etablissementId, role) {
   if (!etablissementId) return [];
   const c = await chargerCache();
   const cles = c.parEcole.get(etablissementId) || new Set();
   return c.personnalisees
-    .filter((p) => cles.has(p.cle) && Array.isArray(p.espaces) && p.espaces.includes(role))
-    .map(({ cle, type, nom, description, icone, contenu, url, libelleBouton }) => ({
+    .filter((p) => cles.has(p.cle) && extensionVisible(p, role))
+    .map(({ cle, type, nom, description, icone, contenu, url, libelleBouton, configuration, espaces }) => ({
       cle, type, nom, description, icone, contenu, url, libelleBouton,
+      configuration: configurationPublique(type, configuration),
+      gestion: role === 'academie' && TYPES_INTERACTIFS.includes(type),
+      utilisation: Array.isArray(espaces) && espaces.includes(role),
     }));
+}
+
+// Une fonctionnalité personnalisée telle que cet utilisateur y a droit
+// (ajoutée à son école, prévue pour son espace), réglages complets inclus.
+async function extensionPour(utilisateur, cle) {
+  if (!utilisateur.etablissementId) return null;
+  const c = await chargerCache();
+  const p = c.personnalisees.find((x) => x.cle === cle);
+  if (!p || !(c.parEcole.get(utilisateur.etablissementId) || new Set()).has(cle)) return null;
+  if (!extensionVisible(p, utilisateur.role)) return null;
+  return {
+    ...p,
+    gestion: utilisateur.role === 'academie' && TYPES_INTERACTIFS.includes(p.type),
+    utilisation: Array.isArray(p.espaces) && p.espaces.includes(utilisateur.role),
+  };
 }
 
 async function fonctionnaliteOuverte(cle, etablissementId) {
@@ -167,6 +194,7 @@ module.exports = {
   clesDeLEcole,
   fonctionnalitesPour,
   extensionsPour,
+  extensionPour,
   fonctionnaliteOuverte,
   initialiserActivations,
   lireParametre,

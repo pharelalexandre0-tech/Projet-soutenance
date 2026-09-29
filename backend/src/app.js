@@ -20,6 +20,7 @@ const superadminRoutes = require('./routes/superadmin');
 const plateformeRoutes = require('./routes/plateforme');
 const evenementsRoutes = require('./routes/evenements');
 const notificationsRoutes = require('./routes/notifications');
+const extensionsRoutes = require('./routes/extensions');
 const { diffuserModifications } = require('./services/evenementsService');
 const { DOSSIER_STOCKAGE, lireDocument } = require('./services/pdfService');
 const { regenererDocument } = require('./services/regenerationService');
@@ -104,6 +105,7 @@ app.use('/api/incidents', incidentsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/predictions', predictionsRoutes);
 app.use('/api/plateforme', plateformeRoutes);
+app.use('/api/extensions', extensionsRoutes);
 app.use('/api', referenceRoutes);
 app.use('/api/superadmin', superadminRoutes);
 
