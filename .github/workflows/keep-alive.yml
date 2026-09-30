@@ -6,7 +6,7 @@ on:
     # la minute près (délais observés en pratique : 2 à 5h+ au lieu des
     # 10 min configurées), largement au-dessus des 15 min d'inactivité
     # avant mise en veille de Render. Ici `schedule` ne sert qu'à
-    # redémarrer la boucle ci-dessous si besoin — le vrai rythme de ping
+    # redémarrer la boucle ci-dessous si besoin ; le vrai rythme de ping
     # (5 min) vient de la boucle interne d'un job déjà en cours
     # d'exécution, qui elle n'est pas soumise aux délais de file d'attente
     # de GitHub. Le déclenchement toutes les 5h laisse ~40 min de marge
@@ -18,18 +18,21 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     timeout-minutes: 350
-    # Adresses réglables sans modifier ce fichier : variables du dépôt
-    # URL_BACKEND et URL_FRONTEND (Settings > Secrets and variables >
-    # Actions > Variables), par exemple après un changement d'hébergeur.
+    # Seul le serveur est gardé éveillé : Render accorde 750 heures gratuites
+    # par mois pour l'ensemble des services, et un seul service allumé en
+    # continu en consomme 744 (31 jours). Garder aussi le site éveillé
+    # dépassait la limite vers le 25 du mois, et Render suspendait alors
+    # tout jusqu'au mois suivant. /api/sante ne lit pas la base : Neon peut
+    # rester en veille entre deux utilisations.
+    # Adresse réglable sans modifier ce fichier : variable du dépôt
+    # URL_BACKEND (Settings > Secrets and variables > Actions > Variables).
     env:
       URL_BACKEND: ${{ vars.URL_BACKEND || 'https://edusphere-backend-fh30.onrender.com' }}
-      URL_FRONTEND: ${{ vars.URL_FRONTEND || 'https://edusphere-frontend-pryg.onrender.com' }}
     steps:
       - name: Ping toutes les 5 minutes pendant ~5h40
         run: |
           fin=$((SECONDS + 340 * 60))
           while [ $SECONDS -lt $fin ]; do
             curl -fsS -o /dev/null "$URL_BACKEND/api/sante" || true
-            curl -fsS -o /dev/null "$URL_FRONTEND/" || true
             sleep 300
           done
