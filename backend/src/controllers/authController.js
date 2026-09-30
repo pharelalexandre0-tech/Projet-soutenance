@@ -1,4 +1,5 @@
 const bcrypt = require('bcryptjs');
+const { where, fn, col } = require('sequelize');
 const { Utilisateur, Etablissement, Eleve } = require('../models');
 const { signSession } = require('../utils/jwt');
 const { envoyerEmail } = require('../services/emailService');
@@ -23,13 +24,30 @@ function memeAdresse(a, b) {
 // correspond pas), un compte étudiant dont c'est l'adresse du PARENT : le
 // parent se connecte avec son propre e-mail et le mot de passe de son
 // enfant, qui désigne aussi l'enfant quand il en a plusieurs.
+// Le matricule (mot de passe d'un étudiant) est toujours en majuscules : on
+// accepte aussi la saisie en minuscules ou entourée d'espaces, fréquente sur
+// téléphone. Les mots de passe du personnel restent comparés à l'identique.
+async function motDePasseEtudiantCorrect(saisi, hache) {
+  const brut = String(saisi || '');
+  const variantes = [...new Set([brut, brut.trim(), brut.trim().toUpperCase()])];
+  for (const v of variantes) {
+    if (await bcrypt.compare(v, hache)) return true;
+  }
+  return false;
+}
+
 async function identifier(email, motDePasse) {
-  const utilisateur = await Utilisateur.scope('avecMotDePasse').findOne({ where: { email } });
-  if (utilisateur && await bcrypt.compare(motDePasse, utilisateur.motDePasse)) {
+  // Adresse comparée sans tenir compte des majuscules ni des espaces.
+  const adresse = String(email || '').trim().toLowerCase();
+  const utilisateur = await Utilisateur.scope('avecMotDePasse').findOne({ where: where(fn('lower', col('email')), adresse) });
+  const correct = utilisateur && (utilisateur.role === 'etudiant'
+    ? await motDePasseEtudiantCorrect(motDePasse, utilisateur.motDePasse)
+    : await bcrypt.compare(motDePasse, utilisateur.motDePasse));
+  if (correct) {
     return { utilisateur, parent: false };
   }
-  for (const dossier of await dossiersDuParent(email)) {
-    if (await bcrypt.compare(motDePasse, dossier.compteEtudiant.motDePasse)) {
+  for (const dossier of await dossiersDuParent(adresse)) {
+    if (await motDePasseEtudiantCorrect(motDePasse, dossier.compteEtudiant.motDePasse)) {
       return { utilisateur: dossier.compteEtudiant, parent: true, emailParent: dossier.emailParent };
     }
   }
