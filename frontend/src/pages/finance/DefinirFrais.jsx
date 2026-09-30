@@ -3,6 +3,7 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import Toast from '../../components/Toast';
+import BoutonDocument from '../../components/BoutonDocument';
 import { IconBanknote, IconSearch, IconPlus, IconWallet } from '../../components/icons';
 import { totalElevesParNiveaux } from '../../utils/totaux';
 
@@ -289,15 +290,13 @@ function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
         <div className="message-succes" style={{ marginBottom: 16 }}>
           {confirmation.montant.toLocaleString('fr-FR')} FCFA encaissé pour {eleve.prenom} {eleve.nom}.
         </div>
-        <a
-          href={confirmation.recu.fichierPDF}
-          target="_blank"
-          rel="noreferrer"
+        <BoutonDocument
+          chemin={confirmation.recu.fichierPDF}
           className="primaire"
-          style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '11px 16px', borderRadius: 8 }}
+          style={{ display: 'block', width: '100%', textAlign: 'center', padding: '11px 16px', borderRadius: 8 }}
         >
           Télécharger le reçu n° {confirmation.recu.numero}
-        </a>
+        </BoutonDocument>
         {confirmation.recuEnvoyeA && (
           <p className="note-secondaire" style={{ marginTop: 12, marginBottom: 0 }}>
             Un exemplaire a aussi été envoyé par e-mail à {confirmation.recuEnvoyeA}.

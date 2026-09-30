@@ -4,6 +4,7 @@ import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
 import Tiroir from '../../components/Tiroir';
 import Toast from '../../components/Toast';
+import BoutonDocument from '../../components/BoutonDocument';
 import { messageErreur } from '../../utils/erreurs';
 import {
   IconUsers, IconGraduationCap, IconWallet, IconMail, IconSearch, IconPlus, IconEdit, IconDownload, IconInfo, IconChevronRight,
@@ -203,7 +204,7 @@ export default function Salaires() {
                       <td>{x.dateVersement ? dateLongue(x.dateVersement) : <span className="note-secondaire">Non versé</span>}</td>
                       <td className="cellule-actions">
                         {x.fichierPDF && (
-                          <a href={x.fichierPDF} target="_blank" rel="noreferrer" className="bouton-lien-secondaire" title="Fiche de paie PDF"><IconDownload /> PDF</a>
+                          <BoutonDocument chemin={x.fichierPDF} className="bouton-lien-secondaire" title="Fiche de paie PDF"><IconDownload /> PDF</BoutonDocument>
                         )}
                       </td>
                     </tr>

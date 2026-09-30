@@ -22,7 +22,9 @@ const evenementsRoutes = require('./routes/evenements');
 const notificationsRoutes = require('./routes/notifications');
 const extensionsRoutes = require('./routes/extensions');
 const { diffuserModifications } = require('./services/evenementsService');
-const { DOSSIER_STOCKAGE, lireDocument } = require('./services/pdfService');
+const { lireDocument } = require('./services/pdfService');
+const { documentAutorise } = require('./services/accesDocumentService');
+const { authentifier } = require('./middlewares/auth');
 const { regenererDocument } = require('./services/regenerationService');
 
 const app = express();
@@ -68,24 +70,26 @@ const limiteurConnexion = rateLimit({
 app.use(['/api/auth/connexion', '/api/auth/mot-de-passe-oublie', '/api/auth/reinitialiser-mot-de-passe'], limiteurConnexion);
 
 // Bulletins, reçus, fiches de paie et emplois du temps PDF (diagrammes 5
-// et 8), lus dans PostgreSQL. Le dossier du disque ne sert plus que de
-// repli pour d'anciens fichiers pas encore importés.
-app.get('/fichiers/:nomFichier', async (req, res, next) => {
+// et 8), lus dans PostgreSQL. Connexion obligatoire, et le document doit
+// appartenir à l'école de la personne connectée, ou à l'élève lui-même : les
+// noms de fichiers sont prévisibles, les connaître ne doit jamais suffire.
+// Refus sous forme de 404, pour ne pas révéler qu'un document existe.
+app.get('/fichiers/:nomFichier', authentifier, async (req, res, next) => {
   try {
     const { nomFichier } = req.params;
+    if (!(await documentAutorise(req.utilisateur, nomFichier))) return res.status(404).json({ erreur: 'document introuvable' });
     // Absent de la base (ancien fichier perdu avec le disque) : reçus et
     // fiches de paie sont reconstruits à partir des données enregistrées.
     const contenu = (await lireDocument(nomFichier)) || (await regenererDocument(nomFichier));
-    if (!contenu) return next();
+    if (!contenu) return res.status(404).json({ erreur: 'document introuvable' });
     res.set('Content-Type', 'application/pdf');
-    res.set('Content-Disposition', `inline; filename="${req.params.nomFichier.replace(/"/g, '')}"`);
-    res.set('Cache-Control', 'no-cache');
+    res.set('Content-Disposition', `inline; filename="${nomFichier.replace(/"/g, '')}"`);
+    res.set('Cache-Control', 'private, no-store');
     return res.send(contenu);
   } catch (err) {
     return next(err);
   }
 });
-app.use('/fichiers', express.static(DOSSIER_STOCKAGE));
 
 app.get('/api/sante', (req, res) => res.json({ etat: 'ok' }));
 

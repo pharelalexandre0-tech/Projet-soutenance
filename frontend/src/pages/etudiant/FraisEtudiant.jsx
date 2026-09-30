@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import { IconBanknote, IconCard } from '../../components/icons';
+import BoutonDocument from '../../components/BoutonDocument';
 
 const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge' };
 const LIBELLE_STATUT = { du: 'Dû', partiel: 'Partiel', solde: 'Soldé', impaye: 'Impayé' };
@@ -90,7 +91,7 @@ export default function FraisEtudiant({ eleveId }) {
                   <td><span className="badge gris">{p.modePaiement}</span></td>
                   <td>
                     {p.Recu?.fichierPDF
-                      ? <a href={p.Recu.fichierPDF} target="_blank" rel="noreferrer" className="secondaire" style={{ display: 'inline-block', textDecoration: 'none', padding: '5px 12px' }}>Télécharger</a>
+                      ? <BoutonDocument chemin={p.Recu.fichierPDF} className="secondaire" style={{ padding: '5px 12px' }}>Télécharger</BoutonDocument>
                       : <span className="note-secondaire">Indisponible</span>}
                   </td>
                 </tr>

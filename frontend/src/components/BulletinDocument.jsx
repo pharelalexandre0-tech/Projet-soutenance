@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../api/client';
 import { IconDownload } from './icons';
+import BoutonDocument from './BoutonDocument';
 
 function mention(moyenne) {
   if (moyenne == null) return 'Non évalué';
@@ -173,7 +174,7 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
       {(bulletin.fichierPDF || actions) && (
         <div className="bulletin-actions">
           {bulletin.fichierPDF && (
-            <a className="bouton-lien-secondaire" href={bulletin.fichierPDF} target="_blank" rel="noreferrer"><IconDownload /> Télécharger le PDF</a>
+            <BoutonDocument className="bouton-lien-secondaire" chemin={bulletin.fichierPDF}><IconDownload /> Télécharger le PDF</BoutonDocument>
           )}
           {actions}
         </div>
