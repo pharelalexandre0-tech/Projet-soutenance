@@ -1,0 +1,22 @@
+{
+  "name": "edusphere-android",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Application Android EduSphere : la même interface que le site (frontend), emballée avec Capacitor.",
+  "scripts": {
+    "build:web": "npm --prefix ../frontend run build:android",
+    "sync": "npm run build:web && npx cap sync android",
+    "apk": "npm run sync && cd android && gradlew.bat assembleDebug",
+    "ouvrir": "npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.6.9",
+    "@capacitor/core": "^7.6.9",
+    "@capacitor/filesystem": "^7.1.9",
+    "@capacitor/share": "^7.0.4",
+    "@capacitor/status-bar": "^7.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.9"
+  }
+}
