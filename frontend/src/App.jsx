@@ -18,6 +18,10 @@ const DashboardAcademie = lazy(() => import('./pages/DashboardAcademie'));
 const DashboardEtudiant = lazy(() => import('./pages/DashboardEtudiant'));
 const DashboardFinance = lazy(() => import('./pages/DashboardFinance'));
 const DashboardSuperAdmin = lazy(() => import('./pages/DashboardSuperAdmin'));
+// Application Android seulement (construction en mode « android ») : son
+// animation d'ouverture. Dans la construction du site, la condition est
+// fausse dès la compilation et ce code n'est pas inclus.
+const IntroApplication = import.meta.env.MODE === 'android' ? lazy(() => import('./mobile/IntroApplication')) : null;
 
 function Accueil() {
   const { profil } = useAuth();
@@ -63,7 +67,9 @@ export default function App() {
             </Routes>
           </Suspense>
           <EcranMaintenance />
-          {demarrage && <EcranDemarrage onTermine={() => setDemarrage(false)} />}
+          {demarrage && (IntroApplication
+            ? <Suspense fallback={null}><IntroApplication onTermine={() => setDemarrage(false)} /></Suspense>
+            : <EcranDemarrage onTermine={() => setDemarrage(false)} />)}
         </LimiteErreurChargement>
       </BrowserRouter>
     </AuthProvider>
