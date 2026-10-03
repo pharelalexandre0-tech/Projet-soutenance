@@ -25,70 +25,38 @@
 .intro-embleme { position: relative; width: 70%; aspect-ratio: 476 / 526; }
 .calque { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* E : glisse depuis la gauche en se penchant, se redresse avec un léger
-   rebond, puis « respire » avec le S. */
-.calque-e {
-  transform-origin: 37% 89%;
-  animation: intro-e .8s cubic-bezier(.34, 1.4, .64, 1) .35s both, intro-respire .7s ease-in-out 2.75s;
-}
-@keyframes intro-e {
-  0% { transform: translateX(-28%) rotate(-10deg) scaleX(.92); opacity: 0; }
-  45% { opacity: 1; }
-  70% { transform: translateX(2%) rotate(2deg) scaleX(1.03); }
-  100% { transform: none; opacity: 1; }
-}
-
-/* S : monte d'en bas et se dandine un peu avant de se poser. */
-.calque-s {
-  transform-origin: 66% 98%;
-  animation: intro-s .9s cubic-bezier(.34, 1.3, .64, 1) .6s both, intro-respire .7s ease-in-out 2.82s;
-}
-@keyframes intro-s {
-  0% { transform: translateY(26%) rotate(9deg) scale(.86); opacity: 0; }
-  40% { transform: translateY(-3%) rotate(-5deg) scale(1.02); opacity: 1; }
-  65% { transform: translateY(0) rotate(3deg); }
-  85% { transform: rotate(-1deg); }
-  100% { transform: none; opacity: 1; }
-}
-
-/* Petit moment de vie : E et S se soulèvent ensemble, comme une inspiration. */
-@keyframes intro-respire {
-  0%, 100% { transform: none; }
-  40% { transform: translateY(-2.5%) scaleY(1.03); }
-  70% { transform: translateY(0) scaleY(.98) scaleX(1.01); }
-}
-
-/* Feuilles : poussent depuis le bas et se balancent. */
-.calque-feuilles { transform-origin: 51% 91%; animation: intro-feuilles .75s cubic-bezier(.34, 1.4, .64, 1) 1.25s both; }
-@keyframes intro-feuilles {
+/* Éclosion : une pousse sort de terre, la tête se lève comme un soleil,
+   puis le cercle du E et du S se déploie autour en tournant. Le croissant
+   doré se trace, les pixels apparaissent et une onde part du sceau. */
+.calque-feuilles { transform-origin: 51% 91%; animation: intro-pousse .75s cubic-bezier(.34, 1.4, .64, 1) .5s both; }
+@keyframes intro-pousse {
   0% { transform: scale(.2, 0); opacity: 0; }
-  50% { transform: scale(1.04, 1.08) rotate(-2deg); opacity: 1; }
-  75% { transform: rotate(1.5deg); }
+  30% { opacity: 1; }
   100% { transform: none; opacity: 1; }
 }
-
-/* Tête : se pose doucement sur les feuilles avec un seul petit rebond. */
-.calque-tete { transform-origin: 51% 75.5%; animation: intro-tete .8s cubic-bezier(.45, 0, .55, 1) 1.65s both; }
-@keyframes intro-tete {
-  0% { transform: translateY(-22%) scale(.6); opacity: 0; }
-  45% { transform: translateY(0) scale(1.12, .88); opacity: 1; }
-  65% { transform: translateY(-3%) scale(.96, 1.05); }
-  100% { transform: none; opacity: 1; }
+.calque-tete { animation: intro-soleil .85s cubic-bezier(.2, .8, .2, 1) .95s both; }
+@keyframes intro-soleil {
+  0% { transform: translateY(35%); opacity: 0; filter: drop-shadow(0 0 0 rgba(240, 173, 46, 0)); }
+  60% { filter: drop-shadow(0 0 8px rgba(240, 173, 46, .9)); }
+  100% { transform: none; opacity: 1; filter: drop-shadow(0 0 0 rgba(240, 173, 46, 0)); }
 }
+.calque-e, .calque-s { transform-origin: 50% 62%; }
+.calque-e { animation: intro-deploie-e .95s cubic-bezier(.34, 1.2, .64, 1) 1.5s both; }
+.calque-s { animation: intro-deploie-s .95s cubic-bezier(.34, 1.2, .64, 1) 1.62s both; }
+@keyframes intro-deploie-e { from { transform: rotate(-120deg) scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes intro-deploie-s { from { transform: rotate(120deg) scale(.5); opacity: 0; } to { transform: none; opacity: 1; } }
+.calque-dore { animation: intro-dore .65s cubic-bezier(.65, 0, .35, 1) 2.3s both; }
+@keyframes intro-dore { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+.calque-pixels { animation: intro-pixels .55s steps(5, end) 2.45s both; }
+@keyframes intro-pixels { from { clip-path: circle(0% at 72% 22%); } to { clip-path: circle(32% at 80% 14%); } }
 
-/* Croissant doré : se trace de gauche à droite */
-.calque-dore { animation: intro-dore .7s cubic-bezier(.65, 0, .35, 1) 2.05s both; }
-@keyframes intro-dore {
-  0% { clip-path: inset(0 100% 0 0); }
-  100% { clip-path: inset(0 0 0 0); }
+/* Onde qui part du sceau quand le logo est complet */
+.intro-sceau { position: relative; }
+.intro-onde {
+  position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .6);
+  opacity: 0; pointer-events: none; animation: intro-onde 1.1s ease-out 2.6s both;
 }
-
-/* Pixels : apparaissent par paliers, carré après carré */
-.calque-pixels { animation: intro-pixels .6s steps(6, end) 2.3s both; }
-@keyframes intro-pixels {
-  0% { clip-path: circle(0% at 70% 24%); }
-  100% { clip-path: circle(30% at 80% 14%); }
-}
+@keyframes intro-onde { 0% { opacity: .85; transform: scale(1); } 100% { opacity: 0; transform: scale(1.8); } }
 
 /* Nom : chaque lettre saute à sa place, puis le point doré */
 .intro-nom {
@@ -99,7 +67,7 @@
 .intro-nom span {
   display: inline-block; transform-origin: 50% 100%;
   animation: intro-lettre .55s cubic-bezier(.34, 1.56, .64, 1) both;
-  animation-delay: calc(3.05s + var(--i) * .045s);
+  animation-delay: calc(3.0s + var(--i) * .045s);
 }
 @keyframes intro-lettre {
   0% { transform: translateY(45%); opacity: 0; }

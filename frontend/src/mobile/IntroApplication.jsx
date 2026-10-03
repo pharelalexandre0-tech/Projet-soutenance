@@ -12,10 +12,9 @@ const DUREE_MS = 4400;
 const NOM = 'EduSphere';
 
 // Animation d'ouverture de l'application Android (le site garde son propre
-// écran de démarrage). Les lettres du logo bougent un peu, avec du
-// caractère : le E glisse et se redresse, le S se dandine, les feuilles
-// poussent, la tête s'y pose ; puis E et S se soulèvent ensemble avant que
-// le croissant doré, les pixels et le nom n'apparaissent.
+// écran de démarrage), « Éclosion » : une pousse sort, la tête se lève comme
+// un soleil, le cercle du E et du S se déploie autour, puis le croissant
+// doré, les pixels, une onde et le nom.
 // Un toucher passe l'animation.
 export default function IntroApplication({ onTermine }) {
   const [depart, setDepart] = useState(false);
@@ -41,6 +40,7 @@ export default function IntroApplication({ onTermine }) {
   return (
     <div className={`intro-app ${depart ? 'depart' : ''}`} onClick={terminer} aria-hidden="true">
       <div className="intro-sceau">
+        <span className="intro-onde" />
         <div className="intro-embleme">
           <img className="calque calque-dore" src={calqueDore} alt="" />
           <img className="calque calque-e" src={calqueE} alt="" />
