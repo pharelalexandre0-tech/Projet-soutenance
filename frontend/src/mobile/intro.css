@@ -25,72 +25,66 @@
 .intro-embleme { position: relative; width: 70%; aspect-ratio: 476 / 526; }
 .calque { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* E : tombe d'en haut et s'écrase en atterrissant (écrasement / étirement) */
-.calque-e { transform-origin: 37% 89%; animation: intro-e .75s cubic-bezier(.55, 0, .45, 1) .35s both; }
+/* E : glisse depuis la gauche en se penchant, se redresse avec un léger
+   rebond, puis « respire » avec le S. */
+.calque-e {
+  transform-origin: 37% 89%;
+  animation: intro-e .8s cubic-bezier(.34, 1.4, .64, 1) .35s both, intro-respire .7s ease-in-out 2.75s;
+}
 @keyframes intro-e {
-  0% { transform: translateY(-140%) scaleY(1.25) scaleX(.85); opacity: 0; }
-  12% { opacity: 1; }
-  55% { transform: translateY(0) scaleY(1.2) scaleX(.88); }
-  68% { transform: translateY(0) scaleY(.78) scaleX(1.14); }
-  82% { transform: translateY(-4%) scaleY(1.05) scaleX(.97); }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+  0% { transform: translateX(-28%) rotate(-10deg) scaleX(.92); opacity: 0; }
+  45% { opacity: 1; }
+  70% { transform: translateX(2%) rotate(2deg) scaleX(1.03); }
+  100% { transform: none; opacity: 1; }
 }
 
-/* S : jaillit d'en bas en tournant, puis ploie deux fois sous la tête */
+/* S : monte d'en bas et se dandine un peu avant de se poser. */
 .calque-s {
   transform-origin: 66% 98%;
-  animation: intro-s .65s cubic-bezier(.34, 1.56, .64, 1) .6s both, intro-s-ploie 1.4s linear 1.25s;
+  animation: intro-s .9s cubic-bezier(.34, 1.3, .64, 1) .6s both, intro-respire .7s ease-in-out 2.82s;
 }
 @keyframes intro-s {
-  0% { transform: translateY(70%) rotate(16deg) scale(.4); opacity: 0; }
-  40% { opacity: 1; }
-  100% { transform: none; opacity: 1; }
-}
-@keyframes intro-s-ploie {
-  0%, 33% { transform: none; }
-  39% { transform: scaleY(.86) scaleX(1.05); }
-  47% { transform: scaleY(1.04) scaleX(.98); }
-  54%, 69% { transform: none; }
-  75% { transform: scaleY(.88) scaleX(1.04); }
-  84% { transform: scaleY(1.03) scaleX(.99); }
-  92%, 100% { transform: none; }
-}
-
-/* La tête : le personnage. Arrive en sautant, se pose sur le haut du S, y
-   rebondit, puis bondit jusqu'à sa place entre les feuilles. */
-.calque-tete { transform-origin: 51% 75.5%; animation: intro-tete 1.8s cubic-bezier(.45, 0, .55, 1) 1.2s both; }
-@keyframes intro-tete {
-  0% { transform: translate(46%, -14%) scale(.9); opacity: 0; }
-  5% { opacity: 1; }
-  18% { transform: translate(33%, -76%) scale(.9, 1.15); }
-  31% { transform: translate(18.3%, -53.4%) scale(1.3, .72); }
-  38% { transform: translate(18.3%, -53.4%) scale(1); }
-  47% { transform: translate(18.3%, -67%) scale(.9, 1.15); }
-  56% { transform: translate(18.3%, -53.4%) scale(1.28, .74); }
-  63% { transform: translate(18.3%, -53.4%) scale(1); }
-  76% { transform: translate(8%, -80%) scale(.88, 1.18); }
-  88% { transform: translate(0, 0) scale(1.3, .72); }
-  94% { transform: translate(0, -3%) scale(.95, 1.07); }
+  0% { transform: translateY(26%) rotate(9deg) scale(.86); opacity: 0; }
+  40% { transform: translateY(-3%) rotate(-5deg) scale(1.02); opacity: 1; }
+  65% { transform: translateY(0) rotate(3deg); }
+  85% { transform: rotate(-1deg); }
   100% { transform: none; opacity: 1; }
 }
 
-/* Feuilles : s'ouvrent juste avant que la tête s'y pose */
-.calque-feuilles { transform-origin: 51% 91%; animation: intro-feuilles .55s cubic-bezier(.34, 1.56, .64, 1) 2.45s both; }
+/* Petit moment de vie : E et S se soulèvent ensemble, comme une inspiration. */
+@keyframes intro-respire {
+  0%, 100% { transform: none; }
+  40% { transform: translateY(-2.5%) scaleY(1.03); }
+  70% { transform: translateY(0) scaleY(.98) scaleX(1.01); }
+}
+
+/* Feuilles : poussent depuis le bas et se balancent. */
+.calque-feuilles { transform-origin: 51% 91%; animation: intro-feuilles .75s cubic-bezier(.34, 1.4, .64, 1) 1.25s both; }
 @keyframes intro-feuilles {
-  0% { transform: scale(0, .2); opacity: 0; }
-  60% { opacity: 1; }
+  0% { transform: scale(.2, 0); opacity: 0; }
+  50% { transform: scale(1.04, 1.08) rotate(-2deg); opacity: 1; }
+  75% { transform: rotate(1.5deg); }
+  100% { transform: none; opacity: 1; }
+}
+
+/* Tête : se pose doucement sur les feuilles avec un seul petit rebond. */
+.calque-tete { transform-origin: 51% 75.5%; animation: intro-tete .8s cubic-bezier(.45, 0, .55, 1) 1.65s both; }
+@keyframes intro-tete {
+  0% { transform: translateY(-22%) scale(.6); opacity: 0; }
+  45% { transform: translateY(0) scale(1.12, .88); opacity: 1; }
+  65% { transform: translateY(-3%) scale(.96, 1.05); }
   100% { transform: none; opacity: 1; }
 }
 
 /* Croissant doré : se trace de gauche à droite */
-.calque-dore { animation: intro-dore .7s cubic-bezier(.65, 0, .35, 1) 2.75s both; }
+.calque-dore { animation: intro-dore .7s cubic-bezier(.65, 0, .35, 1) 2.05s both; }
 @keyframes intro-dore {
   0% { clip-path: inset(0 100% 0 0); }
   100% { clip-path: inset(0 0 0 0); }
 }
 
 /* Pixels : apparaissent par paliers, carré après carré */
-.calque-pixels { animation: intro-pixels .6s steps(6, end) 2.95s both; }
+.calque-pixels { animation: intro-pixels .6s steps(6, end) 2.3s both; }
 @keyframes intro-pixels {
   0% { clip-path: circle(0% at 70% 24%); }
   100% { clip-path: circle(30% at 80% 14%); }
@@ -105,22 +99,22 @@
 .intro-nom span {
   display: inline-block; transform-origin: 50% 100%;
   animation: intro-lettre .55s cubic-bezier(.34, 1.56, .64, 1) both;
-  animation-delay: calc(3.2s + var(--i) * .05s);
+  animation-delay: calc(3.05s + var(--i) * .045s);
 }
 @keyframes intro-lettre {
-  0% { transform: translateY(60%) scaleY(.6); opacity: 0; }
-  60% { transform: translateY(-12%) scaleY(1.1); opacity: 1; }
+  0% { transform: translateY(45%); opacity: 0; }
+  60% { transform: translateY(-6%); opacity: 1; }
   100% { transform: none; opacity: 1; }
 }
 .intro-point {
   width: 9px; height: 9px; margin-left: 8px; align-self: center; border-radius: 2px; background: #F0AD2E;
-  animation: intro-point .4s cubic-bezier(.34, 1.56, .64, 1) 3.75s both;
+  animation: intro-point .4s cubic-bezier(.34, 1.56, .64, 1) 3.5s both;
 }
 @keyframes intro-point { from { transform: scale(0) rotate(-90deg); } to { transform: none; } }
 
 .intro-sous-titre {
   margin: 10px 0 0; font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: rgba(214, 228, 244, .85);
-  animation: intro-sous-titre .5s ease-out 3.85s both;
+  animation: intro-sous-titre .5s ease-out 3.6s both;
 }
 @keyframes intro-sous-titre { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 

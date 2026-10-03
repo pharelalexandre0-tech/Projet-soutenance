@@ -22,6 +22,7 @@ const DashboardSuperAdmin = lazy(() => import('./pages/DashboardSuperAdmin'));
 // animation d'ouverture. Dans la construction du site, la condition est
 // fausse dès la compilation et ce code n'est pas inclus.
 const IntroApplication = import.meta.env.MODE === 'android' ? lazy(() => import('./mobile/IntroApplication')) : null;
+if (import.meta.env.MODE === 'android') import('./mobile/application.css');
 
 function Accueil() {
   const { profil } = useAuth();

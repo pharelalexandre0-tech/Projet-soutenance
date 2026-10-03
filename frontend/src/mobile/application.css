@@ -1,0 +1,15 @@
+/* Ajustements propres à l'application Android (chargés seulement dans la
+   construction « android », jamais sur le site). Mêmes couleurs, même
+   disposition : seulement l'occupation de l'écran du téléphone. */
+@media (max-width: 900px) {
+  /* Écran de connexion : le formulaire blanc occupe tout le bas de l'écran,
+     sans bande grise sous le formulaire. */
+  .page-connexion { background: #fff; min-height: 100dvh; }
+  .composition-acces { min-height: 100dvh; display: flex; flex-direction: column; }
+  .carte-bienvenue-blob { flex: none; }
+  .carte-formulaire-acces { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+  /* Le contenu du bandeau (logo, nom, texte) passe devant les formes floues
+     du dégradé, qui le voilaient. */
+  .bienvenue-contenu { position: relative; z-index: 1; }
+}

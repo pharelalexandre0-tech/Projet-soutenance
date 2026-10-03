@@ -80,20 +80,51 @@ def degrade(w, h):
     return petit.resize((w, h), Image.BICUBIC).convert('RGBA')
 
 
+def glyphe(taille, part=.46, anneau=.40):
+    """Marque de l'icône : un E blanc géométrique et le point doré de la marque,
+    dans un fin anneau (la « sphère »). Dessiné en 4x puis réduit (bords nets)."""
+    T = taille * 4
+    im = Image.new('RGBA', (T, T), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    if anneau:
+        r, ep = T * anneau, T * .02
+        d.ellipse((T / 2 - r, T / 2 - r, T / 2 + r, T / 2 + r), outline=(255, 255, 255, 70), width=int(ep))
+    g = T * part                                  # côté du carré du glyphe
+    x0, y0 = (T - g) / 2 - g * .05, (T - g) / 2
+    u = lambda a, b, c, e: (x0 + a * g, y0 + b * g, x0 + c * g, y0 + e * g)
+    rr = g * .07
+    blanc = (255, 255, 255, 255)
+    rr = g * .045
+    d.rounded_rectangle(u(.14, .08, .31, .92), radius=rr, fill=blanc)    # fût
+    d.rounded_rectangle(u(.14, .08, .82, .24), radius=rr, fill=blanc)    # barre haute
+    d.rounded_rectangle(u(.14, .42, .66, .58), radius=rr, fill=blanc)    # barre du milieu
+    d.rounded_rectangle(u(.14, .76, .82, .92), radius=rr, fill=blanc)    # barre basse
+    d.rounded_rectangle(u(.75, .425, .90, .575), radius=rr * .6, fill=OR + (255,))  # point doré
+    return im.resize((taille, taille), Image.LANCZOS)
+
+
+def forme(taille, rond):
+    m = Image.new('L', (taille * 4, taille * 4), 0)
+    if rond:
+        ImageDraw.Draw(m).ellipse((0, 0, taille * 4 - 1, taille * 4 - 1), fill=255)
+    else:
+        ImageDraw.Draw(m).rounded_rectangle((0, 0, taille * 4 - 1, taille * 4 - 1), radius=taille * 4 * .22, fill=255)
+    return m.resize((taille, taille), Image.LANCZOS)
+
+
 def icones(logo):
+    """Icône de l'application : pas le logo complet, mais une marque simple
+    (E blanc, point doré, anneau) sur le dégradé EduSphere."""
     for dossier, t in {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}.items():
-        carre = Image.new('RGBA', (t, t), (0, 0, 0, 0))
-        fond = Image.new('RGBA', (t, t), (0, 0, 0, 0))
-        r = max(2, t // 5)
-        m = Image.new('L', (t * 4, t * 4), 0)
-        ImageDraw.Draw(m).rounded_rectangle((0, 0, t * 4 - 1, t * 4 - 1), radius=r * 4, fill=255)
-        blanc = Image.new('RGBA', (t, t), (255, 255, 255, 255)); blanc.putalpha(m.resize((t, t), Image.LANCZOS))
-        carre.alpha_composite(blanc)
-        place(carre, logo, .78).save(os.path.join(RES, f'mipmap-{dossier}', 'ic_launcher.png'))
-        place(disque(t), logo, .70).save(os.path.join(RES, f'mipmap-{dossier}', 'ic_launcher_round.png'))
-        # Icône adaptative : 108 dp, zone sûre centrale de 66 dp ; le logo la remplit.
-        f = t * 108 // 48
-        place(Image.new('RGBA', (f, f), (0, 0, 0, 0)), logo, .58).save(os.path.join(RES, f'mipmap-{dossier}', 'ic_launcher_foreground.png'))
+        rep = os.path.join(RES, f'mipmap-{dossier}')
+        for nom, rond in (('ic_launcher.png', False), ('ic_launcher_round.png', True)):
+            fond = degrade(t, t)
+            fond.alpha_composite(glyphe(t, part=.50))
+            fond.putalpha(forme(t, rond))
+            fond.save(os.path.join(rep, nom))
+        f = t * 108 // 48                          # icône adaptative (108 dp)
+        degrade(f, f).convert('RGB').save(os.path.join(rep, 'ic_launcher_background.png'))
+        glyphe(f, part=.30, anneau=.29).save(os.path.join(rep, 'ic_launcher_foreground.png'))
 
 
 def ecran(w, h, logo):

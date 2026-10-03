@@ -8,15 +8,14 @@ import calqueFeuilles from './logo/feuilles.png';
 import calquePixels from './logo/pixels.png';
 
 const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
-const DUREE_MS = 4600;
+const DUREE_MS = 4400;
 const NOM = 'EduSphere';
 
 // Animation d'ouverture de l'application Android (le site garde son propre
-// écran de démarrage). Le logo prend vie à la manière d'un court métrage
-// d'animation : le E tombe et s'écrase, le S jaillit, puis la petite tête du
-// personnage arrive en sautillant, saute sur le S qui ploie sous elle, et
-// bondit jusqu'à sa place pendant que les feuilles s'ouvrent. Les pixels et
-// le croissant doré complètent le sceau, puis le nom apparaît.
+// écran de démarrage). Les lettres du logo bougent un peu, avec du
+// caractère : le E glisse et se redresse, le S se dandine, les feuilles
+// poussent, la tête s'y pose ; puis E et S se soulèvent ensemble avant que
+// le croissant doré, les pixels et le nom n'apparaissent.
 // Un toucher passe l'animation.
 export default function IntroApplication({ onTermine }) {
   const [depart, setDepart] = useState(false);

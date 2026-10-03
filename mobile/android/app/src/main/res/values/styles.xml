@@ -18,13 +18,13 @@
     </style>
 
 
-    <!-- Démarrage : fond marine de la marque et logo EduSphere (Android 12+),
-         puis l'écran de démarrage complet (dégradé, sceau, nom). -->
+    <!-- Lancement imposé par Android 12+ : l'icône de l'application (E blanc,
+         point doré) sur le marine de la marque, puis l'animation d'ouverture. -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
         <item name="android:background">@drawable/splash</item>
         <item name="windowSplashScreenBackground">#0B1E3D</item>
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
-        <item name="windowSplashScreenIconBackgroundColor">#FFFFFF</item>
+        <item name="windowSplashScreenIconBackgroundColor">#1D5FA8</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
         <item name="android:statusBarColor">#0B1E3D</item>
     </style>
