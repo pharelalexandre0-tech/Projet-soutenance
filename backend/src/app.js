@@ -36,12 +36,15 @@ const app = express();
 // cors() ouvert à tout site, en plus du token bearer (pas un cookie) déjà
 // résistant au CSRF classique.
 const origineFrontendProd = process.env.FRONTEND_URL || 'https://edusphere-frontend-pryg.onrender.com';
+// Application Android (Capacitor) : la même interface, servie depuis le
+// téléphone sous l'origine https://localhost (capacitor://localhost sur iOS).
+const ORIGINES_APPLICATION = ['https://localhost', 'capacitor://localhost'];
 app.use(cors({
   origin(origine, callback) {
     // Pas d'en-tête Origin (curl, le ping keep-alive, un appel serveur à
     // serveur) : ce n'est pas une requête de navigateur, cors() ne
     // s'applique pas à ce cas de toute façon.
-    if (!origine || origine === origineFrontendProd || /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origine)) {
+    if (!origine || origine === origineFrontendProd || ORIGINES_APPLICATION.includes(origine) || /^https?:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origine)) {
       return callback(null, true);
     }
     return callback(new Error('origine non autorisée'));

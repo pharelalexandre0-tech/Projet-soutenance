@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EduSphere</string>
+    <string name="title_activity_main">EduSphere</string>
+    <string name="package_name">ga.edusphere.app</string>
+    <string name="custom_url_scheme">ga.edusphere.app</string>
+</resources>
