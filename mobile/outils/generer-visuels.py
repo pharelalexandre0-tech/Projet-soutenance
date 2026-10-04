@@ -112,19 +112,64 @@ def forme(taille, rond):
     return m.resize((taille, taille), Image.LANCZOS)
 
 
+ICONE = os.path.join(RACINE, 'mobile', 'outils', 'icone-application.png')
+
+
+def icone_source():
+    """Icône fournie (carré arrondi sur fond blanc). Rend deux versions du
+    carré seul : `arrondie` (coins transparents) et `pleine` (coins comblés
+    par le dégradé voisin, pour les masques d'Android)."""
+    im = Image.open(ICONE).convert('RGBA')
+    w, h = im.size
+    px = im.load()
+    masque = Image.new('L', (w, h), 255)
+    mp = masque.load()
+    clair = lambda p: p[0] > 232 and p[1] > 232 and p[2] > 232
+    vus = bytearray(w * h)
+    file = deque([(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)])
+    while file:
+        x, y = file.popleft()
+        if not (0 <= x < w and 0 <= y < h) or vus[y * w + x]:
+            continue
+        vus[y * w + x] = 1
+        if clair(px[x, y]):
+            mp[x, y] = 0
+            file.extend(((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)))
+    boite = masque.getbbox()
+    cote = max(boite[2] - boite[0], boite[3] - boite[1])
+    cx, cy = (boite[0] + boite[2]) // 2, (boite[1] + boite[3]) // 2
+    cadre = (cx - cote // 2, cy - cote // 2, cx - cote // 2 + cote, cy - cote // 2 + cote)
+    carre, m = im.crop(cadre), masque.crop(cadre).filter(ImageFilter.MinFilter(5)).filter(ImageFilter.GaussianBlur(1.2))
+    arrondie = carre.copy(); arrondie.putalpha(m)
+    # Coins : la partie centrale (sans les coins) étirée en dégradé doux.
+    k = int(cote * .2)
+    fond = carre.crop((k, k, cote - k, cote - k)).resize((4, 4), Image.BOX).resize((cote, cote), Image.BICUBIC)
+    pleine = fond.copy(); pleine.alpha_composite(arrondie)
+    return arrondie, pleine
+
+
+def etendre(image, taille):
+    """Place `image` au centre d'une toile `taille` et prolonge ses bords
+    (les couches adaptatives débordent de la zone visible)."""
+    toile = image.resize((taille, taille), Image.BICUBIC).filter(ImageFilter.GaussianBlur(taille * .04))
+    toile.alpha_composite(image, ((taille - image.width) // 2, (taille - image.height) // 2))
+    return toile
+
+
 def icones(logo):
-    """Icône de l'application : pas le logo complet, mais une marque simple
-    (E blanc, point doré, anneau) sur le dégradé EduSphere."""
+    """Icône de l'application : le visuel fourni (mobile/outils/icone-application.png)."""
+    arrondie, pleine = icone_source()
     for dossier, t in {'mdpi': 48, 'hdpi': 72, 'xhdpi': 96, 'xxhdpi': 144, 'xxxhdpi': 192}.items():
         rep = os.path.join(RES, f'mipmap-{dossier}')
-        for nom, rond in (('ic_launcher.png', False), ('ic_launcher_round.png', True)):
-            fond = degrade(t, t)
-            fond.alpha_composite(glyphe(t, part=.50))
-            fond.putalpha(forme(t, rond))
-            fond.save(os.path.join(rep, nom))
-        f = t * 108 // 48                          # icône adaptative (108 dp)
-        degrade(f, f).convert('RGB').save(os.path.join(rep, 'ic_launcher_background.png'))
-        glyphe(f, part=.30, anneau=.29).save(os.path.join(rep, 'ic_launcher_foreground.png'))
+        arrondie.resize((t, t), Image.LANCZOS).save(os.path.join(rep, 'ic_launcher.png'))
+        rond = pleine.resize((t, t), Image.LANCZOS)
+        rond.putalpha(forme(t, True))
+        rond.save(os.path.join(rep, 'ic_launcher_round.png'))
+        # Icône adaptative (108 dp) : le carré occupe la zone visible (72 dp),
+        # tout est dans la couche de fond ; premier plan transparent.
+        f = t * 108 // 48
+        etendre(pleine.resize((f * 2 // 3, f * 2 // 3), Image.LANCZOS), f).convert('RGB').save(os.path.join(rep, 'ic_launcher_background.png'))
+        Image.new('RGBA', (f, f), (0, 0, 0, 0)).save(os.path.join(rep, 'ic_launcher_foreground.png'))
 
 
 def ecran(w, h, logo):
