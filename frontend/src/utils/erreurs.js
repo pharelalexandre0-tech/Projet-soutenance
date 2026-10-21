@@ -14,6 +14,9 @@ export function messageErreur(err, messageParDefaut) {
   if (err.response?.data?.maintenance) {
     return err.response.data.erreur;
   }
+  if (err.horsLigne) {
+    return err.response?.data?.erreur || 'Vous êtes hors ligne : cette action sera possible dès le retour de la connexion.';
+  }
   if (!err.response || err.response.status >= 500) {
     return 'Impossible de joindre le serveur, réessaie dans quelques secondes.';
   }

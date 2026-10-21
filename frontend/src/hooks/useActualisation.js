@@ -41,9 +41,24 @@ export default function useActualisation(charger, { plateforme = false, delai = 
         } catch { /* chargement en erreur : la page garde ses données */ }
       }, delai);
     });
+    // Passage hors ligne (copies gardées) et retour du réseau (données à
+    // jour) : la page recharge aussitôt.
+    function auRetourReseau() {
+      clearTimeout(minuteur);
+      minuteur = setTimeout(() => {
+        try {
+          const resultat = chargerRef.current?.();
+          if (resultat && typeof resultat.catch === 'function') resultat.catch(() => {});
+        } catch { /* la page garde ses données */ }
+      }, 50);
+    }
+    window.addEventListener('edusphere:reseau-retabli', auRetourReseau);
+    window.addEventListener('edusphere:passage-hors-ligne', auRetourReseau);
     return () => {
       clearTimeout(minuteur);
       desabonner();
+      window.removeEventListener('edusphere:reseau-retabli', auRetourReseau);
+      window.removeEventListener('edusphere:passage-hors-ligne', auRetourReseau);
     };
   }, [connecte, plateforme, delai, superadmin, filtre]);
 }

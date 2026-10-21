@@ -2416,3 +2416,13 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 .histogramme-barre { width: 100%; background: var(--edu-bleu); border-radius: 8px 8px 0 0; transition: height 0.4s ease; }
 .histogramme-colonne span { font-size: 12.5px; color: var(--texte-clair); text-transform: capitalize; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 @media (max-width: 420px) { .histogramme { gap: 6px; } .histogramme-piste { height: 120px; } }
+
+/* Mode hors ligne : pastille discrète en bas de l'écran. */
+.bandeau-hors-ligne {
+  position: fixed; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  z-index: 900; display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px);
+  padding: 10px 16px; border-radius: 999px; background: var(--edu-marine); color: #fff;
+  font-size: 13px; line-height: 1.35; box-shadow: var(--ombre-flottante);
+}
+.bandeau-hors-ligne svg { width: 18px; height: 18px; flex: none; color: var(--edu-or); }
+.bandeau-hors-ligne strong { font-weight: 700; }

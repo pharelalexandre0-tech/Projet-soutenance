@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import LimiteErreurChargement from './components/LimiteErreurChargement';
 import EcranMaintenance from './components/EcranMaintenance';
+import BandeauHorsLigne from './components/BandeauHorsLigne';
 import EcranDemarrage, { demarrageAAfficher } from './components/EcranDemarrage';
 import Login from './pages/Login';
 
@@ -68,6 +69,7 @@ export default function App() {
             </Routes>
           </Suspense>
           <EcranMaintenance />
+          <BandeauHorsLigne />
           {demarrage && (IntroApplication
             ? <Suspense fallback={null}><IntroApplication onTermine={() => setDemarrage(false)} /></Suspense>
             : <EcranDemarrage onTermine={() => setDemarrage(false)} />)}

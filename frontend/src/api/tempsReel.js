@@ -6,6 +6,7 @@
 // qu'elle a pu manquer.
 
 import { ORIGINE_API } from './client';
+import { verifierConnexion } from './horsLigne';
 
 const DELAI_MIN_MS = 2000;
 const DELAI_MAX_MS = 30000;
@@ -69,7 +70,11 @@ async function ouvrir() {
     // Coupure ou fermeture volontaire : traitée ci-dessous.
   } finally {
     if (controleur === courant) controleur = null;
-    if (!courant.signal.aborted) programmerRelance();
+    if (!courant.signal.aborted) {
+      // Flux coupé : peut-être une perte de connexion, vérifiée aussitôt.
+      verifierConnexion();
+      programmerRelance();
+    }
   }
 }
 
