@@ -13,7 +13,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 // service worker garde l'application pour qu'elle s'ouvre sans réseau, et
 // la rend installable depuis le navigateur du téléphone.
 if (import.meta.env.PROD && import.meta.env.MODE !== 'android' && 'serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => { /* navigateur sans prise en charge */ });
-  });
+  // Enregistré tout de suite (pas après le chargement complet) : plus vite
+  // il est en place, plus vite l'application est disponible hors ligne.
+  navigator.serviceWorker.register('/sw.js').catch(() => { /* navigateur sans prise en charge */ });
+  const precharger = () => navigator.serviceWorker.controller?.postMessage('precharger');
+  if (navigator.serviceWorker.controller) precharger();
+  navigator.serviceWorker.addEventListener('controllerchange', precharger);
 }

@@ -4,43 +4,72 @@
 // elle-même, rangées par compte (src/api/horsLigne.js).
 const COQUILLE = 'edusphere-coquille-v1';
 const POLICES = 'edusphere-polices-v1';
+// Les fichiers sont retrouvés par leur seule adresse : le serveur répond
+// avec « Vary » (Origin, Accept-Encoding) et les scripts de la page sont
+// demandés en mode cors, avec d'autres en-têtes que lors de la mise en
+// cache. Sans cette option, rien n'était retrouvé et la page restait
+// blanche hors ligne.
+const SANS_VARY = { ignoreVary: true };
 
-// Met en cache index.html et tous les fichiers /assets qu'il référence,
-// y compris les morceaux chargés plus tard (un espace jamais ouvert doit
-// pouvoir s'ouvrir hors ligne).
-async function prechargerDepuis(html) {
+// Met en cache les fichiers /assets référencés par index.html, puis ceux
+// qu'ils référencent à leur tour (morceaux chargés plus tard : un espace
+// jamais ouvert doit pouvoir s'ouvrir hors ligne). Niveau par niveau, six
+// téléchargements à la fois : sur une connexion de téléphone, un par un
+// prenait plus d'une minute.
+// « assets/x.js » (index.html, carte de préchargement) ou « ./x.js »
+// (import dynamique écrit depuis un fichier de /assets).
+const MOTIF = /(?:\/?assets\/|["'`]\.\/)([\w.\-]+\.(?:js|css|png|svg|jpg|webp|woff2?))/g;
+async function prechargerDepuis(html, niveauxMax = Infinity) {
   const cache = await caches.open(COQUILLE);
   const vus = new Set();
-  const file = [html];
-  while (file.length) {
-    const texte = file.shift();
-    // « assets/x.js » (index.html, carte de préchargement) ou « ./x.js »
-    // (import dynamique écrit depuis un fichier de /assets).
-    for (const [, chemin] of texte.matchAll(/(?:\/?assets\/|["'`]\.\/)([\w.\-]+\.(?:js|css|png|svg|jpg|webp|woff2?))/g)) {
-      const url = `/assets/${chemin}`;
-      if (vus.has(url)) continue;
-      vus.add(url);
-      let reponse = await cache.match(url);
-      if (!reponse) {
-        try {
-          reponse = await fetch(url);
-          if (!reponse.ok) continue;
-          await cache.put(url, reponse.clone());
-        } catch { continue; }
+  let textes = [html];
+  for (let niveau = 0; niveau < niveauxMax && textes.length; niveau++) {
+    const urls = [];
+    for (const texte of textes) {
+      for (const [, chemin] of texte.matchAll(MOTIF)) {
+        const url = `/assets/${chemin}`;
+        if (!vus.has(url)) { vus.add(url); urls.push(url); }
       }
-      if (url.endsWith('.js') || url.endsWith('.css')) file.push(await reponse.text());
     }
+    const suivants = [];
+    for (let i = 0; i < urls.length; i += 6) {
+      await Promise.all(urls.slice(i, i + 6).map(async (url) => {
+        let reponse = await cache.match(url, SANS_VARY);
+        if (!reponse) {
+          try {
+            reponse = await fetch(url);
+            if (!reponse.ok) return;
+            await cache.put(url, reponse.clone());
+          } catch { return; }
+        }
+        if (url.endsWith('.js') || url.endsWith('.css')) suivants.push(await reponse.text());
+      }));
+    }
+    textes = suivants;
   }
 }
 
+// Installation rapide : la page et ses fichiers directs (de quoi rouvrir
+// l'application). Le reste suit aussitôt après, en arrière-plan.
 self.addEventListener('install', (evenement) => {
   evenement.waitUntil((async () => {
     const cache = await caches.open(COQUILLE);
     const reponse = await fetch('/index.html', { cache: 'no-store' });
     await cache.put('/index.html', reponse.clone());
     await cache.addAll(['/favicon.png', '/manifest.webmanifest', '/icones/icone-192.png']).catch(() => {});
-    await prechargerDepuis(await reponse.text());
+    await prechargerDepuis(await reponse.text(), 2);
     await self.skipWaiting();
+  })());
+});
+
+// La page demande le préchargement complet dès que ce service worker la
+// contrôle (et à chaque ouverture : ce qui est déjà gardé n'est pas refait).
+self.addEventListener('message', (evenement) => {
+  if (evenement.data !== 'precharger') return;
+  evenement.waitUntil((async () => {
+    const garde = await caches.match('/index.html', SANS_VARY);
+    if (garde) await prechargerDepuis(await garde.text());
+    evenement.source?.postMessage('pret-hors-ligne');
   })());
 });
 
@@ -62,7 +91,7 @@ self.addEventListener('fetch', (evenement) => {
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     evenement.respondWith((async () => {
       const cache = await caches.open(POLICES);
-      const garde = await cache.match(requete);
+      const garde = await cache.match(requete, SANS_VARY);
       const reseau = fetch(requete).then((r) => { if (r.ok || r.type === 'opaque') cache.put(requete, r.clone()); return r; }).catch(() => garde);
       return garde || reseau;
     })());
@@ -87,7 +116,7 @@ self.addEventListener('fetch', (evenement) => {
         }
         return reponse;
       } catch {
-        return (await caches.match('/index.html')) || Response.error();
+        return (await caches.match('/index.html', SANS_VARY)) || Response.error();
       }
     })());
     return;
@@ -97,7 +126,7 @@ self.addEventListener('fetch', (evenement) => {
   evenement.respondWith((async () => {
     const cache = await caches.open(COQUILLE);
     if (url.pathname.startsWith('/assets/')) {
-      const garde = await cache.match(requete);
+      const garde = await cache.match(url.pathname, SANS_VARY);
       if (garde) return garde;
     }
     try {
@@ -105,7 +134,7 @@ self.addEventListener('fetch', (evenement) => {
       if (reponse.ok) cache.put(requete, reponse.clone());
       return reponse;
     } catch {
-      return (await cache.match(requete)) || Response.error();
+      return (await cache.match(url.pathname, SANS_VARY)) || Response.error();
     }
   })());
 });
