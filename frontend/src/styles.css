@@ -964,6 +964,17 @@ tbody tr:has(> td.vide):hover { background: none; }
   font-size: 1.05rem; line-height: 1.8; color: rgba(255, 255, 255, 0.78); margin: 0; max-width: 360px;
   animation: entree-connexion 0.5s cubic-bezier(.22, 1, .36, 1) 0.2s both;
 }
+/* QR code du site, sous le message d'accueil. */
+.bienvenue-qr {
+  display: flex; align-items: center; gap: 16px; max-width: 360px; text-align: left;
+  padding: 12px 18px 12px 12px; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.18);
+  animation: entree-connexion 0.5s cubic-bezier(.22, 1, .36, 1) 0.26s both;
+}
+.bienvenue-qr-code { flex: none; width: 92px; height: 92px; padding: 8px; border-radius: 12px; background: #fff; }
+.bienvenue-qr-code img { display: block; width: 100%; height: 100%; }
+.bienvenue-qr-texte { font-size: 0.88rem; line-height: 1.5; color: rgba(255, 255, 255, 0.8); }
+.bienvenue-qr-texte strong { display: block; color: #fff; font-size: 0.95rem; margin-bottom: 2px; }
 .carte-formulaire-acces {
   position: absolute; left: 0; top: 50%;
   width: 48%; min-height: 600px;
@@ -1066,6 +1077,7 @@ tbody tr:has(> td.vide):hover { background: none; }
   .bienvenue-contenu .marque-pastille { width: 84px; height: 84px; padding: 13px; margin-bottom: 16px; }
   .bienvenue-contenu .marque-nom { font-size: 1.9rem; }
   .bienvenue-texte { font-size: 0.95rem; line-height: 1.6; }
+  .bienvenue-qr { display: none; }
   .carte-formulaire-acces {
     position: static; width: 100%; min-height: auto;
     border-radius: 0; box-shadow: none; padding: 36px 24px 48px;
@@ -1076,7 +1088,7 @@ tbody tr:has(> td.vide):hover { background: none; }
 @keyframes glissement-formulaire-mobile { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   .carte-formulaire-acces, .acces-eyebrow, .carte-formulaire-acces h2, .connexion-aide,
-  .formulaire-connexion > *, .bienvenue-contenu .marque-pastille, .bienvenue-contenu .marque-nom, .bienvenue-texte { animation: none; }
+  .formulaire-connexion > *, .bienvenue-contenu .marque-pastille, .bienvenue-contenu .marque-nom, .bienvenue-texte, .bienvenue-qr { animation: none; }
   .carte-formulaire-acces { transform: translateY(-50%); }
 }
 @media (prefers-reduced-motion: reduce) and (max-width: 900px) { .carte-formulaire-acces { transform: none; } }

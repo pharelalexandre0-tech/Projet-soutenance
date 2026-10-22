@@ -8,6 +8,7 @@ import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationC
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
+import qrEduSphere from '../assets/qr-edusphere.svg';
 
 // Temps pendant lequel « code accepté » (coche) reste à l'écran.
 const DUREE_SUCCES_MS = 1800;
@@ -40,6 +41,17 @@ function CarteBienvenue() {
           Bienvenue sur EduSphere, l'espace numérique qui réunit toute
           la vie de votre établissement.
         </p>
+        {/* Site seulement : ouvrir EduSphere sur son téléphone d'un scan
+            (inutile dans l'application Android, déjà sur le téléphone). */}
+        {import.meta.env.MODE !== 'android' && (
+          <div className="bienvenue-qr">
+            <span className="bienvenue-qr-code"><img src={qrEduSphere} alt="QR code pour ouvrir EduSphere sur un téléphone" /></span>
+            <span className="bienvenue-qr-texte">
+              <strong>Sur votre téléphone</strong>
+              Scannez ce code pour ouvrir EduSphere, même hors ligne.
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
