@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import client from '../api/client';
 import { reinitialiserFlux } from '../api/tempsReel';
+import { suivreSession } from '../api/synchronisation';
 import { connexionHorsLigne, definirCompte, estErreurReseau, memoriserConnexion, profilHorsLigne, signalerHorsLigne } from '../api/horsLigne';
 
 const AuthContext = createContext(null);
@@ -33,6 +34,10 @@ export function AuthProvider({ children }) {
       })
       .finally(() => setChargement(false));
   }, []);
+
+  // Hors ligne : toutes les données de l'espace connecté sont gardées sur
+  // l'appareil et tenues à jour automatiquement (synchronisation.js).
+  useEffect(() => { suivreSession(profil); }, [profil?.id, profil?.role]);
 
   // Retour du réseau après une session ouverte hors ligne : si le jeton a
   // expiré entre-temps, retour à l'écran de connexion.
