@@ -1,6 +1,6 @@
 const path = require('path');
 const { Bulletin, Eleve, Classe, Semestre, Utilisateur } = require('../models');
-const { calculerBulletin } = require('../services/moyenneService');
+const { calculerBulletin, calculerBulletinsClasse } = require('../services/moyenneService');
 const { genererBulletinPDF, lireDocument } = require('../services/pdfService');
 const { adressesFamille, envoyerALaFamille } = require('../services/familleService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
@@ -134,8 +134,9 @@ async function resultatsClasse(req, res) {
   const eleves = await Eleve.findAll({ where: { classeId: classe.id }, order: [['nom', 'ASC'], ['prenom', 'ASC']] });
   const resultats = [];
   let regles = null;
+  const calculs = await calculerBulletinsClasse(eleves.map((e) => e.id), semestre.id);
   for (const eleve of eleves) {
-    const calcul = await calculerBulletin(eleve.id, semestre.id);
+    const calcul = calculs.get(eleve.id);
     regles = calcul.regles;
     resultats.push({
       eleveId: eleve.id,

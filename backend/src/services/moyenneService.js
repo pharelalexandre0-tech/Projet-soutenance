@@ -39,8 +39,10 @@ function calculerNoteFinale(moyenneCC, moyenneExamen) {
   return Math.round(((moyenneCC + moyenneExamen) / 2) * 100) / 100;
 }
 
-async function obtenirNoteSession(eleveId, matiereId, session, regles = REGLES_PAR_DEFAUT) {
-  const note = await Note.findOne({ where: { eleveId, matiereId, session } });
+// `notes` (facultatif) : notes déjà chargées pour l'élève, indexées par
+// « matiereId|session » (calcul d'une classe entière en une seule lecture).
+async function obtenirNoteSession(eleveId, matiereId, session, regles = REGLES_PAR_DEFAUT, notes = null) {
+  const note = notes ? notes.get(`${matiereId}|${session}`) : await Note.findOne({ where: { eleveId, matiereId, session } });
   if (!note) return null;
   const noteFinale = calculerNoteFinale(note.moyenneCC, note.moyenneExamen);
   if (noteFinale === null) return null;
@@ -57,10 +59,10 @@ async function obtenirNoteSession(eleveId, matiereId, session, regles = REGLES_P
 // seulement la meilleure des deux, pour ne pas effacer complètement l'échec
 // initial. S'il n'y a pas de note normale (cas rare), le rattrapage sert
 // seul de note retenue.
-async function obtenirResultatMatiere(eleveId, matiereId, regles = null) {
+async function obtenirResultatMatiere(eleveId, matiereId, regles = null, notes = null) {
   regles = regles || (await reglesEleve(eleveId));
-  const normale = await obtenirNoteSession(eleveId, matiereId, 'normale', regles);
-  const rattrapage = await obtenirNoteSession(eleveId, matiereId, 'rattrapage', regles);
+  const normale = await obtenirNoteSession(eleveId, matiereId, 'normale', regles, notes);
+  const rattrapage = await obtenirNoteSession(eleveId, matiereId, 'rattrapage', regles, notes);
   if (!normale && !rattrapage) return null;
 
   let retenue;
@@ -90,10 +92,16 @@ async function obtenirResultatMatiere(eleveId, matiereId, regles = null) {
 // matières retenues n'est éliminatoire, ET qu'aucune n'est passée par le
 // rattrapage — une UE rattrapée reste étiquetée "rattrapage", jamais confondue
 // avec une validation en session normale, même quand la moyenne suffirait.
-async function calculerBulletin(eleveId, semestreId) {
-  const ues = await UniteEnseignement.findAll({ where: { semestreId }, include: [Matiere] });
-  const semestre = await Semestre.findByPk(semestreId, { attributes: ['etablissementId'] });
-  const regles = await reglesEtablissement(semestre?.etablissementId);
+// `contexte` (facultatif) : { ues, regles, notes } déjà chargés, pour
+// calculer toute une classe sans relire la base élève par élève.
+async function calculerBulletin(eleveId, semestreId, contexte = null) {
+  const ues = contexte?.ues || await UniteEnseignement.findAll({ where: { semestreId }, include: [Matiere] });
+  let regles = contexte?.regles;
+  if (!regles) {
+    const semestre = await Semestre.findByPk(semestreId, { attributes: ['etablissementId'] });
+    regles = await reglesEtablissement(semestre?.etablissementId);
+  }
+  const notes = contexte?.notes || null;
 
   let sommePondereeGenerale = 0;
   let sommeCoefficientsGenerale = 0;
@@ -110,7 +118,7 @@ async function calculerBulletin(eleveId, semestreId) {
     const detailMatieres = [];
 
     for (const matiere of ue.Matieres) {
-      const resultat = await obtenirResultatMatiere(eleveId, matiere.id, regles);
+      const resultat = await obtenirResultatMatiere(eleveId, matiere.id, regles, notes);
       if (!resultat) continue;
       uneMatiereNotee = true;
       const { normale, rattrapage, retenue, sessionRetenue } = resultat;
@@ -180,8 +188,24 @@ async function calculerBulletin(eleveId, semestreId) {
   return { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, regles };
 }
 
+// Bulletins de plusieurs élèves d'un même semestre : les UE, les règles et
+// toutes les notes sont lues une seule fois.
+async function calculerBulletinsClasse(eleveIds, semestreId) {
+  const ues = await UniteEnseignement.findAll({ where: { semestreId }, include: [Matiere] });
+  const semestre = await Semestre.findByPk(semestreId, { attributes: ['etablissementId'] });
+  const regles = await reglesEtablissement(semestre?.etablissementId);
+  const matiereIds = ues.flatMap((ue) => ue.Matieres.map((m) => m.id));
+  const toutes = eleveIds.length && matiereIds.length ? await Note.findAll({ where: { eleveId: eleveIds, matiereId: matiereIds } }) : [];
+  const parEleve = new Map(eleveIds.map((id) => [id, new Map()]));
+  for (const n of toutes) parEleve.get(n.eleveId)?.set(`${n.matiereId}|${n.session}`, n);
+  const resultats = new Map();
+  for (const id of eleveIds) resultats.set(id, await calculerBulletin(id, semestreId, { ues, regles, notes: parEleve.get(id) }));
+  return resultats;
+}
+
 module.exports = {
   REGLES_PAR_DEFAUT,
+  calculerBulletinsClasse,
   reglesDe,
   reglesEtablissement,
   calculerNoteFinale,
