@@ -122,6 +122,25 @@ async function configurerRegles(req, res) {
   return res.json({ etablissement });
 }
 
+// Paramètres (Académie) : archive complète des données de l'école (CSV,
+// JSON, PDF), à garder ou à emporter si l'école quitte EduSphere.
+async function exporterDonneesEcole(req, res) {
+  const { construireArchive } = require('../services/exportEcoleService');
+  const { journaliser } = require('../services/plateformeService');
+  const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
+  if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
+  const archive = await construireArchive(etablissement.id);
+  await etablissement.update({ dernierExportLe: new Date() });
+  await journaliser(req.utilisateur, 'etablissement', `Récupération des données de « ${etablissement.nom} » (${archive.resume.lignes} lignes, ${archive.resume.documents} documents)`);
+  res.set({
+    'Content-Type': 'application/zip',
+    'Content-Disposition': `attachment; filename="${archive.nomFichier}"`,
+    'Content-Length': archive.contenu.length,
+    'Access-Control-Expose-Headers': 'Content-Disposition',
+  });
+  return res.send(archive.contenu);
+}
+
 const LIBELLES_TYPE_MESSAGE = { message: 'Message', annonce: 'Annonce', convocation: 'Convocation' };
 
 // Gestion de la structure pédagogique (Espace Académie, diagramme 1) :
@@ -585,6 +604,7 @@ async function statistiquesAcademiques(req, res) {
 module.exports = {
   creerClasse,
   configurerRegles,
+  exporterDonneesEcole,
   listerClasses,
   modifierClasse,
   supprimerClasse,

@@ -11,6 +11,7 @@ const {
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
   Absence, Note, Bulletin, PredictionIA, MessageAnnonce, Notification,
   FraisScolarite, Paiement, Recu, Salaire, FonctionnalitePersonnalisee, ActivationFonctionnalite,
+  DocumentPDF, IncidentComportement, PublicationEmploiDuTemps, CompteRenduSaisie, EntreeExtension,
 } = require('../models');
 
 // Vue d'ensemble : le superadmin gère la PLATEFORME (écoles affiliées,
@@ -153,6 +154,11 @@ async function supprimerEtablissement(req, res) {
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
   const etablissementId = etablissement.id;
 
+  // Les PDF de l'école (bulletins, reçus, fiches de paie, emplois du temps)
+  // partent avec elle : retrouvés tant que leurs lignes existent encore.
+  const { documentsDe } = require('../services/exportEcoleService');
+  const documents = await documentsDe(etablissementId);
+
   const [classes, semestres, eleves, professeurs, personnel, utilisateurs] = await Promise.all([
     Classe.findAll({ where: { etablissementId }, attributes: ['id'] }),
     Semestre.findAll({ where: { etablissementId }, attributes: ['id'] }),
@@ -196,7 +202,11 @@ async function supprimerEtablissement(req, res) {
     await PredictionIA.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
     await Note.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
     await Absence.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
+    await IncidentComportement.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
   }
+  await CompteRenduSaisie.destroy({ where: { etablissementId } });
+  await EntreeExtension.destroy({ where: { etablissementId } });
+  if (classeIds.length) await PublicationEmploiDuTemps.destroy({ where: { classeId: { [Op.in]: classeIds } } });
   if (classeIds.length) {
     await CahierDeTextes.destroy({ where: { classeId: { [Op.in]: classeIds } } });
     await MessageAnnonce.destroy({ where: { classeId: { [Op.in]: classeIds } } });
@@ -210,6 +220,7 @@ async function supprimerEtablissement(req, res) {
   if (uniteEnseignementIds.length) await Matiere.destroy({ where: { uniteEnseignementId: { [Op.in]: uniteEnseignementIds } } });
   if (semestreIds.length) await UniteEnseignement.destroy({ where: { semestreId: { [Op.in]: semestreIds } } });
   if (utilisateurIds.length) await Notification.destroy({ where: { utilisateurId: { [Op.in]: utilisateurIds } } });
+  if (utilisateurIds.length) await MessageAnnonce.destroy({ where: { auteurId: { [Op.in]: utilisateurIds } } });
 
   await Eleve.destroy({ where: { etablissementId } });
   await Classe.destroy({ where: { etablissementId } });
@@ -218,6 +229,7 @@ async function supprimerEtablissement(req, res) {
   await Personnel.destroy({ where: { etablissementId } });
   await Utilisateur.destroy({ where: { etablissementId } });
   await ActivationFonctionnalite.destroy({ where: { etablissementId } });
+  if (documents.length) await DocumentPDF.destroy({ where: { id: { [Op.in]: documents.map((d) => d.id) } } });
   invaliderCache();
   await etablissement.destroy();
 

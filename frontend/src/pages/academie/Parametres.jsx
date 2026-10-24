@@ -4,7 +4,8 @@ import client from '../../api/client';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
 import { messageErreur } from '../../utils/erreurs';
-import { IconDocument, IconKey } from '../../components/icons';
+import { IconDocument, IconKey, IconDownload } from '../../components/icons';
+import BoutonDocument from '../../components/BoutonDocument';
 import { motDePasseAleatoire } from '../../utils/excel';
 
 const CHAMPS_VIDES = { nom: '', sigle: '', devise: '', ville: '', pays: '', boitePostale: '', telephone: '', email: '', logo: '' };
@@ -122,6 +123,8 @@ export default function Parametres() {
     </div>
 
     <ReglesValidation />
+
+    <RecuperationDonnees />
 
     <div className="carte">
       <div className="entete-carte">
@@ -276,6 +279,44 @@ function ReglesValidation() {
         </form>
       )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
+    </div>
+  );
+}
+
+// Réversibilité : l'école récupère à tout moment l'archive complète de ses
+// données (tableaux CSV, fichier JSON, tous ses PDF), à garder ou à emporter
+// si elle quitte EduSphere.
+function RecuperationDonnees() {
+  const [dernier, setDernier] = useState(null);
+  const charger = () => client.get('/etablissement').then((res) => setDernier(res.data.etablissement?.dernierExportLe || null)).catch(() => {});
+  useEffect(() => { charger(); }, []);
+
+  return (
+    <div className="carte">
+      <div className="entete-carte">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="puce-icone petite"><IconDownload width={16} height={16} /></span>
+          <h2>Récupérer les données de l'établissement</h2>
+        </div>
+      </div>
+      <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
+        Vos données vous appartiennent. Téléchargez à tout moment une archive complète, lisible sans EduSphere,
+        à conserver ou à reprendre dans un autre logiciel si l'établissement quitte la plateforme.
+      </p>
+      <ul className="liste-archive">
+        <li><strong>Tableaux</strong> : élèves, classes, notes, absences, bulletins, frais, paiements, personnel… (CSV, s'ouvrent dans Excel)</li>
+        <li><strong>Fichier complet</strong> : les mêmes données en JSON, pour une reprise automatique</li>
+        <li><strong>Documents</strong> : tous les bulletins, reçus, fiches de paie et emplois du temps en PDF</li>
+        <li><strong>Sans</strong> mots de passe ni codes de connexion, qui ne quittent jamais EduSphere</li>
+      </ul>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+        <BoutonDocument chemin="/api/etablissement/export" className="primaire" title="Archive ZIP de toutes les données" onTermine={charger}>
+          <IconDownload width={16} height={16} /> Télécharger l'archive (ZIP)
+        </BoutonDocument>
+        <span className="note-secondaire" style={{ fontSize: '0.82rem' }}>
+          {dernier ? `Dernière récupération : ${new Date(dernier).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}` : 'Aucune récupération pour le moment'}
+        </span>
+      </div>
     </div>
   );
 }

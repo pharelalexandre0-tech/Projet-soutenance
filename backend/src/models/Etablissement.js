@@ -29,6 +29,9 @@ Etablissement.init(
     // éliminatoire et bloque son UE (7 par défaut). Réglées dans Paramètres.
     seuilValidation: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 10 },
     noteEliminatoire: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 7 },
+    // Dernière fois que l'école a téléchargé l'archive de ses données
+    // (Paramètres > Récupérer les données) : vérifié avant toute suppression.
+    dernierExportLe: { type: DataTypes.DATE, allowNull: true },
   },
   { sequelize, modelName: 'Etablissement', tableName: 'etablissements' }
 );

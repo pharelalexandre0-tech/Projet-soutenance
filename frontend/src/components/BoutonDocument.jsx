@@ -16,14 +16,15 @@ function enBase64(blob) {
 // est donc demandé avec le jeton. Dans le navigateur, il est enregistré depuis
 // la mémoire ; dans l'application Android, il est écrit sur le téléphone puis
 // proposé à l'ouverture ou au partage (lecteur PDF, messagerie...).
-export default function BoutonDocument({ chemin, className, style, title, children }) {
+export default function BoutonDocument({ chemin, nomFichier, className, style, title, children, onTermine }) {
   const [etat, setEtat] = useState(''); // '' | 'chargement' | 'erreur'
 
   async function telecharger() {
     setEtat('chargement');
     try {
       const res = await client.get(`${ORIGINE_API}${chemin}`, { baseURL: '', responseType: 'blob' });
-      const nom = chemin.split('/').pop();
+      const entete = res.headers?.['content-disposition'] || '';
+      const nom = nomFichier || (entete.match(/filename="?([^";]+)"?/) || [])[1] || chemin.split('/').pop();
       if (Capacitor.isNativePlatform()) {
         const [{ Filesystem, Directory }, { Share }] = await Promise.all([import('@capacitor/filesystem'), import('@capacitor/share')]);
         const fichier = await Filesystem.writeFile({ path: nom, data: await enBase64(res.data), directory: Directory.Cache });
@@ -39,6 +40,7 @@ export default function BoutonDocument({ chemin, className, style, title, childr
         setTimeout(() => URL.revokeObjectURL(url), 60000);
       }
       setEtat('');
+      onTermine?.();
     } catch (err) {
       // Partage fermé sans choisir d'application : ce n'est pas une erreur.
       setEtat(/cancel|annul/i.test(String(err?.message || err)) ? '' : 'erreur');

@@ -52,4 +52,4 @@ async function documentAutorise(utilisateur, nomFichier) {
   return false;
 }
 
-module.exports = { documentAutorise };
+module.exports = { documentAutorise, proprietaire };

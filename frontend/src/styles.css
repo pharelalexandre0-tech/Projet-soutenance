@@ -2467,3 +2467,5 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 .resultats-classe-bloc.rattrapage h4 i { background: #E2B341; }
 .resultats-classe-table { max-height: 320px; }
 @media (max-width: 900px) { .resultats-classe-colonnes { grid-template-columns: minmax(0, 1fr); } }
+.liste-archive { margin: 0 0 16px; padding-left: 18px; display: grid; gap: 6px; font-size: 0.88rem; color: var(--texte); }
+.liste-archive strong { font-weight: 600; }

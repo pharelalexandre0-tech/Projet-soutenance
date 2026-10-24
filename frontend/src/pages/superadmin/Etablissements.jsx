@@ -538,7 +538,12 @@ function AccesEcole({ etablissement, onStatut, onSupprime, notifier }) {
         <div className="zone-risque-ligne">
           <div>
             <strong>Supprimer l'école</strong>
-            <p>Efface définitivement l'école et toutes ses données : classes, élèves, notes, absences, frais et comptes.</p>
+            <p>Efface définitivement l'école et toutes ses données : classes, élèves, notes, absences, frais, documents PDF et comptes.</p>
+            <p className={etablissement.dernierExportLe ? 'note-secondaire' : 'ton-attente'}>
+              {etablissement.dernierExportLe
+                ? `Données récupérées par l'école le ${new Date(etablissement.dernierExportLe).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}.`
+                : "L'école n'a jamais récupéré ses données : avant une sortie, elle télécharge son archive depuis Paramètres > Récupérer les données."}
+            </p>
           </div>
           <button className="secondaire danger" onClick={() => setConfirmation('suppression')}><IconTrash /> Supprimer</button>
         </div>
@@ -563,7 +568,10 @@ function AccesEcole({ etablissement, onStatut, onSupprime, notifier }) {
       )}
       {confirmation === 'suppression' && (
         <ConfirmModal titre={`Supprimer « ${etablissement.nom} » ?`} boutonConfirmer="Supprimer définitivement" onConfirmer={supprimer} onAnnuler={() => setConfirmation(null)}>
-          Classes, élèves, notes, absences, frais et tous les comptes de l'école seront supprimés. Cette action est irréversible.
+          Classes, élèves, notes, absences, frais, documents PDF et tous les comptes de l'école seront supprimés. Cette action est irréversible.
+          {etablissement.dernierExportLe
+            ? ` L'école a récupéré ses données le ${new Date(etablissement.dernierExportLe).toLocaleDateString('fr-FR', { dateStyle: 'long' })} ; ce qui a été saisi depuis ne figure pas dans son archive.`
+            : " Attention : l'école n'a jamais récupéré ses données. Demandez-lui de télécharger son archive (Paramètres > Récupérer les données) avant de supprimer."}
         </ConfirmModal>
       )}
     </div>
