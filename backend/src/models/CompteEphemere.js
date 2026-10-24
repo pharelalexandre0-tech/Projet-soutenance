@@ -41,6 +41,12 @@ CompteEphemere.init(
     // terminé normalement d'un accès fermé à la main par l'Académie (un
     // appel sans aucun absent ne laisse sinon aucune trace en base).
     saisieEnvoyeeLe: { type: DataTypes.DATE, allowNull: true },
+    // Durée de travail accordée au professeur : elle ne démarre qu'à la
+    // première ouverture du lien (ouvertLe). Avant cette ouverture,
+    // dateExpiration est la date limite pour ouvrir le lien ; à l'ouverture,
+    // elle devient ouvertLe + dureeMinutes. Ancien accès : dureeMinutes vide.
+    dureeMinutes: { type: DataTypes.INTEGER, allowNull: true },
+    ouvertLe: { type: DataTypes.DATE, allowNull: true },
   },
   { sequelize, modelName: 'CompteEphemere', tableName: 'comptes_ephemeres' }
 );

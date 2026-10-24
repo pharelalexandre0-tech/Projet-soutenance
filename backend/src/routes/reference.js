@@ -54,5 +54,6 @@ router.get('/tableau-de-bord/academique', authentifier, academie, ctrl.statistiq
 
 router.get('/etablissement', authentifier, ctrl.obtenirEtablissement);
 router.put('/etablissement', authentifier, academie, ctrl.configurerEtablissement);
+router.put('/etablissement/regles', authentifier, academie, ctrl.configurerRegles);
 
 module.exports = router;

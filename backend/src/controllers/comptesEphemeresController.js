@@ -8,6 +8,18 @@ const { enregistrerMoyenne } = require('./notesController');
 const { envoyerEmail } = require('../services/emailService');
 const { emailAccesTemporaire } = require('../services/modelesEmail');
 const { consignerNotes, presenterResume, presenterDetail } = require('../services/compteRenduService');
+const { reglesDe } = require('../services/moyenneService');
+
+// Délai laissé au professeur pour ouvrir le lien ; le temps de saisie ne
+// démarre qu'à cette ouverture.
+const DELAI_OUVERTURE_JOURS = 7;
+
+function formaterDuree(minutes) {
+  if (!minutes) return null;
+  if (minutes % 1440 === 0) return `${minutes / 1440} jour${minutes >= 2880 ? 's' : ''}`;
+  if (minutes % 60 === 0) return `${minutes / 60} h`;
+  return `${minutes} min`;
+}
 
 function formaterExpiration(date) {
   return new Date(date).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Africa/Libreville' });
@@ -26,6 +38,7 @@ async function envoyerLienProfesseur(compte, { professeur, classe, matiere }) {
     categorie: compte.categorie,
     lien: lienAccesTemporaire(compte.jeton),
     expiration: formaterExpiration(compte.dateExpiration),
+    duree: compte.ouvertLe ? null : formaterDuree(compte.dureeMinutes),
     etablissement,
   });
   const resultat = await envoyerEmail(professeur.email, message.sujet, message.texte, [], { html: message.html });
@@ -67,7 +80,9 @@ async function creerCompteEphemere(req, res) {
   }
 
   const duree = Number(dureeMinutes) > 0 ? Number(dureeMinutes) : 60; // 1h par defaut
-  const dateExpiration = new Date(Date.now() + duree * 60 * 1000);
+  // Le temps de saisie démarre à l'ouverture du lien : d'ici là, le lien
+  // reste ouvrable pendant DELAI_OUVERTURE_JOURS.
+  const dateExpiration = new Date(Date.now() + DELAI_OUVERTURE_JOURS * 24 * 3600 * 1000);
 
   const compte = await CompteEphemere.create({
     jeton: genererJetonEphemere(),
@@ -75,6 +90,7 @@ async function creerCompteEphemere(req, res) {
     categorie: categorie === 'examen' ? 'examen' : 'cc',
     evaluationLibelle: evaluationLibelle || null,
     dateExpiration,
+    dureeMinutes: duree,
     statut: 'actif',
     professeurId,
     classeId,
@@ -90,6 +106,8 @@ async function creerCompteEphemere(req, res) {
       id: compte.id,
       statut: compte.statut,
       dateExpiration: compte.dateExpiration,
+      dureeMinutes: compte.dureeMinutes,
+      ouvertLe: compte.ouvertLe,
       tache: compte.tache,
       portee: {
         classe: classe.nom,
@@ -134,6 +152,8 @@ function presenter(compte, saisies = {}) {
     statut: compte.statut,
     dateCreation: compte.dateCreation || compte.createdAt,
     dateExpiration: compte.dateExpiration,
+    dureeMinutes: compte.dureeMinutes,
+    ouvertLe: compte.ouvertLe,
     lien: lienAccesTemporaire(compte.jeton),
     professeur: compte.Professeur ? { id: compte.Professeur.id, nom: compte.Professeur.nom, prenom: compte.Professeur.prenom, email: compte.Professeur.email } : null,
     classe: compte.Classe ? { id: compte.Classe.id, nom: compte.Classe.nom, niveau: compte.Classe.niveau } : null,
@@ -195,6 +215,13 @@ async function renvoyerCompteEphemere(req, res) {
 // (le middleware verifierCompteEphemere a deja fait le controle).
 async function verifierJeton(req, res) {
   const compte = req.compteEphemere;
+  // Première ouverture du lien : le temps de saisie démarre maintenant.
+  if (compte.dureeMinutes && !compte.ouvertLe) {
+    const maintenant = new Date();
+    compte.ouvertLe = maintenant;
+    compte.dateExpiration = new Date(maintenant.getTime() + compte.dureeMinutes * 60 * 1000);
+    await compte.save();
+  }
   const [classe, matiere, professeur, eleves] = await Promise.all([
     Classe.findByPk(compte.classeId),
     compte.matiereId ? Matiere.findByPk(compte.matiereId, { include: [UniteEnseignement] }) : null,
@@ -207,7 +234,8 @@ async function verifierJeton(req, res) {
   if (!professeur || !classe) {
     return res.status(410).json({ erreur: 'ce lien ne correspond plus à un professeur ou une classe existant(e)' });
   }
-  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom', 'sigle', 'logo', 'ville', 'email', 'telephone'] });
+  const etablissement = await Etablissement.findByPk(classe.etablissementId, { attributes: ['nom', 'sigle', 'logo', 'ville', 'email', 'telephone', 'seuilValidation', 'noteEliminatoire'] });
+  const etablissementRegles = reglesDe(etablissement);
 
   return res.json({
     session: 'temporaire',
@@ -226,6 +254,9 @@ async function verifierJeton(req, res) {
     },
     dateCreation: compte.dateCreation || compte.createdAt,
     dateExpiration: compte.dateExpiration,
+    ouvertLe: compte.ouvertLe,
+    dureeMinutes: compte.dureeMinutes,
+    regles: etablissementRegles,
     eleves: eleves.map((e) => ({ id: e.id, nom: e.nom, prenom: e.prenom, matricule: e.matricule })),
   });
 }

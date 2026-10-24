@@ -1,7 +1,26 @@
-const { Note, Matiere, UniteEnseignement } = require('../models');
+const { Note, Matiere, UniteEnseignement, Semestre, Etablissement, Eleve } = require('../models');
 
-const SEUIL_VALIDATION_UE = 10; // sur 20, convention systeme LMD
-const NOTE_ELIMINATOIRE = 7; // sur 20 : sous ce seuil, la matière bloque la validation de l'UE même si la moyenne pondérée compenserait
+// Valeurs par défaut (convention LMD), remplacées par celles de l'école :
+// seuil de validation d'une UE, et note sous laquelle une matière est
+// éliminatoire (elle bloque l'UE même si la moyenne pondérée compenserait).
+const REGLES_PAR_DEFAUT = { seuil: 10, eliminatoire: 7 };
+
+function reglesDe(etablissement) {
+  if (!etablissement) return { ...REGLES_PAR_DEFAUT };
+  const seuil = Number(etablissement.seuilValidation);
+  const eliminatoire = Number(etablissement.noteEliminatoire);
+  return {
+    seuil: Number.isFinite(seuil) ? seuil : REGLES_PAR_DEFAUT.seuil,
+    eliminatoire: Number.isFinite(eliminatoire) ? eliminatoire : REGLES_PAR_DEFAUT.eliminatoire,
+  };
+}
+async function reglesEtablissement(etablissementId) {
+  return reglesDe(etablissementId ? await Etablissement.findByPk(etablissementId, { attributes: ['seuilValidation', 'noteEliminatoire'] }) : null);
+}
+async function reglesEleve(eleveId) {
+  const eleve = await Eleve.findByPk(eleveId, { attributes: ['etablissementId'] });
+  return reglesEtablissement(eleve?.etablissementId);
+}
 
 // Note finale d'une matière = moyenne simple entre CC et Examen (50/50), pas
 // une pondération. La pondération par coefficient n'intervient qu'au niveau
@@ -20,7 +39,7 @@ function calculerNoteFinale(moyenneCC, moyenneExamen) {
   return Math.round(((moyenneCC + moyenneExamen) / 2) * 100) / 100;
 }
 
-async function obtenirNoteSession(eleveId, matiereId, session) {
+async function obtenirNoteSession(eleveId, matiereId, session, regles = REGLES_PAR_DEFAUT) {
   const note = await Note.findOne({ where: { eleveId, matiereId, session } });
   if (!note) return null;
   const noteFinale = calculerNoteFinale(note.moyenneCC, note.moyenneExamen);
@@ -29,7 +48,7 @@ async function obtenirNoteSession(eleveId, matiereId, session) {
     moyenneCC: note.moyenneCC,
     moyenneExamen: note.moyenneExamen,
     noteFinale,
-    eliminatoire: noteFinale < NOTE_ELIMINATOIRE,
+    eliminatoire: noteFinale < regles.eliminatoire,
   };
 }
 
@@ -38,9 +57,10 @@ async function obtenirNoteSession(eleveId, matiereId, session) {
 // seulement la meilleure des deux, pour ne pas effacer complètement l'échec
 // initial. S'il n'y a pas de note normale (cas rare), le rattrapage sert
 // seul de note retenue.
-async function obtenirResultatMatiere(eleveId, matiereId) {
-  const normale = await obtenirNoteSession(eleveId, matiereId, 'normale');
-  const rattrapage = await obtenirNoteSession(eleveId, matiereId, 'rattrapage');
+async function obtenirResultatMatiere(eleveId, matiereId, regles = null) {
+  regles = regles || (await reglesEleve(eleveId));
+  const normale = await obtenirNoteSession(eleveId, matiereId, 'normale', regles);
+  const rattrapage = await obtenirNoteSession(eleveId, matiereId, 'rattrapage', regles);
   if (!normale && !rattrapage) return null;
 
   let retenue;
@@ -52,7 +72,7 @@ async function obtenirResultatMatiere(eleveId, matiereId) {
       moyenneCC: rattrapage.moyenneCC,
       moyenneExamen: rattrapage.moyenneExamen,
       noteFinale,
-      eliminatoire: noteFinale < NOTE_ELIMINATOIRE,
+      eliminatoire: noteFinale < regles.eliminatoire,
     };
     sessionRetenue = 'rattrapage';
   } else {
@@ -72,6 +92,8 @@ async function obtenirResultatMatiere(eleveId, matiereId) {
 // avec une validation en session normale, même quand la moyenne suffirait.
 async function calculerBulletin(eleveId, semestreId) {
   const ues = await UniteEnseignement.findAll({ where: { semestreId }, include: [Matiere] });
+  const semestre = await Semestre.findByPk(semestreId, { attributes: ['etablissementId'] });
+  const regles = await reglesEtablissement(semestre?.etablissementId);
 
   let sommePondereeGenerale = 0;
   let sommeCoefficientsGenerale = 0;
@@ -88,7 +110,7 @@ async function calculerBulletin(eleveId, semestreId) {
     const detailMatieres = [];
 
     for (const matiere of ue.Matieres) {
-      const resultat = await obtenirResultatMatiere(eleveId, matiere.id);
+      const resultat = await obtenirResultatMatiere(eleveId, matiere.id, regles);
       if (!resultat) continue;
       uneMatiereNotee = true;
       const { normale, rattrapage, retenue, sessionRetenue } = resultat;
@@ -118,7 +140,7 @@ async function calculerBulletin(eleveId, semestreId) {
     // "rien de noté" et faisait disparaître toute l'UE du bulletin, y
     // compris une note éliminatoire qu'elle contenait.
     const moyenneUE = sommeCoefficientsUE > 0 ? Math.round((sommePondereeUE / sommeCoefficientsUE) * 100) / 100 : 0;
-    const seuilAtteint = moyenneUE >= SEUIL_VALIDATION_UE && !eliminatoireUE;
+    const seuilAtteint = moyenneUE >= regles.seuil && !eliminatoireUE;
     // Une UE qui est passée par le rattrapage n'est jamais comptée comme
     // "validée" au même titre qu'une validation en session normale — même
     // si la moyenne recalculée franchit le seuil, elle reste étiquetée
@@ -155,10 +177,13 @@ async function calculerBulletin(eleveId, semestreId) {
   const admis = detailParUE.length > 0 && detailParUE.every((u) => u.valide);
   const sessionGlobale = detailParUE.some((u) => u.session === 'rattrapage') ? 'rattrapage' : 'normale';
 
-  return { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE };
+  return { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, regles };
 }
 
 module.exports = {
+  REGLES_PAR_DEFAUT,
+  reglesDe,
+  reglesEtablissement,
   calculerNoteFinale,
   obtenirResultatMatiere,
   calculerBulletin,

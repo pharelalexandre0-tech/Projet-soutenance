@@ -434,7 +434,7 @@ function emailRappelParent({ email, enfants, etablissement }) {
 }
 
 // Lien d'accès temporaire envoyé à un professeur (saisie des notes ou appel).
-function emailAccesTemporaire({ prenom, tache, classe, matiere, evaluation, categorie, lien, expiration, etablissement }) {
+function emailAccesTemporaire({ prenom, tache, classe, matiere, evaluation, categorie, lien, expiration, duree, etablissement }) {
   const etab = identite(etablissement);
   const appel = tache === 'saisie_absences';
   const action = appel ? "faire l'appel" : 'saisir les notes';
@@ -444,7 +444,7 @@ function emailAccesTemporaire({ prenom, tache, classe, matiere, evaluation, cate
     ['Classe', classe],
     ['Matière', matiere],
     ['Évaluation', appel ? null : `${categorie === 'examen' ? 'Examen' : 'Contrôle continu'}${evaluation ? `, ${evaluation}` : ''}`],
-    ['Lien valable jusqu\'au', expiration],
+    ...(duree ? [['Temps de saisie', `${duree}, à partir de l'ouverture du lien`], ['À ouvrir avant le', expiration]] : [["Lien valable jusqu'au", expiration]]),
   ];
   const texte = texteBrut([
     salutation(prenom),
@@ -455,20 +455,22 @@ function emailAccesTemporaire({ prenom, tache, classe, matiere, evaluation, cate
     "Ouvrez ce lien pour commencer (aucun mot de passe n'est nécessaire) :",
     lien,
     '',
-    "L'accès se ferme automatiquement dès que votre saisie est envoyée, ou à l'heure indiquée ci-dessus.",
+    duree
+      ? `Le temps de saisie (${duree}) démarre à la première ouverture du lien. L'accès se ferme dès que votre saisie est envoyée, ou à la fin de ce temps.`
+      : "L'accès se ferme automatiquement dès que votre saisie est envoyée, ou à l'heure indiquée ci-dessus.",
   ], etablissement);
   const html = cadre({
     surtitre: 'Accès temporaire professeur',
     titre,
     etablissement,
-    preEntete: `Accès pour ${action} en ${classe}, valable jusqu'au ${expiration}.`,
+    preEntete: duree ? `Accès pour ${action} en ${classe} : ${duree} à partir de l'ouverture du lien.` : `Accès pour ${action} en ${classe}, valable jusqu'au ${expiration}.`,
     contenu: [
       paragraphe(salutation(prenom)),
       paragraphe(`${echapper(etab?.nom || 'Votre établissement')} vous a ouvert un accès temporaire pour <strong>${action}</strong>. Aucun compte ni mot de passe n'est nécessaire.`),
       tableauDetails(lignesPortee, 'Votre mission'),
       bouton(appel ? "Faire l'appel" : 'Saisir les notes', lien),
       lienDeSecours(lien),
-      note('Bon à savoir', "Ce lien vous est personnel, ne le transférez pas. L'accès se ferme dès que votre saisie est envoyée, ou à l'heure indiquée. Besoin de plus de temps ? Demandez un nouvel accès au service de la scolarité."),
+      note('Bon à savoir', "Ce lien vous est personnel, ne le transférez pas. L'accès se ferme dès que votre saisie est envoyée, ou à la fin du temps de saisie, qui démarre à la première ouverture. Besoin de plus de temps ? Demandez un nouvel accès au service de la scolarité."),
     ].join(''),
   });
   return { sujet, texte, html };

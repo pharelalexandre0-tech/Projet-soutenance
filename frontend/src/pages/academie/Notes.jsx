@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import { lireFichierExcel, normaliserTexte } from '../../utils/excel';
+import LegendeSeuils from '../../components/LegendeSeuils';
+import { REGLES_PAR_DEFAUT, reglesEtablissement, tonNote, noteFr } from '../../utils/seuils';
 
 // Diagramme 4 (cas nominal) : l'Académie saisit, par matière, la moyenne de
 // contrôle continu et la moyenne d'examen de chaque élève — pas note par
@@ -20,6 +22,8 @@ export default function Notes() {
   const [message, setMessage] = useState('');
   const [importMessage, setImportMessage] = useState('');
   const [enCours, setEnCours] = useState(false);
+  const [regles, setRegles] = useState(REGLES_PAR_DEFAUT);
+  useEffect(() => { client.get('/etablissement').then((res) => setRegles(reglesEtablissement(res.data.etablissement))).catch(() => {}); }, []);
 
   useEffect(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes));
@@ -129,6 +133,21 @@ export default function Notes() {
     }
   }
 
+  // Note finale d'une matière : (CC + Examen) / 2, ou la seule note saisie.
+  function noteFinale(eleveId) {
+    const lire = (cle) => { const v = valeur(eleveId, cle); const n = Number(String(v ?? '').replace(',', '.')); return v === '' || v === undefined || v === null || !Number.isFinite(n) ? null : n; };
+    const cc = lire('cc'); const ex = lire('examen');
+    if (cc === null && ex === null) return null;
+    if (cc === null) return ex;
+    if (ex === null) return cc;
+    return Math.round(((cc + ex) / 2) * 100) / 100;
+  }
+  function comptesFinales() {
+    const c = {};
+    eleves.forEach((el) => { const t = tonNote(noteFinale(el.id), regles); if (t) c[t] = (c[t] || 0) + 1; });
+    return Object.keys(c).length ? c : null;
+  }
+
   return (
     <div className="carte">
       <h2>Saisie des moyennes (Académie)</h2>
@@ -186,6 +205,9 @@ export default function Notes() {
         )}
 
         {matiereId && eleves.length > 0 && (
+          <div style={{ margin: '4px 0 12px' }}><LegendeSeuils regles={regles} comptes={comptesFinales()} /></div>
+        )}
+        {matiereId && eleves.length > 0 && (
           <div className="table-scroll">
             <table>
               <thead>
@@ -193,26 +215,28 @@ export default function Notes() {
                   <th>Élève</th>
                   <th>Moyenne CC / 20</th>
                   <th>Moyenne Examen / 20</th>
+                  <th>Note finale</th>
                 </tr>
               </thead>
               <tbody>
                 {eleves.map((el) => (
                   <tr key={el.id}>
                     <td>{el.prenom} {el.nom}</td>
-                    <td>
+                    <td className={tonNote(valeur(el.id, 'cc'), regles) ? `note-${tonNote(valeur(el.id, 'cc'), regles)}` : ''}>
                       <input
                         type="number" min="0" max="20" step="0.25" placeholder="/ 20"
                         value={valeur(el.id, 'cc')}
                         onChange={(e) => fixerValeur(el.id, 'cc', e.target.value)}
                       />
                     </td>
-                    <td>
+                    <td className={tonNote(valeur(el.id, 'examen'), regles) ? `note-${tonNote(valeur(el.id, 'examen'), regles)}` : ''}>
                       <input
                         type="number" min="0" max="20" step="0.25" placeholder="/ 20"
                         value={valeur(el.id, 'examen')}
                         onChange={(e) => fixerValeur(el.id, 'examen', e.target.value)}
                       />
                     </td>
+                    <td>{(() => { const f = noteFinale(el.id); const t = tonNote(f, regles); return f === null ? <span className="note-secondaire">-</span> : <span className={`badge-note ${t}`}>{noteFr(f)}</span>; })()}</td>
                   </tr>
                 ))}
               </tbody>

@@ -30,7 +30,7 @@ async function obtenirBulletin(req, res) {
   // Le détail par UE/matière est toujours recalculé à la volée (léger et
   // toujours à jour), même quand le bulletin (résumé + PDF) est déjà en
   // cache — sinon l'étudiant qui reconsulte ne verrait plus le détail.
-  const { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE } = await calculerBulletin(
+  const { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, regles } = await calculerBulletin(
     Number(eleveId),
     Number(semestreId)
   );
@@ -43,11 +43,11 @@ async function obtenirBulletin(req, res) {
     bulletin.moyenneGenerale = moyenneGenerale;
     bulletin.creditsValides = creditsValides;
     const { cheminRelatif: cheminMisAJour } = await genererBulletinPDF({
-      eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement,
+      eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles,
     });
     bulletin.fichierPDF = cheminMisAJour;
     await bulletin.save();
-    return res.json({ bulletin, origine: 'existant', creditsTotal, admis, sessionGlobale, detailParUE, etablissement });
+    return res.json({ bulletin, origine: 'existant', creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles });
   }
 
   const { contenu, cheminRelatif } = await genererBulletinPDF({
@@ -60,6 +60,7 @@ async function obtenirBulletin(req, res) {
     sessionGlobale,
     detailParUE,
     etablissement,
+    regles,
   });
 
   bulletin = await Bulletin.create({
@@ -78,7 +79,7 @@ async function obtenirBulletin(req, res) {
     [{ contenu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
   );
 
-  return res.status(201).json({ bulletin, origine: 'généré', creditsTotal, admis, sessionGlobale, detailParUE, etablissement });
+  return res.status(201).json({ bulletin, origine: 'généré', creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles });
 }
 
 // L'Académie peut renvoyer explicitement le bulletin déjà généré à
@@ -122,4 +123,34 @@ async function envoyerBulletinParEmail(req, res) {
   return res.json({ message: 'bulletin envoyé par e-mail', destinataires });
 }
 
-module.exports = { obtenirBulletin, envoyerBulletinParEmail };
+// Résultats d'une classe pour un semestre : qui valide le semestre, qui
+// passe au rattrapage (mêmes règles que le bulletin individuel).
+async function resultatsClasse(req, res) {
+  const { classeId, semestreId } = req.params;
+  const [classe, semestre] = await Promise.all([Classe.findByPk(classeId), Semestre.findByPk(semestreId)]);
+  if (!classe || !semestre || classe.etablissementId !== req.utilisateur.etablissementId || semestre.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'classe ou semestre introuvable' });
+  }
+  const eleves = await Eleve.findAll({ where: { classeId: classe.id }, order: [['nom', 'ASC'], ['prenom', 'ASC']] });
+  const resultats = [];
+  let regles = null;
+  for (const eleve of eleves) {
+    const calcul = await calculerBulletin(eleve.id, semestre.id);
+    regles = calcul.regles;
+    resultats.push({
+      eleveId: eleve.id,
+      nom: eleve.nom,
+      prenom: eleve.prenom,
+      matricule: eleve.matricule,
+      moyenneGenerale: calcul.moyenneGenerale,
+      creditsValides: calcul.creditsValides,
+      creditsTotal: calcul.creditsTotal,
+      evalue: calcul.detailParUE.length > 0,
+      valide: calcul.admis,
+      uesNonValidees: calcul.detailParUE.filter((u) => !u.valide).map((u) => u.code || u.ue),
+    });
+  }
+  return res.json({ classe: { id: classe.id, nom: classe.nom }, semestre: { id: semestre.id, libelle: semestre.libelle }, regles, resultats });
+}
+
+module.exports = { obtenirBulletin, envoyerBulletinParEmail, resultatsClasse };

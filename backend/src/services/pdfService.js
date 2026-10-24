@@ -29,7 +29,7 @@ function libelleResultatUE(ligneUE) {
   }
   if (ligneUE.session === 'rattrapage') return { texte: 'Rattrapage', couleur: COULEUR_RATTRAPAGE };
   if (ligneUE.valide) return { texte: 'Validée', couleur: COULEUR_SUCCES };
-  return { texte: 'À rattraper', couleur: COULEUR_ERREUR };
+  return { texte: 'Non validée', couleur: COULEUR_ERREUR };
 }
 
 // Logo de l'établissement, dessiné en haut à gauche de chaque document
@@ -315,9 +315,9 @@ function noteFr(valeur) {
   return Number.isFinite(n) ? n.toFixed(2).replace('.', ',') : String(valeur);
 }
 
-function resultatMatiere(m) {
+function resultatMatiere(m, regles = { seuil: 10 }) {
   if (m.eliminatoire) return { texte: 'ÉLIMINATOIRE', couleur: COULEUR_ERREUR };
-  return m.noteFinale >= 10 ? { texte: 'ACQUIS', couleur: COULEUR_SUCCES } : { texte: 'NON ACQUIS', couleur: COULEUR_ERREUR };
+  return m.noteFinale >= regles.seuil ? { texte: 'VALIDÉE', couleur: COULEUR_SUCCES } : { texte: 'NON VALIDÉE', couleur: COULEUR_RATTRAPAGE };
 }
 
 function enTeteTableau(doc, x, y) {
@@ -340,7 +340,7 @@ function assurerPlace(doc, y, hauteurNecessaire, margeGauche) {
 // affiché à l'écran (BulletinDocument) : identité de l'établissement avec
 // son logo, bloc étudiant, résultats par UE et par matière, synthèse,
 // signature.
-async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement }) {
+async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles = { seuil: 10, eliminatoire: 7 } }) {
   const nomFichier = `bulletin_${eleve.id}_${semestre.id}.pdf`;
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
@@ -395,7 +395,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
 
     ligneUE.matieres.forEach((m) => {
       y = assurerPlace(doc, y, 18, margeGauche);
-      const res = resultatMatiere(m);
+      const res = resultatMatiere(m, regles);
       y = dessinerLigne(doc, margeGauche, y, LARGEURS_COLONNES, [
         { texte: m.code || '', couleur: COULEUR_TEXTE_CLAIR, taille: 7.3 },
         { texte: `     ${m.matiere}${m.session === 'rattrapage' ? ' (rattrapage)' : ''}` },
@@ -412,12 +412,13 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   y += 18;
   y = assurerPlace(doc, y, 150, margeGauche);
   const synthese = [
-    ['MOYENNE GÉNÉRALE', sansNotes ? 'Non évaluée' : `${noteFr(moyenneGenerale)} / 20`, sansNotes ? COULEUR_TEXTE : moyenneGenerale >= 10 ? COULEUR_SUCCES : COULEUR_ERREUR],
+    ['MOYENNE GÉNÉRALE', sansNotes ? 'Non évaluée' : `${noteFr(moyenneGenerale)} / 20`, sansNotes ? COULEUR_TEXTE : moyenneGenerale >= regles.seuil ? COULEUR_SUCCES : COULEUR_ERREUR],
     ['CRÉDITS VALIDÉS', `${creditsValides} / ${creditsTotal}`, COULEUR_TEXTE],
     ['MENTION', sansNotes ? 'Non évalué' : mention(moyenneGenerale), COULEUR_TEXTE],
-    ['DÉCISION', sansNotes ? 'En attente' : admis ? 'Admis(e)' : 'Ajourné(e)', sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_ERREUR],
+    ['RÉSULTAT', sansNotes ? 'En attente' : admis ? 'Validé' : 'Non validé', sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_ERREUR],
+    ['DÉCISION', sansNotes ? 'En attente' : admis ? 'Admis(e)' : 'Rattrapage', sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_RATTRAPAGE],
   ];
-  const largeurCase = largeurTotale / 4;
+  const largeurCase = largeurTotale / synthese.length;
   const hauteurSynthese = 46;
   doc.rect(margeGauche, y, largeurTotale, hauteurSynthese).lineWidth(1.3).strokeColor(COULEUR_MARINE).stroke();
   synthese.forEach(([label, valeur, couleur], i) => {

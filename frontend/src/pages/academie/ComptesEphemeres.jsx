@@ -70,7 +70,20 @@ function libelleEvaluation(a) {
 
 // Une seule information pour la colonne « Validité » : le temps restant
 // d'un accès ouvert, sinon la date qui l'a clos.
+function libelleDuree(minutes) {
+  if (!minutes) return '';
+  if (minutes % 1440 === 0) return `${minutes / 1440} jour${minutes >= 2880 ? 's' : ''}`;
+  if (minutes % 60 === 0) return `${minutes / 60} h`;
+  return `${minutes} min`;
+}
+
+// Le temps de saisie ne démarre qu'à la première ouverture du lien.
+function pasEncoreOuvert(a) {
+  return Boolean(a.dureeMinutes) && !a.ouvertLe;
+}
+
 function validite(a, statut) {
+  if (statut.ouvert && pasEncoreOuvert(a)) return `${libelleDuree(a.dureeMinutes)} dès l'ouverture`;
   if (statut.ouvert) return tempsRestant(a.dateExpiration) || 'Expire maintenant';
   if (a.saisieEnvoyeeLe) return `Reçue le ${dateCourte(a.saisieEnvoyeeLe)}`;
   if (a.statut === 'expire') return `Expiré le ${dateCourte(a.dateExpiration)}`;
@@ -358,8 +371,19 @@ export default function ComptesEphemeres() {
               <dl className="fiche-compte">
                 <div><dt>Statut</dt><dd><span className={`badge ${statut.badge}`}>{statut.texte}</span></dd></div>
                 <div><dt>Créé le</dt><dd>{dateCourte(accesOuvert.dateCreation)}</dd></div>
-                <div><dt>{statut.ouvert ? 'Expire le' : 'Validité prévue'}</dt><dd>{dateCourte(accesOuvert.dateExpiration)}</dd></div>
-                {statut.ouvert && <div><dt>Temps restant</dt><dd>{tempsRestant(accesOuvert.dateExpiration) || 'Expire maintenant'}</dd></div>}
+                {accesOuvert.dureeMinutes && <div><dt>Temps de saisie</dt><dd>{libelleDuree(accesOuvert.dureeMinutes)}, à partir de l'ouverture</dd></div>}
+                {statut.ouvert && pasEncoreOuvert(accesOuvert) ? (
+                  <>
+                    <div><dt>Lien ouvert</dt><dd>Pas encore</dd></div>
+                    <div><dt>À ouvrir avant le</dt><dd>{dateCourte(accesOuvert.dateExpiration)}</dd></div>
+                  </>
+                ) : (
+                  <>
+                    {accesOuvert.ouvertLe && <div><dt>Ouvert le</dt><dd>{dateCourte(accesOuvert.ouvertLe)}</dd></div>}
+                    <div><dt>{statut.ouvert ? 'Expire le' : 'Validité prévue'}</dt><dd>{dateCourte(accesOuvert.dateExpiration)}</dd></div>
+                    {statut.ouvert && <div><dt>Temps restant</dt><dd>{tempsRestant(accesOuvert.dateExpiration) || 'Expire maintenant'}</dd></div>}
+                  </>
+                )}
                 {accesOuvert.saisieEnvoyeeLe && <div><dt>Saisie reçue le</dt><dd>{dateCourte(accesOuvert.saisieEnvoyeeLe)}</dd></div>}
                 <div><dt>Contenu reçu</dt><dd>{detailSaisie(accesOuvert) || 'Aucune saisie pour le moment'}</dd></div>
               </dl>
@@ -528,8 +552,10 @@ function NouvelAcces({ professeurs, professeurInitial, onFermer, onCree, onCopie
           </div>
         </div>
         <p className="note-secondaire" style={{ margin: '0 0 20px', fontSize: 14 }}>
-          Valable jusqu'au {new Date(resultat.compte.dateExpiration).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}, et
-          fermé automatiquement dès que le professeur envoie sa saisie.
+          {resultat.compte.dureeMinutes
+            ? <>Le temps de saisie ({libelleDuree(resultat.compte.dureeMinutes)}) démarre quand le professeur ouvre le lien (à ouvrir avant le {new Date(resultat.compte.dateExpiration).toLocaleString('fr-FR', { dateStyle: 'long' })}). </>
+            : <>Valable jusqu'au {new Date(resultat.compte.dateExpiration).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })}. </>}
+          L'accès se ferme automatiquement dès que le professeur envoie sa saisie.
         </p>
         <div className="confirmation-actions">
           <button type="button" className="secondaire" onClick={() => { setResultat(null); setForm((f) => ({ ...f, professeurId: '', evaluationLibelle: '' })); }}>
@@ -626,7 +652,7 @@ function NouvelAcces({ professeurs, professeurInitial, onFermer, onCree, onCopie
         )}
 
         <div className="champ">
-          <label>Durée de validité du lien</label>
+          <label>Temps de saisie (démarre à l'ouverture du lien)</label>
           <div className="cases-choix">
             {DUREES.map((d) => (
               <button

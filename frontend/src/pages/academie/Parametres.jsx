@@ -121,6 +121,8 @@ export default function Parametres() {
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
 
+    <ReglesValidation />
+
     <div className="carte">
       <div className="entete-carte">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -213,6 +215,67 @@ export default function Parametres() {
         </div>
       )}
     </div>
+    </div>
+  );
+}
+
+// Règles de validation de l'école (sur 20) : seuil pour valider une UE et
+// note éliminatoire. Elles pilotent le calcul des bulletins, les couleurs
+// de saisie des notes et les résultats de classe.
+function ReglesValidation() {
+  const [form, setForm] = useState(null);
+  const [enCours, setEnCours] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    client.get('/etablissement').then((res) => {
+      const e = res.data.etablissement;
+      setForm({ seuilValidation: String(e.seuilValidation ?? 10), noteEliminatoire: String(e.noteEliminatoire ?? 7) });
+    }).catch(() => setForm({ seuilValidation: '10', noteEliminatoire: '7' }));
+  }, []);
+
+  async function enregistrer(e) {
+    e.preventDefault();
+    setEnCours(true);
+    try {
+      await client.put('/etablissement/regles', form);
+      setToast({ message: 'Règles de validation enregistrées. Les bulletins et la saisie des notes les appliquent dès maintenant.', type: 'succes' });
+    } catch (err) {
+      setToast({ message: messageErreur(err, "échec de l'enregistrement"), type: 'erreur' });
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <div className="carte">
+      <div className="entete-carte">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span className="puce-icone petite"><IconDocument width={16} height={16} /></span>
+          <h2>Règles de validation</h2>
+        </div>
+      </div>
+      <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
+        Une UE est validée quand sa moyenne atteint le seuil, sans aucune matière sous la note éliminatoire.
+        Sinon, l'étudiant passe au rattrapage. Ces valeurs colorent aussi la saisie des notes.
+      </p>
+      {!form && <div className="chargement">Chargement…</div>}
+      {form && (
+        <form className="formulaire" onSubmit={enregistrer}>
+          <div className="ligne-champs">
+            <div className="champ">
+              <label htmlFor="r-seuil">Seuil de validation (sur 20)</label>
+              <input id="r-seuil" type="number" min="1" max="20" step="0.25" value={form.seuilValidation} onChange={(e) => setForm({ ...form, seuilValidation: e.target.value })} required />
+            </div>
+            <div className="champ">
+              <label htmlFor="r-elim">Note éliminatoire (sur 20)</label>
+              <input id="r-elim" type="number" min="0" max="20" step="0.25" value={form.noteEliminatoire} onChange={(e) => setForm({ ...form, noteEliminatoire: e.target.value })} required />
+            </div>
+          </div>
+          <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer les règles'}</button>
+        </form>
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
   );
 }

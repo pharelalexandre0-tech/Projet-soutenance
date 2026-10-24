@@ -103,6 +103,25 @@ async function configurerEtablissement(req, res) {
   return res.json({ etablissement });
 }
 
+// "Paramètres" (Académie) : règles de validation de l'école, sur 20. Le
+// seuil valide une UE ; sous la note éliminatoire, une matière bloque son
+// UE. Le calcul des bulletins, les couleurs de saisie et les résultats de
+// classe suivent ces valeurs.
+async function configurerRegles(req, res) {
+  const seuil = Number(String(req.body.seuilValidation ?? '').replace(',', '.'));
+  const eliminatoire = Number(String(req.body.noteEliminatoire ?? '').replace(',', '.'));
+  if (!Number.isFinite(seuil) || seuil <= 0 || seuil > 20) {
+    return res.status(400).json({ erreur: 'le seuil de validation doit être compris entre 0 et 20' });
+  }
+  if (!Number.isFinite(eliminatoire) || eliminatoire < 0 || eliminatoire >= seuil) {
+    return res.status(400).json({ erreur: 'la note éliminatoire doit être positive et inférieure au seuil de validation' });
+  }
+  const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
+  if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
+  await etablissement.update({ seuilValidation: seuil, noteEliminatoire: eliminatoire });
+  return res.json({ etablissement });
+}
+
 const LIBELLES_TYPE_MESSAGE = { message: 'Message', annonce: 'Annonce', convocation: 'Convocation' };
 
 // Gestion de la structure pédagogique (Espace Académie, diagramme 1) :
@@ -565,6 +584,7 @@ async function statistiquesAcademiques(req, res) {
 
 module.exports = {
   creerClasse,
+  configurerRegles,
   listerClasses,
   modifierClasse,
   supprimerClasse,

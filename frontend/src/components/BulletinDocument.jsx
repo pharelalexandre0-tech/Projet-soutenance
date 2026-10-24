@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import client from '../api/client';
 import { IconDownload } from './icons';
 import BoutonDocument from './BoutonDocument';
+import { reglesEtablissement } from '../utils/seuils';
 
 function mention(moyenne) {
   if (moyenne == null) return 'Non évalué';
@@ -20,12 +21,12 @@ function resultatUE(ligneUE) {
   if (ligneUE.eliminatoire) return { texte: ligneUE.session === 'rattrapage' ? 'Éliminatoire (rattr.)' : 'Éliminatoire', ton: 'echec' };
   if (ligneUE.session === 'rattrapage') return { texte: 'Rattrapage', ton: 'attente' };
   if (ligneUE.valide) return { texte: 'Validée', ton: 'reussite' };
-  return { texte: 'À rattraper', ton: 'echec' };
+  return { texte: 'Non validée', ton: 'echec' };
 }
 
-function resultatMatiere(m) {
+function resultatMatiere(m, regles) {
   if (m.eliminatoire) return { texte: 'Éliminatoire', ton: 'echec' };
-  return m.noteFinale >= 10 ? { texte: 'Acquis', ton: 'reussite' } : { texte: 'Non acquis', ton: 'echec' };
+  return m.noteFinale >= regles.seuil ? { texte: 'Validée', ton: 'reussite' } : { texte: 'Non validée', ton: 'attente' };
 }
 
 function note(valeur) {
@@ -53,6 +54,7 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
   const lignes = detail || [];
   const sansNotes = lignes.length === 0;
   const admis = resume.admis;
+  const regles = resume.regles || reglesEtablissement(etablissement);
   const reference = `BUL-${String(semestre?.id ?? '').padStart(2, '0')}${String(eleveId).padStart(4, '0')}-${bulletin.id}`;
   const adresse = [etablissement?.boitePostale, etablissement?.ville, etablissement?.pays].filter(Boolean).join(', ');
   const contacts = [etablissement?.telephone, etablissement?.email].filter(Boolean).join('  ·  ');
@@ -120,7 +122,7 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
                       <td className={`col-resultat ton-${resUE.ton}`}>{resUE.texte}</td>
                     </tr>
                     {(ligneUE.matieres || []).map((m) => {
-                      const res = resultatMatiere(m);
+                      const res = resultatMatiere(m, regles);
                       return (
                         <tr className="bulletin-matiere" key={m.matiere}>
                           <td className="col-code">{m.code || ''}</td>
@@ -146,15 +148,19 @@ export default function BulletinDocument({ eleveId, eleve, semestre, bulletin, d
         <dl className="bulletin-synthese">
           <div>
             <dt>Moyenne générale</dt>
-            <dd className={sansNotes ? '' : bulletin.moyenneGenerale >= 10 ? 'ton-reussite' : 'ton-echec'}>
+            <dd className={sansNotes ? '' : bulletin.moyenneGenerale >= regles.seuil ? 'ton-reussite' : 'ton-echec'}>
               {sansNotes ? 'Non évaluée' : <>{note(bulletin.moyenneGenerale)}<small> / 20</small></>}
             </dd>
           </div>
           <div><dt>Crédits validés</dt><dd>{bulletin.creditsValides}<small> / {resume.creditsTotal}</small></dd></div>
           <div><dt>Mention</dt><dd>{sansNotes ? 'Non évalué' : mention(bulletin.moyenneGenerale)}</dd></div>
           <div>
+            <dt>Résultat</dt>
+            <dd className={sansNotes ? '' : admis ? 'ton-reussite' : 'ton-echec'}>{sansNotes ? 'En attente' : admis ? 'Validé' : 'Non validé'}</dd>
+          </div>
+          <div>
             <dt>Décision</dt>
-            <dd className={sansNotes ? '' : admis ? 'ton-reussite' : 'ton-echec'}>{sansNotes ? 'En attente' : admis ? 'Admis(e)' : 'Ajourné(e)'}</dd>
+            <dd className={sansNotes ? '' : admis ? 'ton-reussite' : 'ton-attente'}>{sansNotes ? 'En attente' : admis ? 'Admis(e)' : 'Rattrapage'}</dd>
           </div>
         </dl>
 

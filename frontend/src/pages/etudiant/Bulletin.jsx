@@ -26,7 +26,7 @@ export default function Bulletin({ eleveId, eleve }) {
     if (!res) return;
     setBulletin(res.data.bulletin);
     setDetail(res.data.detailParUE || null);
-    setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale });
+    setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale, regles: res.data.regles });
   }
   useActualisation(rafraichirBulletin, { domaines: ['notes', 'comptes-ephemeres', 'unites-enseignement', 'matieres', 'semestres'] });
 
@@ -49,7 +49,7 @@ export default function Bulletin({ eleveId, eleve }) {
       const res = await client.get(`/bulletins/${eleveId}/${semestreId}`);
       setBulletin(res.data.bulletin);
       setDetail(res.data.detailParUE || null);
-      setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale });
+      setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale, regles: res.data.regles });
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'impossible de récupérer le bulletin');
     } finally {

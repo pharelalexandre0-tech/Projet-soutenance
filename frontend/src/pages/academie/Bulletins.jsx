@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import BulletinDocument from '../../components/BulletinDocument';
+import ResultatsClasse from '../../components/ResultatsClasse';
 
 // Consultation du bulletin côté Académie : même document que celui vu par
 // l'Étudiant (via BulletinDocument), avec en plus la possibilité de le
@@ -43,23 +44,24 @@ export default function Bulletins() {
     if (!res) return;
     setBulletin(res.data.bulletin);
     setDetail(res.data.detailParUE || null);
-    setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale });
+    setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale, regles: res.data.regles });
   }
   useActualisation(rafraichirBulletin, { domaines: ['notes', 'comptes-ephemeres', 'unites-enseignement', 'matieres', 'semestres'] });
 
   const eleve = eleves.find((e) => String(e.id) === eleveId);
   const semestre = semestres.find((s) => String(s.id) === String(semestreId));
 
-  async function demanderBulletin() {
+  async function demanderBulletin(id = eleveId) {
     setErreur('');
     setBulletin(null);
     setEnvoiStatut('');
     setEnCours(true);
     try {
-      const res = await client.get(`/bulletins/${eleveId}/${semestreId}`);
+      const res = await client.get(`/bulletins/${id}/${semestreId}`);
       setBulletin(res.data.bulletin);
+      setTimeout(() => document.querySelector('.bulletin-document, .bulletin')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
       setDetail(res.data.detailParUE || null);
-      setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale });
+      setResume({ creditsTotal: res.data.creditsTotal ?? 0, admis: !!res.data.admis, sessionGlobale: res.data.sessionGlobale, regles: res.data.regles });
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'impossible de récupérer le bulletin');
     } finally {
@@ -102,11 +104,13 @@ export default function Bulletins() {
             {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
           </select>
         </div>
-        <button className="primaire" style={{ alignSelf: 'flex-end' }} disabled={!eleveId || !semestreId || enCours} onClick={demanderBulletin}>
+        <button className="primaire" style={{ alignSelf: 'flex-end' }} disabled={!eleveId || !semestreId || enCours} onClick={() => demanderBulletin()}>
           {enCours ? 'Chargement…' : 'Consulter le bulletin'}
         </button>
       </div>
       {erreur && <div className="message-erreur" style={{ marginTop: 10 }}>{erreur}</div>}
+
+      <ResultatsClasse classeId={classeId} semestreId={semestreId} onChoisir={(id) => { setEleveId(String(id)); demanderBulletin(String(id)); }} />
 
       <BulletinDocument
         eleveId={eleveId}

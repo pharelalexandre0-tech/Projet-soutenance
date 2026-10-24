@@ -24,6 +24,11 @@ Etablissement.init(
     // objet. Réutilisé sur le bulletin, les reçus et l'emploi du temps PDF.
     logo: { type: DataTypes.TEXT, allowNull: true },
     statut: { type: DataTypes.ENUM('actif', 'suspendu'), allowNull: false, defaultValue: 'actif' },
+    // Règles de validation propres à l'école (sur 20) : note à atteindre
+    // pour valider une UE (10 en LMD) et note sous laquelle une matière est
+    // éliminatoire et bloque son UE (7 par défaut). Réglées dans Paramètres.
+    seuilValidation: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 10 },
+    noteEliminatoire: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 7 },
   },
   { sequelize, modelName: 'Etablissement', tableName: 'etablissements' }
 );

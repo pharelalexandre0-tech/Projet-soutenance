@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import LegendeSeuils from '../components/LegendeSeuils';
+import { REGLES_PAR_DEFAUT, tonNote } from '../utils/seuils';
 import { useParams } from 'react-router-dom';
 import client from '../api/client';
 import Modal from '../components/Modal';
@@ -242,6 +244,8 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
   const valeurs = saisies.filter((e) => valeurValide(notes[e.id])).map((e) => Number(String(notes[e.id]).replace(',', '.')));
   const moyenne = valeurs.length ? valeurs.reduce((a, b) => a + b, 0) / valeurs.length : null;
   const affiches = filtrer(session.eleves, recherche);
+  const regles = session.regles || REGLES_PAR_DEFAUT;
+  const comptes = saisies.reduce((acc, e) => { const t = tonNote(notes[e.id], regles); if (t) acc[t] = (acc[t] || 0) + 1; return acc; }, {});
 
   function surEntree(e, i) {
     if (e.key !== 'Enter') return;
@@ -291,11 +295,13 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
         <h2>Moyennes sur 20 <span className="entete-carte-compteur">{saisies.length} / {session.eleves.length}</span></h2>
         {session.eleves.length > 12 && <RechercheEleve valeur={recherche} onChange={setRecherche} />}
       </div>
+      <div style={{ padding: '0 20px 12px' }}><LegendeSeuils regles={regles} comptes={saisies.length ? comptes : null} /></div>
       <ol className="acces-eleves">
         {affiches.map((eleve, i) => {
           const invalide = !valeurValide(notes[eleve.id]);
+          const ton = tonNote(notes[eleve.id], regles);
           return (
-            <li key={eleve.id} className={invalide ? 'invalide' : ''}>
+            <li key={eleve.id} className={invalide ? 'invalide' : ton ? `note-${ton}` : ''}>
               <span className="acces-numero">{session.eleves.indexOf(eleve) + 1}</span>
               <label className="acces-eleve" htmlFor={`note-${eleve.id}`}>
                 <strong>{eleve.nom.toUpperCase()} {nomPropre(eleve.prenom)}</strong>
@@ -328,6 +334,7 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
             {manquantes > 0 && ` ${manquantes} élève${manquantes > 1 ? 's restent' : ' reste'} sans note : il faudra un nouvel accès pour ${manquantes > 1 ? 'les' : 'le'} compléter.`}
             {' '}Une fois l'envoi fait, ce lien se ferme.
           </p>
+          <div style={{ margin: '4px 0 16px' }}><LegendeSeuils regles={regles} comptes={comptes} /></div>
           <div className="confirmation-actions">
             <button type="button" className="secondaire" onClick={() => setConfirmation(false)} disabled={enCours}>Revoir la saisie</button>
             <button type="button" className="primaire" onClick={envoyer} disabled={enCours}><IconSend /> {enCours ? 'Envoi…' : 'Envoyer'}</button>

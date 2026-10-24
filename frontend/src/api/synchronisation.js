@@ -46,6 +46,7 @@ async function academie() {
     ]),
     ...(alertes?.alertes || []).map((a) => `/predictions/eleve/${a.eleveId}`),
     ...lesEleves.flatMap((e) => [`/notes/eleve/${e.id}`, `/absences/eleve/${e.id}`, `/incidents/eleve/${e.id}`]),
+    ...lesClasses.flatMap((c) => lesSemestres.map((s) => `/bulletins/classe/${c.id}/${s.id}`)),
     ...lesEleves.flatMap((e) => lesSemestres.map((s) => `/bulletins/${e.id}/${s.id}`)),
   ]);
 }

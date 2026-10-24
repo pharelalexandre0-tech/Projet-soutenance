@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import Tiroir from './Tiroir';
+import client from '../api/client';
+import { REGLES_PAR_DEFAUT, reglesEtablissement, tonNote } from '../utils/seuils';
 import { IconCalendarAlert, IconPencil, IconInfo } from './icons';
 
 const STATUTS = {
@@ -19,6 +22,8 @@ function note(v) {
 // feuille d'appel complète ou liste des notes. Affiché dans un panneau
 // latéral depuis "Feuilles d'appel" ou "Comptes éphémères".
 export default function DetailCompteRendu({ compteRendu: cr, onFermer }) {
+  const [regles, setRegles] = useState(REGLES_PAR_DEFAUT);
+  useEffect(() => { client.get('/etablissement').then((res) => setRegles(reglesEtablissement(res.data.etablissement))).catch(() => {}); }, []);
   const appel = cr.tache === 'saisie_absences';
   const r = cr.resume || {};
   const tauxPresence = appel && cr.effectif ? Math.round((r.presents / cr.effectif) * 100) : null;
@@ -75,9 +80,9 @@ export default function DetailCompteRendu({ compteRendu: cr, onFermer }) {
                   )}
                 </span>
               ) : (
-                <strong className={`liste-compte-rendu-note ${l.valeur === null ? 'note-secondaire' : l.valeur >= 10 ? 'ton-reussite' : 'ton-echec'}`}>
-                  {l.valeur === null ? 'Sans note' : note(l.valeur)}
-                </strong>
+                l.valeur === null
+                  ? <strong className="liste-compte-rendu-note note-secondaire">Sans note</strong>
+                  : <span className={`badge-note ${tonNote(l.valeur, regles)}`}>{note(l.valeur)}</span>
               )}
             </li>
           ))}

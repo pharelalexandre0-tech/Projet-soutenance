@@ -2006,7 +2006,7 @@ td.mono { font-family: var(--police-mono); font-size: 13.5px; white-space: nowra
 .ton-attente { color: var(--alerte) !important; }
 .bulletin-vide { padding: 30px 12px !important; text-align: center; font-style: italic; color: var(--texte-clair); }
 
-.bulletin-synthese { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 26px 0 0; border: 1.5px solid var(--edu-marine); }
+.bulletin-synthese { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: 26px 0 0; border: 1.5px solid var(--edu-marine); }
 .bulletin-synthese > div { padding: 14px 16px; text-align: center; }
 .bulletin-synthese > div + div { border-left: 1px solid var(--bordure); }
 .bulletin-synthese dt { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-clair); }
@@ -2041,6 +2041,7 @@ a.bouton-lien-secondaire svg, button.bouton-lien-secondaire svg { width: 17px; h
   .bulletin-synthese { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bulletin-synthese > div:nth-child(3) { border-left: none; }
   .bulletin-synthese > div:nth-child(n+3) { border-top: 1px solid var(--bordure); }
+  .bulletin-synthese > div:nth-child(5) { border-left: none; grid-column: span 2; }
   .bulletin-synthese dd { font-size: 19px; }
   .bulletin-pied { flex-direction: column; align-items: stretch; }
   .bulletin-signature { min-width: 0; }
@@ -2438,3 +2439,31 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 }
 .bandeau-hors-ligne svg { width: 18px; height: 18px; flex: none; color: var(--edu-or); }
 .bandeau-hors-ligne strong { font-weight: 700; }
+
+/* Couleurs des notes saisies selon les règles de l'école : validée (vert),
+   juste sous le seuil (jaune), éliminatoire (rouge). */
+.note-bonne input { border-color: var(--succes) !important; background: var(--succes-fond) !important; color: var(--succes); font-weight: 700; }
+.note-limite input { border-color: #D9A21B !important; background: #FFF6D6 !important; color: #8A5D00; font-weight: 700; }
+.note-eliminatoire input { border-color: var(--erreur) !important; background: var(--erreur-fond) !important; color: var(--erreur); font-weight: 700; }
+.legende-seuils { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--texte-clair); }
+.legende-seuil { display: inline-flex; align-items: center; gap: 6px; }
+.legende-seuil i { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.legende-seuil strong { color: var(--texte); }
+.legende-seuil.bonne i { background: var(--succes); }
+.legende-seuil.limite i { background: #E2B341; }
+.legende-seuil.eliminatoire i { background: var(--erreur); }
+.badge-note { display: inline-block; min-width: 52px; text-align: center; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.badge-note.bonne { background: var(--succes-fond); color: var(--succes); }
+.badge-note.limite { background: #FFF6D6; color: #8A5D00; }
+.badge-note.eliminatoire { background: var(--erreur-fond); color: var(--erreur); }
+.resultats-classe { margin-top: 20px; }
+.resultats-classe-entete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 12px; }
+.resultats-classe-entete h3 { margin: 0; font-size: 1.05rem; }
+.resultats-classe-colonnes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.resultats-classe-bloc { border: 1px solid var(--bordure); border-radius: var(--radius); padding: 14px; background: var(--carte); min-width: 0; }
+.resultats-classe-bloc h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 0.95rem; }
+.resultats-classe-bloc h4 i { width: 10px; height: 10px; border-radius: 3px; }
+.resultats-classe-bloc.bonne h4 i { background: var(--succes); }
+.resultats-classe-bloc.rattrapage h4 i { background: #E2B341; }
+.resultats-classe-table { max-height: 320px; }
+@media (max-width: 900px) { .resultats-classe-colonnes { grid-template-columns: minmax(0, 1fr); } }
