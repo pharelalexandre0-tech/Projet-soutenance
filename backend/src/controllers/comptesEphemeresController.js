@@ -4,7 +4,7 @@ const {
 } = require('../models');
 const { genererJetonEphemere } = require('../utils/tokenGenerator');
 const { lienAccesTemporaire } = require('../utils/liens');
-const { enregistrerMoyenne } = require('./notesController');
+const { enregistrerMoyenne, erreurLotNotes } = require('./notesController');
 const { envoyerEmail } = require('../services/emailService');
 const { emailAccesTemporaire } = require('../services/modelesEmail');
 const { consignerNotes, presenterResume, presenterDetail } = require('../services/compteRenduService');
@@ -271,6 +271,9 @@ async function enregistrerNotesEphemere(req, res) {
     return res.status(400).json({ erreur: 'aucune note fournie' });
   }
 
+  const erreurLot = erreurLotNotes(notes);
+  if (erreurLot) return res.status(400).json({ erreur: erreurLot });
+
   const eleves = await Eleve.findAll({ where: { classeId: compte.classeId } });
   const idsEleveClasse = new Set(eleves.map((e) => e.id));
   for (const n of notes) {
@@ -287,7 +290,7 @@ async function enregistrerNotesEphemere(req, res) {
         eleveId: n.eleveId,
         matiereId: compte.matiereId,
         categorie: compte.categorie,
-        valeur: Number(n.valeur),
+        valeur: n.valeur,
         compteEphemereId: compte.id,
         etablissementId: eleves.find((e) => e.id === n.eleveId)?.etablissementId,
       })

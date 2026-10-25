@@ -3,7 +3,7 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import { lireFichierExcel, normaliserTexte } from '../../utils/excel';
 import LegendeSeuils from '../../components/LegendeSeuils';
-import { REGLES_PAR_DEFAUT, reglesEtablissement, tonNote, noteFr } from '../../utils/seuils';
+import { REGLES_PAR_DEFAUT, reglesEtablissement, tonNote, noteFr, saisieNoteValide } from '../../utils/seuils';
 
 // Diagramme 4 (cas nominal) : l'Académie saisit, par matière, la moyenne de
 // contrôle continu et la moyenne d'examen de chaque élève — pas note par
@@ -22,6 +22,7 @@ export default function Notes() {
   const [message, setMessage] = useState('');
   const [importMessage, setImportMessage] = useState('');
   const [enCours, setEnCours] = useState(false);
+  const [alerteSaisie, setAlerteSaisie] = useState(false);
   const [regles, setRegles] = useState(REGLES_PAR_DEFAUT);
   useEffect(() => { client.get('/etablissement').then((res) => setRegles(reglesEtablissement(res.data.etablissement))).catch(() => {}); }, []);
 
@@ -73,7 +74,14 @@ export default function Notes() {
   function valeur(eleveId, categorie) {
     return valeurs[`${eleveId}-${categorie}`] ?? '';
   }
+  // Une note va de 0 à 20 : toute frappe qui en sortirait est refusée.
   function fixerValeur(eleveId, categorie, v) {
+    if (!saisieNoteValide(v)) {
+      setAlerteSaisie(true);
+      clearTimeout(fixerValeur.minuteur);
+      fixerValeur.minuteur = setTimeout(() => setAlerteSaisie(false), 2500);
+      return;
+    }
     setValeurs({ ...valeurs, [`${eleveId}-${categorie}`]: v });
   }
 
@@ -99,6 +107,7 @@ export default function Notes() {
     const nouvellesValeurs = { ...valeurs };
     let importees = 0;
     const introuvables = [];
+    const horsEchelle = [];
     lignes.forEach((ligne, i) => {
       const prenom = ligne.prenom || ligne.prenoms || '';
       const nom = ligne.nom || ligne.noms || '';
@@ -107,16 +116,20 @@ export default function Notes() {
         introuvables.push(`ligne ${i + 2} (${prenom} ${nom})`.trim());
         return;
       }
-      const cc = ligne.cc ?? ligne.controlecontinu ?? ligne.moyennecc ?? '';
-      const examen = ligne.examen ?? ligne.moyenneexamen ?? '';
-      if (cc !== '') nouvellesValeurs[`${el.id}-cc`] = cc;
-      if (examen !== '') nouvellesValeurs[`${el.id}-examen`] = examen;
+      const cc = String(ligne.cc ?? ligne.controlecontinu ?? ligne.moyennecc ?? '').trim();
+      const examen = String(ligne.examen ?? ligne.moyenneexamen ?? '').trim();
+      const ccOk = saisieNoteValide(cc);
+      const examenOk = saisieNoteValide(examen);
+      if (!ccOk || !examenOk) horsEchelle.push(`${el.prenom} ${el.nom}`);
+      if (cc !== '' && ccOk) nouvellesValeurs[`${el.id}-cc`] = cc;
+      if (examen !== '' && examenOk) nouvellesValeurs[`${el.id}-examen`] = examen;
       if (cc !== '' || examen !== '') importees += 1;
     });
     setValeurs(nouvellesValeurs);
     setImportMessage(
       `${importees} élève(s) rempli(s) depuis le fichier.` +
       (introuvables.length ? ` Non reconnus : ${introuvables.join(', ')}.` : '') +
+      (horsEchelle.length ? ` Notes hors de l'échelle 0 à 20 ignorées pour : ${horsEchelle.join(', ')}.` : '') +
       ' Vérifie les valeurs puis enregistre.'
     );
     e.target.value = '';
@@ -138,6 +151,10 @@ export default function Notes() {
     });
     if (notes.length === 0) {
       setMessage('saisis au moins une moyenne');
+      return;
+    }
+    if (notes.some((n) => !saisieNoteValide(n.valeur))) {
+      setMessage("certaines notes sont hors de l'échelle 0 à 20 : corrige-les avant d'enregistrer");
       return;
     }
     setEnCours(true);
@@ -228,6 +245,7 @@ export default function Notes() {
         {matiereId && eleves.length > 0 && (
           <div style={{ margin: '4px 0 12px' }}><LegendeSeuils regles={regles} comptes={comptesFinales()} /></div>
         )}
+        {alerteSaisie && <div className="alerte-saisie-note" role="status">Une note va de 0 à 20, avec deux décimales au plus (ex. 12,5).</div>}
         {matiereId && eleves.length > 0 && (
           <div className="table-scroll">
             <table>
@@ -245,14 +263,14 @@ export default function Notes() {
                     <td>{el.prenom} {el.nom}</td>
                     <td className={tonNote(valeur(el.id, 'cc'), regles) ? `note-${tonNote(valeur(el.id, 'cc'), regles)}` : ''}>
                       <input
-                        type="number" min="0" max="20" step="0.25" placeholder="/ 20"
+                        type="text" inputMode="decimal" maxLength={5} placeholder="/ 20" aria-label={`Moyenne CC de ${el.prenom} ${el.nom}, sur 20`}
                         value={valeur(el.id, 'cc')}
                         onChange={(e) => fixerValeur(el.id, 'cc', e.target.value)}
                       />
                     </td>
                     <td className={tonNote(valeur(el.id, 'examen'), regles) ? `note-${tonNote(valeur(el.id, 'examen'), regles)}` : ''}>
                       <input
-                        type="number" min="0" max="20" step="0.25" placeholder="/ 20"
+                        type="text" inputMode="decimal" maxLength={5} placeholder="/ 20" aria-label={`Moyenne d'examen de ${el.prenom} ${el.nom}, sur 20`}
                         value={valeur(el.id, 'examen')}
                         onChange={(e) => fixerValeur(el.id, 'examen', e.target.value)}
                       />

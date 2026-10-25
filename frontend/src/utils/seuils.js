@@ -25,3 +25,14 @@ export function tonNote(valeur, regles = REGLES_PAR_DEFAUT) {
 export function noteFr(n) {
   return String(Math.round(n * 100) / 100).replace('.', ',');
 }
+
+// Saisie d'une note sur 20 : chiffres, une virgule ou un point, deux
+// décimales au plus, valeur de 0 à 20. Une frappe qui sortirait de ces
+// bornes est refusée (le champ garde sa valeur précédente).
+export function saisieNoteValide(texte) {
+  const t = String(texte ?? '').trim();
+  if (t === '') return true;
+  if (!/^\d{1,2}([.,]\d{0,2})?$/.test(t)) return false;
+  const n = Number(t.replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 && n <= 20;
+}

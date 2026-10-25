@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import LegendeSeuils from '../components/LegendeSeuils';
-import { REGLES_PAR_DEFAUT, tonNote } from '../utils/seuils';
+import { REGLES_PAR_DEFAUT, tonNote, saisieNoteValide } from '../utils/seuils';
 import { useParams } from 'react-router-dom';
 import client from '../api/client';
 import Modal from '../components/Modal';
@@ -245,6 +245,14 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
   const moyenne = valeurs.length ? valeurs.reduce((a, b) => a + b, 0) / valeurs.length : null;
   const affiches = filtrer(session.eleves, recherche);
   const regles = session.regles || REGLES_PAR_DEFAUT;
+  const [alerteSaisie, setAlerteSaisie] = useState(false);
+  const minuteurAlerte = useRef(null);
+  // Une note va de 0 à 20 : la frappe qui en sortirait est refusée.
+  function signalerHorsEchelle() {
+    setAlerteSaisie(true);
+    clearTimeout(minuteurAlerte.current);
+    minuteurAlerte.current = setTimeout(() => setAlerteSaisie(false), 2500);
+  }
   const comptes = saisies.reduce((acc, e) => { const t = tonNote(notes[e.id], regles); if (t) acc[t] = (acc[t] || 0) + 1; return acc; }, {});
 
   function surEntree(e, i) {
@@ -296,6 +304,7 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
         {session.eleves.length > 12 && <RechercheEleve valeur={recherche} onChange={setRecherche} />}
       </div>
       <div style={{ padding: '0 20px 12px' }}><LegendeSeuils regles={regles} comptes={saisies.length ? comptes : null} /></div>
+      {alerteSaisie && <div className="alerte-saisie-note" role="status" style={{ margin: '0 20px 12px' }}>Une note va de 0 à 20, avec deux décimales au plus (ex. 12,5).</div>}
       <ol className="acces-eleves">
         {affiches.map((eleve, i) => {
           const invalide = !valeurValide(notes[eleve.id]);
@@ -315,7 +324,8 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
                   autoComplete="off"
                   placeholder="--"
                   value={notes[eleve.id] ?? ''}
-                  onChange={(e) => setNotes((prev) => ({ ...prev, [eleve.id]: e.target.value }))}
+                  maxLength={5}
+                  onChange={(e) => { const v = e.target.value; if (saisieNoteValide(v)) setNotes((prev) => ({ ...prev, [eleve.id]: v })); else signalerHorsEchelle(); }}
                   onKeyDown={(e) => surEntree(e, i)}
                   aria-invalid={invalide}
                 />

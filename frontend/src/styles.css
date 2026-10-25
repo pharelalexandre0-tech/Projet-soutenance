@@ -2482,3 +2482,4 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 .resultats-classe-telechargements { display: inline-flex; gap: 8px; margin-left: auto; }
 .resultats-classe-telechargements button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
 button.petit { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 0.8rem; min-height: 0; }
+.alerte-saisie-note { padding: 8px 12px; border-radius: var(--rayon-controle); background: var(--alerte-fond); color: var(--alerte); font-size: 0.85rem; font-weight: 600; }

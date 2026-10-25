@@ -6,6 +6,22 @@ const { calculerNoteFinale, obtenirResultatMatiere } = require('../services/moye
 // ligne Note par (élève, matière, session), pas une ligne par évaluation.
 // Réutilisé par la saisie directe (Académie) et par la saisie via compte
 // éphémère (Professeur, toujours en session normale).
+// Une note est un nombre de 0 à 20 (virgule ou point accepté). Toute autre
+// valeur est refusée : jamais de 25/20 ni de note négative en base.
+function lireNote(valeur) {
+  const n = Number(String(valeur).trim().replace(',', '.'));
+  return Number.isFinite(n) && n >= 0 && n <= 20 ? Math.round(n * 100) / 100 : null;
+}
+
+// Contrôle tout le lot avant d'enregistrer quoi que ce soit (pas de saisie
+// à moitié enregistrée). Renvoie un message d'erreur, ou null.
+function erreurLotNotes(notes) {
+  const invalides = notes.filter((n) => !(n.valeur === '' || n.valeur === undefined || n.valeur === null) && lireNote(n.valeur) === null);
+  if (!invalides.length) return null;
+  const exemples = invalides.slice(0, 3).map((n) => `« ${n.valeur} »`).join(', ');
+  return `${invalides.length} note${invalides.length > 1 ? 's' : ''} hors de l'échelle 0 à 20 (${exemples}) : rien n'a été enregistré, corrigez-${invalides.length > 1 ? 'les' : 'la'} puis réessayez`;
+}
+
 async function enregistrerMoyenne({ eleveId, matiereId, categorie, valeur, session, saisiParAcademieId, compteEphemereId, etablissementId }) {
   if (etablissementId) {
     const eleve = await Eleve.findByPk(eleveId);
@@ -14,6 +30,8 @@ async function enregistrerMoyenne({ eleveId, matiereId, categorie, valeur, sessi
     }
   }
 
+  valeur = lireNote(valeur);
+  if (valeur === null) throw Object.assign(new Error("note hors de l'échelle 0 à 20"), { status: 400 });
   const champ = categorie === 'examen' ? 'moyenneExamen' : 'moyenneCC';
   const sessionUtilisee = session === 'rattrapage' ? 'rattrapage' : 'normale';
 
@@ -53,6 +71,8 @@ async function saisirNotesAcademie(req, res) {
   if (!Array.isArray(notes) || notes.length === 0) {
     return res.status(400).json({ erreur: 'aucune note fournie' });
   }
+  const erreurLot = erreurLotNotes(notes);
+  if (erreurLot) return res.status(400).json({ erreur: erreurLot });
 
   const resultats = [];
   try {
@@ -63,7 +83,7 @@ async function saisirNotesAcademie(req, res) {
           eleveId: n.eleveId,
           matiereId: n.matiereId,
           categorie: n.categorie,
-          valeur: Number(n.valeur),
+          valeur: n.valeur,
           session,
           saisiParAcademieId: req.utilisateur.id,
           etablissementId: req.utilisateur.etablissementId,
@@ -120,4 +140,4 @@ async function listerNotesEleve(req, res) {
   return res.json({ notes });
 }
 
-module.exports = { enregistrerMoyenne, saisirNotesAcademie, listerNotesEleve };
+module.exports = { enregistrerMoyenne, saisirNotesAcademie, listerNotesEleve, erreurLotNotes };
