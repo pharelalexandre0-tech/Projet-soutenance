@@ -30,16 +30,29 @@ export default function Notes() {
     client.get('/semestres').then((res) => setSemestres(res.data.semestres));
   }, []);
 
+  // Changement de semestre : nouvelles UE, et l'UE et la matière choisies
+  // ne valent plus.
   useEffect(() => {
+    setUeId('');
+    setMatiereId('');
     if (semestreId) client.get(`/unites-enseignement?semestreId=${semestreId}`).then((res) => setUes(res.data.ues));
     else setUes([]);
-    setUeId('');
   }, [semestreId]);
 
+  // Changement de classe : la liste suit aussitôt (pas d'anciens élèves
+  // affichés pendant le chargement).
   useEffect(() => {
+    setEleves([]);
     if (classeId) client.get(`/eleves?classeId=${classeId}`).then((res) => setEleves(res.data.eleves));
-    else setEleves([]);
   }, [classeId]);
+
+  // Toute autre classe, UE, matière ou session : le tableau repart vide,
+  // aucune valeur ne passe d'une matière ou d'une classe à l'autre.
+  useEffect(() => {
+    setValeurs({});
+    setImportMessage('');
+    setMessage('');
+  }, [classeId, semestreId, ueId, matiereId, session]);
   // Les valeurs en cours de saisie ne sont pas touchées : seules les
   // listes (classes, semestres, UE, élèves) se mettent à jour.
   useActualisation(() => {
@@ -51,6 +64,11 @@ export default function Notes() {
 
   const ueSelectionnee = ues.find((u) => String(u.id) === ueId);
   const matieres = ueSelectionnee?.Matieres || [];
+  // UE ou matière supprimée entre-temps (mise à jour en direct) : sélection remise à zéro.
+  useEffect(() => {
+    if (ueId && ues.length && !ueSelectionnee) { setUeId(''); setMatiereId(''); }
+    else if (matiereId && ueSelectionnee && !matieres.some((m) => String(m.id) === matiereId)) setMatiereId('');
+  }, [ues, ueId, matiereId]);
 
   function valeur(eleveId, categorie) {
     return valeurs[`${eleveId}-${categorie}`] ?? '';
@@ -125,6 +143,9 @@ export default function Notes() {
     setEnCours(true);
     try {
       const res = await client.post('/notes', { notes, session });
+      // Enregistré : les champs se vident pour la saisie suivante.
+      setValeurs({});
+      setImportMessage('');
       setMessage(`${res.data.resultats.length} moyenne(s) enregistrée(s) (session ${session === 'rattrapage' ? 'de rattrapage' : 'normale'}).`);
     } catch (err) {
       setMessage(err.response?.data?.erreur || "échec de l'enregistrement");
