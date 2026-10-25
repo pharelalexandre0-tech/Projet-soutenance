@@ -1,0 +1,395 @@
+const PDFDocument = require('pdfkit');
+const XLSX = require('xlsx');
+const { outils } = require('./pdfService');
+
+// Documents téléchargeables par l'Académie, au format de l'établissement
+// (en-tête, logo, pied de page officiel) : PDF à imprimer ou à partager, et
+// Excel pour retravailler les chiffres.
+//   - liste de présence (feuille d'émargement vierge d'une ou de toutes les classes) ;
+//   - récapitulatif des présences (absences et retards enregistrés, par élève) ;
+//   - procès-verbal des résultats (moyennes par UE, moyenne générale,
+//     crédits, mention, résultat, décision) et notes détaillées ;
+//   - emplois du temps (une classe ou toutes, une page par classe).
+// Générés à la demande à partir des données à jour : rien n'est stocké.
+
+const { enTeteOfficiel, dessinerLigne, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, versMinutesEmploi, JOURS_EMPLOI } = outils;
+const C = outils.couleurs;
+const COULEUR_LIMITE = '#8A5D00';
+// Note sur 20 sans décimales inutiles : 10, 7, 9,5.
+const surVingt = (n) => String(Math.round(Number(n) * 100) / 100).replace('.', ',');
+const FOND_LIMITE = '#FFF6D6';
+
+function nouveauPDF(options = {}) {
+  const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true, ...options });
+  const morceaux = [];
+  doc.on('data', (m) => morceaux.push(m));
+  const termine = new Promise((ok, ko) => { doc.on('end', () => ok(Buffer.concat(morceaux))); doc.on('error', ko); });
+  return { doc, termine };
+}
+
+const nomComplet = (e) => `${String(e.nom || '').toUpperCase()} ${e.prenom || ''}`.trim();
+const dateFr = (d, options = { day: 'numeric', month: 'long', year: 'numeric' }) => new Date(d).toLocaleDateString('fr-FR', { timeZone: 'Africa/Libreville', ...options });
+const limiteBas = (doc, reserve = 0) => doc.page.height - doc.page.margins.bottom - 24 - reserve;
+
+// Tableau sur plusieurs pages : l'en-tête est redessiné en haut de chaque page.
+function tableau(doc, x, y, largeurs, entete, lignes, { hauteur = 18, taille = 8, reserveFin = 0, cases = [] } = {}) {
+  const dessinerEntete = (yy) => dessinerLigne(doc, x, yy, largeurs, entete.map((t, i) => ({ texte: t, gras: true, couleur: '#FFFFFF', align: i === 0 ? 'center' : 'left', taille: 7.2 })), { hauteur: 20, fond: C.COULEUR_MARINE });
+  y = dessinerEntete(y);
+  lignes.forEach((cellules, i) => {
+    if (y + hauteur > limiteBas(doc)) {
+      doc.addPage();
+      y = dessinerEntete(doc.page.margins.top);
+    }
+    const yLigne = y;
+    y = dessinerLigne(doc, x, y, largeurs, cellules, { hauteur, taille, fond: i % 2 ? '#F7F8F6' : undefined });
+    // Cases à cocher dessinées (la police du PDF n'a pas de caractère « case »).
+    for (const col of cases) {
+      const cx = x + largeurs.slice(0, col).reduce((a, b) => a + b, 0) + largeurs[col] / 2 - 5;
+      doc.rect(cx, yLigne + hauteur / 2 - 5, 10, 10).lineWidth(0.8).strokeColor(C.COULEUR_TEXTE_CLAIR).stroke();
+    }
+  });
+  if (reserveFin && y + reserveFin > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
+  return y;
+}
+
+function versXlsx(feuilles) {
+  const classeur = XLSX.utils.book_new();
+  for (const { nom, lignes, largeurs } of feuilles) {
+    const feuille = Array.isArray(lignes[0]) ? XLSX.utils.aoa_to_sheet(lignes) : XLSX.utils.json_to_sheet(lignes);
+    if (largeurs) feuille['!cols'] = largeurs.map((wch) => ({ wch }));
+    if (!Array.isArray(lignes[0]) && lignes.length) feuille['!autofilter'] = { ref: feuille['!ref'] };
+    XLSX.utils.book_append_sheet(classeur, feuille, nom.slice(0, 31));
+  }
+  return XLSX.write(classeur, { type: 'buffer', bookType: 'xlsx' });
+}
+
+// ---------------------------------------------------------------------------
+// Liste de présence (feuille d'émargement vierge)
+// ---------------------------------------------------------------------------
+
+async function listePresencePDF({ etablissement, classes, date, cours, enseignant }) {
+  const { doc, termine } = nouveauPDF();
+  const marge = doc.page.margins.left;
+  const largeur = doc.page.width - marge - doc.page.margins.right;
+  classes.forEach(({ classe, eleves }, k) => {
+    if (k) doc.addPage();
+    let y = enTeteOfficiel(doc, etablissement, {
+      surtitre: 'FEUILLE D’ÉMARGEMENT', titre: 'LISTE DE PRÉSENCE', sousTitre: `${classe.nom} (${classe.niveau})`,
+      reference: `${eleves.length} élève${eleves.length > 1 ? 's' : ''}`, largeurTitre: 210,
+    });
+    y = blocIdentite(doc, marge, y, largeur, [
+      ['Date', date ? dateFr(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '', 1.6],
+      ['Cours / matière', cours || '', 1.6],
+      ['Enseignant', enseignant || '', 1.4],
+      ['Horaire', '', 0.9],
+    ]) + 14;
+    const largeurs = [26, 78, 175, 46, 46, 46, largeur - 26 - 78 - 175 - 46 * 3];
+    const lignes = eleves.map((e, i) => [
+      { texte: String(i + 1), align: 'center', couleur: C.COULEUR_TEXTE_CLAIR },
+      { texte: e.matricule || '' },
+      { texte: nomComplet(e), gras: true },
+      { texte: '' }, { texte: '' }, { texte: '' },
+      { texte: '' },
+    ]);
+    y = tableau(doc, marge, y, largeurs, ['N°', 'Matricule', 'Nom et prénom', 'Présent', 'Absent', 'Retard', 'Signature'], lignes, { hauteur: 22, reserveFin: 120, cases: [3, 4, 5] });
+    y += 14;
+    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.COULEUR_TEXTE)
+      .text(`Effectif : ${eleves.length}        Présents : ..........        Absents : ..........        Retards : ..........`, marge, y);
+    blocSignature(doc, y + 22, etablissement, 'L’enseignant');
+  });
+  piedDePageOfficiel(doc, `Liste de présence établie par ${etablissement.nom} via EduSphere`);
+  doc.end();
+  return termine;
+}
+
+// ---------------------------------------------------------------------------
+// Récapitulatif des présences (données enregistrées)
+// ---------------------------------------------------------------------------
+
+function lignesRecapitulatif(eleves, absences) {
+  const parEleve = new Map(eleves.map((e) => [e.id, { nj: 0, j: 0, r: 0, derniere: null }]));
+  for (const a of absences) {
+    const s = parEleve.get(a.eleveId);
+    if (!s) continue;
+    if (a.type === 'retard') s.r += 1; else if (a.justifie) s.j += 1; else s.nj += 1;
+    if (!s.derniere || a.date > s.derniere) s.derniere = a.date;
+  }
+  return eleves.map((e) => ({ eleve: e, ...parEleve.get(e.id) }));
+}
+
+async function recapitulatifPresencesPDF({ etablissement, classe, eleves, absences, du, au }) {
+  const { doc, termine } = nouveauPDF();
+  const marge = doc.page.margins.left;
+  const largeur = doc.page.width - marge - doc.page.margins.right;
+  const periode = du || au ? `${du ? `du ${dateFr(du)}` : ''} ${au ? `au ${dateFr(au)}` : ''}`.trim() : 'Depuis le début de l’année';
+  let y = enTeteOfficiel(doc, etablissement, {
+    surtitre: 'ASSIDUITÉ', titre: 'RÉCAPITULATIF DES PRÉSENCES', sousTitre: `${classe.nom} (${classe.niveau})`, reference: periode, largeurTitre: 290,
+  });
+  const lignes = lignesRecapitulatif(eleves, absences);
+  const tot = lignes.reduce((t, l) => ({ nj: t.nj + l.nj, j: t.j + l.j, r: t.r + l.r }), { nj: 0, j: 0, r: 0 });
+  y = blocIdentite(doc, marge, y, largeur, [
+    ['Effectif', String(eleves.length)], ['Non justifiées', String(tot.nj)], ['Justifiées', String(tot.j)], ['Retards', String(tot.r)],
+    ['Jamais absents', String(lignes.filter((l) => !l.nj && !l.j && !l.r).length)],
+  ]) + 14;
+  const largeurs = [26, 78, 160, 70, 60, 50, largeur - 26 - 78 - 160 - 70 - 60 - 50];
+  y = tableau(doc, marge, y, largeurs, ['N°', 'Matricule', 'Nom et prénom', 'Non justifiées', 'Justifiées', 'Retards', 'Dernière'],
+    lignes.map((l, i) => [
+      { texte: String(i + 1), align: 'center', couleur: C.COULEUR_TEXTE_CLAIR },
+      { texte: l.eleve.matricule || '' },
+      { texte: nomComplet(l.eleve), gras: true },
+      { texte: String(l.nj), align: 'center', gras: l.nj > 0, couleur: l.nj >= 5 ? C.COULEUR_ERREUR : l.nj > 0 ? COULEUR_LIMITE : C.COULEUR_SUCCES },
+      { texte: String(l.j), align: 'center' },
+      { texte: String(l.r), align: 'center', couleur: l.r >= 5 ? COULEUR_LIMITE : C.COULEUR_TEXTE },
+      { texte: l.derniere ? dateFr(l.derniere, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Aucune', couleur: l.derniere ? C.COULEUR_TEXTE : C.COULEUR_TEXTE_CLAIR },
+    ]), { reserveFin: 90 });
+  blocSignature(doc, y + 20, etablissement, 'Le service de la scolarité');
+  piedDePageOfficiel(doc, `Récapitulatif des présences établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}`);
+  doc.end();
+  return termine;
+}
+
+function recapitulatifPresencesXlsx({ classe, eleves, absences }) {
+  const lignes = lignesRecapitulatif(eleves, absences).map((l, i) => ({
+    'N°': i + 1, Matricule: l.eleve.matricule || '', Nom: l.eleve.nom, 'Prénom': l.eleve.prenom, Classe: classe.nom,
+    'Absences non justifiées': l.nj, 'Absences justifiées': l.j, Retards: l.r, 'Dernière absence': l.derniere || '',
+  }));
+  const detail = absences.map((a) => {
+    const e = eleves.find((x) => x.id === a.eleveId);
+    return { Date: a.date, Matricule: e?.matricule || '', Nom: e?.nom || '', 'Prénom': e?.prenom || '', Type: a.type === 'retard' ? 'Retard' : 'Absence', 'Justifiée': a.justifie ? 'Oui' : 'Non', Motif: a.motif || '', Cours: a.cours || '' };
+  });
+  return versXlsx([
+    { nom: 'Récapitulatif', lignes, largeurs: [5, 14, 18, 18, 22, 22, 18, 10, 16] },
+    { nom: 'Détail des absences', lignes: detail.length ? detail : [{ Date: '', Matricule: 'Aucune absence enregistrée' }], largeurs: [12, 14, 18, 18, 10, 10, 30, 24] },
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Procès-verbal des résultats (liste des notes, résultats et mentions)
+// ---------------------------------------------------------------------------
+
+// Une ligne par élève évalué, classée par mérite (rang) ou par ordre alphabétique.
+function preparerResultats(eleves, calculs, ordre = 'merite') {
+  const lignes = eleves.map((e) => {
+    const c = calculs.get(e.id);
+    const evalue = c && c.detailParUE.length > 0;
+    return { eleve: e, calcul: c, evalue };
+  });
+  const evalues = lignes.filter((l) => l.evalue).sort((a, b) => b.calcul.moyenneGenerale - a.calcul.moyenneGenerale);
+  let rang = 0; let precedente = null;
+  evalues.forEach((l, i) => { if (l.calcul.moyenneGenerale !== precedente) rang = i + 1; l.rang = rang; precedente = l.calcul.moyenneGenerale; });
+  if (ordre === 'alphabetique') lignes.sort((a, b) => nomComplet(a.eleve).localeCompare(nomComplet(b.eleve), 'fr'));
+  else lignes.sort((a, b) => (a.rang || 1e9) - (b.rang || 1e9) || nomComplet(a.eleve).localeCompare(nomComplet(b.eleve), 'fr'));
+  return lignes;
+}
+
+function statistiques(lignes, regles) {
+  const ev = lignes.filter((l) => l.evalue);
+  const moyennes = ev.map((l) => l.calcul.moyenneGenerale);
+  const valides = ev.filter((l) => l.calcul.admis).length;
+  const arr = (v) => Math.round(v * 100) / 100;
+  return {
+    effectif: lignes.length,
+    evalues: ev.length,
+    valides,
+    rattrapage: ev.length - valides,
+    tauxReussite: ev.length ? Math.round((valides / ev.length) * 1000) / 10 : 0,
+    moyenneClasse: moyennes.length ? arr(moyennes.reduce((a, b) => a + b, 0) / moyennes.length) : null,
+    plusHaute: moyennes.length ? Math.max(...moyennes) : null,
+    plusBasse: moyennes.length ? Math.min(...moyennes) : null,
+    regles,
+  };
+}
+
+function couleurNote(v, regles) {
+  if (v === null || v === undefined) return C.COULEUR_TEXTE_CLAIR;
+  if (v >= regles.seuil) return C.COULEUR_SUCCES;
+  if (v >= regles.eliminatoire) return COULEUR_LIMITE;
+  return C.COULEUR_ERREUR;
+}
+
+async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, calculs, regles, ordre }) {
+  const { doc, termine } = nouveauPDF({ layout: 'landscape' });
+  const marge = doc.page.margins.left;
+  const largeur = doc.page.width - marge - doc.page.margins.right;
+  const lignes = preparerResultats(eleves, calculs, ordre);
+  const stats = statistiques(lignes, regles);
+
+  let y = enTeteOfficiel(doc, etablissement, {
+    surtitre: `ANNÉE ${semestre.anneeScolaire || ''}`.trim(), titre: 'PROCÈS-VERBAL DES RÉSULTATS',
+    sousTitre: `${classe.nom} (${classe.niveau}), ${semestre.libelle}`, reference: `Validation à ${surVingt(regles.seuil)}/20, éliminatoire sous ${surVingt(regles.eliminatoire)}/20`, largeurTitre: 300,
+  });
+  y = blocIdentite(doc, marge, y, largeur, [
+    ['Effectif', String(stats.effectif)], ['Évalués', String(stats.evalues)], ['Semestre validé', String(stats.valides)],
+    ['Rattrapage', String(stats.rattrapage)], ['Taux de réussite', `${String(stats.tauxReussite).replace('.', ',')} %`],
+    ['Moyenne de classe', stats.moyenneClasse === null ? '-' : `${noteFr(stats.moyenneClasse)}/20`],
+    ['Plus haute / plus basse', stats.plusHaute === null ? '-' : `${noteFr(stats.plusHaute)} / ${noteFr(stats.plusBasse)}`, 1.3],
+  ]) + 12;
+
+  const fixes = [32, 62, 140];
+  const fin = [52, 44, 64, 58, 62];
+  const largeurUE = Math.max(40, (largeur - fixes.reduce((a, b) => a + b, 0) - fin.reduce((a, b) => a + b, 0)) / Math.max(ues.length, 1));
+  const largeurs = [...fixes, ...ues.map(() => largeurUE), ...fin];
+  const entete = ['Rang', 'Matricule', 'Nom et prénom', ...ues.map((u) => u.code), 'Moy. gén.', 'Crédits', 'Mention', 'Résultat', 'Décision'];
+  const cellules = lignes.map((l) => {
+    const c = l.calcul;
+    const parUE = new Map((c?.detailParUE || []).map((d) => [d.code, d]));
+    return [
+      { texte: l.rang ? String(l.rang) : '-', align: 'center', gras: true },
+      { texte: l.eleve.matricule || '' },
+      { texte: nomComplet(l.eleve), gras: true },
+      ...ues.map((u) => {
+        const d = parUE.get(u.code);
+        if (!d) return { texte: '-', align: 'center', couleur: C.COULEUR_TEXTE_CLAIR };
+        return { texte: noteFr(d.moyenne) + (d.eliminatoire ? ' E' : ''), align: 'center', gras: true, couleur: d.eliminatoire ? C.COULEUR_ERREUR : d.valide ? C.COULEUR_SUCCES : COULEUR_LIMITE };
+      }),
+      { texte: l.evalue ? noteFr(c.moyenneGenerale) : '-', align: 'center', gras: true, couleur: l.evalue ? couleurNote(c.moyenneGenerale, regles) : C.COULEUR_TEXTE_CLAIR },
+      { texte: l.evalue ? `${c.creditsValides}/${c.creditsTotal}` : '-', align: 'center' },
+      { texte: l.evalue ? mention(c.moyenneGenerale) : '-' },
+      { texte: l.evalue ? (c.admis ? 'Validé' : 'Non validé') : 'Non évalué', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_ERREUR },
+      { texte: l.evalue ? (c.admis ? 'Admis(e)' : 'Rattrapage') : 'En attente', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
+    ];
+  });
+  y = tableau(doc, marge, y, largeurs, entete, cellules, { hauteur: 17, taille: 7.6, reserveFin: 130 });
+
+  // Légende des UE et des couleurs
+  y += 10;
+  doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.COULEUR_TEXTE).text('Unités d’enseignement : ', marge, y, { continued: true })
+    .font('Helvetica').fillColor(C.COULEUR_TEXTE_CLAIR)
+    .text(ues.map((u) => `${u.code} ${u.intitule} (${u.credits} crédits)`).join('  ·  '), { width: largeur });
+  doc.font('Helvetica').fontSize(7.2).fillColor(C.COULEUR_TEXTE_CLAIR)
+    .text(`Vert : UE validée (${surVingt(regles.seuil)} et plus, sans note éliminatoire).  Jaune : UE non validée.  Rouge et « E » : note éliminatoire (moins de ${surVingt(regles.eliminatoire)}/20 dans une matière).`, marge, doc.y + 3, { width: largeur });
+  const ySig = doc.y + 14;
+  blocSignature(doc, ySig, etablissement, 'Le Président du jury');
+  piedDePageOfficiel(doc, `Procès-verbal établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}, ${semestre.libelle}`);
+  doc.end();
+  return termine;
+}
+
+function procesVerbalXlsx({ classe, semestre, ues, eleves, calculs, regles, ordre }) {
+  const lignes = preparerResultats(eleves, calculs, ordre);
+  const stats = statistiques(lignes, regles);
+  const resultats = lignes.map((l) => {
+    const c = l.calcul;
+    const parUE = new Map((c?.detailParUE || []).map((d) => [d.code, d]));
+    const ligne = { Rang: l.rang || '', Matricule: l.eleve.matricule || '', Nom: l.eleve.nom, 'Prénom': l.eleve.prenom };
+    for (const u of ues) {
+      const d = parUE.get(u.code);
+      ligne[`${u.code} ${u.intitule}`] = d ? d.moyenne : '';
+      ligne[`${u.code} résultat`] = d ? (d.eliminatoire ? 'Éliminatoire' : d.valide ? 'Validée' : 'Non validée') : '';
+    }
+    Object.assign(ligne, {
+      'Moyenne générale': l.evalue ? c.moyenneGenerale : '',
+      'Crédits validés': l.evalue ? c.creditsValides : '',
+      'Crédits du semestre': l.evalue ? c.creditsTotal : '',
+      Mention: l.evalue ? mention(c.moyenneGenerale) : '',
+      'Résultat': l.evalue ? (c.admis ? 'Validé' : 'Non validé') : 'Non évalué',
+      'Décision': l.evalue ? (c.admis ? 'Admis(e)' : 'Rattrapage') : 'En attente',
+    });
+    return ligne;
+  });
+  const notes = [];
+  for (const l of lignes) {
+    for (const d of l.calcul?.detailParUE || []) {
+      for (const m of d.matieres) {
+        notes.push({
+          Matricule: l.eleve.matricule || '', Nom: l.eleve.nom, 'Prénom': l.eleve.prenom, UE: `${d.code} ${d.ue}`,
+          'Matière': `${m.code} ${m.matiere}`, Coefficient: m.coefficient, 'Contrôle continu': m.moyenneCC ?? '', Examen: m.moyenneExamen ?? '',
+          'Note finale': m.noteFinale, Session: m.session === 'rattrapage' ? 'Rattrapage' : 'Normale',
+          'Résultat': m.eliminatoire ? 'Éliminatoire' : m.noteFinale >= regles.seuil ? 'Validée' : 'Non validée',
+        });
+      }
+    }
+  }
+  const synthese = [
+    ['Procès-verbal des résultats'], [],
+    ['Classe', `${classe.nom} (${classe.niveau})`], ['Semestre', `${semestre.libelle} ${semestre.anneeScolaire || ''}`.trim()],
+    ['Seuil de validation', regles.seuil], ['Note éliminatoire', regles.eliminatoire], [],
+    ['Effectif', stats.effectif], ['Évalués', stats.evalues], ['Semestre validé', stats.valides], ['Rattrapage', stats.rattrapage],
+    ['Taux de réussite (%)', stats.tauxReussite], ['Moyenne de classe', stats.moyenneClasse ?? ''], ['Plus haute moyenne', stats.plusHaute ?? ''], ['Plus basse moyenne', stats.plusBasse ?? ''],
+  ];
+  return versXlsx([
+    { nom: 'Résultats', lignes: resultats, largeurs: [6, 14, 16, 16, ...ues.flatMap(() => [16, 14]), 16, 14, 16, 12, 12, 12] },
+    { nom: 'Notes détaillées', lignes: notes.length ? notes : [{ Matricule: 'Aucune note' }], largeurs: [14, 16, 16, 30, 32, 11, 16, 10, 11, 11, 13] },
+    { nom: 'Synthèse', lignes: synthese, largeurs: [24, 32] },
+  ]);
+}
+
+// ---------------------------------------------------------------------------
+// Emplois du temps (une classe ou toutes, une page par classe)
+// ---------------------------------------------------------------------------
+
+const TEINTES = [['#E3ECF6', '#1D5FA8'], ['#E7F1EC', '#136B44'], ['#FFF3D6', '#8A5D00'], ['#F3E8F6', '#6D3A84'], ['#E2F2F4', '#157A8C'], ['#FBE9E4', '#A23B2E'], ['#ECEFF4', '#3B4A63'], ['#EEF5E0', '#4E6B1B']];
+
+async function emploisDuTempsPDF({ etablissement, semestre, pages }) {
+  const { doc, termine } = nouveauPDF({ layout: 'landscape', margin: 36 });
+  const marge = doc.page.margins.left;
+  const largeurTotale = doc.page.width - marge - doc.page.margins.right;
+  pages.forEach(({ classe, creneaux }, k) => {
+    if (k) doc.addPage();
+    const yDebut = enTeteOfficiel(doc, etablissement, {
+      surtitre: `ANNÉE ${semestre.anneeScolaire || ''}`.trim(), titre: 'EMPLOI DU TEMPS', sousTitre: `${classe.nom} (${classe.niveau})`, reference: semestre.libelle, largeurTitre: 230,
+    });
+    const matieres = [...new Set(creneaux.map((c) => c.matiere || 'Cours'))];
+    const teinte = (m) => TEINTES[matieres.indexOf(m) % TEINTES.length];
+    const gouttiere = 34;
+    const largeurJour = (largeurTotale - gouttiere) / JOURS_EMPLOI.length;
+    const yColonnes = yDebut + 16;
+    const hauteurColonnes = doc.page.height - doc.page.margins.bottom - yColonnes - 50;
+    const bornes = creneaux.flatMap((c) => [versMinutesEmploi(c.heureDebut), versMinutesEmploi(c.heureFin)]);
+    const debutGrille = Math.floor(Math.min(7 * 60, ...bornes) / 60) * 60;
+    const finGrille = Math.ceil(Math.max(18 * 60, ...bornes) / 60) * 60;
+    const versY = (min) => yColonnes + ((min - debutGrille) / (finGrille - debutGrille)) * hauteurColonnes;
+
+    JOURS_EMPLOI.forEach((jour, i) => {
+      const x = marge + gouttiere + i * largeurJour;
+      doc.roundedRect(x + 1, yDebut, largeurJour - 4, 14, 3).fill(C.COULEUR_MARINE);
+      doc.font('Helvetica-Bold').fontSize(7.5).fillColor('#FFFFFF').text(jour.toUpperCase(), x + 1, yDebut + 3.5, { width: largeurJour - 4, align: 'center', characterSpacing: 0.5 });
+      doc.rect(x + 1, yColonnes, largeurJour - 4, hauteurColonnes).lineWidth(0.6).strokeColor(C.COULEUR_BORDURE).stroke();
+    });
+    for (let h = debutGrille; h <= finGrille; h += 60) {
+      const y = versY(h);
+      doc.font('Helvetica').fontSize(6.5).fillColor(C.COULEUR_TEXTE_CLAIR).text(`${String(h / 60).padStart(2, '0')}h`, marge, Math.max(yColonnes, y - 4), { width: gouttiere - 6, align: 'right' });
+      doc.moveTo(marge + gouttiere, y).lineTo(marge + largeurTotale - 3, y).lineWidth(0.4).dash(1, { space: 2 }).strokeColor(C.COULEUR_BORDURE).stroke();
+      doc.undash();
+    }
+    creneaux.forEach((c) => {
+      const iJour = JOURS_EMPLOI.indexOf(c.jour);
+      if (iJour === -1) return;
+      const debut = versMinutesEmploi(c.heureDebut);
+      const fin = Math.max(versMinutesEmploi(c.heureFin), debut + 20);
+      const x = marge + gouttiere + iJour * largeurJour + 3;
+      const y = versY(debut) + 1;
+      const h = Math.max(versY(fin) - versY(debut) - 2, 16);
+      const [fond, trait] = teinte(c.matiere || 'Cours');
+      doc.roundedRect(x, y, largeurJour - 8, h, 3).fill(fond);
+      doc.rect(x, y, 3, h).fill(trait);
+      doc.font('Helvetica-Bold').fontSize(7.4).fillColor(trait).text(c.matiere || 'Cours', x + 7, y + 3, { width: largeurJour - 18, height: Math.max(h - 14, 9), ellipsis: true });
+      if (h > 22) {
+        doc.font('Helvetica').fontSize(6.4).fillColor(C.COULEUR_TEXTE)
+          .text(`${c.heureDebut} à ${c.heureFin}${c.salle ? `  ·  ${c.salle}` : ''}`, x + 7, y + h - 11, { width: largeurJour - 18, lineBreak: false, ellipsis: true });
+      }
+    });
+    if (!creneaux.length) {
+      doc.font('Helvetica').fontSize(10).fillColor(C.COULEUR_TEXTE_CLAIR).text('Aucun cours programmé pour cette classe.', marge, yColonnes + hauteurColonnes / 2 - 6, { width: largeurTotale, align: 'center' });
+    }
+    // Légende des matières et volume horaire hebdomadaire
+    const yLegende = yColonnes + hauteurColonnes + 10;
+    let xl = marge;
+    matieres.forEach((m) => {
+      const minutes = creneaux.filter((c) => (c.matiere || 'Cours') === m).reduce((s, c) => s + versMinutesEmploi(c.heureFin) - versMinutesEmploi(c.heureDebut), 0);
+      const texte = `${m} (${Math.round((minutes / 60) * 10) / 10} h)`;
+      const w = doc.font('Helvetica').fontSize(7).widthOfString(texte) + 18;
+      if (xl + w > marge + largeurTotale) return;
+      doc.roundedRect(xl, yLegende, 9, 9, 2).fill(teinte(m)[1]);
+      doc.fillColor(C.COULEUR_TEXTE).text(texte, xl + 12, yLegende + 1);
+      xl += w + 8;
+    });
+  });
+  piedDePageOfficiel(doc, `Emploi du temps établi par ${etablissement.nom} via EduSphere  ·  ${semestre.libelle}`);
+  doc.end();
+  return termine;
+}
+
+module.exports = {
+  listePresencePDF, recapitulatifPresencesPDF, recapitulatifPresencesXlsx, procesVerbalPDF, procesVerbalXlsx, emploisDuTempsPDF,
+};

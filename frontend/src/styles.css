@@ -2469,3 +2469,16 @@ td.cellule-description { min-width: 260px; max-width: 420px; white-space: normal
 @media (max-width: 900px) { .resultats-classe-colonnes { grid-template-columns: minmax(0, 1fr); } }
 .liste-archive { margin: 0 0 16px; padding-left: 18px; display: grid; gap: 6px; font-size: 0.88rem; color: var(--texte); }
 .liste-archive strong { font-weight: 600; }
+
+/* Page « Documents » de l'Académie : une carte par document. */
+.grille-documents { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.carte-document { display: flex; flex-direction: column; }
+.carte-document-texte { color: var(--texte-clair); font-size: 0.85rem; margin: -6px 0 14px; line-height: 1.55; }
+.carte-document-champs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+.carte-document-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.carte-document-actions button { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 1100px) { .grille-documents { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .carte-document-champs { grid-template-columns: minmax(0, 1fr); } }
+.resultats-classe-telechargements { display: inline-flex; gap: 8px; margin-left: auto; }
+.resultats-classe-telechargements button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; }
+button.petit { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 0.8rem; min-height: 0; }

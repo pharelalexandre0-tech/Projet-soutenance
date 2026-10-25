@@ -16,7 +16,7 @@ function enBase64(blob) {
 // est donc demandé avec le jeton. Dans le navigateur, il est enregistré depuis
 // la mémoire ; dans l'application Android, il est écrit sur le téléphone puis
 // proposé à l'ouverture ou au partage (lecteur PDF, messagerie...).
-export default function BoutonDocument({ chemin, nomFichier, className, style, title, children, onTermine }) {
+export default function BoutonDocument({ chemin, nomFichier, className, style, title, children, onTermine, disabled = false }) {
   const [etat, setEtat] = useState(''); // '' | 'chargement' | 'erreur'
 
   async function telecharger() {
@@ -48,7 +48,7 @@ export default function BoutonDocument({ chemin, nomFichier, className, style, t
   }
 
   return (
-    <button type="button" className={className} style={style} title={etat === 'erreur' ? 'Téléchargement impossible, réessayez' : title} onClick={telecharger} disabled={etat === 'chargement'}>
+    <button type="button" className={className} style={style} title={etat === 'erreur' ? 'Téléchargement impossible, réessayez' : title} onClick={telecharger} disabled={disabled || etat === 'chargement'}>
       {etat === 'chargement' ? 'Téléchargement…' : etat === 'erreur' ? 'Réessayer' : children}
     </button>
   );

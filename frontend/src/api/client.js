@@ -39,7 +39,7 @@ client.interceptors.response.use(
   (reponse) => {
     if (reponse.horsLigne) return reponse;
     const methode = (reponse.config.method || 'get').toLowerCase();
-    if (methode === 'get' && !/\/evenements|\/export/.test(reponse.config.url || '')) garderLecture(reponse.config, reponse.data);
+    if (methode === 'get' && !/\/evenements|\/export|\/documents\//.test(reponse.config.url || '')) garderLecture(reponse.config, reponse.data);
     signalerEnLigne();
     return reponse;
   },

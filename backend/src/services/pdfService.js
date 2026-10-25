@@ -664,4 +664,12 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
 
 module.exports = {
   genererBulletinPDF, genererRecuPDF, genererFichePaiePDF, genererEmploiDuTempsPDF, lireDocument, importerDocumentsExistants, DOSSIER_STOCKAGE,
+  // Éléments communs réutilisés par les listes de l'Académie (documentsAcademieService).
+  outils: {
+    enTeteOfficiel, dessinerLigne, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, versMinutesEmploi, JOURS_EMPLOI,
+    couleurs: {
+      COULEUR_PRIMAIRE, COULEUR_TEXTE, COULEUR_TEXTE_CLAIR, COULEUR_BORDURE, COULEUR_SUCCES, COULEUR_SUCCES_FOND, COULEUR_ERREUR,
+      COULEUR_ERREUR_FOND, COULEUR_UE_FOND, COULEUR_RATTRAPAGE, COULEUR_MARINE,
+    },
+  },
 };

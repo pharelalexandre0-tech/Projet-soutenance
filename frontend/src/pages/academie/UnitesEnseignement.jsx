@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
+import ConfirmModal from '../../components/ConfirmModal';
+import Toast from '../../components/Toast';
+import { IconTrash } from '../../components/icons';
+import { messageErreur } from '../../utils/erreurs';
 
 const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '' };
 const MATIERE_VIDE = { code: '', intitule: '', coefficient: '1' };
@@ -21,6 +25,8 @@ export default function UnitesEnseignement() {
   const [nouveauSemestre, setNouveauSemestre] = useState(SEMESTRE_VIDE);
   const [formSemestreOuvert, setFormSemestreOuvert] = useState(false);
   const [message, setMessage] = useState('');
+  const [matiereASupprimer, setMatiereASupprimer] = useState(null);
+  const [toast, setToast] = useState(null);
 
   function charger() {
     client.get('/unites-enseignement').then((res) => setUes(res.data.ues));
@@ -77,6 +83,19 @@ export default function UnitesEnseignement() {
     charger();
   }
 
+  async function supprimerMatiere() {
+    try {
+      const res = await client.delete(`/matieres/${matiereASupprimer.id}`);
+      const n = res.data.notesSupprimees || 0;
+      setToast({ message: `« ${matiereASupprimer.intitule} » retirée de l'UE${n ? ` (${n} note${n > 1 ? 's' : ''} supprimée${n > 1 ? 's' : ''})` : ''}.`, type: 'succes' });
+      charger();
+    } catch (err) {
+      setToast({ message: messageErreur(err, 'impossible de supprimer cette matière'), type: 'erreur' });
+    } finally {
+      setMatiereASupprimer(null);
+    }
+  }
+
   return (
     <div className="grille-2">
       <div className="carte">
@@ -105,16 +124,21 @@ export default function UnitesEnseignement() {
               <div style={{ padding: 14 }}>
                 <div className="table-scroll">
                   <table>
-                    <thead><tr><th>Code</th><th>Matière</th><th>Coef.</th></tr></thead>
+                    <thead><tr><th>Code</th><th>Matière</th><th>Coef.</th><th aria-label="Actions" /></tr></thead>
                     <tbody>
                       {(ue.Matieres || []).map((m) => (
                         <tr key={m.id}>
                           <td style={{ fontFamily: 'var(--police-mono)' }}>{m.code}</td>
                           <td>{m.intitule}</td>
                           <td>{m.coefficient}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button type="button" className="secondaire danger petit" onClick={() => setMatiereASupprimer(m)} title={`Supprimer ${m.intitule}`}>
+                              <IconTrash width={14} height={14} /> Supprimer
+                            </button>
+                          </td>
                         </tr>
                       ))}
-                      {(!ue.Matieres || ue.Matieres.length === 0) && <tr><td colSpan={3} className="vide">Aucune matière</td></tr>}
+                      {(!ue.Matieres || ue.Matieres.length === 0) && <tr><td colSpan={4} className="vide">Aucune matière</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -220,6 +244,12 @@ export default function UnitesEnseignement() {
           {message && <div className={message === 'UE créée.' ? 'message-succes' : 'message-erreur'}>{message}</div>}
         </form>
       </div>
+      {matiereASupprimer && (
+        <ConfirmModal titre={`Supprimer « ${matiereASupprimer.intitule} » ?`} boutonConfirmer="Supprimer la matière" onConfirmer={supprimerMatiere} onAnnuler={() => setMatiereASupprimer(null)}>
+          La matière sera retirée de son UE. Les notes déjà saisies pour cette matière (session normale et rattrapage) seront aussi supprimées, et les bulletins recalculés sans elle. Cette action est irréversible.
+        </ConfirmModal>
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
   );
 }

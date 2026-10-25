@@ -408,6 +408,21 @@ async function creerMatiere(req, res) {
   return res.status(201).json({ matiere });
 }
 
+// Retirer une matière de son UE. Ses notes (normale et rattrapage) partent
+// avec elle ; les accès temporaires et comptes rendus qui la visaient
+// restent (le compte rendu garde le nom de la matière), sans lien vers elle.
+async function supprimerMatiere(req, res) {
+  const matiere = await Matiere.findByPk(req.params.id, { include: [{ model: UniteEnseignement, include: [Semestre] }] });
+  if (!matiere || matiere.UniteEnseignement?.Semestre?.etablissementId !== req.utilisateur.etablissementId) {
+    return res.status(404).json({ erreur: 'matière introuvable' });
+  }
+  const notesSupprimees = await Note.destroy({ where: { matiereId: matiere.id } });
+  await CompteEphemere.update({ matiereId: null }, { where: { matiereId: matiere.id } });
+  await CompteRenduSaisie.update({ matiereId: null }, { where: { matiereId: matiere.id } });
+  await matiere.destroy();
+  return res.json({ message: 'matière supprimée', notesSupprimees });
+}
+
 async function creerEmploiDuTemps(req, res) {
   const { classeId } = req.body;
   const classe = await Classe.findByPk(classeId);
@@ -603,6 +618,7 @@ async function statistiquesAcademiques(req, res) {
 
 module.exports = {
   creerClasse,
+  supprimerMatiere,
   configurerRegles,
   exporterDonneesEcole,
   listerClasses,

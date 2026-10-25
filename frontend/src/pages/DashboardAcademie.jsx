@@ -2,7 +2,7 @@ import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
   IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconMessage, IconSettings, IconCalendar, IconLayers, IconTrendingDown,
-  IconClipboard,
+  IconClipboard, IconDownload,
 } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
@@ -20,6 +20,7 @@ const ComptesEphemeres = lazy(() => import('./academie/ComptesEphemeres'));
 const PredictionIA = lazy(() => import('./academie/PredictionIA'));
 const Communication = lazy(() => import('./academie/Communication'));
 const Parametres = lazy(() => import('./academie/Parametres'));
+const Documents = lazy(() => import('./academie/Documents'));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
@@ -42,6 +43,8 @@ const ONGLETS = [
     description: 'Liens d’accès temporaires envoyés aux professeurs pour saisir les notes et faire l’appel.' },
   { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage, groupe: 'Équipe & échanges', fonctionnalite: 'communication',
     description: 'Messages aux classes et cahier de textes.' },
+  { id: 'documents', label: 'Documents', composant: Documents, icone: IconDownload, groupe: 'Établissement',
+    description: 'Listes de présence, récapitulatif des présences, notes et résultats avec mentions, emplois du temps : en PDF ou Excel.' },
   { id: 'parametres', label: 'Paramètres', composant: Parametres, icone: IconSettings, groupe: 'Établissement',
     description: 'Identité de l’établissement et comptes du personnel.' },
 ];

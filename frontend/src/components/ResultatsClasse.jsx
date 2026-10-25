@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import { noteFr, tonNote } from '../utils/seuils';
+import BoutonDocument from './BoutonDocument';
+import { IconDownload } from './icons';
 
 // Résultats de la classe pour un semestre : ceux qui valident, ceux qui
 // passent au rattrapage (mêmes règles que le bulletin). Un clic sur un
@@ -46,6 +48,14 @@ export default function ResultatsClasse({ classeId, semestreId, onChoisir }) {
       <div className="resultats-classe-entete">
         <h3>Résultats de la classe</h3>
         <span className="note-secondaire">Semestre validé si toutes les UE atteignent {noteFr(seuil)}/20, sans note éliminatoire</span>
+        <span className="resultats-classe-telechargements">
+          <BoutonDocument className="secondaire" chemin={`/api/documents/resultats?classeId=${classeId}&semestreId=${semestreId}`} title="Procès-verbal : moyennes, mentions, résultats et décisions">
+            <IconDownload width={15} height={15} /> PDF
+          </BoutonDocument>
+          <BoutonDocument className="secondaire" chemin={`/api/documents/resultats?classeId=${classeId}&semestreId=${semestreId}&format=xlsx`} title="Résultats et notes détaillées">
+            <IconDownload width={15} height={15} /> Excel
+          </BoutonDocument>
+        </span>
       </div>
       <div className="resultats-classe-colonnes">
         <div className="resultats-classe-bloc bonne">

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import BoutonDocument from '../../components/BoutonDocument';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import DetailCompteRendu from '../../components/DetailCompteRendu';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
-import { IconClipboard, IconCircleCheck, IconCalendarAlert, IconClock, IconSearch, IconChevronRight } from '../../components/icons';
+import { IconClipboard, IconCircleCheck, IconCalendarAlert, IconClock, IconSearch, IconChevronRight, IconDownload } from '../../components/icons';
 
 function dateCourte(iso) {
   return new Date(`${iso}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
@@ -71,6 +72,14 @@ export default function FeuillesAppel() {
       <section className="carte">
         <div className="entete-carte">
           <h2>Feuilles d'appel <span className="entete-carte-compteur">{affiches.length}</span></h2>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <BoutonDocument className="secondaire" chemin={`/api/documents/liste-presence?classeId=${classeId || 'toutes'}&date=${new Date().toISOString().slice(0, 10)}`} title="Feuille d'émargement à imprimer">
+              <IconDownload width={15} height={15} /> Liste de présence
+            </BoutonDocument>
+            <BoutonDocument className="secondaire" chemin={`/api/documents/recapitulatif-presences?classeId=${classeId}`} disabled={!classeId} title={classeId ? 'Absences et retards de chaque élève' : 'Choisissez une classe'}>
+              <IconDownload width={15} height={15} /> Récapitulatif
+            </BoutonDocument>
+          </div>
         </div>
         <div className="barre-outils">
           <label className="champ-recherche">

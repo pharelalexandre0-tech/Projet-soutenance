@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import BoutonDocument from '../../components/BoutonDocument';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import Modal from '../../components/Modal';
@@ -20,7 +21,6 @@ export default function EmploisDuTemps() {
   const [chargement, setChargement] = useState(false);
   const [creneauEnSaisie, setCreneauEnSaisie] = useState(null);
   const [creneauASupprimer, setCreneauASupprimer] = useState(null);
-  const [telechargementEnCours, setTelechargementEnCours] = useState(false);
   const [toast, setToast] = useState(null);
   const [etat, setEtat] = useState(null);
   const [publication, setPublication] = useState(false);
@@ -63,20 +63,9 @@ export default function EmploisDuTemps() {
     charger(classeId);
   }
 
-  // Grille à l'identité de l'établissement, générée côté serveur : un
-  // fichier s'attache tel quel à un message, contrairement à une capture.
-  async function telechargerPDF() {
-    setTelechargementEnCours(true);
-    try {
-      const res = await client.get('/emplois-du-temps/pdf', { params: { classeId, semestreId } });
-      window.open(res.data.url, '_blank');
-    } catch (err) {
-      setToast({ message: messageErreur(err, 'impossible de générer le PDF'), type: 'erreur' });
-    } finally {
-      setTelechargementEnCours(false);
-    }
-  }
-
+  // Grille à l'identité de l'établissement, générée côté serveur et
+  // téléchargée avec la session (un simple lien serait refusé) : un fichier
+  // s'attache tel quel à un message, contrairement à une capture.
   const pret = classeId && semestreId;
   const classe = classes.find((c) => String(c.id) === classeId);
   const effectif = classe?.Eleves?.length ?? 0;
@@ -88,9 +77,12 @@ export default function EmploisDuTemps() {
       <div className="entete-carte">
         <h2>{classe ? `Semaine type de ${classe.nom} (${classe.niveau})` : 'Semaine type'}</h2>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="secondaire" onClick={telechargerPDF} disabled={!pret || emplois.length === 0 || telechargementEnCours}>
-            <IconDownload /> {telechargementEnCours ? 'Génération…' : 'Télécharger en PDF'}
-          </button>
+          <BoutonDocument className="secondaire" chemin={`/api/documents/emplois-du-temps?classeId=${classeId}&semestreId=${semestreId}`} disabled={!pret || emplois.length === 0}>
+            <IconDownload /> Télécharger en PDF
+          </BoutonDocument>
+          <BoutonDocument className="secondaire" chemin={`/api/documents/emplois-du-temps?classeId=toutes&semestreId=${semestreId}`} disabled={!semestreId} title="Une page par classe">
+            <IconDownload /> Toutes les classes
+          </BoutonDocument>
           <button type="button" className="secondaire" onClick={() => setCreneauEnSaisie(CRENEAU_VIDE)} disabled={!pret}>
             <IconPlus /> Ajouter un cours
           </button>

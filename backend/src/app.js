@@ -112,6 +112,7 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/predictions', predictionsRoutes);
 app.use('/api/plateforme', plateformeRoutes);
 app.use('/api/extensions', extensionsRoutes);
+app.use('/api/documents', require('./routes/documents'));
 app.use('/api', referenceRoutes);
 app.use('/api/superadmin', superadminRoutes);
 
