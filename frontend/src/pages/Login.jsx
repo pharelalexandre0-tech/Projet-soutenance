@@ -6,7 +6,7 @@ import TransitionOuverture from '../components/TransitionOuverture';
 import SaisieCodeLiquide from '../components/SaisieCodeLiquide';
 import EtapeApplication from '../components/EtapeApplication';
 import Tissage from '../components/Tissage';
-import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconAlertTriangle, IconWrench } from '../components/icons';
+import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconAlertTriangle, IconWrench, IconBuilding, IconGraduationCap, IconBook, IconShield } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
@@ -30,9 +30,16 @@ function CarteBienvenue() {
     <div className="carte-bienvenue-blob tissage-acces" data-cible-demarrage>
       <Tissage colonnes={9} lignes={9} />
       <div className="tissage-cartouche">
-        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-        <h1 className="marque-nom">EduSphere</h1>
-        <p className="bienvenue-texte">L’enseignement supérieur gabonais, tissé en un seul registre : établissements, étudiants, familles et Ministère.</p>
+        <div className="cartouche-marque">
+          <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+          <div>
+            <h1 className="marque-nom">EduSphere</h1>
+            <span className="cartouche-surtitre">Enseignement supérieur · Gabon</span>
+          </div>
+        </div>
+        <p className="bienvenue-texte">
+          Établissements, étudiants, familles et Ministère réunis sur une seule plateforme, sûre et disponible même hors ligne.
+        </p>
       </div>
       {import.meta.env.MODE !== 'android' && (
         <div className="bienvenue-qr">
@@ -349,7 +356,11 @@ export default function Login() {
     <div className={`page-connexion ${depuisDemarrage ? 'depuis-demarrage' : ''}`}>
       <div className="composition-acces">
         <CarteBienvenue />
-        <div className="carte-formulaire-acces">
+        <div className="carte-formulaire-acces carte-acces-principale">
+          <div className="login-bandeau">
+            <span>Plateforme de l’enseignement supérieur</span>
+            <a href="/verifier"><IconShield aria-hidden="true" /> Vérifier un document</a>
+          </div>
           <p className="acces-eyebrow">Espace sécurisé</p>
           <h2>Bonjour.</h2>
           <p className="connexion-aide">Connectez-vous pour ouvrir votre espace.</p>
@@ -399,12 +410,26 @@ export default function Login() {
             <p className="connexion-note-parent">
               Parent d'élève ? Connectez-vous avec votre adresse e-mail et le matricule de votre enfant.
             </p>
-            <p className="liens-publics">
-              <a href="/verifier">Vérifier un document</a>
-              <span aria-hidden="true">·</span>
-              <a href="/confidentialite">Politique de confidentialité</a>
-            </p>
           </form>
+          {/* Qui se connecte, et comment : la page blanche guide chacun. */}
+          <ul className="espaces-acces" aria-label="Les espaces EduSphere">
+            <li>
+              <span className="espace-icone"><IconBuilding aria-hidden="true" /></span>
+              <span><strong>Personnel de l’établissement</strong>E-mail et mot de passe, puis le code de votre application d’authentification.</span>
+            </li>
+            <li>
+              <span className="espace-icone"><IconGraduationCap aria-hidden="true" /></span>
+              <span><strong>Étudiants et parents</strong>E-mail et matricule, puis un code reçu par e-mail.</span>
+            </li>
+            <li>
+              <span className="espace-icone"><IconBook aria-hidden="true" /></span>
+              <span><strong>Ministère de l’Enseignement supérieur</strong>Accès réservé aux agents habilités.</span>
+            </li>
+          </ul>
+          <div className="login-pied">
+            <span>© 2026 EduSphere · Libreville</span>
+            <a href="/confidentialite">Politique de confidentialité</a>
+          </div>
         </div>
       </div>
     </div>
