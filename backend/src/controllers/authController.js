@@ -4,7 +4,7 @@ const QRCode = require('qrcode');
 const { where, fn, col } = require('sequelize');
 const { Utilisateur, Etablissement, Eleve, JournalAudit } = require('../models');
 const { signEtape, verifyEtape } = require('../utils/jwt');
-const { envoyerEmail } = require('../services/emailService');
+const { envoyerEmail, adresseDeTest } = require('../services/emailService');
 const { emailCodeConnexion, emailReinitialisation, emailRappelMatricule, emailRappelParent } = require('../services/modelesEmail');
 const { dossiersDuParent } = require('../services/familleService');
 const { erreurMotDePasseInvalide, COUT_BCRYPT_PERSONNEL } = require('../utils/motDePasse');
@@ -189,7 +189,10 @@ async function seConnecter(req, res) {
       enfant: parent ? `${utilisateur.prenom} ${utilisateur.nom}` : null,
     });
     await envoyerEmail(destinataire, message.sujet, message.texte, [], { html: message.html });
-    return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id, delaiRenvoi: DELAI_RENVOI_S });
+    // Comptes fictifs de démonstration (domaines réservés aux tests, où
+    // aucun e-mail ne part) : le code est montré à l'écran. Jamais pour une
+    // adresse réelle.
+    return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id, delaiRenvoi: DELAI_RENVOI_S, ...(adresseDeTest(destinataire) && { codeDemonstration: code }) });
   }
 
   if (ROLES_TOTP.includes(utilisateur.role)) {
@@ -234,7 +237,7 @@ async function renvoyerCode(req, res) {
     enfant: parent ? `${utilisateur.prenom} ${utilisateur.nom}` : null,
   });
   await envoyerEmail(utilisateur.codeDoubleFacteurPour, message.sujet, message.texte, [], { html: message.html, etablissement });
-  return res.json({ renvoye: true, delai: DELAI_RENVOI_S });
+  return res.json({ renvoye: true, delai: DELAI_RENVOI_S, ...(adresseDeTest(utilisateur.codeDoubleFacteurPour) && { codeDemonstration: code }) });
 }
 
 // Deuxième étape de la connexion Etudiant : vérifie le code reçu par

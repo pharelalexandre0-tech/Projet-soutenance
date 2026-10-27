@@ -79,7 +79,7 @@ export function AuthProvider({ children }) {
     }
     if (res.data.doubleFacteurRequis) {
       enCours.current = { email, motDePasse };
-      return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId, delaiRenvoi: res.data.delaiRenvoi };
+      return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId, delaiRenvoi: res.data.delaiRenvoi, codeDemonstration: res.data.codeDemonstration };
     }
     // Personnel : code de l'application d'authentification (ou première
     // configuration de celle-ci).

@@ -268,4 +268,4 @@ ${corps}
   return { envoye: true, simule: true, service: 'simulation', erreurs };
 }
 
-module.exports = { envoyerEmail, derniersEnvois };
+module.exports = { envoyerEmail, derniersEnvois, adresseDeTest };

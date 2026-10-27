@@ -5,7 +5,7 @@ import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
 import SaisieCodeLiquide from '../components/SaisieCodeLiquide';
 import EtapeApplication from '../components/EtapeApplication';
-import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
+import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationCap, IconBook, IconBuilding, IconAlertTriangle, IconWrench } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
@@ -21,27 +21,26 @@ const DUREE_SUCCES_MS = 1800;
 // bascule "créer un compte" ni de "se souvenir de moi" — aucun des deux
 // n'existe côté backend, une case à cocher qui ne fait rien n'a pas sa
 // place ici. "Mot de passe oublié" existe bien, lui (ReinitialiserMotDePasse.jsx).
+// Couverture de la chemise d'accès (moitié gauche) : sceau, nom, espaces
+// desservis, QR code du site. Repérée par data-cible-demarrage : l'écran
+// de démarrage vient s'y poser.
 function CarteBienvenue() {
   return (
-    <div className="carte-bienvenue-blob" data-cible-demarrage>
-      <span className="blob blob-1" aria-hidden="true" />
-      <span className="blob blob-2" aria-hidden="true" />
-      <span className="blob blob-3" aria-hidden="true" />
-      <span className="blob blob-4" aria-hidden="true" />
-      <span className="particule particule-1" aria-hidden="true"><IconGraduationCap /></span>
-      <span className="particule particule-2" aria-hidden="true"><IconBook /></span>
-      <span className="particule particule-3" aria-hidden="true"><IconBuilding /></span>
-      <span className="particule particule-4" aria-hidden="true"><IconPencil /></span>
-      <span className="particule particule-5" aria-hidden="true"><IconGraduationCap /></span>
+    <div className="carte-bienvenue-blob couverture-acces" data-cible-demarrage>
       <div className="bienvenue-contenu">
         <div className="marque-groupe">
           <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
           <h1 className="marque-nom">EduSphere</h1>
         </div>
         <p className="bienvenue-texte">
-          Bienvenue sur EduSphere, l'espace numérique qui réunit toute
-          la vie de votre établissement.
+          Le dossier numérique de votre établissement : scolarité, notes, documents certifiés et suivi,
+          réunis en un seul registre.
         </p>
+        <ul className="etiquette-acces" aria-label="Espaces">
+          <li><IconBuilding aria-hidden="true" /><span>Personnel de l’établissement</span></li>
+          <li><IconGraduationCap aria-hidden="true" /><span>Étudiants et familles</span></li>
+          <li><IconBook aria-hidden="true" /><span>Ministère de l’Enseignement supérieur</span></li>
+        </ul>
         {/* Site seulement : ouvrir EduSphere sur son téléphone d'un scan
             (inutile dans l'application Android, déjà sur le téléphone). */}
         {import.meta.env.MODE !== 'android' && (
@@ -175,7 +174,7 @@ export default function Login() {
         return;
       }
       if (resultat.doubleFacteurRequis) {
-        setAttenteCode({ utilisateurId: resultat.utilisateurId });
+        setAttenteCode({ utilisateurId: resultat.utilisateurId, codeDemonstration: resultat.codeDemonstration });
         setCode('');
         setEtatCode('saisie');
         setRenvoi('');
@@ -218,6 +217,7 @@ export default function Login() {
     try {
       const res = await client.post('/auth/connexion/renvoyer-code', { utilisateurId: attenteCode.utilisateurId });
       setFinAttente(Date.now() + (res.data.delai || 50) * 1000);
+      if (res.data.codeDemonstration) setAttenteCode((a) => ({ ...a, codeDemonstration: res.data.codeDemonstration }));
       setRenvoi('envoye');
       setCode('');
       setEtatCode('saisie');
@@ -318,6 +318,9 @@ export default function Login() {
             <p className="acces-eyebrow">Étape 2</p>
             <h2>Vérification</h2>
             <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail. Saisis-le pour continuer.</p>
+            {attenteCode.codeDemonstration && (
+              <p className="code-demonstration">Compte de démonstration (aucun e-mail réel) : code <strong>{attenteCode.codeDemonstration}</strong></p>
+            )}
             <form className="formulaire-connexion" onSubmit={(e) => { e.preventDefault(); validerCode(); }}>
               <SaisieCodeLiquide
                 valeur={code}

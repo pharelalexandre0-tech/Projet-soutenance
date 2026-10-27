@@ -122,6 +122,12 @@ async function main() {
 
   const academie = await m.Utilisateur.create({ nom: 'OKANA', prenom: 'Sylvie', email: 'academie@ide.example.com', motDePasse: hache, role: 'academie', service: 'Scolarité', etablissementId: etab.id });
   const finance = await m.Utilisateur.create({ nom: 'NGOUA', prenom: 'Paul', email: 'finance@ide.example.com', motDePasse: hache, role: 'finance', fonction: 'Comptable', etablissementId: etab.id });
+  // Agent du Ministère de l'Enseignement supérieur (sans établissement) :
+  // créé une seule fois, conservé si la démo est régénérée.
+  await m.Utilisateur.findOrCreate({
+    where: { email: 'ministere@mesr.example.com' },
+    defaults: { nom: 'MOUSSAVOU', prenom: 'Gérard', fonction: "Directeur général de l'Enseignement supérieur", motDePasse: hache, role: 'ministere' },
+  });
 
   const semestre = await m.Semestre.create({ libelle: 'Semestre 1', anneeScolaire: '2025-2026', cycle: 'licence', numero: 1, etablissementId: etab.id });
   const matieres = [];

@@ -3,18 +3,6 @@ import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import logoIcon from '../assets/logo-icon.png';
 
-// Les lettres du nom s'assemblent une à une : l'identité qui se construit,
-// sur le même dégradé que l'écran de connexion.
-function NomAnime({ texte, long }) {
-  return (
-    <h1 className={`marque-lettres ${long ? 'nom-long' : ''}`} aria-label={texte}>
-      {texte.split('').map((lettre, i) => (
-        <span key={i} style={{ animationDelay: `${0.25 + i * (long ? 0.02 : 0.045)}s` }}>{lettre === ' ' ? ' ' : lettre}</span>
-      ))}
-    </h1>
-  );
-}
-
 function initiales(etab) {
   const sigle = String(etab?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
   if (sigle) return sigle.slice(0, 4).toUpperCase();
@@ -40,8 +28,13 @@ export default function TransitionOuverture() {
   }, [ecole]);
 
   const nom = ecole ? (etab?.nom || '') : 'EduSphere';
+  // Les rubriques du dossier qui s'ouvre, comme les onglets du classeur.
+  const ONGLETS = profil?.role === 'etudiant' ? ['Mon dossier', 'Vie scolaire', 'Documents']
+    : profil?.role === 'ministere' ? ['Tutelle', 'Pilotage', 'Contrôle']
+      : profil?.role === 'superadmin' ? ['Écoles', 'Plateforme', 'Administration']
+        : ['Scolarité', 'Évaluation', 'Établissement'];
   return (
-    <div className="transition-ouverture">
+    <div className="transition-ouverture volet-ouverture">
       {pret && (
         <>
           <span className="sceau-ouverture">
@@ -49,11 +42,11 @@ export default function TransitionOuverture() {
               ? <span className="sceau-initiales">{initiales(etab)}</span>
               : <img src={ecole ? etab.logo : logoIcon} alt="" />}
           </span>
-          {nom && <NomAnime texte={nom} long={nom.length > 18} />}
-          <p>Ouverture de votre espace…</p>
-          <span className="piste-ouverture" aria-hidden="true">
-            <span className="remplissage-ouverture" />
-          </span>
+          {nom && <h1 className={`nom-ouverture ${nom.length > 28 ? 'nom-long' : ''}`}>{nom}</h1>}
+          <div className="onglets-ouverture" aria-hidden="true">
+            {ONGLETS.map((o, i) => <span key={o} style={{ '--i': i }}><b>{['I', 'II', 'III'][i]}</b>{o}</span>)}
+          </div>
+          <p>Ouverture de votre dossier…</p>
           {ecole && <small className="ouverture-plateforme">EduSphere</small>}
         </>
       )}

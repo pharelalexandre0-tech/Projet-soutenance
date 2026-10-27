@@ -2969,3 +2969,150 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
   .intercalaire { flex: none; padding: 9px 12px 10px; }
   .espace.classeur .espace-contenu-interieur { padding-top: 16px; }
 }
+
+/* ==========================================================================
+   Connexion « chemise de classeur » (refonte) : couverture aux couleurs de
+   la marque à gauche, anneaux, feuille du formulaire à droite, onglet
+   « Accès sécurisé » au-dessus. Remplace la composition à deux cartes.
+   ========================================================================== */
+.page-connexion {
+  background-color: var(--fond);
+  background-image: repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in srgb, var(--edu-bleu) 7%, transparent) 31px 32px);
+  padding: 72px 24px 40px;
+}
+.page-connexion::before, .page-connexion::after { display: none; }
+.composition-acces {
+  max-width: 1120px; display: grid; grid-template-columns: minmax(0, 0.92fr) minmax(0, 1fr);
+  border-radius: 18px; box-shadow: 0 30px 70px -20px rgba(6, 20, 34, .38), 0 6px 18px rgba(6, 20, 34, .08);
+  animation: chemise-entree .7s cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes chemise-entree { from { opacity: 0; transform: translateY(18px) scale(.985); } to { opacity: 1; transform: none; } }
+/* Onglet de la chemise */
+.composition-acces::after {
+  content: "EduSphere \00B7  Accès sécurisé"; position: absolute; top: -36px; left: 34px;
+  padding: 10px 20px 9px; border-radius: 10px 10px 0 0;
+  background: var(--edu-marine); color: #fff; font: 600 12px/1 var(--police); letter-spacing: .12em; text-transform: uppercase;
+}
+/* Anneaux du classeur, sur la reliure */
+.composition-acces::before {
+  content: ""; position: absolute; z-index: 3; top: 12%; bottom: 12%; left: calc(47.9% - 11px); width: 22px;
+  background: radial-gradient(circle at 50% 50%, #fff 0 5px, #9AA7B8 5.5px 8px, transparent 8.5px) 0 0 / 22px 25% repeat-y;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .25));
+  animation: anneaux-entree .5s ease .45s both;
+}
+@keyframes anneaux-entree { from { opacity: 0; transform: scaleY(.7); } to { opacity: 1; transform: none; } }
+
+.carte-bienvenue-blob.couverture-acces {
+  width: auto; margin: 0; min-height: 640px; border-radius: 18px 0 0 18px; box-shadow: none;
+  background: var(--degrade-plein-ecran);
+}
+/* Grain de la couverture cartonnée et ombre de reliure */
+.couverture-acces::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(135deg, rgba(255, 255, 255, .035) 0 2px, transparent 2px 9px);
+}
+.couverture-acces::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 10px; background: linear-gradient(90deg, transparent, rgba(0, 0, 0, .18)); }
+.couverture-acces .bienvenue-contenu { position: relative; inset: auto; min-height: 640px; padding: 56px 46px; gap: 28px; justify-content: center; }
+.couverture-acces .marque-pastille { border-radius: 16px; transform: rotate(-3deg); box-shadow: 0 0 0 6px rgba(255, 255, 255, .12), 0 14px 30px rgba(0, 0, 0, .3); }
+.couverture-acces .marque-nom { font-family: var(--police-serif); font-size: 2.5rem; letter-spacing: -.01em; }
+.couverture-acces .marque-nom::after { background: var(--edu-or); }
+.couverture-acces .bienvenue-texte { max-width: 380px; font-size: 1rem; line-height: 1.7; }
+.etiquette-acces {
+  list-style: none; margin: 0; padding: 14px 18px; width: 100%; max-width: 380px;
+  background: #FBF9F1; color: var(--edu-marine); border-radius: 6px; text-align: left;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .22); transform: rotate(.6deg);
+  display: flex; flex-direction: column; gap: 9px;
+  background-image: repeating-linear-gradient(0deg, transparent 0 27px, rgba(29, 95, 168, .12) 27px 28px);
+  animation: entree-connexion .5s cubic-bezier(.22, 1, .36, 1) .3s both;
+}
+.etiquette-acces li { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; }
+.etiquette-acces svg { width: 17px; height: 17px; color: var(--edu-bleu); flex: none; }
+.couverture-acces .bienvenue-qr { border-radius: 10px; }
+
+.composition-acces .carte-formulaire-acces {
+  position: relative; left: auto; top: auto; width: auto; min-height: 640px; transform: none;
+  border-radius: 0 18px 18px 0; box-shadow: none; padding: 56px 60px 48px 72px;
+  background-color: #fff;
+  background-image: linear-gradient(90deg, transparent 52px, color-mix(in srgb, var(--erreur) 22%, transparent) 52px 53px, transparent 53px);
+  animation: feuille-sortie .7s cubic-bezier(.22, 1, .36, 1) .2s both;
+}
+@keyframes feuille-sortie { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: none; } }
+.carte-formulaire-acces .acces-eyebrow { text-align: left; }
+.carte-formulaire-acces h2 { text-align: left; font-family: var(--police-serif); color: var(--edu-marine); font-size: 2.1rem; margin-bottom: 30px; }
+.carte-formulaire-acces .connexion-aide { text-align: left; margin-top: -16px; }
+.carte-formulaire-acces .liens-publics { justify-content: flex-start; }
+.carte-formulaire-acces .connexion-note-parent { text-align: left; }
+
+@media (max-width: 900px) {
+  .page-connexion { padding: 52px 0 0; }
+  .composition-acces { grid-template-columns: minmax(0, 1fr); border-radius: 0; box-shadow: none; }
+  .composition-acces::before { display: none; }
+  .composition-acces::after { left: 16px; top: -34px; }
+  .carte-bienvenue-blob.couverture-acces { min-height: 0; border-radius: 0; }
+  .couverture-acces .bienvenue-contenu { min-height: 0; padding: 30px 22px; gap: 16px; }
+  .etiquette-acces { display: none; }
+  .composition-acces .carte-formulaire-acces { min-height: 0; border-radius: 0; padding: 30px 22px 44px 34px; background-image: linear-gradient(90deg, transparent 18px, color-mix(in srgb, var(--erreur) 22%, transparent) 18px 19px, transparent 19px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .composition-acces, .composition-acces::before, .composition-acces .carte-formulaire-acces, .etiquette-acces { animation: none; }
+}
+
+/* --- Démarrage : tampon et lignes de registre ------------------------------ */
+.demarrage-onglet {
+  position: relative; margin-bottom: 26px; padding: 8px 18px 7px; border-radius: 9px 9px 0 0;
+  background: rgba(255, 255, 255, .14); border-bottom: 2px solid var(--edu-or);
+  font: 600 12px/1 var(--police); letter-spacing: .14em; text-transform: uppercase; color: rgba(255, 255, 255, .85);
+  animation: sous-titre-demarrage .45s ease-out .1s both;
+}
+.ecran-demarrage .demarrage-sceau { border-radius: 18px; animation: tampon-demarrage .55s cubic-bezier(.2, .9, .3, 1.2) .35s both; }
+@keyframes tampon-demarrage {
+  0% { opacity: 0; transform: scale(1.45) rotate(-10deg); }
+  70% { opacity: 1; transform: scale(.94) rotate(-3deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-3deg); }
+}
+.ecran-demarrage .demarrage-nom { font-family: var(--police-serif); font-weight: 700; animation: sous-titre-demarrage .5s ease-out .8s both; }
+.ecran-demarrage .demarrage-nom::after { animation-delay: 1.1s; }
+.demarrage-registre { display: flex; flex-direction: column; gap: 9px; width: 220px; margin-top: 28px; }
+.demarrage-registre span {
+  display: block; height: 1px; background: rgba(255, 255, 255, .55); transform-origin: left; transform: scaleX(0);
+  animation: tracer-ligne .5s cubic-bezier(.4, 0, .2, 1) both; animation-delay: calc(1.2s + var(--i) * .16s);
+}
+.demarrage-registre span:nth-child(2) { width: 82%; }
+.demarrage-registre span:nth-child(3) { width: 92%; }
+.demarrage-registre span:nth-child(4) { width: 64%; }
+@keyframes tracer-ligne { to { transform: scaleX(1); } }
+.ecran-demarrage.depart .demarrage-onglet, .ecran-demarrage.depart .demarrage-registre { transition: opacity .2s ease; opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .ecran-demarrage .demarrage-sceau, .ecran-demarrage .demarrage-nom, .demarrage-onglet { animation: none; }
+  .demarrage-registre span { animation: none; transform: none; }
+}
+
+/* --- Après connexion : volet et onglets du dossier ------------------------ */
+.transition-ouverture.volet-ouverture {
+  clip-path: inset(0 0 100% 0);
+  animation: volet-descend .6s cubic-bezier(.22, 1, .36, 1) both, fondu-sortie .4s ease 3.1s both;
+}
+@keyframes volet-descend { to { clip-path: inset(0 0 0 0); } }
+.volet-ouverture .sceau-ouverture { border-radius: 18px; transform: rotate(-3deg); animation: tampon-demarrage .55s cubic-bezier(.2, .9, .3, 1.2) .35s both; }
+.nom-ouverture { margin: 0; color: #fff; font-family: var(--police-serif); font-size: 2.1rem; font-weight: 700; text-align: center; max-width: 80vw; animation: sous-titre-demarrage .45s ease-out .75s both; }
+.nom-ouverture.nom-long { font-size: 1.6rem; }
+.onglets-ouverture { display: flex; gap: 6px; margin-top: 30px; }
+.onglets-ouverture span {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px 9px; border-radius: 9px 9px 0 0;
+  background: rgba(255, 255, 255, .14); color: #fff; font: 600 13.5px/1 var(--police);
+  border-bottom: 2px solid transparent;
+  animation: onglet-monte .45s cubic-bezier(.22, 1, .36, 1) both, onglet-actif .3s ease both;
+  animation-delay: calc(1.1s + var(--i) * .18s), calc(1.9s + var(--i) * .35s);
+}
+.onglets-ouverture b { font-family: var(--police-serif); color: var(--edu-or); }
+@keyframes onglet-monte { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes onglet-actif { to { background: #fff; color: var(--edu-marine); border-bottom-color: var(--edu-or); } }
+.volet-ouverture p { animation-delay: 1.5s; }
+@media (max-width: 520px) { .onglets-ouverture span { padding: 8px 10px; font-size: 12px; } }
+@media (prefers-reduced-motion: reduce) {
+  .transition-ouverture.volet-ouverture { animation: none; clip-path: none; }
+  .volet-ouverture .sceau-ouverture, .nom-ouverture, .onglets-ouverture span { animation: none; }
+}
+
+.code-demonstration { margin: -12px 0 22px; padding: 10px 14px; border-radius: 8px; background: var(--alerte-fond); color: #6E4A0B; font-size: 13.5px; border: 1px dashed color-mix(in srgb, var(--edu-or) 60%, transparent); }
+.code-demonstration strong { font-family: var(--police-mono); font-size: 16px; letter-spacing: .12em; margin-left: 4px; }
