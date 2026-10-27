@@ -12,6 +12,8 @@ import TiroirNotifications from './TiroirNotifications';
 import BandeauAnnonce from './BandeauAnnonce';
 import PaletteCommandes from './PaletteCommandes';
 import PageExtension from './PageExtension';
+import { Avatar } from './ChampPhoto';
+import Tissage from './Tissage';
 import { PlateformeContext } from '../context/PlateformeContext';
 import logoIcon from '../assets/logo-icon.png';
 
@@ -40,10 +42,6 @@ const GROUPE_EXTENSIONS = "Services de l'établissement";
 // Rubriques du dossier : chaque groupe du menu porte un numéro romain, et
 // chaque page une cote (rubrique.page), reprise dans l'en-tête de la page.
 const ROMAINS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
-
-function initiales(prenom, nom) {
-  return `${prenom?.[0] ?? ''}${nom?.[0] ?? ''}`.toUpperCase();
-}
 
 function lireAnnonceMasquee() {
   try { return sessionStorage.getItem(CLE_ANNONCE_MASQUEE); } catch { return null; }
@@ -234,6 +232,8 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   return (
     <div className="espace classeur">
       <header className="bandeau-classeur">
+        {/* Motif tissé d'EduSphere, en fond de l'en-tête, estompé vers la gauche. */}
+        <div className="bandeau-motif" aria-hidden="true"><Tissage colonnes={30} lignes={4} /></div>
         <div className="bandeau-haut">
           <div className="classeur-marque">
             <span className="marque-pastille">{vignette}</span>
@@ -357,14 +357,14 @@ function MenuCompte({ profil, onMonCompte, onDeconnexion }) {
   return (
     <div className="menu-compte" ref={zone}>
       <button type="button" className="menu-compte-bouton" aria-haspopup="menu" aria-expanded={ouvert} onClick={() => setOuvert((o) => !o)}>
-        <span className="menu-compte-avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</span>
+        <Avatar profil={profil} className="menu-compte-avatar" />
         <span className="menu-compte-prenom">{profil?.modeParent ? 'Parent' : profil?.prenom}</span>
         <IconChevronDown aria-hidden="true" />
       </button>
       {ouvert && (
         <div className="menu-compte-panneau" role="menu">
           <div className="menu-compte-identite">
-            <span className="menu-compte-avatar grand" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</span>
+            <Avatar profil={profil} className="menu-compte-avatar grand" />
             <span><strong>{nom}</strong><small>{email}</small></span>
           </div>
           <button type="button" role="menuitem" onClick={() => { setOuvert(false); onMonCompte(); }}>

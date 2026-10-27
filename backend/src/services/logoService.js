@@ -125,4 +125,38 @@ async function normaliserLogosEnregistres() {
   if (prepares) console.log(`[Logo] ${prepares} logo(s) d'école préparé(s) (rognés, centrés, 512 px).`);
 }
 
-module.exports = { normaliserLogo, normaliserLogosEnregistres, redimensionnerLogo };
+// Photo de profil : PNG ou JPEG uniquement (vérifié sur les octets, pas sur
+// le nom), recadrée au centre en carré, réduite à 256 px, fond blanc sous la
+// transparence, réencodée en JPEG. Renvoie null si l'image est refusée.
+const COTE_PHOTO = 256;
+function preparerPhoto(dataUri) {
+  const m = String(dataUri || '').match(/^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+/=]+)$/);
+  if (!m) return null;
+  const tampon = Buffer.from(m[2], 'base64');
+  const estPng = tampon.length > 8 && tampon.readUInt32BE(0) === 0x89504e47;
+  const estJpeg = tampon.length > 3 && tampon[0] === 0xff && tampon[1] === 0xd8 && tampon[2] === 0xff;
+  if (!estPng && !estJpeg) return null;
+  let image;
+  try {
+    image = decoder(`data:image/${estPng ? 'png' : 'jpeg'};base64,${m[2]}`);
+  } catch {
+    return null;
+  }
+  if (!image || image.largeur < 64 || image.hauteur < 64) return null;
+  const { largeur: l, hauteur: h, pixels: p } = image;
+  const cote = Math.min(l, h);
+  const dl = Math.min(COTE_PHOTO, cote);
+  const sortie = new Uint8Array(dl * dl * 4);
+  echantillonner(p, l, Math.floor((l - cote) / 2), Math.floor((h - cote) / 2), cote, cote, sortie, dl, 0, 0, dl, dl);
+  for (let i = 0; i < sortie.length; i += 4) {
+    const a = sortie[i + 3] / 255;
+    sortie[i] = Math.round(sortie[i] * a + 255 * (1 - a));
+    sortie[i + 1] = Math.round(sortie[i + 1] * a + 255 * (1 - a));
+    sortie[i + 2] = Math.round(sortie[i + 2] * a + 255 * (1 - a));
+    sortie[i + 3] = 255;
+  }
+  const jpg = jpeg.encode({ data: sortie, width: dl, height: dl }, 85);
+  return `data:image/jpeg;base64,${Buffer.from(jpg.data).toString('base64')}`;
+}
+
+module.exports = { normaliserLogo, normaliserLogosEnregistres, redimensionnerLogo, preparerPhoto };

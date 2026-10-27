@@ -4,6 +4,7 @@ import Modal from './Modal';
 import ChampMotDePasse from './ChampMotDePasse';
 import { useAuth } from '../context/AuthContext';
 import SecuriteCompte from './SecuriteCompte';
+import ChampPhoto from './ChampPhoto';
 import { IconInfo } from './icons';
 
 // Symétrique de superadmin/MonProfil.jsx pour les autres rôles, en modale :
@@ -20,6 +21,7 @@ export default function ModaleMonCompte({ onFermer }) {
         <button type="button" role="tab" aria-selected={onglet === 'securite'} className={onglet === 'securite' ? 'actif' : ''} onClick={() => setOnglet('securite')}>Sécurité</button>
       </div>
       {onglet === 'securite' && <SecuriteCompte compact />}
+      {onglet === 'profil' && <ChampPhoto />}
       {onglet === 'profil' && (profil?.role === 'etudiant' ? <CompteEtudiant profil={profil} /> : <CompteModifiable />)}
     </Modal>
   );

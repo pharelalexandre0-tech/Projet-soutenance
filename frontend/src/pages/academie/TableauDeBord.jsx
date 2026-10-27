@@ -35,35 +35,37 @@ function libelleJour(iso) {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-// Journal des sept derniers jours de l'école, regroupé par jour : ce qui a
-// été inscrit, saisi, signalé, payé, émis, avec un lien vers la page où agir.
+// Journal des sept derniers jours de l'école, en tableau déroulant : jour,
+// heure, nature, événement, détail et lien vers la page où agir.
+const NATURES_JOURNAL = {
+  inscription: 'Inscription', notes: 'Notes', absences: 'Assiduité', incident: 'Comportement',
+  paiements: 'Paiements', professeur: 'Professeurs', documents: 'Documents', message: 'Communication',
+};
 function JournalDuJour({ evenements, onNaviguer }) {
   if (!evenements) return <div className="chargement">Chargement…</div>;
   if (evenements.length === 0) return <div className="vide">Aucune activité ces sept derniers jours.</div>;
-  const parJour = [];
-  evenements.forEach((e) => {
-    const libelle = libelleJour(e.heure);
-    const dernier = parJour[parJour.length - 1];
-    if (dernier?.libelle === libelle) dernier.lignes.push(e); else parJour.push({ libelle, lignes: [e] });
-  });
-  return parJour.map((j) => (
-    <div key={j.libelle}>
-      <h3 className="journal-jour-date">{j.libelle}</h3>
-      <ol className="journal-jour">
-        {j.lignes.map((e, i) => {
-          const Icone = ICONES_JOURNAL[e.type] || IconDocument;
-          return (
-            <li key={`${e.type}-${e.heure}-${i}`}>
-              <span className="journal-heure">{new Date(e.heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-              <span className={`journal-pastille ${e.ton}`}><Icone /></span>
-              <span className="journal-texte"><strong>{e.titre}</strong>{e.detail && <span>{e.detail}</span>}</span>
-              {e.page ? <button type="button" className="bouton-texte" onClick={() => onNaviguer?.(e.page)}>Ouvrir <IconChevronRight /></button> : <span />}
-            </li>
-          );
-        })}
-      </ol>
+  return (
+    <div className="table-scroll journal-tableau">
+      <table>
+        <thead><tr><th>Jour</th><th>Heure</th><th>Nature</th><th>Événement</th><th>Détail</th><th aria-label="Ouvrir" /></tr></thead>
+        <tbody>
+          {evenements.map((e, i) => {
+            const Icone = ICONES_JOURNAL[e.type] || IconDocument;
+            return (
+              <tr key={`${e.type}-${e.heure}-${i}`}>
+                <td className="journal-cellule-jour">{libelleJour(e.heure)}</td>
+                <td className="mono">{new Date(e.heure).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td><span className="journal-nature"><span className={`journal-pastille ${e.ton}`}><Icone /></span>{NATURES_JOURNAL[e.type] || 'Activité'}</span></td>
+                <td className="cellule-nom">{e.titre}</td>
+                <td className="note-secondaire">{e.detail || ''}</td>
+                <td>{e.page && <button type="button" className="bouton-texte" onClick={() => onNaviguer?.(e.page)}>Ouvrir <IconChevronRight /></button>}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
-  ));
+  );
 }
 
 export default function TableauDeBord({ onNaviguer }) {
@@ -135,7 +137,7 @@ export default function TableauDeBord({ onNaviguer }) {
 
       <div className="accueil-dossier">
         <section className="carte">
-          <div className="entete-carte"><h2>Journal de l’établissement</h2><span className="note-secondaire">7 derniers jours</span></div>
+          <div className="entete-carte"><h2>Journal de l’établissement {journal && <span className="entete-carte-compteur">{journal.length}</span>}</h2><span className="note-secondaire">7 derniers jours</span></div>
           <JournalDuJour evenements={journal} onNaviguer={onNaviguer} />
         </section>
         <div className="colonne-empilee">

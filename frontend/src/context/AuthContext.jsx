@@ -147,8 +147,9 @@ export function AuthProvider({ children }) {
 
   // Après une modification de son propre profil (ex. superadmin qui change
   // son nom), pour que la sidebar reflète le changement sans reconnexion.
+  // Fusion : les réponses qui n'incluent pas la photo ne l'effacent pas.
   function mettreAJourProfil(nouveauProfil) {
-    setProfil(nouveauProfil);
+    setProfil((ancien) => ({ ...(ancien || {}), ...nouveauProfil }));
   }
 
   return (

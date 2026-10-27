@@ -73,6 +73,8 @@ Utilisateur.init(
     echecsConnexion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     verrouilleJusqua: { type: DataTypes.DATE, allowNull: true },
     derniereConnexion: { type: DataTypes.DATE, allowNull: true },
+    // Photo de profil : JPEG carré 256 px (data URI), préparée par le serveur.
+    photo: { type: DataTypes.TEXT, allowNull: true },
     motDePasseChangeLe: { type: DataTypes.DATE, allowNull: true },
   },
   {
@@ -87,7 +89,7 @@ Utilisateur.init(
     defaultScope: {
       attributes: {
         exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire', 'codeDoubleFacteurPour', 'codeDoubleFacteurEssais', 'tokenReinitialisation',
-          'tokenReinitialisationExpire', 'totpSecret', 'totpSecretEnAttente', 'totpDernierPas', 'totpCodesSecours'],
+          'tokenReinitialisationExpire', 'totpSecret', 'totpSecretEnAttente', 'totpDernierPas', 'totpCodesSecours', 'photo'],
       },
     },
     scopes: { avecMotDePasse: { attributes: {} } },

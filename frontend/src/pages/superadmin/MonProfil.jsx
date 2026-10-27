@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
 import SecuriteCompte from '../../components/SecuriteCompte';
+import ChampPhoto, { Avatar } from '../../components/ChampPhoto';
 import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { useAuth } from '../../context/AuthContext';
 import { messageErreur } from '../../utils/erreurs';
@@ -22,10 +23,6 @@ const JAMAIS = [
   'Les comptes du personnel des écoles',
   'Les paiements et les frais des familles',
 ];
-
-function initiales(prenom, nom) {
-  return `${prenom?.[0] ?? ''}${nom?.[0] ?? ''}`.toUpperCase();
-}
 
 const RUBRIQUES = [
   { id: 'informations', libelle: 'Informations', icone: IconUserCog },
@@ -59,7 +56,7 @@ export default function MonProfil({ onNaviguer }) {
     <>
       <section className="identite-compte">
         <div className="identite-compte-principal">
-          <div className="identite-compte-avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
+          <Avatar profil={profil} className="identite-compte-avatar" />
           <div className="identite-compte-textes">
             <span className="identite-compte-role">Superadmin de la plateforme</span>
             <h2>{profil?.prenom} {profil?.nom}</h2>
@@ -84,6 +81,7 @@ export default function MonProfil({ onNaviguer }) {
         </nav>
 
         <div className="profil-contenu">
+          {rubrique === 'informations' && <div className="carte"><ChampPhoto /></div>}
           {rubrique === 'informations' && (
             <InformationsPersonnelles profil={profil} onEnregistre={(p) => { mettreAJourProfil(p); notifier('Informations enregistrées.'); }} />
           )}

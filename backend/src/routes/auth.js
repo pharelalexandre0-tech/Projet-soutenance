@@ -18,6 +18,8 @@ router.post('/reinitialiser-mot-de-passe', ctrl.reinitialiserMotDePasse);
 router.post('/comptes', authentifier, autoriserRoles('academie'), ctrl.creerCompte);
 router.get('/moi', authentifier, ctrl.monProfil);
 router.put('/mon-profil', authentifier, ctrl.mettreAJourMonProfil);
+router.put('/photo', authentifier, ctrl.changerPhoto);
+router.delete('/photo', authentifier, ctrl.retirerPhoto);
 
 // Sécurité du compte : appareils connectés, application d'authentification.
 router.get('/securite', authentifier, ctrl.securite);

@@ -3,11 +3,11 @@ import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { IconWrench } from './icons';
 import { dateHeure } from '../utils/plateforme';
+import Tissage from './Tissage';
+import FilOuverture from './FilOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
 const DELAI_VERIFICATION_MS = 30 * 1000;
-const RAYON = 62;
-const CIRCONFERENCE = 2 * Math.PI * RAYON;
 // Message pré-rempli côté superadmin : déjà dit par la phrase d'accroche,
 // on ne le répète pas.
 const MESSAGE_PAR_DEFAUT = 'Mise à jour de la plateforme en cours.';
@@ -77,31 +77,14 @@ export default function EcranMaintenance() {
   const depassee = fin && maintenant > fin;
 
   return (
-    <div className="ecran-maintenance" role="alertdialog" aria-labelledby="titre-maintenance">
+    <div className="ecran-maintenance ecran-maintenance-tisse" role="alertdialog" aria-labelledby="titre-maintenance">
+      <div className="maintenance-motif" aria-hidden="true"><Tissage colonnes={8} lignes={10} /></div>
       <div className="ecran-maintenance-carte">
-        <div className="maintenance-anneau" aria-hidden="true">
-          <svg viewBox="0 0 140 140">
-            <defs>
-              <linearGradient id="degrade-anneau" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#1D5FA8" />
-                <stop offset="60%" stopColor="#157A8C" />
-                <stop offset="100%" stopColor="#1F8A54" />
-              </linearGradient>
-            </defs>
-            <circle className="maintenance-piste" cx="70" cy="70" r={RAYON} />
-            {avancement !== null && (
-              <circle
-                className="maintenance-progression" cx="70" cy="70" r={RAYON}
-                strokeDasharray={CIRCONFERENCE} strokeDashoffset={CIRCONFERENCE * (1 - avancement)}
-              />
-            )}
-            <circle className="maintenance-comete" cx="70" cy="70" r={RAYON} strokeDasharray={`${CIRCONFERENCE * 0.18} ${CIRCONFERENCE}`} />
-          </svg>
-          <span className="maintenance-logo"><img src={logoIcon} alt="" /></span>
-          <span className="maintenance-cle"><IconWrench /></span>
+        <div className="maintenance-marque">
+          <img src={logoIcon} alt="" />
+          <span><strong>EduSphere</strong><small>Enseignement supérieur · Gabon</small></span>
         </div>
-
-        <span className="maintenance-surtitre">Maintenance planifiée</span>
+        <span className="maintenance-surtitre"><IconWrench /> Maintenance planifiée</span>
         <h1 id="titre-maintenance">Nous améliorons EduSphere</h1>
         <p className="ecran-maintenance-message">
           La plateforme est momentanément indisponible le temps d'une opération de maintenance.
@@ -126,6 +109,9 @@ export default function EcranMaintenance() {
             )}
           </div>
         )}
+        {avancement !== null
+          ? <div className="maintenance-barre" aria-hidden="true"><span style={{ width: `${Math.round(avancement * 100)}%` }} /></div>
+          : <FilOuverture />}
 
         <p className="ecran-maintenance-aide">
           Vos données et votre session sont préservées. Cette page se rouvrira d'elle-même dès la fin de la maintenance.

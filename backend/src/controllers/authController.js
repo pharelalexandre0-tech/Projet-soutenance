@@ -15,6 +15,7 @@ const { chiffrer, dechiffrer, sha256 } = require('../utils/chiffrement');
 const totp = require('../utils/totp');
 const { ouvrirSession, revoquerSessions, sessionsActives } = require('../services/sessionService');
 const { journaliserAudit } = require('../services/auditService');
+const { preparerPhoto } = require('../services/logoService');
 
 const DUREE_CODE_2FA_MIN = 10;
 const DUREE_RESET_MIN = 30;
@@ -115,7 +116,8 @@ async function enregistrerReussite(compte) {
 // Profil renvoyé au frontend : en session parent, c'est le compte de
 // l'enfant, présenté comme l'Espace Parents.
 async function profilDeSession(utilisateur, sessionParent) {
-  const profil = utilisateur.toPublicJSON();
+  const avecPhoto = await Utilisateur.findByPk(utilisateur.id, { attributes: ['photo'] });
+  const profil = { ...utilisateur.toPublicJSON(), photo: avecPhoto?.photo || null };
   if (!sessionParent) return profil;
   const eleve = await Eleve.findOne({ where: { compteEtudiantId: utilisateur.id }, attributes: ['emailParent'] });
   return { ...profil, modeParent: true, emailParent: eleve?.emailParent || null };
@@ -649,6 +651,25 @@ async function reinitialiserMotDePasse(req, res) {
   return res.json({ message: 'mot de passe mis à jour, tu peux te connecter' });
 }
 
+// Photo de profil du compte connecté (pas en session parent : c'est la
+// photo de l'étudiant). 3 Mo au plus avant préparation.
+async function changerPhoto(req, res) {
+  if (req.sessionParent) return res.status(403).json({ erreur: 'la photo appartient au compte de l’étudiant' });
+  const image = String(req.body?.image || '');
+  if (image.length > 4 * 1024 * 1024) return res.status(413).json({ erreur: 'image trop lourde (3 Mo au plus)' });
+  const photo = preparerPhoto(image);
+  if (!photo) return res.status(415).json({ erreur: 'format refusé : choisissez une photo PNG ou JPEG d’au moins 64 × 64 pixels' });
+  await Utilisateur.update({ photo }, { where: { id: req.utilisateur.id } });
+  await journaliserAudit(req, { action: 'photo_profil', cible: req.utilisateur.email });
+  return res.json({ profil: await profilDeSession(req.utilisateur, false) });
+}
+
+async function retirerPhoto(req, res) {
+  if (req.sessionParent) return res.status(403).json({ erreur: 'la photo appartient au compte de l’étudiant' });
+  await Utilisateur.update({ photo: null }, { where: { id: req.utilisateur.id } });
+  return res.json({ profil: await profilDeSession(req.utilisateur, false) });
+}
+
 async function monProfil(req, res) {
   return res.json({ profil: await profilDeSession(req.utilisateur, req.sessionParent) });
 }
@@ -716,6 +737,8 @@ module.exports = {
   fermerAutresSessions,
   seDeconnecter,
   initialiserTotpCompte,
+  changerPhoto,
+  retirerPhoto,
   activerTotpCompte,
   desactiverTotpCompte,
   regenererCodesSecours,

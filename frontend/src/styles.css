@@ -3785,3 +3785,92 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 .annuaire-chiffres { margin-top: 6px; row-gap: 14px; }
 
 .table-ministere .cellule-nom { min-width: 220px; }
+
+/* ==========================================================================
+   Motif tissé dans l'en-tête des espaces
+   ========================================================================== */
+.bandeau-classeur { background: var(--edu-marine); }
+.bandeau-motif {
+  position: absolute; inset: 0 0 0 30%; overflow: hidden; pointer-events: none; opacity: .5;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 45%); mask-image: linear-gradient(90deg, transparent 0%, #000 45%);
+}
+.bandeau-motif .tissage { background: transparent; }
+.bandeau-classeur > :not(.bandeau-motif) { position: relative; z-index: 1; }
+.bandeau-classeur .bouton-recherche { background: rgba(11, 30, 61, .72); }
+.bandeau-classeur .menu-compte-bouton { background: rgba(11, 30, 61, .72); }
+.bandeau-classeur .bouton-icone { background: rgba(11, 30, 61, .55); }
+@media (max-width: 760px) { .bandeau-motif { left: 45%; opacity: .4; } }
+
+/* ==========================================================================
+   Écran de maintenance : motif tissé à gauche, papier clair à droite
+   ========================================================================== */
+.ecran-maintenance.ecran-maintenance-tisse {
+  display: grid; grid-template-columns: minmax(0, .9fr) minmax(360px, 1.1fr); padding: 0; background: #FBFBF8;
+}
+.maintenance-motif { position: relative; overflow: hidden; background: var(--edu-marine); }
+.ecran-maintenance-tisse .ecran-maintenance-carte {
+  align-self: center; justify-self: center; width: min(100%, 520px); max-width: none; margin: 0; padding: 48px clamp(24px, 6vw, 64px);
+  background: none; border: none; border-radius: 0; box-shadow: none; text-align: left; animation: none;
+}
+.maintenance-marque { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+.maintenance-marque img { width: 42px; height: 42px; padding: 3px; border: 1px solid var(--bordure); border-radius: 10px; background: #fff; object-fit: contain; }
+.maintenance-marque span { display: flex; flex-direction: column; line-height: 1.1; }
+.maintenance-marque strong { font-family: var(--police-serif); font-size: 1.3rem; color: var(--edu-marine); }
+.maintenance-marque small { margin-top: 3px; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--edu-teal); }
+.ecran-maintenance-tisse .maintenance-surtitre {
+  display: inline-flex; align-items: center; gap: 8px; padding: 0; background: none; border-radius: 0;
+  font-size: 12.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--alerte);
+}
+.ecran-maintenance-tisse .maintenance-surtitre svg { width: 16px; height: 16px; }
+.ecran-maintenance-tisse h1 { margin: 12px 0 14px; font-family: var(--police-serif); font-size: clamp(2rem, 4vw, 2.8rem); line-height: 1.05; letter-spacing: -.025em; color: var(--edu-marine); text-align: left; }
+.ecran-maintenance-tisse .ecran-maintenance-message { text-align: left; font-size: 1.02rem; line-height: 1.6; color: var(--texte); }
+.ecran-maintenance-tisse .maintenance-retour { border-radius: 0; background: none; border: none; border-top: 1px solid var(--bordure); border-bottom: 1px solid var(--bordure); margin: 22px 0 0; }
+.ecran-maintenance-tisse .maintenance-retour > div { padding: 14px 0 14px 16px; background: none; }
+.ecran-maintenance-tisse .maintenance-retour > div:first-child { padding-left: 0; }
+.maintenance-barre { height: 4px; margin-top: 18px; background: var(--bordure); overflow: hidden; }
+.maintenance-barre span { display: block; height: 100%; background: linear-gradient(90deg, var(--edu-bleu), var(--edu-teal), var(--edu-vert), var(--edu-or)); transition: width .6s ease; }
+.ecran-maintenance-tisse .fil-ouverture { margin: 24px 0 0; }
+.ecran-maintenance-tisse .ecran-maintenance-aide { text-align: left; margin-top: 22px; }
+.ecran-maintenance-tisse .ecran-maintenance-actions { justify-content: flex-start; }
+.ecran-maintenance-tisse .ecran-maintenance-actions .primaire { background: var(--edu-marine); border-radius: 0; }
+@media (max-width: 860px) {
+  .ecran-maintenance.ecran-maintenance-tisse { grid-template-columns: minmax(0, 1fr); grid-template-rows: 120px auto; overflow-y: auto; }
+  .ecran-maintenance-tisse .ecran-maintenance-carte { padding: 28px 20px 36px; }
+  .maintenance-marque { margin-bottom: 24px; }
+  .ecran-maintenance-tisse .maintenance-retour { grid-template-columns: minmax(0, 1fr); }
+  .ecran-maintenance-tisse .maintenance-retour > div { padding-left: 0; border-left: none; }
+}
+
+/* ==========================================================================
+   Photo de profil
+   ========================================================================== */
+.avatar-compte {
+  display: inline-grid; place-items: center; flex: none; overflow: hidden; border-radius: 50%;
+  background: var(--edu-marine); color: #fff; font-weight: 800;
+}
+.avatar-compte img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.menu-compte-bouton .avatar-compte { background: #fff; color: var(--edu-marine); }
+.avatar-compte.grand { width: 72px; height: 72px; font-size: 1.5rem; font-family: var(--police-serif); }
+.identite-compte-avatar.avatar-compte { border-radius: 18px; }
+.champ-photo { display: flex; align-items: center; gap: 18px; padding: 4px 0 18px; margin-bottom: 18px; border-bottom: 1px solid var(--bordure); }
+.carte > .champ-photo { margin: 0; padding: 0; border: none; }
+.champ-photo-texte { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.champ-photo-texte strong { color: var(--edu-marine); font-size: 15px; }
+.champ-photo-texte small { color: var(--texte-clair); font-size: 13px; line-height: 1.5; }
+.champ-photo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+@media (max-width: 480px) { .champ-photo { flex-direction: column; align-items: flex-start; } }
+
+/* ==========================================================================
+   Journal de l'établissement en tableau
+   ========================================================================== */
+.journal-tableau { max-height: min(460px, 60vh); }
+.journal-tableau td { white-space: nowrap; }
+.journal-tableau td.cellule-nom { white-space: normal; min-width: 220px; }
+.journal-cellule-jour { font-weight: 600; color: var(--edu-marine); }
+.journal-nature { display: inline-flex; align-items: center; gap: 8px; }
+.journal-tableau .journal-pastille { width: 28px; height: 28px; }
+.journal-tableau .journal-pastille svg { width: 15px; height: 15px; }
+.ecran-maintenance-tisse .maintenance-retour > div + div { border-left: 1px solid var(--bordure); }
+@media (max-width: 860px) { .ecran-maintenance-tisse .maintenance-retour > div + div { border-left: none; border-top: 1px solid var(--bordure); } }
+.ecran-maintenance.ecran-maintenance-tisse { align-items: stretch; justify-content: stretch; }
+@media (max-width: 860px) { .maintenance-motif .tissage { grid-template-rows: repeat(var(--lignes), calc(100vw / 8)); } }
