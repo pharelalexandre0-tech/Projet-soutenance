@@ -91,6 +91,8 @@ async function creerEtablissement(req, res) {
     nom, sigle: sigle || null, devise: devise || null, ville,
     pays: pays || 'République Gabonaise', boitePostale: boitePostale || null,
     telephone: telephone || null, email: email || null, logo: logo || null,
+    province: require('../services/ministereService').provinceDe(ville),
+    ...(['universite_publique', 'universite_privee', 'institut_superieur', 'grande_ecole'].includes(req.body.typeEtablissement) && { typeEtablissement: req.body.typeEtablissement }),
   });
 
   const motDePasseHache = await bcrypt.hash(academieMotDePasse, COUT_BCRYPT_PERSONNEL);
@@ -128,7 +130,7 @@ async function modifierEtablissement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id);
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
 
-  const { nom, sigle, devise, ville, pays, boitePostale, telephone, email, logo } = req.body;
+  const { nom, sigle, devise, ville, pays, boitePostale, telephone, email, logo, province, typeEtablissement } = req.body;
   if (!nom || !ville) {
     return res.status(400).json({ erreur: 'le nom et la ville sont obligatoires' });
   }
@@ -139,6 +141,8 @@ async function modifierEtablissement(req, res) {
   await etablissement.update({
     nom, sigle, devise, ville, pays, boitePostale, telephone, email,
     ...(logo !== undefined && { logo: logo || null }),
+    ...(province !== undefined && { province: province || require('../services/ministereService').provinceDe(ville) }),
+    ...(typeEtablissement && { typeEtablissement }),
   });
   await journaliser(req.utilisateur, 'etablissement', `Modification de la fiche de « ${etablissement.nom} »`);
   return res.json({ etablissement });
@@ -288,6 +292,38 @@ async function creerSuperadmin(req, res) {
   const compte = await Utilisateur.create({ nom, prenom, email, motDePasse: motDePasseHache, role: 'superadmin' });
   await journaliser(req.utilisateur, 'compte', `Création du compte superadmin de ${prenom} ${nom}`);
   return res.status(201).json({ compte: compte.toPublicJSON() });
+}
+
+// Comptes des agents du Ministère de l'Enseignement supérieur : créés par
+// le superadmin, sans établissement, application d'authentification
+// obligatoire comme tout le personnel.
+async function listerComptesMinistere(req, res) {
+  const comptes = await Utilisateur.findAll({ where: { role: 'ministere' }, order: [['createdAt', 'DESC']] });
+  return res.json({ comptes: comptes.map((c) => c.toPublicJSON()) });
+}
+
+async function creerCompteMinistere(req, res) {
+  const { nom, prenom, email, motDePasse, fonction } = req.body;
+  if (!nom || !prenom || !email || !motDePasse) return res.status(400).json({ erreur: 'champs manquants' });
+  const erreurMotDePasse = erreurMotDePasseInvalide(motDePasse, { email });
+  if (erreurMotDePasse) return res.status(400).json({ erreur: erreurMotDePasse });
+  if (await Utilisateur.findOne({ where: { email } })) return res.status(400).json({ erreur: 'cette adresse e-mail est déjà utilisée par un autre compte' });
+  const compte = await Utilisateur.create({
+    nom, prenom, email, fonction: fonction || null, role: 'ministere', motDePasse: await bcrypt.hash(motDePasse, COUT_BCRYPT_PERSONNEL),
+  });
+  await journaliser(req.utilisateur, 'compte', `Création du compte Ministère de ${prenom} ${nom}`);
+  await journaliserAudit(req, { action: 'compte_cree', cible: `ministere ${email}` });
+  return res.status(201).json({ compte: compte.toPublicJSON() });
+}
+
+async function changerStatutCompteMinistere(req, res) {
+  const compte = await Utilisateur.findOne({ where: { id: req.params.id, role: 'ministere' } });
+  if (!compte) return res.status(404).json({ erreur: 'compte introuvable' });
+  const statut = req.body.statut === 'verrouille' ? 'verrouille' : 'actif';
+  await compte.update({ statut, ...(req.body.reinitialiserApplication && { totpActif: false, totpSecret: null, totpCodesSecours: null }) });
+  if (statut === 'verrouille' || req.body.reinitialiserApplication) await revoquerSessions(compte.id, { motif: 'décision du superadmin' });
+  await journaliserAudit(req, { action: 'compte_ministere_modifie', cible: compte.email, details: { statut, application: Boolean(req.body.reinitialiserApplication) } });
+  return res.json({ compte: compte.toPublicJSON() });
 }
 
 // Vue "pouls de la plateforme" : uniquement des totaux agrégés (jamais un
@@ -460,6 +496,9 @@ async function mettreAJourMonProfil(req, res) {
 }
 
 module.exports = {
+  listerComptesMinistere,
+  creerCompteMinistere,
+  changerStatutCompteMinistere,
   exporterEtablissements,
   listerEtablissements,
   obtenirEtablissement,

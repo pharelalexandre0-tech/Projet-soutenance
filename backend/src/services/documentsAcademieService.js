@@ -520,5 +520,7 @@ async function emploisDuTempsPDF({ etablissement, semestre, pages, emisParId = n
 }
 
 module.exports = {
+  // Réutilisés par le rapport national du ministère.
+  outilsTableaux: { nouveauPDF, tableau, finaliser, limiteBas },
   listePresencePDF, recapitulatifPresencesPDF, recapitulatifPresencesXlsx, procesVerbalPDF, procesVerbalXlsx, emploisDuTempsPDF,
 };

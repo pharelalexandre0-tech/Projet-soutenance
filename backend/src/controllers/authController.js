@@ -27,7 +27,7 @@ const DUREE_VERROU_MIN = 15;
 // Personnel (Académie, Finance, Superadmin) : application d'authentification
 // (TOTP), obligatoire, avec codes de secours.
 const ROLES_AVEC_2FA = ['etudiant'];
-const ROLES_TOTP = ['superadmin', 'academie', 'finance'];
+const ROLES_TOTP = ['superadmin', 'academie', 'finance', 'ministere'];
 
 function memeAdresse(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();

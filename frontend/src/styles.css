@@ -2812,3 +2812,43 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
   .journal-pastille { width: 26px; height: 26px; }
   .onglets-secondaires button { padding: 10px 12px 9px; }
 }
+
+/* --- Espace Ministère et circulaires --------------------------------------- */
+.stat-tile-note { display: block; margin-top: 8px; font-size: 13px; color: var(--texte-clair); }
+.valeur-unite { font-size: 0.5em; margin-left: 3px; color: var(--texte-clair); font-weight: 600; }
+.registre-chiffres { margin: 0 0 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--ligne-registre); }
+.registre-chiffres > div { padding: 10px 2px; border-bottom: 1px solid var(--ligne-registre); display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.registre-chiffres > div:nth-child(odd) { padding-right: 14px; border-right: 1px dashed var(--ligne-registre); }
+.registre-chiffres > div:nth-child(even) { padding-left: 14px; }
+.registre-chiffres dt { color: var(--texte-clair); font-size: 13.5px; }
+.registre-chiffres dd { margin: 0; font-family: var(--police-serif); font-weight: 700; font-size: 19px; color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.ton-vert { color: var(--succes) !important; }
+.ton-or { color: var(--alerte) !important; }
+.ton-rouge { color: var(--erreur) !important; }
+.liste-echeances { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.liste-echeances li { display: flex; gap: 10px; align-items: flex-start; }
+.liste-echeances svg { width: 18px; height: 18px; color: var(--alerte); flex: none; margin-top: 2px; }
+.liste-echeances span { display: flex; flex-direction: column; }
+.liste-echeances small { color: var(--texte-clair); }
+.barre-piste.mini { height: 8px; min-width: 90px; }
+.barre-sous-libelle { display: block; font-size: 12px; color: var(--texte-clair); }
+.barre-ligne:has(.barre-sous-libelle) { grid-template-columns: minmax(140px, 240px) 1fr 64px; }
+.note-bas { margin: 14px 0 0; font-size: 13px; color: var(--texte-clair); line-height: 1.55; }
+.table-ministere td { white-space: nowrap; }
+.table-ministere .cellule-nom { white-space: normal; min-width: 200px; }
+.onglets-secondaires.compact { margin: 0; border-bottom: none; padding: 0; }
+.onglets-secondaires.compact button { border-radius: 6px; border-bottom: 1px solid var(--bordure); padding: 7px 12px; font-size: 13.5px; }
+.choix-destinataires { border: 1px solid var(--bordure); border-radius: var(--rayon-feuillet); padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+.choix-destinataires legend { padding: 0 6px; font-weight: 600; font-size: 14px; }
+.grille-destinataires { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; max-height: 260px; overflow: auto; padding-top: 6px; }
+.grille-destinataires > div { display: flex; flex-direction: column; gap: 4px; }
+.grille-destinataires .case-confirmation { margin: 0; font-size: 13.5px; }
+.texte-circulaire { font-family: var(--police-serif); font-size: 16px; line-height: 1.7; color: var(--texte); }
+.texte-circulaire p { margin: 0 0 12px; }
+.verif-elements.compact { margin-top: 10px; border-top: none; }
+.verif-elements.compact > div { padding: 6px 2px; }
+.bandeau-agrement { display: flex; align-items: center; gap: 16px; }
+.bandeau-agrement h2 { margin: 0 0 6px !important; padding: 0 !important; background: none !important; border: none !important; }
+.bandeau-agrement p { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ligne-non-lue td { font-weight: 600; }
+@media (max-width: 860px) { .grille-destinataires { grid-template-columns: minmax(0, 1fr); } .registre-chiffres { grid-template-columns: minmax(0, 1fr); } .registre-chiffres > div:nth-child(n) { padding: 10px 2px; border-right: none; } }

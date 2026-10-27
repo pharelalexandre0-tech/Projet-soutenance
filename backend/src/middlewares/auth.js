@@ -1,5 +1,7 @@
 const { verifySession } = require('../utils/jwt');
 const { sessionValide } = require('../services/sessionService');
+
+const ROUTES_MINISTERE = /^\/api\/(ministere|auth|verification|evenements|plateforme\/statut)(\/|\?|$)/;
 const { Utilisateur, Etablissement } = require('../models');
 const { maintenanceEnCours, repondreMaintenance } = require('../services/plateformeService');
 
@@ -41,6 +43,12 @@ async function authentifier(req, res, next) {
     if (utilisateur.role !== 'superadmin') {
       const maintenance = await maintenanceEnCours();
       if (maintenance) return repondreMaintenance(res, maintenance);
+    }
+    // Agent du ministère : uniquement son espace (données agrégées), son
+    // compte et la vérification des documents. Aucune route d'école, même
+    // une route qui ne filtrerait que par établissement.
+    if (utilisateur.role === 'ministere' && !ROUTES_MINISTERE.test(req.originalUrl)) {
+      return res.status(403).json({ erreur: 'accès refusé pour ce rôle' });
     }
     req.utilisateur = utilisateur;
     req.session = session;

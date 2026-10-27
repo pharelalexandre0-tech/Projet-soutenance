@@ -32,6 +32,21 @@ Etablissement.init(
     // Dernière fois que l'école a téléchargé l'archive de ses données
     // (Paramètres > Récupérer les données) : vérifié avant toute suppression.
     dernierExportLe: { type: DataTypes.DATE, allowNull: true },
+    // Tutelle : Ministère de l'Enseignement supérieur. Province (déduite de
+    // la ville, modifiable), type d'établissement et agrément en vigueur ;
+    // l'historique des décisions est dans decisions_agrement.
+    province: { type: DataTypes.STRING(40), allowNull: true },
+    typeEtablissement: {
+      type: DataTypes.STRING(30), allowNull: false, defaultValue: 'institut_superieur',
+      validate: { isIn: [['universite_publique', 'universite_privee', 'institut_superieur', 'grande_ecole']] },
+    },
+    agrementStatut: {
+      type: DataTypes.STRING(20), allowNull: false, defaultValue: 'en_instruction',
+      validate: { isIn: [['en_instruction', 'provisoire', 'agree', 'suspendu', 'retire']] },
+    },
+    agrementNumero: { type: DataTypes.STRING(60), allowNull: true },
+    agrementDate: { type: DataTypes.DATEONLY, allowNull: true },
+    agrementExpiration: { type: DataTypes.DATEONLY, allowNull: true },
   },
   { sequelize, modelName: 'Etablissement', tableName: 'etablissements' }
 );

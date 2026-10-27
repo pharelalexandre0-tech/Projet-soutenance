@@ -10,6 +10,10 @@ const LIBELLES_TYPE = {
   liste_presence: 'Liste de présence',
   recapitulatif_presences: 'Récapitulatif des présences',
   proces_verbal: 'Procès-verbal des résultats',
+  rapport_national: 'Rapport national (Ministère)',
+  attestation: 'Attestation',
+  releve: 'Relevé de notes officiel',
+  pv_deliberation: 'Procès-verbal de délibération',
 };
 
 // Documents que la Finance peut consulter et annuler ; l'Académie gère tous

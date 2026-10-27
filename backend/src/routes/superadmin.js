@@ -63,6 +63,9 @@ router.delete('/journal', authentifier, superadmin, pilotage.viderJournal);
 
 router.get('/superadmins', authentifier, superadmin, ctrl.listerSuperadmins);
 router.post('/comptes', authentifier, superadmin, ctrl.creerSuperadmin);
+router.get('/comptes-ministere', authentifier, superadmin, ctrl.listerComptesMinistere);
+router.post('/comptes-ministere', authentifier, superadmin, ctrl.creerCompteMinistere);
+router.patch('/comptes-ministere/:id', authentifier, superadmin, ctrl.changerStatutCompteMinistere);
 
 router.put('/mon-profil', authentifier, superadmin, ctrl.mettreAJourMonProfil);
 

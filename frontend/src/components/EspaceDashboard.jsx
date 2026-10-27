@@ -20,6 +20,7 @@ const LIBELLES_ROLE = {
   academie: 'Espace Académie',
   finance: 'Espace Finance',
   etudiant: 'Espace Étudiant',
+  ministere: 'Ministère, Enseignement supérieur',
 };
 
 // Le parent ouvre le compte étudiant de son enfant : même espace, présenté
@@ -62,14 +63,16 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   // pour le superadmin, qui n'appartient à aucune école.
   const [etablissement, setEtablissement] = useState(null);
   useEffect(() => {
-    if (profil?.role && profil.role !== 'superadmin') {
+    if (profil?.role && !['superadmin', 'ministere'].includes(profil.role)) {
       client.get('/etablissement').then((res) => setEtablissement(res.data.etablissement)).catch(() => {});
     }
   }, [profil?.role]);
   const logoAffiche = etablissement?.logo || logoIcon;
   // Une école sans logo affiche ses initiales, jamais le logo d'EduSphere.
-  const sansLogo = profil?.role !== 'superadmin' && etablissement && !etablissement.logo;
+  const ministere = profil?.role === 'ministere';
+  const sansLogo = ministere || (profil?.role !== 'superadmin' && etablissement && !etablissement.logo);
   const initialesEcole = (() => {
+    if (ministere) return 'MESR';
     const sigle = String(etablissement?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
     if (sigle) return sigle.slice(0, 4).toUpperCase();
     const mots = String(etablissement?.nom || '').split(/[\s'’-]+/).filter((m) => m.length > 2 || /^[A-Z]/.test(m));
@@ -78,12 +81,12 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   const vignette = sansLogo
     ? <span className="marque-initiales" aria-hidden="true">{initialesEcole}</span>
     : <img src={logoAffiche} alt="" />;
-  const nomAffiche = etablissement?.nom || 'EduSphere';
+  const nomAffiche = ministere ? "Ministère de l'Enseignement supérieur" : (etablissement?.nom || 'EduSphere');
 
   // État de la plateforme vu depuis une école : fonctionnalités ajoutées
   // par le superadmin, annonce en cours, notes de version. Mis à jour en
   // direct à chaque changement, et au retour sur l'onglet.
-  const estEcole = Boolean(profil?.role) && profil.role !== 'superadmin';
+  const estEcole = Boolean(profil?.role) && !['superadmin', 'ministere'].includes(profil.role);
   const [etatPlateforme, setEtatPlateforme] = useState(null);
   const [nouveautesOuvertes, setNouveautesOuvertes] = useState(false);
   const [annonceMasquee, setAnnonceMasquee] = useState(lireAnnonceMasquee);
@@ -171,7 +174,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     if (!groupe?.numero) return null;
     return `${groupe.numero}.${groupe.onglets.findIndex((o) => o.id === section?.id) + 1}`;
   }, [groupes, section?.id]);
-  const sigleCote = (etablissement?.sigle || 'ES').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6).toUpperCase();
+  const sigleCote = (ministere ? 'MESR' : etablissement?.sigle || 'ES').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6).toUpperCase();
   const consulteLe = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {

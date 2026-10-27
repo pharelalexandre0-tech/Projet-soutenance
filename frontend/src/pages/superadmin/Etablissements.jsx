@@ -473,6 +473,14 @@ function InformationsEcole({ etablissement: e, onEnregistre }) {
         <div className="ligne-champs">
           <div className="champ"><label>Ville</label><input value={form.ville} onChange={maj('ville')} required /></div>
           <div className="champ"><label>Pays</label><input value={form.pays} onChange={maj('pays')} /></div>
+          <div className="champ"><label>Type d’établissement</label>
+            <select value={form.typeEtablissement} onChange={maj('typeEtablissement')}>
+              <option value="universite_publique">Université publique</option>
+              <option value="universite_privee">Université privée</option>
+              <option value="institut_superieur">Institut supérieur</option>
+              <option value="grande_ecole">Grande école</option>
+            </select>
+          </div>
         </div>
         <div className="champ"><label>Devise</label><input value={form.devise} onChange={maj('devise')} /></div>
         <div className="ligne-champs">
@@ -580,7 +588,7 @@ function AccesEcole({ etablissement, onStatut, onSupprime, notifier }) {
 
 function FormulaireCreationEcole({ onFermer, onReussi }) {
   const [form, setForm] = useState({
-    nom: '', sigle: '', devise: '', ville: '', pays: 'République Gabonaise', boitePostale: '', telephone: '', email: '', logo: '',
+    nom: '', sigle: '', devise: '', ville: '', pays: 'République Gabonaise', boitePostale: '', telephone: '', email: '', logo: '', typeEtablissement: 'institut_superieur',
     academieNom: '', academiePrenom: '', academieEmail: '', academieMotDePasse: '',
   });
   const [catalogue, setCatalogue] = useState(null);

@@ -11,6 +11,7 @@ const MisesAJour = lazy(() => import('./superadmin/MisesAJour'));
 const AnnoncesMaintenance = lazy(() => import('./superadmin/AnnoncesMaintenance'));
 const Journal = lazy(() => import('./superadmin/Journal'));
 const AuditSecurite = lazy(() => import('./superadmin/AuditSecurite'));
+const ComptesMinistere = lazy(() => import('./superadmin/ComptesMinistere'));
 const Superadmins = lazy(() => import('./superadmin/Superadmins'));
 const MonProfil = lazy(() => import('./superadmin/MonProfil'));
 const PolitiqueConfidentialite = lazy(() => import('./superadmin/PolitiqueConfidentialite'));
@@ -34,6 +35,8 @@ const ONGLETS = [
     description: 'Journal scellé de toutes les connexions et modifications de la plateforme, avec contrôle d’intégrité.' },
   { id: 'superadmins', label: 'Superadmins', composant: Superadmins, icone: IconShield, groupe: 'Administration',
     description: 'Comptes ayant accès à l’administration de la plateforme.' },
+  { id: 'ministere', label: 'Comptes Ministère', composant: ComptesMinistere, icone: IconBuilding, groupe: 'Administration',
+    description: 'Agents du Ministère de l’Enseignement supérieur : accès à la vue nationale, aux agréments et aux circulaires.' },
   { id: 'profil', label: 'Mon profil', composant: MonProfil, icone: IconUserCog, groupe: 'Administration',
     description: 'Tes informations et ton mot de passe.' },
 ];

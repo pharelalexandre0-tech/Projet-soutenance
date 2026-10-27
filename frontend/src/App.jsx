@@ -20,6 +20,7 @@ const DashboardAcademie = lazy(() => import('./pages/DashboardAcademie'));
 const DashboardEtudiant = lazy(() => import('./pages/DashboardEtudiant'));
 const DashboardFinance = lazy(() => import('./pages/DashboardFinance'));
 const DashboardSuperAdmin = lazy(() => import('./pages/DashboardSuperAdmin'));
+const DashboardMinistere = lazy(() => import('./pages/DashboardMinistere'));
 // Application Android seulement (construction en mode « android ») : son
 // animation d'ouverture. Dans la construction du site, la condition est
 // fausse dès la compilation et ce code n'est pas inclus.
@@ -32,6 +33,7 @@ function Accueil() {
   if (profil?.role === 'academie') return <DashboardAcademie />;
   if (profil?.role === 'finance') return <DashboardFinance />;
   if (profil?.role === 'etudiant') return <DashboardEtudiant />;
+  if (profil?.role === 'ministere') return <DashboardMinistere />;
   return <Navigate to="/connexion" replace />;
 }
 

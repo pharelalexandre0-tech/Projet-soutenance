@@ -40,6 +40,9 @@ const DonneeEntrainementIA = require('./DonneeEntrainementIA');
 const CertificationDocument = require('./CertificationDocument');
 const SessionUtilisateur = require('./SessionUtilisateur');
 const JournalAudit = require('./JournalAudit');
+const DecisionAgrement = require('./DecisionAgrement');
+const Circulaire = require('./Circulaire');
+const AccuseCirculaire = require('./AccuseCirculaire');
 
 // ---- Multi-établissement (superadmin) --------------------------------------
 // EduSphere héberge plusieurs écoles : chaque compte (hors superadmin), et
@@ -195,6 +198,13 @@ Salaire.belongsTo(Utilisateur, { foreignKey: 'gereParFinanceId', as: 'gerePar' }
 Personnel.hasMany(Salaire, { foreignKey: 'personnelId' });
 Salaire.belongsTo(Personnel, { foreignKey: 'personnelId' });
 
+// ---- Tutelle : Ministère de l'Enseignement supérieur ------------------------
+Etablissement.hasMany(DecisionAgrement, { foreignKey: 'etablissementId' });
+DecisionAgrement.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+Circulaire.hasMany(AccuseCirculaire, { foreignKey: 'circulaireId' });
+AccuseCirculaire.belongsTo(Circulaire, { foreignKey: 'circulaireId' });
+AccuseCirculaire.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+
 module.exports = {
   sequelize,
   Utilisateur,
@@ -235,4 +245,7 @@ module.exports = {
   CertificationDocument,
   SessionUtilisateur,
   JournalAudit,
+  DecisionAgrement,
+  Circulaire,
+  AccuseCirculaire,
 };

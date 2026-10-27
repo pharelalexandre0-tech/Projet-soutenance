@@ -25,7 +25,9 @@ Utilisateur.init(
     motDePasse: { type: DataTypes.STRING, allowNull: false },
     // 'superadmin' n'appartient à aucun établissement (etablissementId reste
     // null pour ce rôle) — il gère la liste des écoles elles-mêmes.
-    role: { type: DataTypes.ENUM('superadmin', 'academie', 'finance', 'etudiant'), allowNull: false },
+    // 'ministere' : agent du Ministère de l'Enseignement supérieur (tutelle),
+    // sans établissement, ne voit que des données agrégées.
+    role: { type: DataTypes.ENUM('superadmin', 'academie', 'finance', 'etudiant', 'ministere'), allowNull: false },
     // specifique Academie
     service: { type: DataTypes.STRING, allowNull: true },
     // specifique Finance

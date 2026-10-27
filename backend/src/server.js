@@ -11,6 +11,7 @@ const { migrerComptesParents, fusionnerEspaceParents } = require('./services/mig
 const { demarrerEcoute, abonner } = require('./services/evenementsService');
 const { normaliserLogosEnregistres } = require('./services/logoService');
 const { poserProtections } = require('./services/protectionsBaseService');
+const { preparerBaseMinistere, retirerVuesMinistere } = require('./services/ministereService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -20,9 +21,11 @@ const PORT = process.env.PORT || 4000;
     await migrerComptesParents(sequelize);
     // sync({ alter: true }) : pratique pour un prototype de soutenance,
     // à remplacer par de vraies migrations Sequelize pour la production.
+    await retirerVuesMinistere(sequelize);
     await sequelize.sync({ alter: true });
     console.log('Connexion à PostgreSQL établie, modèles synchronisés.');
     await poserProtections(sequelize);
+    await preparerBaseMinistere(sequelize);
     await fusionnerEspaceParents();
     await normaliserLogosEnregistres();
     await initialiserActivations();
