@@ -42,6 +42,13 @@ const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => {
       console.log(`API Plateforme de Gestion Scolaire à l'écoute sur le port ${PORT}`);
     });
+    // École de démonstration (comptes de test, données fictives en
+    // @example.com) : créée une fois si absente, jamais modifiée ensuite.
+    // DEMO_AUTO=non sur l'hébergeur pour ne pas l'installer.
+    if (process.env.DEMO_AUTO !== 'non') {
+      require('./scripts/peuplerDemo').peuplerDemo({ fermer: false })
+        .catch((err) => console.error('École de démonstration non installée :', err.message));
+    }
   } catch (err) {
     console.error('Impossible de démarrer le serveur :', err);
     process.exit(1);

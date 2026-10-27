@@ -102,15 +102,22 @@ for (let j = 1; j <= 25; j += 1) {
   if (d.getDay() !== 0 && d.getDay() !== 6) JOURS_OUVRES.push(`2026-09-${String(j).padStart(2, '0')}`);
 }
 
-async function main() {
+// `fermer` : false quand le serveur l'appelle à son démarrage (la
+// connexion à la base reste ouverte pour l'API).
+async function peuplerDemo({ fermer = true } = {}) {
   await m.sequelize.authenticate();
+  const hache = await bcrypt.hash(MOT_DE_PASSE, 10);
+  // Agent du Ministère de l'Enseignement supérieur (sans établissement) :
+  // créé une seule fois, conservé si la démo existe déjà.
+  await m.Utilisateur.findOrCreate({
+    where: { email: 'ministere@mesr.example.com' },
+    defaults: { nom: 'MOUSSAVOU', prenom: 'Gérard', fonction: "Directeur général de l'Enseignement supérieur", motDePasse: hache, role: 'ministere' },
+  });
   if (await m.Etablissement.findOne({ where: { sigle: SIGLE } })) {
     console.log(`L'établissement de démonstration (${SIGLE}) existe déjà : rien n'a été modifié.`);
-    console.log('Pour le recréer, supprimez-le depuis l’espace superadmin puis relancez npm run seed:demo.');
-    await m.sequelize.close();
+    if (fermer) await m.sequelize.close();
     return;
   }
-  const hache = await bcrypt.hash(MOT_DE_PASSE, 10);
   const compteurs = {};
   const compter = (cle, n = 1) => { compteurs[cle] = (compteurs[cle] || 0) + n; };
 
@@ -122,12 +129,6 @@ async function main() {
 
   const academie = await m.Utilisateur.create({ nom: 'OKANA', prenom: 'Sylvie', email: 'academie@ide.example.com', motDePasse: hache, role: 'academie', service: 'Scolarité', etablissementId: etab.id });
   const finance = await m.Utilisateur.create({ nom: 'NGOUA', prenom: 'Paul', email: 'finance@ide.example.com', motDePasse: hache, role: 'finance', fonction: 'Comptable', etablissementId: etab.id });
-  // Agent du Ministère de l'Enseignement supérieur (sans établissement) :
-  // créé une seule fois, conservé si la démo est régénérée.
-  await m.Utilisateur.findOrCreate({
-    where: { email: 'ministere@mesr.example.com' },
-    defaults: { nom: 'MOUSSAVOU', prenom: 'Gérard', fonction: "Directeur général de l'Enseignement supérieur", motDePasse: hache, role: 'ministere' },
-  });
 
   const semestre = await m.Semestre.create({ libelle: 'Semestre 1', anneeScolaire: '2025-2026', cycle: 'licence', numero: 1, etablissementId: etab.id });
   const matieres = [];
@@ -302,11 +303,15 @@ async function main() {
   console.log(`  ${compteurs.frais} frais, ${compteurs.paiements} paiements, ${compteurs.salaires} salaires, ${compteurs.cours} cours publiés, ${alertes} élève(s) en alerte de décrochage`);
   console.log(`Connexion : academie@${SIGLE.toLowerCase()}.example.com ou finance@${SIGLE.toLowerCase()}.example.com (mot de passe : DEMO_MOT_DE_PASSE, sinon celui défini en tête de ce script).`);
   console.log("Étudiants : leur matricule comme mot de passe ; parents : leur adresse e-mail et le matricule de l'enfant.");
-  await m.sequelize.close();
+  if (fermer) await m.sequelize.close();
 }
 
-main().catch(async (err) => {
-  console.error('Échec du peuplement :', err);
-  await m.sequelize.close();
-  process.exit(1);
-});
+module.exports = { peuplerDemo };
+
+if (require.main === module) {
+  peuplerDemo().catch(async (err) => {
+    console.error('Échec du peuplement :', err);
+    await m.sequelize.close();
+    process.exit(1);
+  });
+}
