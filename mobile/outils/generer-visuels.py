@@ -205,7 +205,7 @@ def ecran(w, h, logo):
 
 
 def ecrans(logo):
-    # Écran natif affiché pendant le chargement : le papier clair du site.
+    # Écran natif affiché pendant le chargement : marine, comme le fond du motif tissé.
     # L'animation d'ouverture de l'application (frontend/src/mobile) y
     # construit ensuite le logo et le nom : pas de logo en double.
     # (ecran(w, h, logo) donne la version fixe avec sceau et nom, si besoin.)
@@ -213,7 +213,7 @@ def ecrans(logo):
         chemin = os.path.join(RES, dossier, 'splash.png')
         if dossier.startswith('drawable') and os.path.exists(chemin):
             w, h = Image.open(chemin).size
-            Image.new('RGB', (w, h), PAPIER).save(chemin, optimize=True)
+            Image.new("RGB", (w, h), MARINE).save(chemin, optimize=True)
 
 
 if __name__ == '__main__':
