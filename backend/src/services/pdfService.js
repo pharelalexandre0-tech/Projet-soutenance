@@ -396,7 +396,8 @@ function assurerPlace(doc, y, hauteurNecessaire, margeGauche) {
 // affiché à l'écran (BulletinDocument) : identité de l'établissement avec
 // son logo, bloc étudiant, résultats par UE et par matière, synthèse,
 // signature.
-async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles = { seuil: 10, eliminatoire: 7 }, emisParId = null }) {
+async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles = { seuil: 10, eliminatoire: 7 }, emisParId = null, decisionJury = null }) {
+  const libelleDecision = decisionJury === 'admis_jury' ? 'Admis(e) (jury)' : admis ? 'Admis(e)' : 'Rattrapage';
   const nomFichier = `bulletin_${eleve.id}_${semestre.id}.pdf`;
   const sansNotesCert = detailParUE.length === 0;
   const certification = await certifier({
@@ -411,7 +412,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
       ['Moyenne générale', sansNotesCert ? 'Non évaluée' : `${noteFr(moyenneGenerale)} / 20`],
       ['Crédits validés', `${creditsValides} / ${creditsTotal}`],
       ['Mention', sansNotesCert ? null : mention(moyenneGenerale)],
-      ['Décision', sansNotesCert ? 'En attente' : admis ? 'Admis(e)' : 'Rattrapage'],
+      ['Décision', sansNotesCert ? 'En attente' : decisionJury === 'admis_jury' ? 'Admis(e) par décision du jury' : admis ? 'Admis(e)' : 'Rattrapage'],
       ...detailParUE.map((u) => [`${u.code ? `${u.code} ` : ''}${u.ue}`, `${noteFr(u.moyenne)} / 20, ${libelleResultatUE(u).texte.toLowerCase()}`]),
     ],
     donnees: detailParUE.map((u) => [u.code, u.moyenne, u.matieres.map((m) => [m.code, m.moyenneCC, m.moyenneExamen, m.noteFinale])]),
@@ -492,7 +493,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
     ['CRÉDITS VALIDÉS', `${creditsValides} / ${creditsTotal}`, COULEUR_TEXTE],
     ['MENTION', sansNotes ? 'Non évalué' : mention(moyenneGenerale), COULEUR_TEXTE],
     ['RÉSULTAT', sansNotes ? 'En attente' : admis ? 'Validé' : 'Non validé', sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_ERREUR],
-    ['DÉCISION', sansNotes ? 'En attente' : admis ? 'Admis(e)' : 'Rattrapage', sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_RATTRAPAGE],
+    ['DÉCISION', sansNotes ? 'En attente' : libelleDecision, sansNotes ? COULEUR_TEXTE : admis ? COULEUR_SUCCES : COULEUR_RATTRAPAGE],
   ];
   const largeurCase = largeurTotale / synthese.length;
   const hauteurSynthese = 46;

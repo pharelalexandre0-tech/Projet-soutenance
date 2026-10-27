@@ -32,6 +32,8 @@ async function enregistrerMoyenne({ eleveId, matiereId, categorie, valeur, sessi
 
   valeur = lireNote(valeur);
   if (valeur === null) throw Object.assign(new Error("note hors de l'échelle 0 à 20"), { status: 400 });
+  // Délibération close pour la classe et le semestre : notes verrouillées.
+  await require('../services/deliberationService').verifierNotesModifiables(eleveId, matiereId);
   const champ = categorie === 'examen' ? 'moyenneExamen' : 'moyenneCC';
   const sessionUtilisee = session === 'rattrapage' ? 'rattrapage' : 'normale';
 

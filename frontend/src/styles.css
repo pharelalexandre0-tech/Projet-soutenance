@@ -2852,3 +2852,9 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 .bandeau-agrement p { margin: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ligne-non-lue td { font-weight: 600; }
 @media (max-width: 860px) { .grille-destinataires { grid-template-columns: minmax(0, 1fr); } .registre-chiffres { grid-template-columns: minmax(0, 1fr); } .registre-chiffres > div:nth-child(n) { padding: 10px 2px; border-right: none; } }
+
+/* Délibérations, réclamations */
+.actions-entete { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.table-jury td { white-space: nowrap; }
+.table-jury select, .table-jury input { min-height: 34px; padding: 4px 8px; font-size: 13.5px; }
+.cellule-texte { min-width: 240px; white-space: normal; }

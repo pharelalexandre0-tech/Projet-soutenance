@@ -30,7 +30,7 @@ async function obtenirBulletin(req, res) {
   // Le détail par UE/matière est toujours recalculé à la volée (léger et
   // toujours à jour), même quand le bulletin (résumé + PDF) est déjà en
   // cache — sinon l'étudiant qui reconsulte ne verrait plus le détail.
-  const { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, regles } = await calculerBulletin(
+  const { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, regles, decisionJury } = await calculerBulletin(
     Number(eleveId),
     Number(semestreId)
   );
@@ -43,11 +43,11 @@ async function obtenirBulletin(req, res) {
     bulletin.moyenneGenerale = moyenneGenerale;
     bulletin.creditsValides = creditsValides;
     const { cheminRelatif: cheminMisAJour } = await genererBulletinPDF({
-      eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles, emisParId: req.utilisateur.id,
+      eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles, decisionJury, emisParId: req.utilisateur.id,
     });
     bulletin.fichierPDF = cheminMisAJour;
     await bulletin.save();
-    return res.json({ bulletin, origine: 'existant', creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles });
+    return res.json({ bulletin, origine: 'existant', creditsTotal, admis, decisionJury, sessionGlobale, detailParUE, etablissement, regles });
   }
 
   const { contenu, cheminRelatif } = await genererBulletinPDF({
@@ -61,6 +61,7 @@ async function obtenirBulletin(req, res) {
     detailParUE,
     etablissement,
     regles,
+    decisionJury,
     emisParId: req.utilisateur.id,
   });
 
@@ -80,7 +81,7 @@ async function obtenirBulletin(req, res) {
     [{ contenu, nomFichier: `bulletin_${semestre.libelle.replace(/\s+/g, '_')}.pdf` }]
   );
 
-  return res.status(201).json({ bulletin, origine: 'généré', creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles });
+  return res.status(201).json({ bulletin, origine: 'généré', creditsTotal, admis, decisionJury, sessionGlobale, detailParUE, etablissement, regles });
 }
 
 // L'Académie peut renvoyer explicitement le bulletin déjà généré à
@@ -149,6 +150,7 @@ async function resultatsClasse(req, res) {
       creditsTotal: calcul.creditsTotal,
       evalue: calcul.detailParUE.length > 0,
       valide: calcul.admis,
+      decisionJury: calcul.decisionJury,
       uesNonValidees: calcul.detailParUE.filter((u) => !u.valide).map((u) => u.code || u.ue),
     });
   }

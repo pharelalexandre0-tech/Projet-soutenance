@@ -185,7 +185,17 @@ async function calculerBulletin(eleveId, semestreId, contexte = null) {
   const admis = detailParUE.length > 0 && detailParUE.every((u) => u.valide);
   const sessionGlobale = detailParUE.some((u) => u.session === 'rattrapage') ? 'rattrapage' : 'normale';
 
-  return { moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, regles };
+  // Décision du jury (délibération close) : elle prime sur la décision
+  // calculée ; « admis par décision du jury » reste distingué partout.
+  let jury = contexte?.decisionsJury ? contexte.decisionsJury.get(eleveId) : undefined;
+  if (jury === undefined) {
+    const { decisionsJury } = require('./deliberationService');
+    jury = (await decisionsJury([eleveId], semestreId)).get(eleveId);
+  }
+  const decisionJury = jury?.decision || null;
+  const admisRetenu = decisionJury ? decisionJury !== 'rattrapage' : admis;
+
+  return { moyenneGenerale, creditsValides, creditsTotal, admis: admisRetenu, admisCalcule: admis, decisionJury, sessionGlobale, detailParUE, regles };
 }
 
 // Bulletins de plusieurs élèves d'un même semestre : les UE, les règles et
@@ -199,7 +209,8 @@ async function calculerBulletinsClasse(eleveIds, semestreId) {
   const parEleve = new Map(eleveIds.map((id) => [id, new Map()]));
   for (const n of toutes) parEleve.get(n.eleveId)?.set(`${n.matiereId}|${n.session}`, n);
   const resultats = new Map();
-  for (const id of eleveIds) resultats.set(id, await calculerBulletin(id, semestreId, { ues, regles, notes: parEleve.get(id) }));
+  const jury = await require('./deliberationService').decisionsJury(eleveIds, semestreId);
+  for (const id of eleveIds) resultats.set(id, await calculerBulletin(id, semestreId, { ues, regles, notes: parEleve.get(id), decisionsJury: jury }));
   return resultats;
 }
 

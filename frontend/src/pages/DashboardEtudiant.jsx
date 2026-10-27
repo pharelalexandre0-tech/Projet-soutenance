@@ -12,6 +12,8 @@ const Comportement = lazy(() => import('./etudiant/ComportementEleve'));
 const FraisEtudiant = lazy(() => import('./etudiant/FraisEtudiant'));
 const Messages = lazy(() => import('./etudiant/Messages'));
 const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
+const MesDocuments = lazy(() => import('./etudiant/MesDocuments'));
+const MesReclamations = lazy(() => import('./etudiant/MesReclamations'));
 
 function onglets(parent) {
   const dossier = parent ? 'Dossier de l’enfant' : 'Mon dossier';
@@ -22,6 +24,10 @@ function onglets(parent) {
       description: parent ? 'Notes détaillées de votre enfant, matière par matière.' : 'Tes notes détaillées, matière par matière.' },
     { id: 'absences', label: 'Absences', icone: IconCalendarAlert, groupe: dossier,
       description: parent ? 'Absences et retards enregistrés, et l’envoi de justificatifs.' : 'Tes absences, et l’envoi de justificatifs.' },
+    { id: 'documents', label: 'Documents officiels', icone: IconDocument, groupe: dossier,
+      description: 'Attestations de scolarité, d’inscription et de réussite, relevé de notes officiel : certifiés par QR code.' },
+    { id: 'reclamations', label: 'Réclamations', icone: IconMessage, groupe: dossier,
+      description: 'Contester une note de façon motivée et suivre la réponse de l’établissement.' },
     { id: 'comportement', label: 'Comportement', icone: IconFlag, groupe: dossier,
       description: 'Incidents de comportement signalés par l’établissement.' },
     { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, groupe: 'Vie scolaire', fonctionnalite: 'emplois-du-temps',
@@ -71,6 +77,8 @@ export default function DashboardEtudiant() {
       {onglet === 'emploi' && <EmploiDuTemps classeId={monDossier?.classeId} />}
       {onglet === 'frais' && <FraisEtudiant eleveId={eleveId} />}
       {onglet === 'messages' && <Messages />}
+      {onglet === 'documents' && <MesDocuments />}
+      {onglet === 'reclamations' && <MesReclamations />}
     </EspaceDashboard>
   );
 }

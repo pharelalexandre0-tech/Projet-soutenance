@@ -23,6 +23,9 @@ const PredictionIA = lazy(() => import('./academie/PredictionIA'));
 const Communication = lazy(() => import('./academie/Communication'));
 const Parametres = lazy(() => import('./academie/Parametres'));
 const Documents = lazy(() => import('./academie/Documents'));
+const Deliberations = lazy(() => import('./academie/Deliberations'));
+const Reclamations = lazy(() => import('./academie/Reclamations'));
+const Passage = lazy(() => import('./academie/Passage'));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
@@ -39,6 +42,12 @@ const ONGLETS = [
     description: 'Saisie des notes de contrôle continu et d’examen.' },
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument, groupe: 'Évaluation',
     description: 'Bulletins semestriels : consultation et envoi aux étudiants.' },
+  { id: 'deliberations', label: 'Délibérations', composant: Deliberations, icone: IconClipboard, groupe: 'Évaluation',
+    description: 'Séance du jury : décisions, admission par décision du jury, clôture qui verrouille les notes, procès-verbal certifié.' },
+  { id: 'reclamations', label: 'Réclamations de notes', composant: Reclamations, icone: IconMessage, groupe: 'Évaluation',
+    description: 'Réclamations déposées par les étudiants : réponse motivée et correction de la note.' },
+  { id: 'passage', label: 'Passage d’année', composant: Passage, icone: IconUsers, groupe: 'Évaluation',
+    description: 'Fin d’année : passage en classe supérieure, redoublement ou sortie, avec le parcours de chaque étudiant.' },
   { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconTrendingDown, groupe: 'Évaluation', fonctionnalite: 'prediction',
     description: 'Prédiction du risque d’échec par apprentissage automatique : notes de contrôle continu, assiduité, comportement et paiements.' },
   { id: 'comptes', label: 'Comptes éphémères', composant: ComptesEphemeres, icone: IconKey, groupe: 'Équipe & échanges', fonctionnalite: 'acces-temporaires',

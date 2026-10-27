@@ -356,7 +356,7 @@ async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, c
       { texte: l.evalue ? `${c.creditsValides}/${c.creditsTotal}` : '-', align: 'center' },
       { texte: l.evalue ? mention(c.moyenneGenerale) : '-' },
       { texte: l.evalue ? (c.admis ? 'Validé' : 'Non validé') : 'Non évalué', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_ERREUR },
-      { texte: l.evalue ? (c.admis ? 'Admis(e)' : 'Rattrapage') : 'En attente', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
+      { texte: l.evalue ? (c.decisionJury === 'admis_jury' ? 'Admis (jury)' : c.admis ? 'Admis(e)' : 'Rattrapage') : 'En attente', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
     );
     // Fond léger sous les moyennes d'UE pour les distinguer des notes de matière.
     let i = 2;
