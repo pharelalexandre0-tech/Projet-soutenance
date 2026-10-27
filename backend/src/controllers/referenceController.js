@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const {
   Classe,
   Professeur,
+  AffectationEnseignement,
   Eleve,
   Semestre,
   UniteEnseignement,
@@ -232,6 +233,7 @@ async function supprimerProfesseur(req, res) {
   if (!professeur || professeur.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'professeur introuvable' });
   }
+  await AffectationEnseignement.destroy({ where: { professeurId: professeur.id } });
   await professeur.destroy();
   return res.status(204).send();
 }

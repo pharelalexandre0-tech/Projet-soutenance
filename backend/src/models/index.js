@@ -47,6 +47,7 @@ const Deliberation = require('./Deliberation');
 const DecisionJury = require('./DecisionJury');
 const ReclamationNote = require('./ReclamationNote');
 const ParcoursEleve = require('./ParcoursEleve');
+const AffectationEnseignement = require('./AffectationEnseignement');
 const DossierBourse = require('./DossierBourse');
 const PieceBourse = require('./PieceBourse');
 
@@ -221,6 +222,12 @@ ReclamationNote.belongsTo(Eleve, { foreignKey: 'eleveId' });
 ReclamationNote.belongsTo(Matiere, { foreignKey: 'matiereId' });
 ParcoursEleve.belongsTo(Eleve, { foreignKey: 'eleveId' });
 
+// Enseignements confiés à chaque professeur (matière, et classe le cas échéant).
+Professeur.hasMany(AffectationEnseignement, { foreignKey: 'professeurId', onDelete: 'CASCADE' });
+AffectationEnseignement.belongsTo(Professeur, { foreignKey: 'professeurId' });
+AffectationEnseignement.belongsTo(Matiere, { foreignKey: 'matiereId' });
+AffectationEnseignement.belongsTo(Classe, { foreignKey: 'classeId' });
+
 // ---- Bourses ANBG -----------------------------------------------------------
 DossierBourse.hasMany(PieceBourse, { foreignKey: 'dossierId' });
 PieceBourse.belongsTo(DossierBourse, { foreignKey: 'dossierId' });
@@ -273,6 +280,7 @@ module.exports = {
   DecisionJury,
   ReclamationNote,
   ParcoursEleve,
+  AffectationEnseignement,
   DossierBourse,
   PieceBourse,
 };

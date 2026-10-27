@@ -1,5 +1,6 @@
 const express = require('express');
 const ctrl = require('../controllers/referenceController');
+const professeurs = require('../controllers/professeursController');
 const { authentifier, autoriserRoles } = require('../middlewares/auth');
 const { exigerFonctionnalite } = require('../middlewares/plateforme');
 
@@ -19,7 +20,12 @@ router.delete('/classes/:id', authentifier, academie, ctrl.supprimerClasse);
 router.get('/classes/:id/statistiques', authentifier, academie, ctrl.statistiquesClasse);
 
 router.post('/professeurs', authentifier, academie, ctrl.creerProfesseur);
-router.get('/professeurs', authentifier, academie, ctrl.listerProfesseurs);
+router.get('/professeurs', authentifier, academie, professeurs.lister);
+router.get('/professeurs/options', authentifier, academie, professeurs.options);
+router.get('/professeurs/:id', authentifier, academie, professeurs.fiche);
+router.put('/professeurs/:id', authentifier, academie, professeurs.modifier);
+router.post('/professeurs/:id/affectations', authentifier, academie, professeurs.ajouterAffectation);
+router.delete('/professeurs/:id/affectations/:affectationId', authentifier, academie, professeurs.retirerAffectation);
 router.delete('/professeurs/:id', authentifier, academie, ctrl.supprimerProfesseur);
 
 router.post('/eleves', authentifier, academie, ctrl.creerEleve);

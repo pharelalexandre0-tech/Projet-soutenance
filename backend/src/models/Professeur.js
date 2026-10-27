@@ -13,6 +13,10 @@ Professeur.init(
     prenom: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true, validate: { isEmail: true } },
     matiere: { type: DataTypes.STRING, allowNull: true },
+    telephone: { type: DataTypes.STRING(30), allowNull: true },
+    // Permanent ou vacataire : simple information de gestion.
+    statut: { type: DataTypes.STRING(12), allowNull: true, validate: { isIn: [['permanent', 'vacataire']] } },
+    grade: { type: DataTypes.STRING(80), allowNull: true },
   },
   { sequelize, modelName: 'Professeur', tableName: 'professeurs' }
 );

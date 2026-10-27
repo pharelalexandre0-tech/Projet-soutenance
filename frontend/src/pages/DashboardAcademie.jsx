@@ -27,6 +27,7 @@ const Deliberations = lazy(() => import('./academie/Deliberations'));
 const Reclamations = lazy(() => import('./academie/Reclamations'));
 const Passage = lazy(() => import('./academie/Passage'));
 const BoursesANBG = lazy(() => import('./academie/BoursesANBG'));
+const Professeurs = lazy(() => import('./academie/Professeurs'));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
@@ -53,6 +54,8 @@ const ONGLETS = [
     description: 'Fin d’année : passage en classe supérieure, redoublement ou sortie, avec le parcours de chaque étudiant.' },
   { id: 'prediction', label: 'Alertes décrochage', composant: PredictionIA, icone: IconTrendingDown, groupe: 'Évaluation', fonctionnalite: 'prediction',
     description: 'Prédiction du risque d’échec par apprentissage automatique : notes de contrôle continu, assiduité, comportement et paiements.' },
+  { id: 'professeurs', label: 'Professeurs', composant: Professeurs, icone: IconUsers, groupe: 'Équipe & échanges',
+    description: 'Fiche de chaque professeur, son statut et les enseignements qui lui sont confiés (matière, classe, volume horaire).' },
   { id: 'comptes', label: 'Comptes éphémères', composant: ComptesEphemeres, icone: IconKey, groupe: 'Équipe & échanges', fonctionnalite: 'acces-temporaires',
     description: 'Liens d’accès temporaires envoyés aux professeurs pour saisir les notes et faire l’appel.' },
   { id: 'communication', label: 'Communication', composant: Communication, icone: IconMessage, groupe: 'Équipe & échanges', fonctionnalite: 'communication',
