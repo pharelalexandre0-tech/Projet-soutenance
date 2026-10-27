@@ -3465,3 +3465,166 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 .page-publique .bouton-connexion:hover:not(:disabled) { background: #102A52; filter: none; }
 .page-publique .bouton-connexion svg { width: 18px; height: 18px; }
 .page-publique .verif-formulaire .bouton-connexion:disabled { opacity: .35; }
+
+/* ==========================================================================
+   Écrans d'ouverture (démarrage et après connexion) : papier clair, logo,
+   nom en serif et fil de chargement aux quatre couleurs d'EduSphere.
+   ========================================================================== */
+.ecran-demarrage.ecran-ouverture,
+.transition-ouverture.ecran-ouverture {
+  background: #FBFBF8; color: var(--edu-marine); clip-path: none; will-change: opacity;
+}
+.transition-ouverture.ecran-ouverture { animation: ouverture-apparition .35s ease both, fondu-sortie .4s ease 3.1s both; }
+@keyframes ouverture-apparition { from { opacity: 0; } to { opacity: 1; } }
+.ouverture-centre { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px; max-width: 640px; }
+.ouverture-logo {
+  width: 84px; height: 84px; display: grid; place-items: center; padding: 10px; background: #fff;
+  border: 1px solid var(--bordure); border-radius: 20px; box-shadow: 0 16px 36px -22px rgba(11, 30, 61, .45);
+  animation: ouverture-logo .6s cubic-bezier(.2, .8, .2, 1) .1s both;
+}
+.ouverture-logo img { width: 100%; height: 100%; object-fit: contain; }
+.ouverture-initiales { font-family: var(--police-serif); font-weight: 700; font-size: 1.6rem; color: var(--edu-marine); }
+.ouverture-nom {
+  margin: 22px 0 0; font-family: var(--police-serif); font-weight: 700; font-size: clamp(2.2rem, 6vw, 3.2rem);
+  line-height: 1.05; letter-spacing: -.025em; color: var(--edu-marine); text-wrap: balance;
+  animation: ouverture-monte .55s cubic-bezier(.2, .8, .2, 1) .3s both;
+}
+.ouverture-nom.nom-long { font-size: clamp(1.6rem, 4.4vw, 2.3rem); }
+.ouverture-surtitre {
+  margin: 10px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--edu-teal);
+  animation: ouverture-monte .5s ease .45s both;
+}
+.fil-ouverture { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 180px; height: 4px; margin-top: 30px; animation: ouverture-monte .4s ease .55s both; }
+.fil-ouverture .brin { background: var(--teinte); transform-origin: left center; transform: scaleX(0); animation: brin-tisse 1.6s cubic-bezier(.65, 0, .35, 1) infinite; }
+.fil-ouverture .brin.bleu { --teinte: var(--edu-bleu); animation-delay: .6s; }
+.fil-ouverture .brin.teal { --teinte: var(--edu-teal); animation-delay: .75s; }
+.fil-ouverture .brin.vert { --teinte: var(--edu-vert); animation-delay: .9s; }
+.fil-ouverture .brin.or { --teinte: var(--edu-or); animation-delay: 1.05s; }
+@keyframes brin-tisse {
+  0% { transform: scaleX(0); transform-origin: left center; }
+  45% { transform: scaleX(1); transform-origin: left center; }
+  55% { transform: scaleX(1); transform-origin: right center; }
+  100% { transform: scaleX(0); transform-origin: right center; }
+}
+.ouverture-plateforme { display: inline-flex; align-items: center; gap: 8px; margin-top: 40px; font-size: 13px; font-weight: 600; color: var(--texte-clair); position: static; }
+.ouverture-plateforme img { width: 20px; height: 20px; object-fit: contain; }
+@keyframes ouverture-logo { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes ouverture-monte { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ouverture-logo, .ouverture-nom, .ouverture-surtitre, .fil-ouverture { animation: none; }
+  .fil-ouverture .brin { animation: none; transform: none; }
+}
+
+/* ==========================================================================
+   Superadmin : registre des écoles, identité d'une école, profil, menu compte
+   ========================================================================== */
+.vignette-logo.grand { width: 84px; height: 84px; border-radius: 16px; }
+.vignette-logo.grand img { padding: 6px; }
+.vignette-logo.grand svg { width: 34px; height: 34px; }
+
+/* Registre des écoles : une fiche par école */
+.registre-ecoles { list-style: none; margin: 0; padding: 4px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.fiche-ecole {
+  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 16px; padding: 20px 20px 16px; text-align: left;
+  background: #fff; border: 1px solid var(--bordure); border-radius: 12px; color: var(--texte); cursor: pointer; font: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.fiche-ecole:hover { border-color: var(--edu-bleu); box-shadow: 0 14px 30px -22px rgba(11, 30, 61, .45); transform: translateY(-1px); }
+.fiche-ecole:focus-visible { outline: 3px solid color-mix(in srgb, var(--edu-bleu) 35%, transparent); outline-offset: 2px; }
+.fiche-ecole-haut { display: flex; align-items: flex-start; gap: 14px; }
+.fiche-ecole-haut .vignette-logo { width: 52px; height: 52px; border-radius: 12px; }
+.fiche-ecole-identite { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.fiche-ecole-identite strong { font-family: var(--police-serif); font-size: 1.12rem; line-height: 1.25; color: var(--edu-marine); text-wrap: balance; }
+.fiche-ecole-identite span { font-size: 13px; color: var(--texte-clair); }
+.fiche-ecole-haut .badge { flex: none; }
+.fiche-ecole-chiffres { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--bordure); border-bottom: 1px solid var(--bordure); }
+.fiche-ecole-chiffres > span { display: flex; flex-direction: column; gap: 2px; padding: 10px 0 10px 12px; font-size: 11.5px; color: var(--texte-clair); border-left: 1px solid var(--bordure); }
+.fiche-ecole-chiffres > span:first-child { border-left: none; padding-left: 0; }
+.fiche-ecole-chiffres b { font-size: 1.25rem; font-weight: 700; color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.fiche-ecole-chiffres .alerte b { color: var(--erreur); }
+.fiche-ecole-pied { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--texte-clair); }
+.fiche-ecole-pied svg { width: 18px; height: 18px; flex: none; color: var(--edu-bleu); }
+
+/* En-tête d'identité : école (fiche) et compte (profil) */
+.identite-ecole, .identite-compte {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 32px;
+  padding: 24px 28px; margin-bottom: 20px; background: #fff; border: 1px solid var(--bordure); border-radius: 12px;
+}
+.identite-ecole-principal, .identite-compte-principal { display: flex; align-items: center; gap: 20px; min-width: 0; flex: 1 1 380px; }
+.identite-ecole-textes, .identite-compte-textes { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.identite-ecole-textes h2, .identite-compte-textes h2 { margin: 4px 0 0; font-family: var(--police-serif); font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.15; letter-spacing: -.015em; color: var(--edu-marine); text-wrap: balance; }
+.identite-ecole-textes p, .identite-compte-textes p { margin: 0; color: var(--texte-clair); font-size: 14.5px; }
+.identite-ecole-textes .identite-ecole-contact { font-size: 13px; }
+.identite-ecole-chiffres { display: flex; flex-wrap: wrap; margin: 0; }
+.identite-ecole-chiffres > div { padding: 4px 20px; border-left: 1px solid var(--bordure); min-width: 84px; }
+.identite-ecole-chiffres > div:first-child { border-left: none; padding-left: 0; }
+.identite-ecole-chiffres dt { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--texte-clair); }
+.identite-ecole-chiffres dd { margin: 6px 0 0; font-size: 1.6rem; font-weight: 700; color: var(--edu-marine); font-variant-numeric: tabular-nums; line-height: 1; }
+.identite-ecole-chiffres dd.petit { font-size: 1rem; line-height: 1.6rem; white-space: nowrap; }
+.identite-compte-avatar {
+  width: 76px; height: 76px; flex: none; display: grid; place-items: center; border-radius: 18px;
+  background: var(--edu-marine); color: #fff; font-family: var(--police-serif); font-size: 1.8rem; font-weight: 700;
+}
+.identite-compte-role { font-size: 11.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--edu-teal); }
+
+/* Profil : rubriques à gauche, une section à la fois à droite */
+.profil-disposition { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; align-items: start; }
+.profil-rubriques { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 2px; padding: 8px; background: #fff; border: 1px solid var(--bordure); border-radius: 12px; }
+.profil-rubriques button {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: none; border-radius: 8px; background: none;
+  font: 600 14px var(--police); color: var(--texte-clair); text-align: left; cursor: pointer;
+}
+.profil-rubriques button svg { width: 18px; height: 18px; flex: none; }
+.profil-rubriques button:hover { background: var(--fond); color: var(--edu-marine); }
+.profil-rubriques button.actif { background: color-mix(in srgb, var(--edu-bleu) 10%, #fff); color: var(--edu-marine); box-shadow: inset 3px 0 0 var(--edu-bleu); }
+.profil-contenu { min-width: 0; }
+.profil-contenu > .carte { margin: 0; }
+
+/* Menu du compte dans l'en-tête */
+.menu-compte { position: relative; margin-left: 6px; }
+.menu-compte-bouton {
+  display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px 0 4px; border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, .28); background: rgba(255, 255, 255, .1); color: #fff; font: 600 14px var(--police); cursor: pointer;
+}
+.menu-compte-bouton:hover, .menu-compte-bouton[aria-expanded="true"] { background: rgba(255, 255, 255, .2); }
+.menu-compte-bouton svg { width: 16px; height: 16px; opacity: .85; }
+.menu-compte-avatar {
+  width: 32px; height: 32px; flex: none; display: grid; place-items: center; border-radius: 50%;
+  background: #fff; color: var(--edu-marine); font-size: 12.5px; font-weight: 800; letter-spacing: .02em;
+}
+.menu-compte-avatar.grand { width: 44px; height: 44px; font-size: 15px; background: var(--edu-marine); color: #fff; }
+.menu-compte-prenom { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-compte-panneau {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: 280px; padding: 8px; background: #fff; color: var(--texte);
+  border: 1px solid var(--bordure); border-radius: 12px; box-shadow: 0 22px 44px -18px rgba(11, 30, 61, .4);
+}
+.menu-compte-identite { display: flex; align-items: center; gap: 12px; padding: 10px 10px 14px; margin-bottom: 6px; border-bottom: 1px solid var(--bordure); }
+.menu-compte-identite > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.menu-compte-identite strong { color: var(--edu-marine); font-size: 14.5px; }
+.menu-compte-identite small { color: var(--texte-clair); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-compte-panneau button[role="menuitem"] {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: none; border-radius: 8px; background: none;
+  font: 600 14px var(--police); color: var(--edu-marine); text-align: left; cursor: pointer;
+}
+.menu-compte-panneau button[role="menuitem"] svg { width: 17px; height: 17px; }
+.menu-compte-panneau button[role="menuitem"]:hover { background: var(--fond); }
+.menu-compte-panneau button[role="menuitem"].danger { color: var(--erreur); }
+
+@media (max-width: 900px) {
+  .profil-disposition { grid-template-columns: minmax(0, 1fr); }
+  .profil-rubriques { position: static; flex-direction: row; overflow-x: auto; }
+  .profil-rubriques button { width: auto; white-space: nowrap; }
+  .profil-rubriques button.actif { box-shadow: inset 0 -3px 0 var(--edu-bleu); }
+  .menu-compte-prenom { display: none; }
+}
+@media (max-width: 560px) {
+  .identite-ecole, .identite-compte { padding: 18px; }
+  .identite-ecole-principal, .identite-compte-principal { flex-basis: 100%; }
+  .vignette-logo.grand, .identite-compte-avatar { width: 60px; height: 60px; }
+  .identite-ecole-chiffres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 14px; width: 100%; }
+  .identite-ecole-chiffres > div { padding: 0 0 0 12px; min-width: 0; }
+  .identite-ecole-chiffres > div:nth-child(3n + 1) { border-left: none; padding-left: 0; }
+  .fiche-ecole-chiffres { grid-template-columns: repeat(2, 1fr); }
+  .fiche-ecole-chiffres > span:nth-child(3) { border-left: none; padding-left: 0; border-top: 1px solid var(--bordure); }
+  .fiche-ecole-chiffres > span:nth-child(4) { border-top: 1px solid var(--bordure); }
+}

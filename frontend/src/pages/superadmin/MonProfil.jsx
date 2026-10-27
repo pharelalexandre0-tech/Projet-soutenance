@@ -6,7 +6,7 @@ import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { useAuth } from '../../context/AuthContext';
 import { messageErreur } from '../../utils/erreurs';
 import { dateCourte, dateHeure, depuis } from '../../utils/plateforme';
-import { IconHistory, IconLogin, IconCheck, IconChevronRight, IconClose } from '../../components/icons';
+import { IconHistory, IconCheck, IconChevronRight, IconClose, IconUserCog, IconLock, IconShield, IconKey } from '../../components/icons';
 
 const LONGUEUR_MIN = 10;
 
@@ -27,123 +27,117 @@ function initiales(prenom, nom) {
   return `${prenom?.[0] ?? ''}${nom?.[0] ?? ''}`.toUpperCase();
 }
 
-// Le compte du superadmin connecté : son identité, ses informations, son
-// mot de passe, et sa propre trace dans le journal (actions et connexions).
+const RUBRIQUES = [
+  { id: 'informations', libelle: 'Informations', icone: IconUserCog },
+  { id: 'mot-de-passe', libelle: 'Mot de passe', icone: IconLock },
+  { id: 'securite', libelle: 'Sécurité et appareils', icone: IconShield },
+  { id: 'activite', libelle: 'Mon activité', icone: IconHistory },
+  { id: 'droits', libelle: 'Droits du compte', icone: IconKey },
+];
+
+// Le compte du superadmin connecté : une carte d'identité en tête, puis
+// une rubrique à la fois (informations, mot de passe, sécurité, activité,
+// droits) plutôt que tout empilé sur deux colonnes.
 export default function MonProfil({ onNaviguer }) {
   const { profil, mettreAJourProfil } = useAuth();
   const [journal, setJournal] = useState(null);
+  const [securite, setSecurite] = useState(null);
+  const [rubrique, setRubrique] = useState('informations');
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
     client.get('/superadmin/journal', { params: { limite: 500 } })
       .then((res) => setJournal(res.data.entrees.filter((e) => e.auteurId === profil?.id)))
       .catch(() => setJournal([]));
+    client.get('/auth/securite').then((r) => setSecurite(r.data)).catch(() => setSecurite({}));
   }, [profil?.id]);
 
-  const connexions = (journal || []).filter((e) => e.categorie === 'connexion');
   const actions = (journal || []).filter((e) => e.categorie !== 'connexion');
-  const derniereConnexion = connexions[0]?.createdAt;
   const notifier = (message) => setToast({ message, type: 'succes' });
 
   return (
     <>
-      <div className="profil-entete">
-        <div className="profil-avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
-        <div className="profil-identite">
-          <h2>{profil?.prenom} {profil?.nom}</h2>
-          <p>{profil?.email}</p>
-          <div className="puces">
-            <span className="badge bleu">Superadmin</span>
-            <span className="badge vert">Compte actif</span>
+      <section className="identite-compte">
+        <div className="identite-compte-principal">
+          <div className="identite-compte-avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
+          <div className="identite-compte-textes">
+            <span className="identite-compte-role">Superadmin de la plateforme</span>
+            <h2>{profil?.prenom} {profil?.nom}</h2>
+            <p>{profil?.email}</p>
           </div>
         </div>
-        <dl className="profil-chiffres">
-          <div>
-            <dt>Membre depuis</dt>
-            <dd>{profil?.createdAt ? dateCourte(profil.createdAt) : '…'}</dd>
-          </div>
-          <div>
-            <dt>Dernière connexion</dt>
-            <dd>{journal ? (derniereConnexion ? depuis(derniereConnexion) : 'Aucune enregistrée') : '…'}</dd>
-          </div>
-          <div>
-            <dt>Actions sur la plateforme</dt>
-            <dd>{journal ? actions.length : '…'}</dd>
-          </div>
+        <dl className="identite-ecole-chiffres">
+          <div className="large"><dt>Membre depuis</dt><dd className="petit">{profil?.createdAt ? dateCourte(profil.createdAt) : '…'}</dd></div>
+          <div className="large"><dt>Dernière connexion</dt><dd className="petit">{securite ? (securite.derniereConnexion ? depuis(securite.derniereConnexion) : 'Maintenant') : '…'}</dd></div>
+          <div><dt>Appareils</dt><dd>{securite?.sessions ? securite.sessions.length : '…'}</dd></div>
+          <div><dt>Actions</dt><dd>{journal ? actions.length : '…'}</dd></div>
         </dl>
-      </div>
+      </section>
 
-      <div className="grille-profil">
-        <div className="colonne-empilee">
-          <InformationsPersonnelles profil={profil} onEnregistre={(p) => { mettreAJourProfil(p); notifier('Informations enregistrées.'); }} />
-          <MotDePasse profil={profil} onEnregistre={() => notifier('Mot de passe modifié.')} />
-          <div className="carte">
-            <h2>Sécurité du compte</h2>
-            <SecuriteCompte />
-          </div>
-        </div>
+      <div className="profil-disposition">
+        <nav className="profil-rubriques" aria-label="Rubriques du profil">
+          {RUBRIQUES.map(({ id, libelle, icone: Icone }) => (
+            <button key={id} type="button" className={rubrique === id ? 'actif' : ''} aria-current={rubrique === id ? 'page' : undefined} onClick={() => setRubrique(id)}>
+              <Icone aria-hidden="true" /> {libelle}
+            </button>
+          ))}
+        </nav>
 
-        <div className="colonne-empilee">
-          <div className="carte">
-            <div className="entete-carte">
-              <h2>Mon activité récente</h2>
-              <button type="button" className="bouton-texte" onClick={() => onNaviguer?.('journal')}>
-                Tout le journal <IconChevronRight />
-              </button>
+        <div className="profil-contenu">
+          {rubrique === 'informations' && (
+            <InformationsPersonnelles profil={profil} onEnregistre={(p) => { mettreAJourProfil(p); notifier('Informations enregistrées.'); }} />
+          )}
+          {rubrique === 'mot-de-passe' && <MotDePasse profil={profil} onEnregistre={() => notifier('Mot de passe modifié.')} />}
+          {rubrique === 'securite' && (
+            <div className="carte">
+              <h2>Sécurité et appareils</h2>
+              <SecuriteCompte />
             </div>
-            {!journal && <div className="chargement">Chargement…</div>}
-            {journal && actions.length === 0 && <div className="vide">Aucune action enregistrée pour l'instant.</div>}
-            {journal && actions.length > 0 && (
-              <ol className="liste-activite">
-                {actions.slice(0, 8).map((e) => (
-                  <li key={e.id}>
-                    <span className="liste-activite-icone"><IconHistory /></span>
-                    <div>
-                      <span>{e.libelle}</span>
-                      <small>{dateHeure(e.createdAt)}</small>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-
-          <div className="carte">
-            <h2>Dernières connexions</h2>
-            {!journal && <div className="chargement">Chargement…</div>}
-            {journal && connexions.length === 0 && <div className="vide">Aucune connexion enregistrée pour l'instant.</div>}
-            {journal && connexions.length > 0 && (
-              <ol className="liste-activite">
-                {connexions.slice(0, 5).map((e, i) => (
-                  <li key={e.id}>
-                    <span className="liste-activite-icone"><IconLogin /></span>
-                    <div>
-                      <span>{dateHeure(e.createdAt)}{i === 0 && <span className="badge vert" style={{ marginLeft: 10 }}>La plus récente</span>}</span>
-                      <small>{depuis(e.createdAt)}</small>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
-
-          <div className="carte">
-            <h2>Droits du compte</h2>
-            <div className="droits-compte">
-              <div>
-                <h3 className="droits-titre">Ce que ce compte peut faire</h3>
-                <ul className="liste-droits">
-                  {DROITS.map((d) => <li key={d}><span className="droit-icone oui"><IconCheck /></span>{d}</li>)}
-                </ul>
+          )}
+          {rubrique === 'activite' && (
+            <div className="carte">
+              <div className="entete-carte">
+                <h2>Mon activité sur la plateforme</h2>
+                <button type="button" className="bouton-texte" onClick={() => onNaviguer?.('journal')}>
+                  Tout le journal <IconChevronRight />
+                </button>
               </div>
-              <div>
-                <h3 className="droits-titre">Ce qu'il ne voit jamais</h3>
-                <ul className="liste-droits">
-                  {JAMAIS.map((d) => <li key={d}><span className="droit-icone non"><IconClose /></span>{d}</li>)}
-                </ul>
+              {!journal && <div className="chargement">Chargement…</div>}
+              {journal && actions.length === 0 && <div className="vide">Aucune action enregistrée pour l'instant.</div>}
+              {journal && actions.length > 0 && (
+                <ol className="liste-activite">
+                  {actions.slice(0, 15).map((e) => (
+                    <li key={e.id}>
+                      <span className="liste-activite-icone"><IconHistory /></span>
+                      <div>
+                        <span>{e.libelle}</span>
+                        <small>{dateHeure(e.createdAt)}</small>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          )}
+          {rubrique === 'droits' && (
+            <div className="carte">
+              <h2>Droits du compte</h2>
+              <div className="droits-compte">
+                <div>
+                  <h3 className="droits-titre">Ce que ce compte peut faire</h3>
+                  <ul className="liste-droits">
+                    {DROITS.map((d) => <li key={d}><span className="droit-icone oui"><IconCheck /></span>{d}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="droits-titre">Ce qu'il ne voit jamais</h3>
+                  <ul className="liste-droits">
+                    {JAMAIS.map((d) => <li key={d}><span className="droit-icone non"><IconClose /></span>{d}</li>)}
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -190,7 +184,7 @@ function InformationsPersonnelles({ profil, onEnregistre }) {
         <div className="champ">
           <label htmlFor="p-email">Adresse e-mail (identifiant de connexion)</label>
           <input id="p-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-          <small className="note-secondaire">Enregistrée dans la base : elle devient aussitôt ton identifiant pour te connecter.</small>
+          <small className="note-secondaire">Elle devient aussitôt votre identifiant de connexion.</small>
         </div>
         {emailModifie && (
           <div className="champ">

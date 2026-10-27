@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import logoIcon from '../assets/logo-icon.png';
-import Tissage from './Tissage';
+import FilOuverture from './FilOuverture';
 
 function initiales(etab) {
   const sigle = String(etab?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
@@ -11,7 +11,7 @@ function initiales(etab) {
   return (mots.map((m) => m[0]).join('').slice(0, 3) || 'E').toUpperCase();
 }
 
-// Écran d'ouverture après connexion : le logo et le nom de L'ÉCOLE du
+// Écran d'ouverture après connexion, sobre et clair : le logo et le nom de L'ÉCOLE du
 // compte (ses initiales si elle n'a pas de logo), EduSphere seulement pour
 // le superadmin, qui n'appartient à aucune école.
 export default function TransitionOuverture() {
@@ -29,27 +29,19 @@ export default function TransitionOuverture() {
   }, [ecole]);
 
   const nom = ecole ? (etab?.nom || '') : 'EduSphere';
-  // Les rubriques du dossier qui s'ouvre, comme les onglets du classeur.
-  const ONGLETS = profil?.role === 'etudiant' ? ['Mon dossier', 'Vie scolaire', 'Documents']
-    : profil?.role === 'ministere' ? ['Tutelle', 'Pilotage', 'Contrôle']
-      : profil?.role === 'superadmin' ? ['Écoles', 'Plateforme', 'Administration']
-        : ['Scolarité', 'Évaluation', 'Établissement'];
   return (
-    <div className="transition-ouverture tissage-ouverture">
-      <Tissage colonnes={14} lignes={9} className="tissage-plein" />
+    <div className="transition-ouverture ecran-ouverture">
       {pret && (
-        <div className="ouverture-cartouche">
-          <span className="sceau-ouverture">
+        <div className="ouverture-centre">
+          <span className="ouverture-logo">
             {ecole && !etab?.logo
-              ? <span className="sceau-initiales">{initiales(etab)}</span>
+              ? <span className="ouverture-initiales">{initiales(etab)}</span>
               : <img src={ecole ? etab.logo : logoIcon} alt="" />}
           </span>
-          {nom && <h1 className={`nom-ouverture ${nom.length > 28 ? 'nom-long' : ''}`}>{nom}</h1>}
-          <div className="onglets-ouverture" aria-hidden="true">
-            {ONGLETS.map((o, i) => <span key={o} style={{ '--i': i }}><b>{['I', 'II', 'III'][i]}</b>{o}</span>)}
-          </div>
-          <p>Ouverture de votre dossier…</p>
-          {ecole && <small className="ouverture-plateforme">EduSphere</small>}
+          {nom && <h1 className={`ouverture-nom ${nom.length > 28 ? 'nom-long' : ''}`}>{nom}</h1>}
+          <p className="ouverture-surtitre">{ecole ? 'Ouverture de votre espace' : 'Console de la plateforme'}</p>
+          <FilOuverture />
+          {ecole && <small className="ouverture-plateforme"><img src={logoIcon} alt="" /> EduSphere</small>}
         </div>
       )}
     </div>

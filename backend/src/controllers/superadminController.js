@@ -20,6 +20,17 @@ const {
 // comptes, statuts), jamais le contenu pédagogique d'une école (nombre
 // d'élèves, de classes, de professeurs — ça, c'est le travail de l'Académie
 // de chaque établissement, pas du superadmin).
+// Comptes par espace et dernière connexion : des chiffres de plateforme,
+// pas de contenu pédagogique.
+async function activiteComptes(etablissementId) {
+  const parRole = await Utilisateur.count({ where: { etablissementId }, group: ['role'] });
+  const derniereConnexion = await Utilisateur.max('derniereConnexion', { where: { etablissementId } });
+  return {
+    comptesParRole: Object.fromEntries(parRole.map((r) => [r.role, Number(r.count)])),
+    derniereConnexion: derniereConnexion || null,
+  };
+}
+
 async function etablissementsAvecCompteurs() {
   const etablissements = await Etablissement.findAll({ order: [['nom', 'ASC']] });
   return Promise.all(
@@ -27,7 +38,7 @@ async function etablissementsAvecCompteurs() {
       const nbComptes = await Utilisateur.count({ where: { etablissementId: etab.id } });
       const nbComptesVerrouilles = await Utilisateur.count({ where: { etablissementId: etab.id, statut: 'verrouille' } });
       const nbFonctionnalites = (await clesDeLEcole(etab.id)).size;
-      return { ...etab.toJSON(), nbComptes, nbComptesVerrouilles, nbFonctionnalites };
+      return { ...etab.toJSON(), nbComptes, nbComptesVerrouilles, nbFonctionnalites, ...(await activiteComptes(etab.id)) };
     })
   );
 }
@@ -56,8 +67,12 @@ async function exporterEtablissements(req, res) {
 async function obtenirEtablissement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id);
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
-
-  return res.json({ etablissement });
+  const compteurs = {
+    nbComptes: await Utilisateur.count({ where: { etablissementId: etablissement.id } }),
+    nbComptesVerrouilles: await Utilisateur.count({ where: { etablissementId: etablissement.id, statut: 'verrouille' } }),
+    ...(await activiteComptes(etablissement.id)),
+  };
+  return res.json({ etablissement: { ...etablissement.toJSON(), ...compteurs } });
 }
 
 // "Insertion d'une école dans le système" : le superadmin crée la fiche

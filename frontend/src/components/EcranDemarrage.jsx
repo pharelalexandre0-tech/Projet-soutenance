@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import logoIcon from '../assets/logo-icon.png';
-import Tissage from './Tissage';
+import FilOuverture from './FilOuverture';
 
 const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
 const NOM = 'EduSphere';
-const DUREE_AFFICHAGE_MS = 2600;
-const DUREE_TRANSITION_MS = 850;
-const COURBE = 'cubic-bezier(.65, 0, .35, 1)';
+const DUREE_AFFICHAGE_MS = 1900;
+const DUREE_SORTIE_MS = 420;
 
 // Une animation ne progresse pas dans un onglet caché : on n'attend jamais
 // sa fin plus longtemps que prévu, l'écran de démarrage ne peut pas rester
@@ -28,16 +27,11 @@ export function demarrageAAfficher() {
   return true;
 }
 
-// Écran de démarrage : le motif tissé se forme maille par maille, le sceau
-// et le nom apparaissent dans leur cartouche. Pour
-// en sortir, pas de fondu brutal : le dégradé se resserre jusqu'à devenir
-// exactement la carte bleue de l'écran de connexion (repérée par
-// data-cible-demarrage), pendant que le sceau et le nom glissent vers leur
-// place dans cette carte. Le formulaire sort ensuite de sous la carte.
+// Écran de démarrage : fond clair, le logo et le nom apparaissent, le fil
+// aux couleurs d'EduSphere se tisse dessous. Il s'efface ensuite d'un fondu
+// court pour laisser place à la connexion.
 export default function EcranDemarrage({ onTermine }) {
   const racineRef = useRef(null);
-  const sceauRef = useRef(null);
-  const nomRef = useRef(null);
   const [depart, setDepart] = useState(false);
   const onTermineRef = useRef(onTermine);
   onTermineRef.current = onTermine;
@@ -57,41 +51,8 @@ export default function EcranDemarrage({ onTermine }) {
       const racine = racineRef.current;
       if (!racine) return;
       setDepart(true);
-      const cible = document.querySelector('[data-cible-demarrage]');
-
-      if (!cible || reduit || typeof racine.animate !== 'function') {
-        const fondu = racine.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease', fill: 'forwards' });
-        if (fondu) await auPlusTard(fondu.finished, 600);
-        terminer();
-        return;
-      }
-
-      const r = cible.getBoundingClientRect();
-      const largeur = window.innerWidth;
-      const hauteur = window.innerHeight;
-      const rayon = getComputedStyle(cible).borderRadius || '30px';
-      const fin = `inset(${r.top}px ${largeur - r.right}px ${hauteur - r.bottom}px ${r.left}px round ${rayon})`;
-      const options = { duration: DUREE_TRANSITION_MS, easing: COURBE, fill: 'forwards' };
-
-      const animations = [racine.animate([{ clipPath: 'inset(0px 0px 0px 0px round 0px)' }, { clipPath: fin }], options)];
-      [[sceauRef.current, '.marque-pastille'], [nomRef.current, '.marque-nom']].forEach(([source, selecteur]) => {
-        const destination = cible.querySelector(selecteur);
-        if (!source || !destination) return;
-        const a = source.getBoundingClientRect();
-        const b = destination.getBoundingClientRect();
-        const dx = (b.left + b.width / 2) - (a.left + a.width / 2);
-        const dy = (b.top + b.height / 2) - (a.top + a.height / 2);
-        const echelle = b.height / a.height;
-        animations.push(source.animate(
-          [{ transform: 'translate(0, 0) scale(1)' }, { transform: `translate(${dx}px, ${dy}px) scale(${echelle})` }],
-          options
-        ));
-      });
-
-      await auPlusTard(Promise.all(animations.map((a) => a.finished)), DUREE_TRANSITION_MS + 400);
-      // Sceau et nom sont maintenant pile sur ceux de la carte : un court
-      // fondu laisse apparaître le reste de la carte (texte, formes).
-      await auPlusTard(racine.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 280, easing: 'ease-out', fill: 'forwards' }).finished, 600);
+      const fondu = racine.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: reduit ? 200 : DUREE_SORTIE_MS, easing: 'ease', fill: 'forwards' });
+      if (fondu) await auPlusTard(fondu.finished, DUREE_SORTIE_MS + 300);
       terminer();
     }
 
@@ -103,14 +64,12 @@ export default function EcranDemarrage({ onTermine }) {
   }, []);
 
   return (
-    <div className={`ecran-demarrage tissage-demarrage ${depart ? 'depart' : ''}`} ref={racineRef} aria-hidden="true">
-      <Tissage colonnes={14} lignes={9} className="tissage-plein" />
-      <div className="demarrage-cartouche">
-        <span className="demarrage-sceau" ref={sceauRef}>
-          <img src={logoIcon} alt="" />
-        </span>
-        <h1 className="demarrage-nom" ref={nomRef}>{NOM}</h1>
-        <p className="demarrage-sous-titre">Enseignement supérieur · Gabon</p>
+    <div className={`ecran-demarrage ecran-ouverture ${depart ? 'depart' : ''}`} ref={racineRef} aria-hidden="true">
+      <div className="ouverture-centre">
+        <span className="ouverture-logo"><img src={logoIcon} alt="" /></span>
+        <h1 className="ouverture-nom">{NOM}</h1>
+        <p className="ouverture-surtitre">Enseignement supérieur · Gabon</p>
+        <FilOuverture />
       </div>
     </div>
   );

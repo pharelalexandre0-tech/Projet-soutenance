@@ -4,15 +4,14 @@ import BoutonDocument from './BoutonDocument';
 import { messageErreur } from '../utils/erreurs';
 import { IconUpload, IconDownload, IconTrash, IconCircleCheck, IconShield } from './icons';
 
-const STATUTS = { depose: ['À examiner', 'or'], valide: ['Validée', 'vert'], refuse: ['Refusée', 'rouge'] };
+const STATUTS = { depose: ['Téléversée', 'vert'], valide: ['Téléversée', 'vert'], refuse: ['À remplacer', 'rouge'] };
 const ORIGINES = { etudiant: 'Étudiant', parent: 'Parent', academie: 'Établissement', plateforme: 'Générée et certifiée' };
 const taille = (n) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1).replace('.', ',')} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
 const TAILLE_MAX = 5 * 1024 * 1024;
 
 // Pièces d'un dossier de bourse ANBG, rangées par type : dépôt (PDF, PNG ou
-// JPEG, 5 Mo au plus), téléchargement, et selon le contexte retrait
-// (étudiant) ou examen (Académie).
-export default function PiecesBourse({ vue, urlDepot, onChange, modifiable = true, peutGenerer = false, examiner = null, retirer = null }) {
+// JPEG, 5 Mo au plus), téléchargement et retrait par l'étudiant.
+export default function PiecesBourse({ vue, urlDepot, onChange, modifiable = true, peutGenerer = false, retirer = null }) {
   const [enCours, setEnCours] = useState('');
   const [erreur, setErreur] = useState('');
   const champs = useRef({});
@@ -86,8 +85,6 @@ export default function PiecesBourse({ vue, urlDepot, onChange, modifiable = tru
                 {p.commentaire && <span className={`piece-commentaire ${p.statut === 'refuse' ? 'refus' : ''}`}>{p.commentaire}</span>}
                 <span className="piece-actions">
                   <BoutonDocument className="bouton-icone" chemin={`/api/bourse/pieces/${p.id}/fichier`} title="Télécharger"><IconDownload /></BoutonDocument>
-                  {examiner && modifiable && p.statut !== 'valide' && <button type="button" className="secondaire petit succes" onClick={() => examiner(p, 'valide')}>Valider</button>}
-                  {examiner && modifiable && p.statut !== 'refuse' && <button type="button" className="secondaire petit danger" onClick={() => examiner(p, 'refuse')}>Refuser</button>}
                   {retirer && p.statut !== 'valide' && modifiable && <button type="button" className="bouton-icone" title="Retirer" aria-label="Retirer la pièce" onClick={() => retirer(p)}><IconTrash /></button>}
                 </span>
               </div>

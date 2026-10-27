@@ -7,7 +7,7 @@ import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
 import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { messageErreur } from '../../utils/erreurs';
-import { LIBELLES_ESPACES } from '../../utils/plateforme';
+import { LIBELLES_ESPACES, depuis } from '../../utils/plateforme';
 import {
   IconBuilding, IconKey, IconDownload, IconCheck, IconPlus, IconSearch, IconChevronRight, IconArrowLeft,
   IconToggle, IconLock, IconTrash,
@@ -21,13 +21,15 @@ const TRIS = {
   comptes: { libelle: 'Le plus de comptes', fn: (a, b) => b.nbComptes - a.nbComptes },
 };
 
-function VignetteLogo({ logo }) {
+function VignetteLogo({ logo, grand = false }) {
   return (
-    <span className="vignette-logo">
+    <span className={`vignette-logo ${grand ? 'grand' : ''}`}>
       {logo ? <img src={logo} alt="" /> : <IconBuilding />}
     </span>
   );
 }
+
+const derniereActivite = (d) => (d ? `Dernière connexion ${depuis(d)}` : 'Aucune connexion pour l’instant');
 
 // Écoles affiliées : la liste, puis la fiche de chaque école (ses
 // fonctionnalités, ses informations, ses accès) sur une vraie page plutôt
@@ -173,42 +175,36 @@ function ListeEtablissements({ etablissements, chargement, onOuvrir, onCreer }) 
           </select>
         </div>
 
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>École</th>
-                <th>Sigle</th>
-                <th>Ville</th>
-                <th>Statut</th>
-                <th className="chiffre">Fonctionnalités</th>
-                <th className="chiffre">Comptes</th>
-                <th className="chiffre">Verrouillés</th>
-                <th>Affiliée le</th>
-                <th aria-label="Ouvrir la fiche" />
-              </tr>
-            </thead>
-            <tbody>
-              {affiches.map((etab) => (
-                <tr key={etab.id} className="ligne-cliquable" onClick={() => onOuvrir(etab.id)}>
-                  <td className="cellule-nom"><span className="cellule-avec-logo"><VignetteLogo logo={etab.logo} />{etab.nom}</span></td>
-                  <td>{etab.sigle || <span className="note-secondaire">Aucun</span>}</td>
-                  <td>{etab.ville}</td>
-                  <td><span className={`badge ${etab.statut === 'actif' ? 'vert' : 'rouge'}`}>{etab.statut === 'actif' ? 'Active' : 'Verrouillée'}</span></td>
-                  <td className="chiffre">{etab.nbFonctionnalites ?? 0}</td>
-                  <td className="chiffre">{etab.nbComptes}</td>
-                  <td className="chiffre">{etab.nbComptesVerrouilles > 0 ? <span className="texte-alerte">{etab.nbComptesVerrouilles}</span> : 0}</td>
-                  <td>{new Date(etab.createdAt).toLocaleDateString('fr-FR')}</td>
-                  <td className="cellule-chevron"><IconChevronRight /></td>
-                </tr>
-              ))}
-              {chargement && <tr><td colSpan={9} className="chargement">Chargement…</td></tr>}
-              {!chargement && affiches.length === 0 && (
-                <tr><td colSpan={9} className="vide">{etablissements.length === 0 ? 'Aucune école affiliée pour le moment.' : 'Aucune école ne correspond à cette recherche.'}</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        {chargement && <div className="chargement">Chargement…</div>}
+        {!chargement && affiches.length === 0 && (
+          <div className="vide">{etablissements.length === 0 ? 'Aucune école affiliée pour le moment.' : 'Aucune école ne correspond à cette recherche.'}</div>
+        )}
+        <ul className="registre-ecoles">
+          {affiches.map((etab) => (
+            <li key={etab.id}>
+              <button type="button" className="fiche-ecole" onClick={() => onOuvrir(etab.id)}>
+                <span className="fiche-ecole-haut">
+                  <VignetteLogo logo={etab.logo} />
+                  <span className="fiche-ecole-identite">
+                    <strong>{etab.nom}</strong>
+                    <span>{[etab.sigle, etab.ville].filter(Boolean).join(' · ')}</span>
+                  </span>
+                  <span className={`badge ${etab.statut === 'actif' ? 'vert' : 'rouge'}`}>{etab.statut === 'actif' ? 'Active' : 'Verrouillée'}</span>
+                </span>
+                <span className="fiche-ecole-chiffres">
+                  <span><b>{etab.nbComptes}</b>comptes</span>
+                  <span><b>{etab.comptesParRole?.etudiant || 0}</b>étudiants</span>
+                  <span><b>{etab.nbFonctionnalites ?? 0}</b>modules</span>
+                  <span className={etab.nbComptesVerrouilles > 0 ? 'alerte' : ''}><b>{etab.nbComptesVerrouilles}</b>verrouillés</span>
+                </span>
+                <span className="fiche-ecole-pied">
+                  <span>Affiliée le {new Date(etab.createdAt).toLocaleDateString('fr-FR')} · {derniereActivite(etab.derniereConnexion)}</span>
+                  <IconChevronRight aria-hidden="true" />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
       {erreurExport && <Toast message={erreurExport} type="erreur" onFermer={() => setErreurExport('')} />}
     </>
@@ -241,19 +237,27 @@ function FicheEtablissement({ etablissementId, onRetour, onSupprime, onNaviguer 
         <button className="bouton-texte" onClick={onRetour}><IconArrowLeft /> Toutes les écoles</button>
       </div>
 
-      <div className="fiche-entete">
-        <VignetteLogo logo={etablissement.logo} />
-        <div className="fiche-entete-textes">
-          <h2>
-            {etablissement.nom}
+      <section className="identite-ecole">
+        <div className="identite-ecole-principal">
+          <VignetteLogo logo={etablissement.logo} grand />
+          <div className="identite-ecole-textes">
             <span className={`badge ${etablissement.statut === 'actif' ? 'vert' : 'rouge'}`}>{etablissement.statut === 'actif' ? 'Active' : 'Verrouillée'}</span>
-          </h2>
-          <p>
-            {etablissement.sigle ? `${etablissement.sigle} · ` : ''}{etablissement.ville}, {etablissement.pays}
-            {' · '}Affiliée le {new Date(etablissement.createdAt).toLocaleDateString('fr-FR')}
-          </p>
+            <h2>{etablissement.nom}</h2>
+            <p>{[etablissement.sigle, `${etablissement.ville}, ${etablissement.pays}`].filter(Boolean).join(' · ')}</p>
+            {(etablissement.email || etablissement.telephone) && (
+              <p className="identite-ecole-contact">{[etablissement.email, etablissement.telephone].filter(Boolean).join(' · ')}</p>
+            )}
+          </div>
         </div>
-      </div>
+        <dl className="identite-ecole-chiffres">
+          <div><dt>Comptes</dt><dd>{etablissement.nbComptes ?? 0}</dd></div>
+          <div><dt>Étudiants</dt><dd>{etablissement.comptesParRole?.etudiant || 0}</dd></div>
+          <div><dt>Personnel</dt><dd>{(etablissement.comptesParRole?.academie || 0) + (etablissement.comptesParRole?.finance || 0)}</dd></div>
+          <div><dt>Modules</dt><dd>{catalogue ? siennes.length : '…'}</dd></div>
+          <div className="large"><dt>Affiliée le</dt><dd>{new Date(etablissement.createdAt).toLocaleDateString('fr-FR')}</dd></div>
+          <div className="large"><dt>Activité</dt><dd className="petit">{etablissement.derniereConnexion ? depuis(etablissement.derniereConnexion) : 'Aucune connexion'}</dd></div>
+        </dl>
+      </section>
 
       <div className="onglets-secondaires" role="tablist">
         <button role="tab" aria-selected={onglet === 'fonctionnalites'} className={onglet === 'fonctionnalites' ? 'actif' : ''} onClick={() => setOnglet('fonctionnalites')}>
@@ -278,10 +282,10 @@ function FicheEtablissement({ etablissementId, onRetour, onSupprime, onNaviguer 
         />
       )}
       {onglet === 'informations' && (
-        <InformationsEcole etablissement={etablissement} onEnregistre={(e) => { setEtablissement(e); notifier('Informations de l’école enregistrées.'); }} />
+        <InformationsEcole etablissement={etablissement} onEnregistre={(e) => { setEtablissement((x) => ({ ...x, ...e })); notifier('Informations de l’école enregistrées.'); }} />
       )}
       {onglet === 'acces' && (
-        <AccesEcole etablissement={etablissement} onStatut={(e) => setEtablissement(e)} onSupprime={onSupprime} notifier={notifier} />
+        <AccesEcole etablissement={etablissement} onStatut={(e) => setEtablissement((x) => ({ ...x, ...e }))} onSupprime={onSupprime} notifier={notifier} />
       )}
 
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}

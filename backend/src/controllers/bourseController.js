@@ -1,12 +1,12 @@
 const XLSX = require('xlsx');
-const { Eleve, Classe, DossierBourse, PieceBourse, Utilisateur, Notification, Semestre } = require('../models');
+const { Op } = require('sequelize');
+const { Eleve, Classe, DossierBourse, PieceBourse, Semestre } = require('../models');
 const { sha256 } = require('../utils/chiffrement');
-const { journaliserAudit } = require('../services/auditService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 
 // Dossier de bourse ANBG (Agence nationale des bourses du Gabon) :
-// l'étudiant (ou son parent) téléverse ses pièces, l'Académie les examine,
-// valide le dossier et exporte la liste des boursiers pour l'agence.
+// l'étudiant prépare son dossier et l'envoie à l'agence.
+// L'Académie ne voit que la liste de ses boursiers (et son export Excel).
 
 const TYPES = {
   piece_identite: { libelle: "Pièce d'identité (CNI ou passeport)", obligatoire: true },
@@ -19,7 +19,6 @@ const TYPES = {
 };
 const TAILLE_MAX = 5 * 1024 * 1024;
 const PIECES_MAX = 20;
-const nomAgent = (u) => `${u.prenom} ${u.nom}`.trim();
 
 // Type réel du fichier, lu dans ses premiers octets (jamais d'après le nom
 // ou l'en-tête envoyé par le navigateur) : PDF, PNG ou JPEG seulement.
@@ -63,13 +62,6 @@ async function eleveDuCompte(req) {
   return eleve;
 }
 
-async function eleveDeLEcole(req) {
-  const eleve = await Eleve.findOne({ where: { id: Number(req.params.eleveId), etablissementId: req.utilisateur.etablissementId }, include: [Classe] });
-  if (!eleve) throw Object.assign(new Error('étudiant introuvable'), { status: 404 });
-  return eleve;
-}
-
-// Enregistre une pièce reçue en binaire (corps de la requête).
 async function enregistrerPiece(req, eleve, origine) {
   const type = String(req.query.type || '');
   if (!TYPES[type]) throw Object.assign(new Error('type de pièce inconnu'), { status: 400 });
@@ -161,21 +153,16 @@ async function soumettre(req, res) {
   const vue = await vueDossier(dossier);
   if (vue.completude.manquants.length) return res.status(400).json({ erreur: `pièces manquantes : ${vue.completude.manquants.join(', ')}` });
   if (!dossier.numeroBoursier) return res.status(400).json({ erreur: 'indiquez votre numéro de boursier ANBG' });
-  if (['soumis', 'valide'].includes(dossier.statut)) return res.status(409).json({ erreur: 'dossier déjà transmis' });
+  if (['soumis', 'valide'].includes(dossier.statut)) return res.status(409).json({ erreur: 'dossier déjà envoyé à l’ANBG' });
   await dossier.update({ statut: 'soumis', soumisLe: new Date() });
-  const academies = await Utilisateur.findAll({ where: { etablissementId: dossier.etablissementId, role: 'academie' }, attributes: ['id'] });
-  const eleve = await Eleve.findByPk(dossier.eleveId, { attributes: ['nom', 'prenom'] });
-  await Notification.bulkCreate(academies.map((u) => ({ utilisateurId: u.id, dateEnvoi: new Date(), contenu: `Dossier de bourse ANBG soumis : ${eleve.prenom} ${eleve.nom}.` }))).catch(() => {});
   return res.json(await vueDossier(dossier));
 }
 
-// Téléchargement d'une pièce : l'étudiant pour son dossier, l'Académie pour
-// son école. Toujours en pièce jointe, jamais interprété par le navigateur.
+// Téléchargement d'une pièce, par l'étudiant seulement. Toujours en pièce
+// jointe, jamais interprété par le navigateur.
 async function telechargerPiece(req, res) {
   const piece = await PieceBourse.scope('avecContenu').findByPk(req.params.id);
-  let autorise = false;
-  if (piece && req.utilisateur.role === 'academie') autorise = piece.etablissementId === req.utilisateur.etablissementId;
-  if (piece && req.utilisateur.role === 'etudiant') autorise = Boolean(await Eleve.count({ where: { id: piece.eleveId, compteEtudiantId: req.utilisateur.id } }));
+  const autorise = Boolean(piece) && Boolean(await Eleve.count({ where: { id: piece.eleveId, compteEtudiantId: req.utilisateur.id } }));
   if (!autorise) return res.status(404).json({ erreur: 'pièce introuvable' });
   res.set({
     'Content-Type': piece.mime, 'Content-Disposition': `attachment; filename="${piece.nomFichier}"`, 'Access-Control-Expose-Headers': 'Content-Disposition',
@@ -187,83 +174,46 @@ async function telechargerPiece(req, res) {
 // ---------------------------------------------------------------------------
 // Académie
 // ---------------------------------------------------------------------------
-async function listerDossiers(req, res) {
-  const where = { etablissementId: req.utilisateur.etablissementId };
-  if (['incomplet', 'soumis', 'a_corriger', 'valide'].includes(req.query.statut)) where.statut = req.query.statut;
-  const dossiers = await DossierBourse.findAll({ where, include: [{ model: Eleve, include: [Classe] }], order: [['updatedAt', 'DESC']] });
-  const pieces = await PieceBourse.findAll({ where: { dossierId: dossiers.map((d) => d.id) }, attributes: ['dossierId', 'type', 'statut'] });
-  const totaux = await DossierBourse.count({ where: { etablissementId: req.utilisateur.etablissementId }, group: ['statut'] });
-  return res.json({
-    dossiers: dossiers.map((d) => {
-      const p = pieces.filter((x) => x.dossierId === d.id);
-      return {
-        eleveId: d.eleveId, nom: d.Eleve?.nom, prenom: d.Eleve?.prenom, matricule: d.Eleve?.matricule, classe: d.Eleve?.Classe?.nom || '',
-        numeroBoursier: d.numeroBoursier, statut: d.statut, soumisLe: d.soumisLe, pieces: p.length, aExaminer: p.filter((x) => x.statut === 'depose').length,
-        completude: completude(p),
-      };
-    }),
-    totaux: Object.fromEntries(totaux.map((t) => [t.statut, Number(t.count)])),
+// Boursiers de l'établissement : étudiants ayant renseigné un numéro de
+// boursier ANBG. Ni pièces ni décision : l'Académie consulte, c'est tout.
+async function listerBoursiers(req, res) {
+  const dossiers = await DossierBourse.findAll({
+    where: { etablissementId: req.utilisateur.etablissementId, numeroBoursier: { [Op.ne]: null } },
+    include: [{ model: Eleve, include: [Classe] }],
+    order: [[Eleve, 'nom', 'ASC'], [Eleve, 'prenom', 'ASC']],
   });
-}
-
-async function dossierEtudiant(req, res) {
-  const eleve = await eleveDeLEcole(req);
-  const vue = await vueDossier(await dossierDe(eleve));
-  return res.json({ ...vue, eleve: { id: eleve.id, nom: eleve.nom, prenom: eleve.prenom, matricule: eleve.matricule, classe: eleve.Classe?.nom || '' } });
-}
-
-async function deposerPourEtudiant(req, res) {
-  const eleve = await eleveDeLEcole(req);
-  const piece = await enregistrerPiece(req, eleve, 'academie');
-  return res.status(201).json({ piece: { ...piece.toJSON(), contenu: undefined } });
-}
-
-async function examinerPiece(req, res) {
-  const piece = await PieceBourse.findOne({ where: { id: req.params.id, etablissementId: req.utilisateur.etablissementId } });
-  if (!piece) return res.status(404).json({ erreur: 'pièce introuvable' });
-  const { statut, commentaire } = req.body || {};
-  if (!['valide', 'refuse'].includes(statut)) return res.status(400).json({ erreur: 'décision invalide' });
-  if (statut === 'refuse' && String(commentaire || '').trim().length < 5) return res.status(400).json({ erreur: "indiquez à l'étudiant ce qui ne va pas" });
-  await piece.update({ statut, commentaire: commentaire ? String(commentaire).trim().slice(0, 400) : null, examineParNom: nomAgent(req.utilisateur), examineLe: new Date() });
-  return res.json({ piece });
-}
-
-async function deciderDossier(req, res) {
-  const eleve = await eleveDeLEcole(req);
-  const dossier = await dossierDe(eleve);
-  const { statut, observations } = req.body || {};
-  if (!['valide', 'a_corriger'].includes(statut)) return res.status(400).json({ erreur: 'décision invalide' });
-  const vue = await vueDossier(dossier);
-  if (statut === 'valide' && vue.completude.valides < vue.completude.obligatoires) return res.status(400).json({ erreur: 'validez d’abord chaque pièce obligatoire' });
-  if (statut === 'a_corriger' && String(observations || '').trim().length < 5) return res.status(400).json({ erreur: 'précisez les corrections attendues' });
-  await dossier.update({ statut, observations: observations || null, ...(statut === 'valide' && { valideLe: new Date(), valideParNom: nomAgent(req.utilisateur) }) });
-  if (eleve.compteEtudiantId) {
-    await Notification.create({
-      utilisateurId: eleve.compteEtudiantId, dateEnvoi: new Date(),
-      contenu: statut === 'valide' ? 'Votre dossier de bourse ANBG est validé par l’établissement.' : `Dossier de bourse ANBG à corriger : ${String(observations).trim()}`.slice(0, 250),
-    }).catch(() => {});
-  }
-  await journaliserAudit(req, { action: 'dossier_bourse', cible: eleve.matricule || String(eleve.id), details: { statut } });
-  return res.json(await vueDossier(dossier));
+  return res.json({
+    boursiers: dossiers.filter((d) => d.Eleve && String(d.numeroBoursier).trim()).map((d) => ({
+      eleveId: d.eleveId, nom: d.Eleve.nom, prenom: d.Eleve.prenom, matricule: d.Eleve.matricule,
+      classe: d.Eleve.Classe?.nom || '', niveau: d.Eleve.Classe?.niveau || '',
+      numeroBoursier: d.numeroBoursier, envoye: ['soumis', 'valide'].includes(d.statut), envoyeLe: d.soumisLe,
+    })),
+  });
 }
 
 // Liste des boursiers à transmettre à l'ANBG (Excel).
 async function exporter(req, res) {
-  const dossiers = await DossierBourse.findAll({ where: { etablissementId: req.utilisateur.etablissementId }, include: [{ model: Eleve, include: [Classe] }], order: [['statut', 'ASC']] });
+  const dossiers = (await DossierBourse.findAll({
+    where: { etablissementId: req.utilisateur.etablissementId, numeroBoursier: { [Op.ne]: null } },
+    include: [{ model: Eleve, include: [Classe] }],
+    order: [[Eleve, 'nom', 'ASC'], [Eleve, 'prenom', 'ASC']],
+  })).filter((d) => d.Eleve);
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
-  const LIB = { incomplet: 'Incomplet', soumis: 'Soumis', a_corriger: 'À corriger', valide: 'Validé' };
+
   const lignes = dossiers.map((d) => ({
     'N° boursier ANBG': d.numeroBoursier || '', Matricule: d.Eleve?.matricule || '', Nom: d.Eleve?.nom || '', 'Prénom': d.Eleve?.prenom || '',
     'Date de naissance': d.Eleve?.dateNaissance || '', Classe: d.Eleve?.Classe?.nom || '', Niveau: d.Eleve?.Classe?.niveau || '',
-    'Établissement': etablissement.nom, 'Statut du dossier': LIB[d.statut], 'Validé le': d.valideLe ? new Date(d.valideLe).toLocaleDateString('fr-FR') : '',
+    'Établissement': etablissement.nom,
+    'Dossier ANBG': ['soumis', 'valide'].includes(d.statut) ? 'Envoyé' : 'En préparation',
+    'Envoyé le': d.soumisLe ? new Date(d.soumisLe).toLocaleDateString('fr-FR') : '',
   }));
   const classeur = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(classeur, XLSX.utils.json_to_sheet(lignes.length ? lignes : [{ 'N° boursier ANBG': 'Aucun dossier' }]), 'Boursiers ANBG');
+  XLSX.utils.book_append_sheet(classeur, XLSX.utils.json_to_sheet(lignes.length ? lignes : [{ 'N° boursier ANBG': 'Aucun boursier' }]), 'Boursiers ANBG');
   res.set({ 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="boursiers-anbg-${new Date().toISOString().slice(0, 10)}.xlsx"`, 'Access-Control-Expose-Headers': 'Content-Disposition' });
   return res.send(XLSX.write(classeur, { type: 'buffer', bookType: 'xlsx' }));
 }
 
 module.exports = {
   monDossier, majMonDossier, deposerMaPiece, genererPiece, retirerMaPiece, soumettre, telechargerPiece,
-  listerDossiers, dossierEtudiant, deposerPourEtudiant, examinerPiece, deciderDossier, exporter, TYPES,
+  listerBoursiers, exporter, TYPES,
 };

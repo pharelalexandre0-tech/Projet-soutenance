@@ -29,8 +29,9 @@ function onglets(parent) {
       description: 'Attestations de scolarité, d’inscription et de réussite, relevé de notes officiel : certifiés par QR code.' },
     { id: 'reclamations', label: 'Réclamations', icone: IconMessage, groupe: dossier,
       description: 'Contester une note de façon motivée et suivre la réponse de l’établissement.' },
-    { id: 'bourse', label: 'Bourse ANBG', icone: IconGraduationCap, groupe: dossier,
-      description: parent ? 'Dossier de bourse ANBG de votre enfant : pièces à téléverser et suivi.' : 'Ton dossier de bourse ANBG : pièces à téléverser, transmission et suivi.' },
+    // Le dossier ANBG est celui de l'étudiant : le parent ne le voit pas.
+    ...(parent ? [] : [{ id: 'bourse', label: 'Bourse ANBG', icone: IconGraduationCap, groupe: dossier,
+      description: 'Ton dossier de bourse ANBG : pièces à téléverser et envoi à l’agence.' }]),
     { id: 'comportement', label: 'Comportement', icone: IconFlag, groupe: dossier,
       description: 'Incidents de comportement signalés par l’établissement.' },
     { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, groupe: 'Vie scolaire', fonctionnalite: 'emplois-du-temps',

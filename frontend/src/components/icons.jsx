@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, PenLine, KeyRound, Mail, Lock, CalendarX2, Banknote, CreditCard, TriangleAlert,
   Wallet, FileText, MessagesSquare, LogOut, Building2, Settings, Menu, GraduationCap, BookOpen, X, Search,
   Download, MapPin, Blocks, RefreshCw, Megaphone, History, Bell, Wrench, CalendarDays, Check, Layers,
-  TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, Plus, ExternalLink,
+  TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, ChevronDown, Plus, ExternalLink,
   Link2, Library, Video, Globe, Trash2, Pencil, Info, Send, Calendar, Newspaper, LifeBuoy, Briefcase, Award,
   Bus, Utensils, HandCoins, ArrowLeft, Database, Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye,
   EyeOff, Upload, UserPlus, Copy, School, Flag, Sparkles, Bot, Inbox, Table2, MessageCircleQuestion, ListChecks,
@@ -61,6 +61,7 @@ export const IconClipboard = avecTrait(ClipboardList);
 export const IconShield = avecTrait(ShieldCheck);
 export const IconUserCog = avecTrait(UserCog);
 export const IconChevronRight = avecTrait(ChevronRight);
+export const IconChevronDown = avecTrait(ChevronDown);
 export const IconPlus = avecTrait(Plus);
 export const IconExternal = avecTrait(ExternalLink);
 export const IconTrash = avecTrait(Trash2);

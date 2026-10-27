@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import {
-  IconLogout, IconSettings, IconSearch, IconBell, IconSparkles,
+  IconLogout, IconSettings, IconSearch, IconBell, IconSparkles, IconChevronDown,
   IconeFonctionnalite,
 } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
@@ -249,21 +249,11 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
               <kbd>Ctrl K</kbd>
             </button>
             {boutonNouveautes}
-            <div className="classeur-compte">
-              <div className="avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
-              <div className="profil-info">
-                <strong>{profil?.modeParent ? `Parent de ${profil.prenom}` : `${profil?.prenom ?? ''} ${profil?.nom ?? ''}`}</strong>
-                <small>{profil?.modeParent ? profil.emailParent : profil?.email}</small>
-              </div>
-              {profil?.role !== 'superadmin' && (
-                <button className="bouton-parametres-compte" onClick={() => setCompteOuvert(true)} title="Mon compte" aria-label="Mon compte">
-                  <IconSettings width={17} height={17} />
-                </button>
-              )}
-              <button className="bouton-deconnexion" onClick={seDeconnecter} title="Se déconnecter" aria-label="Se déconnecter">
-                <IconLogout width={17} height={17} />
-              </button>
-            </div>
+            <MenuCompte
+              profil={profil}
+              onMonCompte={() => (profil?.role === 'superadmin' ? onChange('profil') : setCompteOuvert(true))}
+              onDeconnexion={seDeconnecter}
+            />
           </div>
         </div>
         {/* Rubriques : un onglet de classeur par groupe de pages. */}
@@ -345,6 +335,46 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
       {compteOuvert && <ModaleMonCompte onFermer={() => setCompteOuvert(false)} />}
       {nouveautesOuvertes && <ModaleNouveautes nouveautes={etatPlateforme?.nouveautes || []} onFermer={fermerNouveautes} />}
       {notificationsOuvertes && <TiroirNotifications notifications={notifications?.notifications || []} onFermer={fermerNotifications} />}
+    </div>
+  );
+}
+
+// Compte connecté dans l'en-tête : un bouton sobre (initiales et prénom)
+// qui ouvre un petit menu avec l'identité complète et les actions.
+function MenuCompte({ profil, onMonCompte, onDeconnexion }) {
+  const [ouvert, setOuvert] = useState(false);
+  const zone = useRef(null);
+  useEffect(() => {
+    if (!ouvert) return undefined;
+    const fermer = (e) => { if (!zone.current?.contains(e.target)) setOuvert(false); };
+    const echap = (e) => { if (e.key === 'Escape') setOuvert(false); };
+    document.addEventListener('mousedown', fermer);
+    document.addEventListener('keydown', echap);
+    return () => { document.removeEventListener('mousedown', fermer); document.removeEventListener('keydown', echap); };
+  }, [ouvert]);
+  const nom = profil?.modeParent ? `Parent de ${profil.prenom}` : `${profil?.prenom ?? ''} ${profil?.nom ?? ''}`.trim();
+  const email = profil?.modeParent ? profil.emailParent : profil?.email;
+  return (
+    <div className="menu-compte" ref={zone}>
+      <button type="button" className="menu-compte-bouton" aria-haspopup="menu" aria-expanded={ouvert} onClick={() => setOuvert((o) => !o)}>
+        <span className="menu-compte-avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</span>
+        <span className="menu-compte-prenom">{profil?.modeParent ? 'Parent' : profil?.prenom}</span>
+        <IconChevronDown aria-hidden="true" />
+      </button>
+      {ouvert && (
+        <div className="menu-compte-panneau" role="menu">
+          <div className="menu-compte-identite">
+            <span className="menu-compte-avatar grand" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</span>
+            <span><strong>{nom}</strong><small>{email}</small></span>
+          </div>
+          <button type="button" role="menuitem" onClick={() => { setOuvert(false); onMonCompte(); }}>
+            <IconSettings aria-hidden="true" /> {profil?.role === 'superadmin' ? 'Mon profil' : 'Mon compte'}
+          </button>
+          <button type="button" role="menuitem" className="danger" onClick={onDeconnexion}>
+            <IconLogout aria-hidden="true" /> Se déconnecter
+          </button>
+        </div>
+      )}
     </div>
   );
 }

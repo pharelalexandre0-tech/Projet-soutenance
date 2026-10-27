@@ -7,10 +7,10 @@ import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 import { IconInfo, IconSend } from '../../components/icons';
 
-const STATUTS = { incomplet: ['En préparation', 'gris'], soumis: ['Transmis à l’établissement', 'bleu'], a_corriger: ['À corriger', 'rouge'], valide: ['Validé par l’établissement', 'vert'] };
+const STATUTS = { incomplet: ['En préparation', 'gris'], soumis: ['Envoyé à l’ANBG', 'vert'], a_corriger: ['En préparation', 'gris'], valide: ['Envoyé à l’ANBG', 'vert'] };
 
 // Dossier de bourse ANBG de l'étudiant (ou de son enfant, pour le parent) :
-// numéro de boursier, pièces à téléverser, transmission à l'établissement.
+// numéro de boursier, pièces à téléverser, envoi à l'agence.
 export default function BourseANBG() {
   const [vue, setVue] = useState(null);
   const [numero, setNumero] = useState('');
@@ -39,7 +39,7 @@ export default function BourseANBG() {
   async function soumettre() {
     setVue((await client.post('/bourse/moi/soumettre')).data);
     setConfirmer(false);
-    setToast({ message: 'Dossier transmis au service de la scolarité', type: 'succes' });
+    setToast({ message: 'Dossier envoyé à l’ANBG', type: 'succes' });
   }
 
   return (
@@ -54,15 +54,13 @@ export default function BourseANBG() {
       <div className="stats-grid">
         <div className="stat-tile"><div className="stat-tile-haut"><span className="libelle">Statut du dossier</span></div><div className="valeur valeur-montant"><span className={`badge ${STATUTS[d.statut][1]}`}>{STATUTS[d.statut][0]}</span></div></div>
         <div className="stat-tile"><div className="stat-tile-haut"><span className="libelle">Pièces obligatoires fournies</span></div><div className="valeur">{c.presents}<small className="valeur-unite">/{c.obligatoires}</small></div></div>
-        <div className="stat-tile"><div className="stat-tile-haut"><span className="libelle">Pièces validées</span></div><div className="valeur">{c.valides}<small className="valeur-unite">/{c.obligatoires}</small></div></div>
       </div>
-      {d.statut === 'a_corriger' && d.observations && <div className="message-erreur" style={{ marginBottom: 20 }}>Corrections demandées : {d.observations}</div>}
       <section className="carte">
         <div className="entete-carte">
           <h2>Dossier de bourse ANBG</h2>
           {modifiable && (
             <button type="button" className="primaire" disabled={c.manquants.length > 0 || !d.numeroBoursier} onClick={() => setConfirmer(true)}>
-              <IconSend /> Transmettre le dossier
+              <IconSend /> Envoyer à l’ANBG
             </button>
           )}
         </div>
@@ -88,8 +86,8 @@ export default function BourseANBG() {
         </ConfirmModal>
       )}
       {confirmer && (
-        <ConfirmModal titre="Transmettre le dossier" boutonConfirmer="Transmettre" boutonEnCours="Envoi…" onConfirmer={() => soumettre().catch((e) => { setConfirmer(false); setToast({ message: messageErreur(e, 'transmission impossible'), type: 'erreur' }); })} onAnnuler={() => setConfirmer(false)}>
-          Le service de la scolarité examinera vos pièces. Vous ne pourrez plus les modifier, sauf s’il vous demande une correction.
+        <ConfirmModal titre="Envoyer le dossier à l’ANBG" boutonConfirmer="Envoyer" boutonEnCours="Envoi…" onConfirmer={() => soumettre().catch((e) => { setConfirmer(false); setToast({ message: messageErreur(e, 'transmission impossible'), type: 'erreur' }); })} onAnnuler={() => setConfirmer(false)}>
+          Votre dossier complet part à l’Agence nationale des bourses du Gabon. Vous ne pourrez plus modifier les pièces après l’envoi.
         </ConfirmModal>
       )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}

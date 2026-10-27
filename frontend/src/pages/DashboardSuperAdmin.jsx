@@ -38,7 +38,7 @@ const ONGLETS = [
   { id: 'ministere', label: 'Comptes Ministère', composant: ComptesMinistere, icone: IconBuilding, groupe: 'Administration',
     description: 'Agents du Ministère de l’Enseignement supérieur : accès à la vue nationale, aux agréments et aux circulaires.' },
   { id: 'profil', label: 'Mon profil', composant: MonProfil, icone: IconUserCog, groupe: 'Administration',
-    description: 'Tes informations et ton mot de passe.' },
+    description: 'Vos informations, votre mot de passe, la sécurité du compte et votre activité.' },
 ];
 
 export default function DashboardSuperAdmin() {
