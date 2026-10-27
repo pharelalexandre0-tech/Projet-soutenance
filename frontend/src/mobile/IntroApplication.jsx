@@ -5,11 +5,12 @@ import FilOuverture from '../components/FilOuverture';
 import logoIcon from '../assets/logo-icon.png';
 
 const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
-const DUREE_MS = 3200;
+const DUREE_MS = 3600;
 
 // Animation d'ouverture de l'application Android : le motif tissé
-// d'EduSphere remplit l'écran case par case, puis un petit cartouche (logo,
-// nom, fil de chargement) se pose au centre. Un toucher passe l'animation.
+// d'EduSphere remplit l'écran case par case, puis remonte en bande comme sur
+// l'écran de connexion ; le logo, le nom et le fil apparaissent sur le papier
+// clair dessous (jamais dans un encadré). Un toucher passe l'animation.
 export default function IntroApplication({ onTermine }) {
   const [depart, setDepart] = useState(false);
   const fini = useRef(false);
@@ -33,8 +34,8 @@ export default function IntroApplication({ onTermine }) {
 
   return (
     <div className={`intro-app ${depart ? 'depart' : ''}`} onClick={terminer} aria-hidden="true">
-      <Tissage colonnes={6} lignes={12} className="intro-tissage" />
-      <div className="intro-cartouche">
+      <div className="intro-motif"><Tissage colonnes={6} lignes={12} className="intro-tissage" /></div>
+      <div className="intro-papier">
         <span className="intro-logo"><img src={logoIcon} alt="" /></span>
         <strong className="intro-nom">EduSphere</strong>
         <span className="intro-sous-titre">Enseignement supérieur · Gabon</span>

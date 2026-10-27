@@ -1,48 +1,48 @@
 /* Animation d'ouverture de l'application Android (voir IntroApplication.jsx) :
-   le motif tissé se forme sur tout l'écran, puis un cartouche marine se pose.
-   L'écran natif d'Android qui la précède a le même fond marine. */
+   le motif tissé se forme sur tout l'écran, puis remonte en bande et laisse
+   le papier clair, où se posent le logo, le nom et le fil. Pas d'encadré. */
 .intro-app {
   position: fixed; inset: 0; z-index: 500;
-  display: grid; place-items: center;
-  background: #0B1E3D; overflow: hidden;
-  transition: opacity .45s ease, transform .45s ease;
+  background: #FBFBF8; overflow: hidden;
+  transition: opacity .45s ease;
 }
-.intro-app.depart { opacity: 0; transform: scale(1.03); }
+.intro-app.depart { opacity: 0; }
 
-/* Cases plus rapides que sur la connexion : tout l'écran en 1,2 s environ. */
-.intro-tissage { position: absolute; inset: 0; }
+/* Le motif garde la taille de l'écran : la bande le recadre sans l'écraser. */
+.intro-motif {
+  position: absolute; top: 0; left: 0; right: 0; height: 100%; overflow: hidden; background: #0B1E3D;
+  animation: intro-motif-remonte .7s cubic-bezier(.65, 0, .35, 1) 1.35s both;
+}
+@keyframes intro-motif-remonte { from { height: 100%; } to { height: 32%; } }
+.intro-tissage { position: absolute; top: 0; left: 0; right: 0; height: 100vh; }
 .intro-tissage .maille { animation-duration: .45s; animation-delay: calc(.05s + var(--delai) * .9); }
 
-/* Cartouche : petit, marine, filet doré, comme l'étiquette d'une natte. */
-.intro-cartouche {
-  position: relative; z-index: 1; width: min(78vw, 300px); padding: 26px 22px 22px;
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  background: #0B1E3D; border-top: 4px solid #F0AD2E; color: #fff;
-  box-shadow: 0 28px 60px -20px rgba(0, 0, 0, .7);
-  animation: intro-cartouche .55s cubic-bezier(.2, .8, .2, 1) 1.35s both;
-}
-@keyframes intro-cartouche {
-  from { opacity: 0; transform: translateY(18px) scale(.94); }
-  to { opacity: 1; transform: none; }
+.intro-papier {
+  position: absolute; left: 0; right: 0; top: 32%; bottom: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 24px 8%;
+  text-align: center; color: #0B1E3D;
 }
 .intro-logo {
-  width: 64px; height: 64px; padding: 6px; border-radius: 14px; background: #fff;
-  display: grid; place-items: center;
+  width: 64px; height: 64px; padding: 6px; border-radius: 14px; background: #fff; border: 1px solid #E3E6EC;
+  display: grid; place-items: center; animation: intro-monte .5s cubic-bezier(.2, .8, .2, 1) 1.9s both;
 }
 .intro-logo img { width: 100%; height: 100%; object-fit: contain; }
 .intro-nom {
-  margin-top: 14px; font-family: var(--police-serif, 'Source Serif 4', Georgia, serif);
-  font-size: 1.9rem; font-weight: 700; letter-spacing: -.02em; line-height: 1.05;
+  margin-top: 16px; font-family: var(--police-serif, 'Source Serif 4', Georgia, serif);
+  font-size: 2.1rem; font-weight: 700; letter-spacing: -.025em; line-height: 1.05;
+  animation: intro-monte .5s cubic-bezier(.2, .8, .2, 1) 2.05s both;
 }
 .intro-sous-titre {
-  margin-top: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #F0AD2E;
+  margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #157A8C;
+  animation: intro-monte .5s ease 2.2s both;
 }
-.intro-cartouche .fil-ouverture { width: 120px; margin-top: 18px; animation-delay: 1.7s; }
-.intro-cartouche .fil-ouverture .brin.bleu { animation-delay: 1.8s; }
-.intro-cartouche .fil-ouverture .brin.teal { animation-delay: 1.95s; }
-.intro-cartouche .fil-ouverture .brin.vert { animation-delay: 2.1s; }
-.intro-cartouche .fil-ouverture .brin.or { animation-delay: 2.25s; }
+@keyframes intro-monte { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.intro-papier .fil-ouverture { width: 130px; margin-top: 22px; animation-delay: 2.3s; }
+.intro-papier .fil-ouverture .brin.bleu { animation-delay: 2.35s; }
+.intro-papier .fil-ouverture .brin.teal { animation-delay: 2.5s; }
+.intro-papier .fil-ouverture .brin.vert { animation-delay: 2.65s; }
+.intro-papier .fil-ouverture .brin.or { animation-delay: 2.8s; }
 
 @media (prefers-reduced-motion: reduce) {
-  .intro-app *, .intro-cartouche { animation-duration: .01s !important; animation-delay: 0s !important; }
+  .intro-app *, .intro-motif { animation-duration: .01s !important; animation-delay: 0s !important; }
 }
