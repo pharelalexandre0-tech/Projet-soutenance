@@ -25,7 +25,8 @@ const DUREE_VERROU_MIN = 15;
 
 // Étudiant (ou son parent) : code à 6 chiffres envoyé par e-mail.
 // Personnel (Académie, Finance, Superadmin) : application d'authentification
-// (TOTP), obligatoire, avec codes de secours.
+// (TOTP), facultative : par défaut le personnel reçoit, comme les
+// étudiants, un code à 6 chiffres par e-mail. Plus simple pour tous.
 const ROLES_AVEC_2FA = ['etudiant'];
 const ROLES_TOTP = ['superadmin', 'academie', 'finance', 'ministere'];
 
@@ -169,7 +170,8 @@ async function seConnecter(req, res) {
     if (maintenance) return repondreMaintenance(res, maintenance);
   }
 
-  if (ROLES_AVEC_2FA.includes(utilisateur.role)) {
+  const parApplication = ROLES_TOTP.includes(utilisateur.role) && utilisateur.totpActif;
+  if (ROLES_AVEC_2FA.includes(utilisateur.role) || (ROLES_TOTP.includes(utilisateur.role) && !parApplication)) {
     // Le code part à l'adresse saisie : celle de l'étudiant, ou celle de
     // son parent. Seule son empreinte est gardée en base.
     const destinataire = parent ? connexion.emailParent : utilisateur.email;
@@ -195,12 +197,11 @@ async function seConnecter(req, res) {
     return res.json({ doubleFacteurRequis: true, utilisateurId: utilisateur.id, delaiRenvoi: DELAI_RENVOI_S, ...(adresseDeTest(destinataire) && { codeDemonstration: code }) });
   }
 
-  if (ROLES_TOTP.includes(utilisateur.role)) {
-    const etape = utilisateur.totpActif ? 'totp' : 'totp-configuration';
+  if (parApplication) {
     return res.json({
       applicationRequise: true,
-      configurationRequise: !utilisateur.totpActif,
-      jetonEtape: signEtape({ id: utilisateur.id, etape }),
+      configurationRequise: false,
+      jetonEtape: signEtape({ id: utilisateur.id, etape: 'totp' }),
       prenom: utilisateur.prenom,
     });
   }
@@ -415,8 +416,9 @@ async function securite(req, res) {
   });
   return res.json({
     doubleFacteur: {
-      type: ROLES_TOTP.includes(compte.role) ? 'application' : 'email',
-      actif: ROLES_TOTP.includes(compte.role) ? compte.totpActif : true,
+      type: ROLES_TOTP.includes(compte.role) && compte.totpActif ? 'application' : 'email',
+      actif: true,
+      applicationPossible: ROLES_TOTP.includes(compte.role),
       activeLe: compte.totpActiveLe,
       codesSecoursRestants: (compte.totpCodesSecours || []).length,
     },
@@ -484,6 +486,23 @@ async function activerTotpCompte(req, res) {
   await revoquerSessions(compte.id, { sauf: req.session.id, motif: "changement d'application d'authentification" });
   await journaliserAudit(req, { action: 'double_facteur_reconfigure', cible: compte.email });
   return res.json({ codesSecours });
+}
+
+// Retour au code par e-mail : mot de passe actuel exigé.
+async function desactiverTotpCompte(req, res) {
+  if (!ROLES_TOTP.includes(req.utilisateur.role)) return res.status(403).json({ erreur: 'réservé au personnel' });
+  const compte = await Utilisateur.scope('avecMotDePasse').findByPk(req.utilisateur.id);
+  if (!req.body.motDePasse || !(await bcrypt.compare(req.body.motDePasse, compte.motDePasse))) {
+    return res.status(400).json({ erreur: 'mot de passe actuel incorrect' });
+  }
+  compte.totpActif = false;
+  compte.totpSecret = null;
+  compte.totpSecretEnAttente = null;
+  compte.totpCodesSecours = null;
+  compte.totpDernierPas = null;
+  await compte.save();
+  await journaliserAudit(req, { action: 'double_facteur_email', cible: compte.email });
+  return res.json({ ok: true });
 }
 
 async function regenererCodesSecours(req, res) {
@@ -698,6 +717,7 @@ module.exports = {
   seDeconnecter,
   initialiserTotpCompte,
   activerTotpCompte,
+  desactiverTotpCompte,
   regenererCodesSecours,
   creerCompte,
   monProfil,

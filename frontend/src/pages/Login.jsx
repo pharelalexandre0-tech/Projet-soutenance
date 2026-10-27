@@ -6,7 +6,7 @@ import TransitionOuverture from '../components/TransitionOuverture';
 import SaisieCodeLiquide from '../components/SaisieCodeLiquide';
 import EtapeApplication from '../components/EtapeApplication';
 import Tissage from '../components/Tissage';
-import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconAlertTriangle, IconWrench, IconBuilding, IconGraduationCap, IconBook, IconShield } from '../components/icons';
+import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconAlertTriangle, IconWrench, IconShield } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
@@ -23,24 +23,12 @@ const DUREE_SUCCES_MS = 1800;
 // n'existe côté backend, une case à cocher qui ne fait rien n'a pas sa
 // place ici. "Mot de passe oublié" existe bien, lui (ReinitialiserMotDePasse.jsx).
 // Panneau tissé (moitié gauche) : motif de raphia aux couleurs d'EduSphere,
-// titre en grand dans un cartouche marine. Repéré par data-cible-demarrage :
-// l'écran de démarrage vient s'y poser.
+// sans texte. Repéré par data-cible-demarrage : l'écran de démarrage vient
+// s'y poser.
 function CarteBienvenue() {
   return (
     <div className="carte-bienvenue-blob tissage-acces" data-cible-demarrage>
       <Tissage colonnes={9} lignes={9} />
-      <div className="tissage-cartouche">
-        <div className="cartouche-marque">
-          <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-          <div>
-            <h1 className="marque-nom">EduSphere</h1>
-            <span className="cartouche-surtitre">Enseignement supérieur · Gabon</span>
-          </div>
-        </div>
-        <p className="bienvenue-texte">
-          Établissements, étudiants, familles et Ministère réunis sur une seule plateforme, sûre et disponible même hors ligne.
-        </p>
-      </div>
       {import.meta.env.MODE !== 'android' && (
         <div className="bienvenue-qr">
           <span className="bienvenue-qr-code"><img src={qrEduSphere} alt="QR code pour ouvrir EduSphere sur un téléphone" /></span>
@@ -311,7 +299,7 @@ export default function Login() {
           <div className="carte-formulaire-acces">
             <p className="acces-eyebrow">Étape 2</p>
             <h2>Vérification</h2>
-            <p className="connexion-aide">Un code à 6 chiffres vient d'être envoyé par e-mail. Saisis-le pour continuer.</p>
+            <p className="connexion-aide">Un code à 6 chiffres vient de vous être envoyé par e-mail. Saisissez-le pour continuer.</p>
             {attenteCode.codeDemonstration && (
               <p className="code-demonstration">Compte de démonstration (aucun e-mail réel) : code <strong>{attenteCode.codeDemonstration}</strong></p>
             )}
@@ -358,7 +346,10 @@ export default function Login() {
         <CarteBienvenue />
         <div className="carte-formulaire-acces carte-acces-principale">
           <div className="login-bandeau">
-            <span>Plateforme de l’enseignement supérieur</span>
+            <span className="login-marque">
+              <img src={logoIcon} alt="" />
+              <span><strong>EduSphere</strong><small>Enseignement supérieur · Gabon</small></span>
+            </span>
             <a href="/verifier"><IconShield aria-hidden="true" /> Vérifier un document</a>
           </div>
           <p className="acces-eyebrow">Espace sécurisé</p>
@@ -411,21 +402,6 @@ export default function Login() {
               Parent d'élève ? Connectez-vous avec votre adresse e-mail et le matricule de votre enfant.
             </p>
           </form>
-          {/* Qui se connecte, et comment : la page blanche guide chacun. */}
-          <ul className="espaces-acces" aria-label="Les espaces EduSphere">
-            <li>
-              <span className="espace-icone"><IconBuilding aria-hidden="true" /></span>
-              <span><strong>Personnel de l’établissement</strong>E-mail et mot de passe, puis le code de votre application d’authentification.</span>
-            </li>
-            <li>
-              <span className="espace-icone"><IconGraduationCap aria-hidden="true" /></span>
-              <span><strong>Étudiants et parents</strong>E-mail et matricule, puis un code reçu par e-mail.</span>
-            </li>
-            <li>
-              <span className="espace-icone"><IconBook aria-hidden="true" /></span>
-              <span><strong>Ministère de l’Enseignement supérieur</strong>Accès réservé aux agents habilités.</span>
-            </li>
-          </ul>
           <div className="login-pied">
             <span>© 2026 EduSphere · Libreville</span>
             <a href="/confidentialite">Politique de confidentialité</a>

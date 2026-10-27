@@ -3307,17 +3307,126 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; font-size: 12.5px; color: var(--texte-clair);
 }
 .login-pied a { color: var(--texte-clair); }
-.espaces-acces { list-style: none; margin: 22px 0 18px; padding: 0; display: flex; flex-direction: column; border-top: 1px solid var(--bordure); }
-.espaces-acces li { display: flex; gap: 14px; align-items: flex-start; padding: 9px 0; border-bottom: 1px solid var(--bordure); }
-.espaces-acces strong { display: block; color: var(--edu-marine); font-size: 14.5px; margin-bottom: 2px; }
-.espaces-acces span { font-size: 13.5px; line-height: 1.5; color: var(--texte-clair); }
-.espaces-acces .espace-icone { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--primaire-clair); color: var(--edu-bleu); }
-.espace-icone svg { width: 19px; height: 19px; }
-.espaces-acces li:nth-child(2) .espace-icone { background: var(--succes-fond); color: var(--edu-vert); }
-.espaces-acces li:nth-child(3) .espace-icone { background: var(--alerte-fond); color: var(--alerte); }
 @media (max-width: 900px) {
-  .login-bandeau span { display: none; }
   .login-bandeau { justify-content: flex-end; padding-bottom: 20px; }
   .tissage-cartouche .cartouche-marque .marque-pastille { width: 48px; height: 48px; }
   .cartouche-surtitre { font-size: 11px; }
 }
+
+/* --- Marque EduSphere (connexion et pages publiques) ------------------------ */
+.login-marque { display: inline-flex; align-items: center; gap: 12px; color: var(--edu-marine); text-decoration: none; min-width: 0; }
+.login-marque img { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--bordure); background: #fff; padding: 3px; object-fit: contain; flex: none; }
+.login-marque > span { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.login-marque strong { font-family: var(--police-serif); font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; color: var(--edu-marine); }
+.login-marque small { margin-top: 3px; font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--edu-teal); }
+.login-bandeau .login-marque > span { display: flex; }
+@media (max-width: 900px) {
+  .login-bandeau { justify-content: space-between; }
+  .login-bandeau .login-marque small { display: none; }
+  .carte-bienvenue-blob.tissage-acces { min-height: 150px; }
+}
+
+/* --- Saisie du code : six cases nettes, sans effet liquide ------------------- */
+.code-liquide.etat-saisie .code-liquide-bulles { filter: none; }
+.code-liquide.etat-saisie { --ecart: 10px; }
+.code-liquide.etat-saisie .bulle {
+  border-radius: 10px; background: #fff; border: 1.5px solid var(--bordure-controle);
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.code-liquide.etat-saisie .bulle.remplie { background: #fff; border-color: var(--edu-marine); }
+.code-liquide.etat-saisie .bulle.active { background: #fff; border-color: var(--edu-bleu); box-shadow: 0 0 0 3px color-mix(in srgb, var(--edu-bleu) 18%, transparent); transform: none; }
+
+/* --- Pages publiques : vérification et confidentialité ---------------------- */
+.page-publique { min-height: 100dvh; display: flex; flex-direction: column; background: #FBFBF8; color: var(--texte); }
+.pp-tissage { position: relative; height: 64px; flex: none; overflow: hidden; }
+.pp-cadre { flex: 1; width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); display: flex; flex-direction: column; }
+.pp-barre { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 22px 0; border-bottom: 1px solid var(--bordure); }
+.pp-retour { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--texte-clair); text-decoration: none; white-space: nowrap; }
+.pp-retour:hover { color: var(--edu-bleu); }
+.pp-retour svg { width: 16px; height: 16px; }
+.pp-titre { padding: clamp(36px, 6vw, 64px) 0 clamp(24px, 4vw, 36px); max-width: 760px; }
+.pp-titre .acces-eyebrow { margin: 0 0 12px; }
+.pp-titre h1 { margin: 0; font-family: var(--police-serif); font-weight: 700; font-size: clamp(2.3rem, 5vw, 3.6rem); line-height: 1.05; letter-spacing: -.025em; color: var(--edu-marine); text-wrap: balance; }
+.pp-introduction { margin: 18px 0 0; font-size: 1.08rem; line-height: 1.65; color: var(--texte-clair); max-width: 62ch; text-wrap: pretty; }
+.pp-corps { flex: 1; display: flex; flex-direction: column; gap: 20px; padding-bottom: 56px; }
+.pp-pied { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 20px; padding: 18px 0 26px; border-top: 1px solid var(--bordure); font-size: 13px; color: var(--texte-clair); }
+.pp-pied-liens { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+.pp-pied a { color: var(--texte-clair); }
+.pp-pied a:hover { color: var(--edu-bleu); }
+
+/* Vérifier : la saisie à gauche, un exemple de document à droite */
+.verif-accueil-grille { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); align-items: start; }
+.page-publique .verif-saisie .verif-aide { margin: 18px 0 0; font-size: 14.5px; }
+.page-publique .verif-formulaire label { font-size: 12px; letter-spacing: .1em; margin-bottom: 4px; }
+.page-publique .verif-formulaire-ligne { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; flex-wrap: nowrap; }
+.page-publique .verif-formulaire input {
+  height: 64px; padding: 0 2px; border: none; border-bottom: 2px solid var(--bordure-controle); border-radius: 0; background: transparent; box-shadow: none;
+  font-family: var(--police-mono); font-size: clamp(1.3rem, 3vw, 1.7rem); letter-spacing: .12em; color: var(--edu-marine);
+}
+.page-publique .verif-formulaire input:focus { outline: none; border-bottom-color: var(--edu-bleu); box-shadow: none; }
+.page-publique .verif-formulaire .bouton-connexion { width: auto; height: 56px; padding: 0 26px; display: inline-flex; align-items: center; gap: 10px; }
+.page-publique .verif-formulaire .bouton-connexion:disabled { opacity: .45; cursor: not-allowed; }
+.verif-exemple { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.verif-exemple-feuille {
+  width: min(100%, 300px); aspect-ratio: 210 / 200; padding: 26px 24px 20px; background: #fff;
+  border: 1px solid var(--bordure); box-shadow: 0 18px 40px -24px rgba(11, 30, 61, .35);
+  display: flex; flex-direction: column; gap: 10px; transform: rotate(-2deg);
+}
+.verif-exemple-feuille .ligne { height: 7px; width: 70%; border-radius: 4px; background: #E6EAF0; }
+.verif-exemple-feuille .ligne.longue { width: 92%; }
+.verif-exemple-feuille .ligne.courte { width: 45%; }
+.verif-exemple-pied { margin-top: auto; display: flex; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px dashed var(--bordure-controle); }
+.verif-exemple-qr { width: 54px; height: 54px; flex: none; image-rendering: pixelated; }
+.verif-exemple-code { display: flex; flex-direction: column; font-family: var(--police-mono); font-size: 12.5px; font-weight: 700; color: var(--edu-marine); letter-spacing: .06em; }
+.verif-exemple-code small { font-family: var(--police); font-size: 9.5px; font-weight: 600; letter-spacing: .02em; color: var(--texte-clair); margin-bottom: 3px; }
+.verif-exemple-code { outline: 2px solid var(--edu-or); outline-offset: 4px; border-radius: 2px; }
+.verif-exemple figcaption { font-size: 13.5px; color: var(--texte-clair); text-align: center; max-width: 30ch; }
+
+/* Vérifier : le verdict et la fiche du document, à plat */
+.page-publique .verif-bloc { background: #fff; border: 1px solid var(--bordure); border-radius: 0; padding: 22px 26px; }
+.page-publique .verif-verdict { border-radius: 0; border-width: 1px; padding: 24px 26px; }
+.page-publique .verif-verdict h2 { font-family: var(--police-serif); font-size: 1.7rem; letter-spacing: -.015em; }
+.page-publique .verif-verdict-sceau { outline: none; border-width: 2px; }
+.page-publique .verif-document { border-radius: 0; background: #fff; }
+
+/* Confidentialité : sommaire fixe à gauche, texte lisible à droite */
+.page-publique .confidentialite-corps { padding: 0; max-width: none; }
+.page-publique .confidentialite-grille { grid-template-columns: 240px minmax(0, 1fr); gap: clamp(28px, 5vw, 64px); }
+.page-publique .confidentialite-sommaire { position: sticky; top: 24px; background: none; border: none; border-radius: 0; padding: 0; box-shadow: none; }
+.page-publique .confidentialite-sommaire strong { display: block; padding-bottom: 10px; border-bottom: 1px solid var(--bordure); }
+.page-publique .confidentialite-sommaire ol { list-style: none; padding: 0; margin: 8px 0 0; gap: 0; counter-reset: sommaire; }
+.page-publique .confidentialite-sommaire li { counter-increment: sommaire; }
+.page-publique .confidentialite-sommaire a { display: flex; gap: 10px; padding: 7px 0; font-size: 14px; color: var(--texte-clair); }
+.page-publique .confidentialite-sommaire a::before { content: counter(sommaire, decimal-leading-zero); font-size: 12px; font-weight: 700; color: var(--edu-teal); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.page-publique .confidentialite-sommaire a:hover { color: var(--edu-marine); text-decoration: none; }
+.page-publique .confidentialite-texte { background: none; border: none; border-radius: 0; padding: 0; }
+.page-publique .confidentialite-texte section { padding: 0 0 30px; margin-bottom: 30px; }
+.page-publique .confidentialite-texte h2 { font-family: var(--police-serif); font-size: 1.55rem; letter-spacing: -.01em; margin-bottom: 14px; }
+.page-publique .confidentialite-texte h2 span { font-family: var(--police); font-size: 13px; color: var(--edu-teal); }
+.page-publique .confidentialite-texte p { font-size: 16px; line-height: 1.75; }
+
+@media (max-width: 760px) {
+  .pp-tissage { height: 40px; }
+  .pp-barre .login-marque small { display: none; }
+  .pp-retour { font-size: 13px; }
+  .verif-accueil-grille { grid-template-columns: minmax(0, 1fr); }
+  .verif-exemple { order: -1; }
+  .verif-exemple-feuille { width: min(100%, 240px); }
+  .page-publique .verif-formulaire-ligne { grid-template-columns: minmax(0, 1fr); }
+  .page-publique .verif-formulaire .bouton-connexion { width: 100%; justify-content: center; }
+  .page-publique .confidentialite-grille { grid-template-columns: minmax(0, 1fr); }
+  .page-publique .confidentialite-sommaire { position: static; }
+  .page-publique .verif-verdict { flex-direction: column; align-items: flex-start; }
+}
+.pp-titre .acces-eyebrow { text-align: left; color: var(--edu-teal); }
+.page-publique .bouton-connexion {
+  position: relative; overflow: hidden; border: none; border-radius: 0; background: var(--edu-marine); color: #fff;
+  font-weight: 700; font-size: 15.5px; box-shadow: none; cursor: pointer;
+}
+.page-publique .bouton-connexion::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 100%;
+  background: linear-gradient(90deg, var(--edu-bleu), var(--edu-teal), var(--edu-vert), var(--edu-or));
+}
+.page-publique .bouton-connexion:hover:not(:disabled) { background: #102A52; filter: none; }
+.page-publique .bouton-connexion svg { width: 18px; height: 18px; }
+.page-publique .verif-formulaire .bouton-connexion:disabled { opacity: .35; }

@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import client from '../api/client';
-import logoIcon from '../assets/logo-icon.png';
-import { IconShield, IconArrowLeft } from '../components/icons';
+import PagePublique from '../components/PagePublique';
 
 function dateLongue(d) {
   return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -20,23 +18,12 @@ export default function Confidentialite() {
   }, []);
 
   return (
-    <div className="page-confidentialite">
-      <header className="confidentialite-bandeau">
-        <div className="confidentialite-bandeau-interieur">
-          <Link to="/connexion" className="confidentialite-retour"><IconArrowLeft /> Retour à la connexion</Link>
-          <div className="confidentialite-marque">
-            <span className="confidentialite-logo"><img src={logoIcon} alt="" /></span>
-            <span>EduSphere</span>
-          </div>
-          <span className="confidentialite-pastille"><IconShield /> Vos données</span>
-          <h1>Politique de confidentialité</h1>
-          <p>
-            Comment EduSphere et votre établissement traitent et protègent les données des élèves, des familles et du personnel.
-            {politique?.misAJourLe && <> Dernière mise à jour le {dateLongue(politique.misAJourLe)}.</>}
-          </p>
-        </div>
-      </header>
-      <main className="confidentialite-corps">
+    <PagePublique
+      className="page-confidentialite"
+      surtitre="Vos données"
+      titre="Politique de confidentialité"
+      introduction={<>Comment EduSphere et votre établissement traitent et protègent les données des étudiants, des familles et du personnel.{politique?.misAJourLe && <> Mise à jour le {dateLongue(politique.misAJourLe)}.</>}</>}
+    >
         {!politique && !erreur && <div className="chargement">Chargement…</div>}
         {erreur && <div className="vide">La politique de confidentialité est momentanément indisponible. Réessayez dans un instant.</div>}
         {politique && (
@@ -57,8 +44,6 @@ export default function Confidentialite() {
             </article>
           </div>
         )}
-      </main>
-      <footer className="confidentialite-pied">© {new Date().getFullYear()} EduSphere, plateforme de gestion scolaire</footer>
-    </div>
+    </PagePublique>
   );
 }

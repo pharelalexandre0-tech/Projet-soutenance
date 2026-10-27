@@ -26,6 +26,7 @@ router.delete('/sessions/:id', authentifier, ctrl.fermerSession);
 router.post('/sessions/fermer-autres', authentifier, ctrl.fermerAutresSessions);
 router.post('/securite/application/initialiser', authentifier, ctrl.initialiserTotpCompte);
 router.post('/securite/application/activer', authentifier, ctrl.activerTotpCompte);
+router.post('/securite/application/desactiver', authentifier, ctrl.desactiverTotpCompte);
 router.post('/securite/codes-secours', authentifier, ctrl.regenererCodesSecours);
 
 module.exports = router;

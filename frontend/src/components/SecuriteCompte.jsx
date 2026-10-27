@@ -16,6 +16,7 @@ const LIBELLES_ACTION = {
   code_email_epuise: 'Code e-mail invalidé (trop d’essais)',
   double_facteur_active: 'Application d’authentification activée',
   double_facteur_reconfigure: 'Application d’authentification changée',
+  double_facteur_email: 'Retour au code par e-mail',
   codes_secours_regeneres: 'Nouveaux codes de secours',
   code_secours_utilise: 'Code de secours utilisé',
   session_fermee: 'Appareil déconnecté',
@@ -74,18 +75,25 @@ export default function SecuriteCompte({ compact = false }) {
             <h3>Double authentification</h3>
             <p>
               {df.type === 'email'
-                ? 'Un code à 6 chiffres est envoyé par e-mail à chaque connexion.'
-                : df.actif
-                  ? `Application d’authentification active depuis le ${dateHeure(df.activeLe)}. ${df.codesSecoursRestants} code(s) de secours restant(s).`
-                  : 'Application d’authentification à configurer à la prochaine connexion.'}
+                ? 'À chaque connexion, un code à 6 chiffres vous est envoyé par e-mail.'
+                : `Le code vient de votre application d’authentification depuis le ${dateHeure(df.activeLe)}. ${df.codesSecoursRestants} code(s) de secours restant(s).`}
             </p>
           </div>
         </div>
+        {df.type === 'email' && df.applicationPossible && !codesAffiches && (
+          <div className="securite-actions">
+            <button type="button" className="secondaire petit" onClick={() => setAction(action === 'appareil' ? null : 'appareil')}>Utiliser plutôt une application (facultatif)</button>
+          </div>
+        )}
         {df.type === 'application' && df.actif && !codesAffiches && (
           <div className="securite-actions">
             <button type="button" className="secondaire petit" onClick={() => setAction(action === 'codes' ? null : 'codes')}><IconKey /> Nouveaux codes de secours</button>
             <button type="button" className="secondaire petit" onClick={() => setAction(action === 'appareil' ? null : 'appareil')}>Changer de téléphone</button>
+            <button type="button" className="secondaire petit" onClick={() => setAction(action === 'email' ? null : 'email')}>Revenir au code par e-mail</button>
           </div>
+        )}
+        {action === 'email' && (
+          <RevenirEmail onFait={() => { setAction(null); setToast({ message: 'Vous recevrez désormais votre code par e-mail', type: 'succes' }); charger(); }} />
         )}
         {df.type === 'application' && df.codesSecoursRestants <= 3 && df.actif && !codesAffiches && (
           <p className="securite-alerte">Il vous reste peu de codes de secours : générez-en de nouveaux.</p>
@@ -167,6 +175,32 @@ function RegenererCodes({ onCodes }) {
   );
 }
 
+function RevenirEmail({ onFait }) {
+  const [motDePasse, setMotDePasse] = useState('');
+  const [erreur, setErreur] = useState('');
+  async function valider(e) {
+    e.preventDefault();
+    setErreur('');
+    try {
+      await client.post('/auth/securite/application/desactiver', { motDePasse });
+      onFait();
+    } catch (err) {
+      setErreur(messageErreur(err, 'mot de passe incorrect'));
+    }
+  }
+  return (
+    <form className="securite-sous-bloc" onSubmit={valider}>
+      <p className="note-secondaire">Votre application ne sera plus demandée : un code vous sera envoyé par e-mail à chaque connexion.</p>
+      <div className="champ">
+        <label htmlFor="sc-mdp-email">Mot de passe actuel</label>
+        <ChampMotDePasse id="sc-mdp-email" autoComplete="current-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} required />
+      </div>
+      {erreur && <div className="message-erreur">{erreur}</div>}
+      <button type="submit" className="primaire petit">Confirmer</button>
+    </form>
+  );
+}
+
 function ChangerTelephone({ onCodes }) {
   const [motDePasse, setMotDePasse] = useState('');
   const [preparation, setPreparation] = useState(null);
@@ -206,7 +240,7 @@ function ChangerTelephone({ onCodes }) {
           <ChampMotDePasse id="sc-mdp" autoComplete="current-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} required />
         </div>
         {erreur && <div className="message-erreur">{erreur}</div>}
-        <button type="submit" className="primaire petit">Afficher le nouveau QR code</button>
+        <button type="submit" className="primaire petit">Afficher le QR code</button>
       </form>
     );
   }

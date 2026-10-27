@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import client, { ORIGINE_API } from '../api/client';
-import logoIcon from '../assets/logo-icon.png';
+import PagePublique from '../components/PagePublique';
+import qrEduSphere from '../assets/qr-edusphere.svg';
 import {
-  IconArrowLeft, IconShield, IconShieldX, IconShieldAlert, IconFileCheck, IconQrCode, IconFingerprint, IconUpload, IconSearch,
+  IconShield, IconShieldX, IconShieldAlert, IconFileCheck, IconFingerprint, IconUpload, IconSearch,
 } from '../components/icons';
 
 const dateHeure = (d) => new Date(d).toLocaleString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Libreville' });
@@ -111,9 +112,8 @@ function FormulaireCode({ initial = '' }) {
           spellCheck={false}
           inputMode="text"
         />
-        <button type="submit" className="primaire" disabled={!complet}><IconSearch /> Vérifier</button>
+        <button type="submit" className="bouton-connexion" disabled={!complet}><IconSearch aria-hidden="true" /> Vérifier</button>
       </div>
-      <small>Le code figure à côté du QR code, sous « Vérification d’authenticité », et en bas de chaque page.</small>
     </form>
   );
 }
@@ -143,29 +143,31 @@ export default function Verifier() {
   const verdict = resultat ? verdictDe(resultat) : null;
 
   return (
-    <div className="page-verifier">
-      <header className="verif-bandeau">
-        <div className="verif-bandeau-interieur">
-          <Link to="/connexion" className="confidentialite-retour"><IconArrowLeft /> EduSphere</Link>
-          <div className="confidentialite-marque">
-            <span className="confidentialite-logo"><img src={logoIcon} alt="" /></span>
-            <span>Registre des documents certifiés</span>
-          </div>
-          <h1>Vérifier un document</h1>
-          <p>Bulletins, procès-verbaux, reçus, fiches de paie, listes et emplois du temps émis sur EduSphere portent un QR code et un code de vérification signés par la plateforme.</p>
-        </div>
-      </header>
-
-      <main className="verif-corps">
+    <PagePublique
+      className="page-verifier"
+      surtitre="Registre des documents certifiés"
+      titre="Vérifier un document"
+      introduction="Chaque bulletin, relevé, attestation ou reçu émis sur EduSphere porte un QR code et un code de vérification. Saisissez ce code pour savoir si le document est authentique."
+      retour="Retour à EduSphere"
+    >
         {!code && (
-          <section className="verif-bloc verif-accueil">
-            <span className="verif-accueil-icone"><IconQrCode /></span>
-            <div>
-              <h2>Scannez le QR code du document</h2>
-              <p className="verif-aide">L’appareil photo de votre téléphone ouvre directement cette page. Sans téléphone, saisissez le code imprimé.</p>
+          <div className="verif-accueil-grille">
+            <section className="verif-saisie">
               <FormulaireCode />
-            </div>
-          </section>
+              <p className="verif-aide">Avec un téléphone, il suffit de scanner le QR code du document : cette page s’ouvre directement avec la réponse.</p>
+            </section>
+            <figure className="verif-exemple" aria-label="Où trouver le code sur le document">
+              <div className="verif-exemple-feuille" aria-hidden="true">
+                <span className="ligne longue" /><span className="ligne" /><span className="ligne courte" />
+                <span className="ligne longue" /><span className="ligne" />
+                <div className="verif-exemple-pied">
+                  <img className="verif-exemple-qr" src={qrEduSphere} alt="" />
+                  <span className="verif-exemple-code"><small>Vérification d’authenticité</small>AB12-CD34-EF56</span>
+                </div>
+              </div>
+              <figcaption>Le code se trouve à côté du QR code, en bas du document.</figcaption>
+            </figure>
+          </div>
         )}
 
         {chargement && <div className="chargement">Consultation du registre…</div>}
@@ -230,8 +232,6 @@ export default function Verifier() {
             <section className="verif-bloc"><FormulaireCode /></section>
           </>
         )}
-      </main>
-      <footer className="confidentialite-pied">EduSphere · registre public des documents officiels</footer>
-    </div>
+    </PagePublique>
   );
 }
