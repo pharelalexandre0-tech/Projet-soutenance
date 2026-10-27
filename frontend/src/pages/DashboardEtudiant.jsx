@@ -3,7 +3,7 @@ import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import { useAuth } from '../context/AuthContext';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag } from '../components/icons';
+import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag, IconGraduationCap } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -14,6 +14,7 @@ const Messages = lazy(() => import('./etudiant/Messages'));
 const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
 const MesDocuments = lazy(() => import('./etudiant/MesDocuments'));
 const MesReclamations = lazy(() => import('./etudiant/MesReclamations'));
+const BourseANBG = lazy(() => import('./etudiant/BourseANBG'));
 
 function onglets(parent) {
   const dossier = parent ? 'Dossier de l’enfant' : 'Mon dossier';
@@ -28,6 +29,8 @@ function onglets(parent) {
       description: 'Attestations de scolarité, d’inscription et de réussite, relevé de notes officiel : certifiés par QR code.' },
     { id: 'reclamations', label: 'Réclamations', icone: IconMessage, groupe: dossier,
       description: 'Contester une note de façon motivée et suivre la réponse de l’établissement.' },
+    { id: 'bourse', label: 'Bourse ANBG', icone: IconGraduationCap, groupe: dossier,
+      description: parent ? 'Dossier de bourse ANBG de votre enfant : pièces à téléverser et suivi.' : 'Ton dossier de bourse ANBG : pièces à téléverser, transmission et suivi.' },
     { id: 'comportement', label: 'Comportement', icone: IconFlag, groupe: dossier,
       description: 'Incidents de comportement signalés par l’établissement.' },
     { id: 'emploi', label: 'Emploi du temps', icone: IconCalendar, groupe: 'Vie scolaire', fonctionnalite: 'emplois-du-temps',
@@ -79,6 +82,7 @@ export default function DashboardEtudiant() {
       {onglet === 'messages' && <Messages />}
       {onglet === 'documents' && <MesDocuments />}
       {onglet === 'reclamations' && <MesReclamations />}
+      {onglet === 'bourse' && <BourseANBG />}
     </EspaceDashboard>
   );
 }

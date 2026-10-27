@@ -132,6 +132,7 @@ app.use('/api', require('./routes/verification'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api', require('./routes/ministere'));
 app.use('/api', require('./routes/scolarite'));
+app.use('/api', require('./routes/bourse'));
 app.use('/api', referenceRoutes);
 app.use('/api/superadmin', superadminRoutes);
 

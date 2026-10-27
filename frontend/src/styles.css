@@ -2858,3 +2858,24 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 .table-jury td { white-space: nowrap; }
 .table-jury select, .table-jury input { min-height: 34px; padding: 4px 8px; font-size: 13.5px; }
 .cellule-texte { min-width: 240px; white-space: normal; }
+
+/* Dossier de bourse ANBG */
+.pieces-bourse { display: flex; flex-direction: column; gap: 12px; }
+.piece-type { border: 1px solid var(--bordure); border-left: 3px solid var(--bordure-controle); border-radius: var(--rayon-feuillet); padding: 12px 14px; }
+.piece-type.validee { border-left-color: var(--succes); }
+.piece-type-entete { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.piece-type-entete > div:first-child { display: flex; flex-direction: column; }
+.piece-vide { margin: 8px 0 0; color: var(--texte-clair); font-size: 13.5px; }
+.piece-ligne { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto auto; gap: 6px 12px; align-items: center; padding: 8px 0 0; margin-top: 8px; border-top: 1px dashed var(--ligne-registre); }
+.piece-nom { display: flex; align-items: center; gap: 6px; font-weight: 600; overflow-wrap: anywhere; }
+.piece-nom svg { width: 16px; height: 16px; color: var(--succes); flex: none; }
+.piece-commentaire { grid-column: 1 / -1; font-size: 13px; color: var(--texte-clair); }
+.piece-commentaire.refus { color: var(--erreur); }
+.tiroir .piece-ligne { grid-template-columns: minmax(0, 1fr) auto; }
+.piece-actions { display: flex; align-items: center; gap: 4px; }
+.piece-actions .bouton-icone { width: 34px; height: 34px; }
+.bouton-depot { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid var(--primaire); border-radius: 6px; color: var(--primaire); font-weight: 600; font-size: 13.5px; cursor: pointer; background: var(--carte); }
+.bouton-depot:hover { background: var(--primaire-clair); }
+.bouton-depot.inactif { opacity: .5; pointer-events: none; }
+.bouton-depot svg, .piece-type-entete .secondaire svg { width: 15px; height: 15px; }
+@media (max-width: 640px) { .piece-ligne { grid-template-columns: minmax(0, 1fr) auto; } }

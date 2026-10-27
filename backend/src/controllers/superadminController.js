@@ -212,6 +212,18 @@ async function supprimerEtablissement(req, res) {
   }
   await CompteRenduSaisie.destroy({ where: { etablissementId } });
   await CertificationDocument.destroy({ where: { etablissementId } });
+  // Données ajoutées par la refonte : bourses, jury, réclamations, parcours,
+  // tutelle (les décisions et accusés suivent l'établissement).
+  const m = require('../models');
+  await m.PieceBourse.destroy({ where: { etablissementId } });
+  await m.DossierBourse.destroy({ where: { etablissementId } });
+  const deliberations = await m.Deliberation.findAll({ where: { etablissementId }, attributes: ['id'] });
+  if (deliberations.length) await m.DecisionJury.destroy({ where: { deliberationId: deliberations.map((d) => d.id) } });
+  await m.Deliberation.destroy({ where: { etablissementId } });
+  await m.ReclamationNote.destroy({ where: { etablissementId } });
+  await m.ParcoursEleve.destroy({ where: { etablissementId } });
+  await m.AccuseCirculaire.destroy({ where: { etablissementId } });
+  await m.DecisionAgrement.destroy({ where: { etablissementId } });
   await EntreeExtension.destroy({ where: { etablissementId } });
   if (classeIds.length) await PublicationEmploiDuTemps.destroy({ where: { classeId: { [Op.in]: classeIds } } });
   if (classeIds.length) {

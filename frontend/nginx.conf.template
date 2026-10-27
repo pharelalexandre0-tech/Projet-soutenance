@@ -59,7 +59,7 @@ server {
         # lui, dans app.js, est déjà à 3mb) avec une page d'erreur HTML, pas
         # le JSON {erreur:...} que le frontend sait afficher : d'où un
         # "échec de la mise à jour" générique qui ne disait pas pourquoi.
-        client_max_body_size 4m;
+        client_max_body_size 8m;
         proxy_pass ${BACKEND_SCHEME}://${BACKEND_HOST}/api/;
         proxy_ssl_server_name on;
         proxy_set_header Host ${BACKEND_HOST};

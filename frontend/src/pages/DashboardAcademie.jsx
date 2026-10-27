@@ -2,7 +2,7 @@ import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
   IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconMessage, IconSettings, IconCalendar, IconLayers, IconTrendingDown,
-  IconClipboard, IconDownload, IconFingerprint, IconMegaphone,
+  IconClipboard, IconDownload, IconFingerprint, IconMegaphone, IconGraduationCap,
 } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
@@ -26,6 +26,7 @@ const Documents = lazy(() => import('./academie/Documents'));
 const Deliberations = lazy(() => import('./academie/Deliberations'));
 const Reclamations = lazy(() => import('./academie/Reclamations'));
 const Passage = lazy(() => import('./academie/Passage'));
+const BoursesANBG = lazy(() => import('./academie/BoursesANBG'));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
@@ -38,6 +39,8 @@ const ONGLETS = [
     description: 'Créneaux hebdomadaires de chaque classe, et export PDF.' },
   { id: 'appels', label: "Feuilles d'appel", composant: FeuillesAppel, icone: IconClipboard, groupe: 'Scolarité', fonctionnalite: 'acces-temporaires',
     description: 'Appels faits par les professeurs depuis leur accès temporaire : présents, absents et retards de chaque séance.' },
+  { id: 'bourses', label: 'Bourses ANBG', composant: BoursesANBG, icone: IconGraduationCap, groupe: 'Scolarité',
+    description: 'Dossiers de bourse de l’Agence nationale des bourses du Gabon : pièces téléversées, examen, validation et liste des boursiers.' },
   { id: 'notes', label: 'Notes', composant: Notes, icone: IconPencil, groupe: 'Évaluation',
     description: 'Saisie des notes de contrôle continu et d’examen.' },
   { id: 'bulletins', label: 'Bulletins', composant: Bulletins, icone: IconDocument, groupe: 'Évaluation',
