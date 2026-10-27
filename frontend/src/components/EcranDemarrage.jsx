@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import logoIcon from '../assets/logo-icon.png';
+import Tissage from './Tissage';
 
 const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
 const NOM = 'EduSphere';
@@ -27,8 +28,8 @@ export function demarrageAAfficher() {
   return true;
 }
 
-// Écran de démarrage : la couverture du dossier. Le sceau s'appose comme
-// un tampon, le nom apparaît, des lignes de registre se tracent. Pour
+// Écran de démarrage : le motif tissé se forme maille par maille, le sceau
+// et le nom apparaissent dans leur cartouche. Pour
 // en sortir, pas de fondu brutal : le dégradé se resserre jusqu'à devenir
 // exactement la carte bleue de l'écran de connexion (repérée par
 // data-cible-demarrage), pendant que le sceau et le nom glissent vers leur
@@ -102,16 +103,14 @@ export default function EcranDemarrage({ onTermine }) {
   }, []);
 
   return (
-    <div className={`ecran-demarrage ${depart ? 'depart' : ''}`} ref={racineRef} aria-hidden="true">
-      <span className="demarrage-onglet">Dossier numérique</span>
-      <span className="demarrage-sceau" ref={sceauRef}>
-        <img src={logoIcon} alt="" />
-      </span>
-      <h1 className="demarrage-nom" ref={nomRef}>{NOM}</h1>
-      <p className="demarrage-sous-titre">Registre de l’enseignement supérieur</p>
-      {/* Lignes de registre tracées une à une : la page qui se prépare. */}
-      <div className="demarrage-registre">
-        {[0, 1, 2, 3].map((i) => <span key={i} style={{ '--i': i }} />)}
+    <div className={`ecran-demarrage tissage-demarrage ${depart ? 'depart' : ''}`} ref={racineRef} aria-hidden="true">
+      <Tissage colonnes={14} lignes={9} className="tissage-plein" />
+      <div className="demarrage-cartouche">
+        <span className="demarrage-sceau" ref={sceauRef}>
+          <img src={logoIcon} alt="" />
+        </span>
+        <h1 className="demarrage-nom" ref={nomRef}>{NOM}</h1>
+        <p className="demarrage-sous-titre">Enseignement supérieur · Gabon</p>
       </div>
     </div>
   );

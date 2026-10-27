@@ -5,7 +5,8 @@ import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
 import SaisieCodeLiquide from '../components/SaisieCodeLiquide';
 import EtapeApplication from '../components/EtapeApplication';
-import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationCap, IconBook, IconBuilding, IconAlertTriangle, IconWrench } from '../components/icons';
+import Tissage from '../components/Tissage';
+import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconAlertTriangle, IconWrench } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
 import logoIcon from '../assets/logo-icon.png';
@@ -21,38 +22,24 @@ const DUREE_SUCCES_MS = 1800;
 // bascule "créer un compte" ni de "se souvenir de moi" — aucun des deux
 // n'existe côté backend, une case à cocher qui ne fait rien n'a pas sa
 // place ici. "Mot de passe oublié" existe bien, lui (ReinitialiserMotDePasse.jsx).
-// Couverture de la chemise d'accès (moitié gauche) : sceau, nom, espaces
-// desservis, QR code du site. Repérée par data-cible-demarrage : l'écran
-// de démarrage vient s'y poser.
+// Panneau tissé (moitié gauche) : motif de raphia aux couleurs d'EduSphere,
+// titre en grand dans un cartouche marine. Repéré par data-cible-demarrage :
+// l'écran de démarrage vient s'y poser.
 function CarteBienvenue() {
   return (
-    <div className="carte-bienvenue-blob couverture-acces" data-cible-demarrage>
-      <div className="bienvenue-contenu">
-        <div className="marque-groupe">
-          <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
-          <h1 className="marque-nom">EduSphere</h1>
-        </div>
-        <p className="bienvenue-texte">
-          Le dossier numérique de votre établissement : scolarité, notes, documents certifiés et suivi,
-          réunis en un seul registre.
-        </p>
-        <ul className="etiquette-acces" aria-label="Espaces">
-          <li><IconBuilding aria-hidden="true" /><span>Personnel de l’établissement</span></li>
-          <li><IconGraduationCap aria-hidden="true" /><span>Étudiants et familles</span></li>
-          <li><IconBook aria-hidden="true" /><span>Ministère de l’Enseignement supérieur</span></li>
-        </ul>
-        {/* Site seulement : ouvrir EduSphere sur son téléphone d'un scan
-            (inutile dans l'application Android, déjà sur le téléphone). */}
-        {import.meta.env.MODE !== 'android' && (
-          <div className="bienvenue-qr">
-            <span className="bienvenue-qr-code"><img src={qrEduSphere} alt="QR code pour ouvrir EduSphere sur un téléphone" /></span>
-            <span className="bienvenue-qr-texte">
-              <strong>Sur votre téléphone</strong>
-              Scannez ce code pour ouvrir EduSphere, même hors ligne.
-            </span>
-          </div>
-        )}
+    <div className="carte-bienvenue-blob tissage-acces" data-cible-demarrage>
+      <Tissage colonnes={9} lignes={9} />
+      <div className="tissage-cartouche">
+        <span className="marque-pastille"><img src={logoIcon} alt="" /></span>
+        <h1 className="marque-nom">EduSphere</h1>
+        <p className="bienvenue-texte">L’enseignement supérieur gabonais, tissé en un seul registre : établissements, étudiants, familles et Ministère.</p>
       </div>
+      {import.meta.env.MODE !== 'android' && (
+        <div className="bienvenue-qr">
+          <span className="bienvenue-qr-code"><img src={qrEduSphere} alt="QR code pour ouvrir EduSphere sur un téléphone" /></span>
+          <span className="bienvenue-qr-texte"><strong>Sur votre téléphone</strong>Scannez pour ouvrir EduSphere, même hors ligne.</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -363,8 +350,9 @@ export default function Login() {
       <div className="composition-acces">
         <CarteBienvenue />
         <div className="carte-formulaire-acces">
-          <p className="acces-eyebrow">Bon retour</p>
-          <h2>Se connecter</h2>
+          <p className="acces-eyebrow">Espace sécurisé</p>
+          <h2>Bonjour.</h2>
+          <p className="connexion-aide">Connectez-vous pour ouvrir votre espace.</p>
           {maintenance && <AvisMaintenance maintenance={maintenance} />}
           <form className="formulaire-connexion" onSubmit={onSubmit}>
             <Champ label="Adresse e-mail" icone={IconMail} erreur={Boolean(erreur)}>

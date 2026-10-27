@@ -3116,3 +3116,166 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 
 .code-demonstration { margin: -12px 0 22px; padding: 10px 14px; border-radius: 8px; background: var(--alerte-fond); color: #6E4A0B; font-size: 13.5px; border: 1px dashed color-mix(in srgb, var(--edu-or) 60%, transparent); }
 .code-demonstration strong { font-family: var(--police-mono); font-size: 16px; letter-spacing: .12em; margin-left: 4px; }
+
+/* ==========================================================================
+   Connexion « tissage » : motif de raphia aux couleurs d'EduSphere à gauche,
+   page blanche épurée à droite. Remplace la chemise de classeur.
+   ========================================================================== */
+
+/* --- Motif tissé ----------------------------------------------------------- */
+.tissage {
+  position: absolute; inset: 0; display: grid;
+  grid-template-columns: repeat(var(--colonnes), 1fr); grid-template-rows: repeat(var(--lignes), 1fr);
+  background: var(--edu-marine);
+}
+.maille {
+  --teinte: var(--edu-marine);
+  background: var(--teinte);
+  transform-origin: center;
+  animation: tisser .55s cubic-bezier(.2, .8, .2, 1) both; animation-delay: calc(.1s + var(--delai));
+}
+.maille.marine { --teinte: #0B1E3D; }
+.maille.bleu { --teinte: var(--edu-bleu); }
+.maille.teal { --teinte: var(--edu-teal); }
+.maille.vert { --teinte: var(--edu-vert); }
+.maille.or { --teinte: var(--edu-or); }
+.maille.maille-vide { background: transparent; animation: none; }
+.maille.tri-haut { clip-path: polygon(0 0, 100% 0, 0 100%); }
+.maille.tri-bas { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.maille.losange { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.maille.chevron { clip-path: polygon(0 0, 50% 45%, 100% 0, 100% 55%, 50% 100%, 0 55%); }
+.maille.demi { clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%); }
+.maille.retourne { transform: scaleX(-1); }
+@keyframes tisser {
+  from { opacity: 0; transform: scale(.2) rotate(-45deg); }
+  to { opacity: 1; }
+}
+.maille.retourne { animation-name: tisser-retourne; }
+@keyframes tisser-retourne {
+  from { opacity: 0; transform: scaleX(-1) scale(.2) rotate(45deg); }
+  to { opacity: 1; transform: scaleX(-1); }
+}
+@media (prefers-reduced-motion: reduce) { .maille, .maille.retourne { animation: none; } }
+
+/* --- Mise en page de l'écran de connexion ----------------------------------- */
+.page-connexion { padding: 0; background: #FBFBF8; background-image: none; align-items: stretch; }
+.composition-acces {
+  max-width: none; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(420px, 1fr);
+  border-radius: 0; box-shadow: none; animation: none;
+}
+.composition-acces::before, .composition-acces::after { display: none; content: none; }
+
+.carte-bienvenue-blob.tissage-acces {
+  position: relative; overflow: hidden; width: auto; margin: 0; min-height: 100dvh; border-radius: 0; box-shadow: none;
+  background: var(--edu-marine);
+}
+.tissage-acces::before, .tissage-acces::after { content: none; }
+/* Cartouche du titre, posé sur le tissage comme l'étiquette d'une natte */
+.tissage-cartouche {
+  position: absolute; left: 7%; right: 18%; bottom: 13%; z-index: 2;
+  padding: 34px 38px 32px; background: var(--edu-marine); color: #fff;
+  border-top: 4px solid var(--edu-or);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .55);
+  animation: cartouche-pose .7s cubic-bezier(.2, .8, .2, 1) .75s both;
+}
+@keyframes cartouche-pose { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+.tissage-cartouche .marque-pastille {
+  width: 62px; height: 62px; padding: 8px; border-radius: 14px; margin-bottom: 18px; background: #fff; box-shadow: none; animation: none;
+}
+.tissage-cartouche .marque-nom {
+  margin: 0; display: block; color: #fff; animation: none;
+  font-family: var(--police-serif); font-weight: 700; font-size: clamp(2.6rem, 4.6vw, 4.4rem); line-height: .95; letter-spacing: -.03em;
+}
+.tissage-cartouche .marque-nom::after { content: none; }
+.tissage-cartouche .bienvenue-texte { margin: 16px 0 0; max-width: 440px; color: rgba(255, 255, 255, .78); font-size: 1rem; line-height: 1.65; text-align: left; animation: none; }
+.tissage-acces .bienvenue-qr {
+  position: absolute; left: 7%; top: 6%; z-index: 2; max-width: 300px;
+  background: rgba(11, 30, 61, .82); border: 1px solid rgba(255, 255, 255, .16); border-radius: 12px; padding: 10px 14px 10px 10px;
+  animation: cartouche-pose .6s cubic-bezier(.2, .8, .2, 1) 1s both;
+}
+.tissage-acces .bienvenue-qr-code { width: 72px; height: 72px; padding: 6px; border-radius: 8px; }
+
+/* --- Page du formulaire --------------------------------------------------- */
+.composition-acces .carte-formulaire-acces {
+  position: relative; left: auto; top: auto; width: auto; min-height: 100dvh; transform: none;
+  border-radius: 0; box-shadow: none; background: #FBFBF8; background-image: none;
+  padding: 64px clamp(32px, 6vw, 96px); justify-content: center;
+  animation: page-entree .7s cubic-bezier(.2, .8, .2, 1) .35s both;
+}
+.composition-acces .carte-formulaire-acces > * { width: 100%; max-width: 440px; }
+@keyframes page-entree { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.carte-formulaire-acces .acces-eyebrow { text-align: left; color: var(--edu-vert); letter-spacing: .16em; }
+.carte-formulaire-acces h2 {
+  text-align: left; font-family: var(--police-serif); font-weight: 700; color: var(--edu-marine);
+  font-size: clamp(2.4rem, 3.6vw, 3.4rem); letter-spacing: -.03em; line-height: 1; margin: 0 0 28px;
+}
+.carte-formulaire-acces .connexion-aide { text-align: left; margin: -14px 0 30px; font-size: 1rem; }
+/* Champs soulignés, comme sur un formulaire officiel */
+.carte-formulaire-acces .formulaire-connexion { gap: 26px; }
+.carte-formulaire-acces .formulaire-connexion .champ label { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--texte-clair); }
+.carte-formulaire-acces .formulaire-connexion .champ-icone {
+  height: 50px; padding: 0 2px; border: none; border-bottom: 2px solid color-mix(in srgb, var(--edu-marine) 25%, transparent);
+  border-radius: 0; background: transparent; box-shadow: none;
+}
+.carte-formulaire-acces .formulaire-connexion .champ-icone input { font-size: 16.5px; }
+.carte-formulaire-acces .formulaire-connexion .champ-icone:focus-within { border-bottom-color: var(--edu-bleu); box-shadow: 0 2px 0 0 var(--edu-bleu); }
+.carte-formulaire-acces .formulaire-connexion .champ-icone.champ-icone--erreur { border-bottom-color: var(--erreur); }
+.carte-formulaire-acces .bouton-connexion {
+  height: 56px; border-radius: 0; background: var(--edu-marine); justify-content: space-between; padding: 0 22px;
+  font-size: 15.5px; letter-spacing: .02em; position: relative; overflow: hidden;
+}
+.carte-formulaire-acces .bouton-connexion::after {
+  content: ""; position: absolute; left: 0; bottom: 0; height: 4px; width: 100%;
+  background: linear-gradient(90deg, var(--edu-bleu), var(--edu-teal), var(--edu-vert), var(--edu-or));
+}
+.carte-formulaire-acces .bouton-connexion:hover:not(:disabled) { filter: none; background: #102A52; box-shadow: none; }
+.carte-formulaire-acces .liens-publics, .carte-formulaire-acces .connexion-note-parent { justify-content: flex-start; text-align: left; }
+.carte-formulaire-acces .connexion-retour { text-align: left; }
+.carte-formulaire-acces .configuration-qr { grid-template-columns: 150px minmax(0, 1fr); }
+.carte-formulaire-acces .configuration-qr img { width: 150px; height: 150px; border-radius: 0; }
+
+@media (max-width: 900px) {
+  .composition-acces { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .carte-bienvenue-blob.tissage-acces { min-height: 300px; }
+  .tissage-cartouche { left: 16px; right: 16px; bottom: 16px; padding: 20px 22px; }
+  .tissage-cartouche .marque-pastille { width: 46px; height: 46px; margin-bottom: 10px; }
+  .tissage-cartouche .marque-nom { font-size: 2.4rem; }
+  .tissage-cartouche .bienvenue-texte { display: none; }
+  .tissage-acces .bienvenue-qr { display: none; }
+  .composition-acces .carte-formulaire-acces { min-height: 0; padding: 34px 22px 48px; }
+  .carte-formulaire-acces .configuration-qr { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tissage-cartouche, .tissage-acces .bienvenue-qr, .composition-acces .carte-formulaire-acces { animation: none; }
+}
+
+/* --- Démarrage ------------------------------------------------------------ */
+.ecran-demarrage.tissage-demarrage { background: var(--edu-marine); }
+.tissage-demarrage .demarrage-onglet, .tissage-demarrage .demarrage-registre { display: none; }
+.demarrage-cartouche {
+  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;
+  padding: 36px 54px 30px; background: var(--edu-marine); border-top: 4px solid var(--edu-or);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .6);
+  animation: cartouche-pose .6s cubic-bezier(.2, .8, .2, 1) .8s both;
+}
+.tissage-demarrage .demarrage-sceau { border-radius: 16px; width: 86px; height: 86px; padding: 12px; animation: none; transform: none; }
+.tissage-demarrage .demarrage-nom { font-family: var(--police-serif); font-size: 3rem; letter-spacing: -.03em; margin-top: 16px; animation: none; }
+.tissage-demarrage .demarrage-nom::after { content: none; }
+.tissage-demarrage .demarrage-sous-titre { animation: none; letter-spacing: .2em; }
+.ecran-demarrage.tissage-demarrage.depart .demarrage-sous-titre { opacity: 0; }
+
+/* --- Ouverture de session -------------------------------------------------- */
+.transition-ouverture.tissage-ouverture {
+  background: var(--edu-marine); clip-path: none;
+  animation: fondu-entree .25s ease both, fondu-sortie .4s ease 3.1s both;
+}
+.ouverture-cartouche {
+  position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 34px 48px 28px; background: var(--edu-marine); border-top: 4px solid var(--edu-or);
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .6);
+  animation: cartouche-pose .55s cubic-bezier(.2, .8, .2, 1) .7s both;
+}
+.tissage-ouverture .sceau-ouverture { border-radius: 16px; transform: none; animation: none; margin-bottom: 14px; }
+.tissage-ouverture .nom-ouverture { animation: none; }
+.tissage-ouverture .ouverture-plateforme { position: static; margin-top: 8px; }
+@media (max-width: 520px) { .ouverture-cartouche, .demarrage-cartouche { padding: 24px 20px; margin: 0 14px; } .tissage-demarrage .demarrage-nom { font-size: 2.3rem; } }

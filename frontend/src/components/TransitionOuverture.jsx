@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import logoIcon from '../assets/logo-icon.png';
+import Tissage from './Tissage';
 
 function initiales(etab) {
   const sigle = String(etab?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
@@ -34,9 +35,10 @@ export default function TransitionOuverture() {
       : profil?.role === 'superadmin' ? ['Écoles', 'Plateforme', 'Administration']
         : ['Scolarité', 'Évaluation', 'Établissement'];
   return (
-    <div className="transition-ouverture volet-ouverture">
+    <div className="transition-ouverture tissage-ouverture">
+      <Tissage colonnes={14} lignes={9} className="tissage-plein" />
       {pret && (
-        <>
+        <div className="ouverture-cartouche">
           <span className="sceau-ouverture">
             {ecole && !etab?.logo
               ? <span className="sceau-initiales">{initiales(etab)}</span>
@@ -48,7 +50,7 @@ export default function TransitionOuverture() {
           </div>
           <p>Ouverture de votre dossier…</p>
           {ecole && <small className="ouverture-plateforme">EduSphere</small>}
-        </>
+        </div>
       )}
     </div>
   );
