@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// Signature Play Store : lue dans keystore.properties (hors dépôt). Sans ce
+// fichier, la version « release » n'est simplement pas signée.
+def proprietesCle = new Properties()
+def fichierCle = rootProject.file('keystore.properties')
+if (fichierCle.exists()) {
+    fichierCle.withInputStream { proprietesCle.load(it) }
+}
+
 android {
     namespace "ga.edusphere.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +15,8 @@ android {
         applicationId "ga.edusphere.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +24,19 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        if (fichierCle.exists()) {
+            release {
+                storeFile file(proprietesCle['storeFile'])
+                storePassword proprietesCle['storePassword']
+                keyAlias proprietesCle['keyAlias']
+                keyPassword proprietesCle['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (fichierCle.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

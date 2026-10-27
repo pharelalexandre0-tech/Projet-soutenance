@@ -6,8 +6,9 @@
   "scripts": {
     "build:web": "npm --prefix ../frontend run build:android",
     "sync": "npm run build:web && npx cap sync android",
-    "apk": "npm run sync && cd android && gradlew.bat assembleDebug",
-    "ouvrir": "npx cap open android"
+    "apk": "npm run sync && cd android && .\\gradlew.bat assembleDebug",
+    "ouvrir": "npx cap open android",
+    "playstore": "npm run sync && cd android && .\\gradlew.bat bundleRelease assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.9",
