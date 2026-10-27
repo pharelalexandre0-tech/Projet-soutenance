@@ -12,12 +12,20 @@ const { outils } = require('./pdfService');
 //   - emplois du temps (une classe ou toutes, une page par classe).
 // Générés à la demande à partir des données à jour : rien n'est stocké.
 
-const { enTeteOfficiel, dessinerLigne, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, versMinutesEmploi, JOURS_EMPLOI } = outils;
+const { enTeteOfficiel, dessinerLigne, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, versMinutesEmploi, JOURS_EMPLOI, certifier, sceller } = outils;
 const C = outils.couleurs;
 const COULEUR_LIMITE = '#8A5D00';
 // Note sur 20 sans décimales inutiles : 10, 7, 9,5.
 const surVingt = (n) => String(Math.round(Number(n) * 100) / 100).replace('.', ',');
 const FOND_LIMITE = '#FFF6D6';
+
+// Termine le PDF et inscrit son empreinte au registre des documents certifiés.
+async function finaliser(doc, termine, certification) {
+  doc.end();
+  const contenu = await termine;
+  await sceller(certification, contenu);
+  return contenu;
+}
 
 function nouveauPDF(options = {}) {
   const doc = new PDFDocument({ margin: 40, size: 'A4', bufferPages: true, ...options });
@@ -67,7 +75,22 @@ function versXlsx(feuilles) {
 // Liste de présence (feuille d'émargement vierge)
 // ---------------------------------------------------------------------------
 
-async function listePresencePDF({ etablissement, classes, date, cours, enseignant }) {
+async function listePresencePDF({ etablissement, classes, date, cours, enseignant, emisParId = null }) {
+  const certification = await certifier({
+    cle: `presence_${classes.map((c) => c.classe.id).join('-')}_${date || 'sans-date'}`.slice(0, 120),
+    type: 'liste_presence',
+    etablissement,
+    titre: `Liste de présence, ${classes.length === 1 ? `${classes[0].classe.nom} (${classes[0].classe.niveau})` : `${classes.length} classes`}`,
+    elements: [
+      ['Classes', classes.map((c) => c.classe.nom).join(', ')],
+      ['Date', date ? dateFr(date) : 'Non renseignée'],
+      ['Cours', cours],
+      ['Enseignant', enseignant],
+      ['Effectif', String(classes.reduce((n, c) => n + c.eleves.length, 0))],
+    ],
+    donnees: classes.map((c) => [c.classe.id, c.eleves.map((e) => e.id)]),
+    emisParId,
+  });
   const { doc, termine } = nouveauPDF();
   const marge = doc.page.margins.left;
   const largeur = doc.page.width - marge - doc.page.margins.right;
@@ -75,7 +98,7 @@ async function listePresencePDF({ etablissement, classes, date, cours, enseignan
     if (k) doc.addPage();
     let y = enTeteOfficiel(doc, etablissement, {
       surtitre: 'FEUILLE D’ÉMARGEMENT', titre: 'LISTE DE PRÉSENCE', sousTitre: `${classe.nom} (${classe.niveau})`,
-      reference: `${eleves.length} élève${eleves.length > 1 ? 's' : ''}`, largeurTitre: 210,
+      reference: `${eleves.length} élève${eleves.length > 1 ? 's' : ''}`, largeurTitre: 210, certification,
     });
     y = blocIdentite(doc, marge, y, largeur, [
       ['Date', date ? dateFr(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '', 1.6],
@@ -95,11 +118,10 @@ async function listePresencePDF({ etablissement, classes, date, cours, enseignan
     y += 14;
     doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.COULEUR_TEXTE)
       .text(`Effectif : ${eleves.length}        Présents : ..........        Absents : ..........        Retards : ..........`, marge, y);
-    blocSignature(doc, y + 22, etablissement, 'L’enseignant');
+    blocSignature(doc, y + 22, etablissement, 'L’enseignant', certification);
   });
-  piedDePageOfficiel(doc, `Liste de présence établie par ${etablissement.nom} via EduSphere`);
-  doc.end();
-  return termine;
+  piedDePageOfficiel(doc, `Liste de présence établie par ${etablissement.nom} via EduSphere`, certification);
+  return finaliser(doc, termine, certification);
 }
 
 // ---------------------------------------------------------------------------
@@ -117,16 +139,28 @@ function lignesRecapitulatif(eleves, absences) {
   return eleves.map((e) => ({ eleve: e, ...parEleve.get(e.id) }));
 }
 
-async function recapitulatifPresencesPDF({ etablissement, classe, eleves, absences, du, au }) {
+async function recapitulatifPresencesPDF({ etablissement, classe, eleves, absences, du, au, emisParId = null }) {
+  const periode = du || au ? `${du ? `du ${dateFr(du)}` : ''} ${au ? `au ${dateFr(au)}` : ''}`.trim() : 'Depuis le début de l’année';
+  const lignes = lignesRecapitulatif(eleves, absences);
+  const tot = lignes.reduce((t, l) => ({ nj: t.nj + l.nj, j: t.j + l.j, r: t.r + l.r }), { nj: 0, j: 0, r: 0 });
+  const certification = await certifier({
+    cle: `recap_presences_${classe.id}_${du || ''}_${au || ''}`,
+    type: 'recapitulatif_presences',
+    etablissement,
+    titre: `Récapitulatif des présences, ${classe.nom} (${classe.niveau})`,
+    elements: [
+      ['Période', periode], ['Effectif', String(eleves.length)], ['Absences non justifiées', String(tot.nj)],
+      ['Absences justifiées', String(tot.j)], ['Retards', String(tot.r)],
+    ],
+    donnees: lignes.map((l) => [l.eleve.id, l.nj, l.j, l.r]),
+    emisParId,
+  });
   const { doc, termine } = nouveauPDF();
   const marge = doc.page.margins.left;
   const largeur = doc.page.width - marge - doc.page.margins.right;
-  const periode = du || au ? `${du ? `du ${dateFr(du)}` : ''} ${au ? `au ${dateFr(au)}` : ''}`.trim() : 'Depuis le début de l’année';
   let y = enTeteOfficiel(doc, etablissement, {
-    surtitre: 'ASSIDUITÉ', titre: 'RÉCAPITULATIF DES PRÉSENCES', sousTitre: `${classe.nom} (${classe.niveau})`, reference: periode, largeurTitre: 290,
+    surtitre: 'ASSIDUITÉ', titre: 'RÉCAPITULATIF DES PRÉSENCES', sousTitre: `${classe.nom} (${classe.niveau})`, reference: periode, largeurTitre: 290, certification,
   });
-  const lignes = lignesRecapitulatif(eleves, absences);
-  const tot = lignes.reduce((t, l) => ({ nj: t.nj + l.nj, j: t.j + l.j, r: t.r + l.r }), { nj: 0, j: 0, r: 0 });
   y = blocIdentite(doc, marge, y, largeur, [
     ['Effectif', String(eleves.length)], ['Non justifiées', String(tot.nj)], ['Justifiées', String(tot.j)], ['Retards', String(tot.r)],
     ['Jamais absents', String(lignes.filter((l) => !l.nj && !l.j && !l.r).length)],
@@ -142,10 +176,9 @@ async function recapitulatifPresencesPDF({ etablissement, classe, eleves, absenc
       { texte: String(l.r), align: 'center', couleur: l.r >= 5 ? COULEUR_LIMITE : C.COULEUR_TEXTE },
       { texte: l.derniere ? dateFr(l.derniere, { day: 'numeric', month: 'short', year: 'numeric' }) : 'Aucune', couleur: l.derniere ? C.COULEUR_TEXTE : C.COULEUR_TEXTE_CLAIR },
     ]), { reserveFin: 90 });
-  blocSignature(doc, y + 20, etablissement, 'Le service de la scolarité');
-  piedDePageOfficiel(doc, `Récapitulatif des présences établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}`);
-  doc.end();
-  return termine;
+  blocSignature(doc, y + 20, etablissement, 'Le service de la scolarité', certification);
+  piedDePageOfficiel(doc, `Récapitulatif des présences établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}`, certification);
+  return finaliser(doc, termine, certification);
 }
 
 function recapitulatifPresencesXlsx({ classe, eleves, absences }) {
@@ -207,16 +240,33 @@ function couleurNote(v, regles) {
   return C.COULEUR_ERREUR;
 }
 
-async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, calculs, regles, ordre }) {
+async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, calculs, regles, ordre, emisParId = null }) {
+  const lignes = preparerResultats(eleves, calculs, ordre);
+  const stats = statistiques(lignes, regles);
+  const certification = await certifier({
+    cle: `pv_${classe.id}_${semestre.id}`,
+    type: 'proces_verbal',
+    etablissement,
+    titre: `Procès-verbal des résultats, ${classe.nom} (${classe.niveau}), ${semestre.libelle} ${semestre.anneeScolaire || ''}`.trim(),
+    elements: [
+      ['Effectif', String(stats.effectif)], ['Évalués', String(stats.evalues)], ['Semestre validé', String(stats.valides)],
+      ['Rattrapage', String(stats.rattrapage)], ['Taux de réussite', `${String(stats.tauxReussite).replace('.', ',')} %`],
+      ['Moyenne de la classe', stats.moyenneClasse === null ? null : `${noteFr(stats.moyenneClasse)} / 20`],
+      ['Seuil de validation', `${surVingt(regles.seuil)} / 20`],
+    ],
+    // Toutes les lignes du PV (élève, moyenne, décision) : modifier une
+    // seule note change l'empreinte et donc le code.
+    donnees: [...lignes].sort((a, b) => a.eleve.id - b.eleve.id).map((l) => [l.eleve.id, l.calcul?.moyenneGenerale ?? null, l.calcul?.admis ?? null,
+      (l.calcul?.detailParUE || []).map((u) => [u.code, u.moyenne])]),
+    emisParId,
+  });
   const { doc, termine } = nouveauPDF({ layout: 'landscape' });
   const marge = doc.page.margins.left;
   const largeur = doc.page.width - marge - doc.page.margins.right;
-  const lignes = preparerResultats(eleves, calculs, ordre);
-  const stats = statistiques(lignes, regles);
 
   let y = enTeteOfficiel(doc, etablissement, {
     surtitre: `ANNÉE ${semestre.anneeScolaire || ''}`.trim(), titre: 'PROCÈS-VERBAL DES RÉSULTATS',
-    sousTitre: `${classe.nom} (${classe.niveau}), ${semestre.libelle}`, reference: `Validation à ${surVingt(regles.seuil)}/20, éliminatoire sous ${surVingt(regles.eliminatoire)}/20`, largeurTitre: 300,
+    sousTitre: `${classe.nom} (${classe.niveau}), ${semestre.libelle}`, reference: `Validation à ${surVingt(regles.seuil)}/20, éliminatoire sous ${surVingt(regles.eliminatoire)}/20`, largeurTitre: 300, certification,
   });
   y = blocIdentite(doc, marge, y, largeur, [
     ['Effectif', String(stats.effectif)], ['Évalués', String(stats.evalues)], ['Semestre validé', String(stats.valides)],
@@ -324,10 +374,9 @@ async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, c
   doc.font('Helvetica').fontSize(7.2).fillColor(C.COULEUR_TEXTE_CLAIR)
     .text(`Notes de matière : (CC + examen) / 2.  Vert : ${surVingt(regles.seuil)} et plus (UE validée).  Jaune : sous le seuil (UE non validée).  Rouge : note éliminatoire (moins de ${surVingt(regles.eliminatoire)}/20), qui bloque l'UE.`, marge, doc.y + 3, { width: largeur });
   const ySig = doc.y + 14;
-  blocSignature(doc, ySig, etablissement, 'Le Président du jury');
-  piedDePageOfficiel(doc, `Procès-verbal établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}, ${semestre.libelle}`);
-  doc.end();
-  return termine;
+  blocSignature(doc, ySig, etablissement, 'Le Président du jury', certification);
+  piedDePageOfficiel(doc, `Procès-verbal établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}, ${semestre.libelle}`, certification);
+  return finaliser(doc, termine, certification);
 }
 
 function procesVerbalXlsx({ classe, semestre, ues, eleves, calculs, regles, ordre }) {
@@ -390,7 +439,17 @@ function procesVerbalXlsx({ classe, semestre, ues, eleves, calculs, regles, ordr
 
 const TEINTES = [['#E3ECF6', '#1D5FA8'], ['#E7F1EC', '#136B44'], ['#FFF3D6', '#8A5D00'], ['#F3E8F6', '#6D3A84'], ['#E2F2F4', '#157A8C'], ['#FBE9E4', '#A23B2E'], ['#ECEFF4', '#3B4A63'], ['#EEF5E0', '#4E6B1B']];
 
-async function emploisDuTempsPDF({ etablissement, semestre, pages }) {
+async function emploisDuTempsPDF({ etablissement, semestre, pages, emisParId = null }) {
+  const certification = await certifier({
+    cle: `emplois_du_temps_${pages.map((p) => p.classe.id).join('-')}_${semestre.id}`.slice(0, 120),
+    type: 'emploi_du_temps',
+    etablissement,
+    titre: `Emploi${pages.length > 1 ? 's' : ''} du temps, ${pages.length === 1 ? `${pages[0].classe.nom} (${pages[0].classe.niveau})` : `${pages.length} classes`}, ${semestre.libelle}`,
+    elements: [['Classes', pages.map((p) => p.classe.nom).join(', ')], ['Semestre', semestre.libelle],
+      ['Créneaux hebdomadaires', String(pages.reduce((n, p) => n + p.creneaux.length, 0))]],
+    donnees: pages.map((p) => [p.classe.id, p.creneaux.map((c) => [c.jour, c.heureDebut, c.heureFin, c.matiere, c.salle || null])]),
+    emisParId,
+  });
   const { doc, termine } = nouveauPDF({ layout: 'landscape', margin: 36 });
   const marge = doc.page.margins.left;
   const largeurTotale = doc.page.width - marge - doc.page.margins.right;
@@ -398,6 +457,7 @@ async function emploisDuTempsPDF({ etablissement, semestre, pages }) {
     if (k) doc.addPage();
     const yDebut = enTeteOfficiel(doc, etablissement, {
       surtitre: `ANNÉE ${semestre.anneeScolaire || ''}`.trim(), titre: 'EMPLOI DU TEMPS', sousTitre: `${classe.nom} (${classe.niveau})`, reference: semestre.libelle, largeurTitre: 230,
+      certification, qrEnTete: true,
     });
     const matieres = [...new Set(creneaux.map((c) => c.matiere || 'Cours'))];
     const teinte = (m) => TEINTES[matieres.indexOf(m) % TEINTES.length];
@@ -455,9 +515,8 @@ async function emploisDuTempsPDF({ etablissement, semestre, pages }) {
       xl += w + 8;
     });
   });
-  piedDePageOfficiel(doc, `Emploi du temps établi par ${etablissement.nom} via EduSphere  ·  ${semestre.libelle}`);
-  doc.end();
-  return termine;
+  piedDePageOfficiel(doc, `Emploi du temps établi par ${etablissement.nom} via EduSphere  ·  ${semestre.libelle}`, certification);
+  return finaliser(doc, termine, certification);
 }
 
 module.exports = {

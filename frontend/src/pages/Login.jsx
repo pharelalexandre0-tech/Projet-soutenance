@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import TransitionOuverture from '../components/TransitionOuverture';
 import SaisieCodeLiquide from '../components/SaisieCodeLiquide';
+import EtapeApplication from '../components/EtapeApplication';
 import { IconMail, IconLock, IconLogin, IconOeil, IconOeilBarre, IconGraduationCap, IconBook, IconBuilding, IconPencil, IconAlertTriangle, IconWrench } from '../components/icons';
 import { dateHeure } from '../utils/plateforme';
 import { messageErreur } from '../utils/erreurs';
@@ -113,6 +114,9 @@ export default function Login() {
   // Double authentification (compte Étudiant) : le formulaire de mot de
   // passe cède la place à celui du code reçu par e-mail.
   const [attenteCode, setAttenteCode] = useState(null); // { utilisateurId } | null
+  // Personnel : code de l'application d'authentification (ou sa première
+  // configuration). { jetonEtape, configurationRequise, prenom } | null
+  const [etapeApplication, setEtapeApplication] = useState(null);
   const [code, setCode] = useState('');
   const [etatCode, setEtatCode] = useState('saisie'); // saisie | verification | succes | erreur
   // Nouveau code possible 50 secondes après le précédent (même règle côté serveur).
@@ -165,6 +169,11 @@ export default function Login() {
     setEnCours(true);
     try {
       const resultat = await seConnecter(mailUtilise, motDePasseUtilise);
+      if (resultat.applicationRequise) {
+        setEtapeApplication(resultat);
+        setEnCours(false);
+        return;
+      }
       if (resultat.doubleFacteurRequis) {
         setAttenteCode({ utilisateurId: resultat.utilisateurId });
         setCode('');
@@ -283,6 +292,23 @@ export default function Login() {
     );
   }
 
+  if (etapeApplication) {
+    return (
+      <div className={`page-connexion ${depuisDemarrage ? 'depuis-demarrage' : ''}`}>
+        <div className="composition-acces">
+          <CarteBienvenue />
+          <div className="carte-formulaire-acces">
+            <EtapeApplication
+              etape={etapeApplication}
+              onSession={(session) => { session.appliquer(); ouvrirSession(); }}
+              onRetour={() => { setEtapeApplication(null); setErreur(''); }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (attenteCode) {
     return (
       <div className={`page-connexion ${depuisDemarrage ? 'depuis-demarrage' : ''}`}>
@@ -382,7 +408,11 @@ export default function Login() {
             <p className="connexion-note-parent">
               Parent d'élève ? Connectez-vous avec votre adresse e-mail et le matricule de votre enfant.
             </p>
-            <a className="lien-confidentialite" href="/confidentialite">Politique de confidentialité</a>
+            <p className="liens-publics">
+              <a href="/verifier">Vérifier un document</a>
+              <span aria-hidden="true">·</span>
+              <a href="/confidentialite">Politique de confidentialité</a>
+            </p>
           </form>
         </div>
       </div>

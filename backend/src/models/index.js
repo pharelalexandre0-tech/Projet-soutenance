@@ -37,6 +37,9 @@ const JournalEmail = require('./JournalEmail');
 const CompteRenduSaisie = require('./CompteRenduSaisie');
 const ModeleIA = require('./ModeleIA');
 const DonneeEntrainementIA = require('./DonneeEntrainementIA');
+const CertificationDocument = require('./CertificationDocument');
+const SessionUtilisateur = require('./SessionUtilisateur');
+const JournalAudit = require('./JournalAudit');
 
 // ---- Multi-établissement (superadmin) --------------------------------------
 // EduSphere héberge plusieurs écoles : chaque compte (hors superadmin), et
@@ -229,4 +232,7 @@ module.exports = {
   CompteRenduSaisie,
   ModeleIA,
   DonneeEntrainementIA,
+  CertificationDocument,
+  SessionUtilisateur,
+  JournalAudit,
 };

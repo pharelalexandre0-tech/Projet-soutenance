@@ -2,7 +2,7 @@ import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
   IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconMessage, IconSettings, IconCalendar, IconLayers, IconTrendingDown,
-  IconClipboard, IconDownload,
+  IconClipboard, IconDownload, IconFingerprint,
 } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
@@ -10,6 +10,7 @@ import {
 // touche jamais "Alertes décrochage" ou "Communication" pendant sa session
 // n'en télécharge alors jamais le code.
 const TableauDeBord = lazy(() => import('./academie/TableauDeBord'));
+const JournalSecurite = lazy(() => import('./academie/JournalSecurite'));
 const ElevesClasses = lazy(() => import('./academie/ElevesClasses'));
 const UnitesEnseignement = lazy(() => import('./academie/UnitesEnseignement'));
 const EmploisDuTemps = lazy(() => import('./academie/EmploisDuTemps'));
@@ -47,6 +48,8 @@ const ONGLETS = [
     description: 'Listes de présence, récapitulatif des présences, notes et résultats avec mentions, emplois du temps : en PDF ou Excel.' },
   { id: 'parametres', label: 'Paramètres', composant: Parametres, icone: IconSettings, groupe: 'Établissement',
     description: 'Identité de l’établissement et comptes du personnel.' },
+  { id: 'audit', label: 'Journal d’audit', composant: JournalSecurite, icone: IconFingerprint, groupe: 'Établissement',
+    description: 'Connexions, refus, changements de sécurité et modifications de données de l’établissement, scellés et vérifiables.' },
 ];
 
 export default function DashboardAcademie() {

@@ -3,6 +3,7 @@ import client from '../api/client';
 import Modal from './Modal';
 import ChampMotDePasse from './ChampMotDePasse';
 import { useAuth } from '../context/AuthContext';
+import SecuriteCompte from './SecuriteCompte';
 import { IconInfo } from './icons';
 
 // Symétrique de superadmin/MonProfil.jsx pour les autres rôles, en modale :
@@ -11,9 +12,15 @@ import { IconInfo } from './icons';
 // mot de passe est le matricule, attribué par l'établissement.
 export default function ModaleMonCompte({ onFermer }) {
   const { profil } = useAuth();
+  const [onglet, setOnglet] = useState('profil');
   return (
-    <Modal titre="Mon compte" onFermer={onFermer} largeur={480}>
-      {profil?.role === 'etudiant' ? <CompteEtudiant profil={profil} /> : <CompteModifiable />}
+    <Modal titre="Mon compte" onFermer={onFermer} largeur={onglet === 'securite' ? 640 : 480}>
+      <div className="onglets-secondaires" role="tablist">
+        <button type="button" role="tab" aria-selected={onglet === 'profil'} className={onglet === 'profil' ? 'actif' : ''} onClick={() => setOnglet('profil')}>Profil</button>
+        <button type="button" role="tab" aria-selected={onglet === 'securite'} className={onglet === 'securite' ? 'actif' : ''} onClick={() => setOnglet('securite')}>Sécurité</button>
+      </div>
+      {onglet === 'securite' && <SecuriteCompte compact />}
+      {onglet === 'profil' && (profil?.role === 'etudiant' ? <CompteEtudiant profil={profil} /> : <CompteModifiable />)}
     </Modal>
   );
 }
@@ -101,7 +108,7 @@ function CompteModifiable() {
       </div>
       <div className="champ">
         <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-        <ChampMotDePasse autoComplete="new-password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={6} />
+        <ChampMotDePasse autoComplete="new-password" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} minLength={10} />
       </div>
       {(emailModifie || form.motDePasse) && (
         <div className="champ">

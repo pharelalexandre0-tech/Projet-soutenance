@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const PDFDocument = require('pdfkit');
+const QRCode = require('qrcode');
+const { certifier, sceller, urlVerification } = require('./certificationService');
 
 const DOSSIER_STOCKAGE = path.join(__dirname, '..', '..', 'storage', 'pdfs');
 fs.mkdirSync(DOSSIER_STOCKAGE, { recursive: true });
@@ -147,9 +149,13 @@ function sigleEtablissement(etablissement) {
 
 // Logo (ou sigle) et identité de l'école à gauche, titre du document à
 // droite, filet marine dessous. Renvoie la position Y sous le filet.
-function enTeteOfficiel(doc, etablissement, { surtitre, titre, sousTitre, reference, largeurTitre = 190 }) {
+function enTeteOfficiel(doc, etablissement, { surtitre, titre, sousTitre, reference, largeurTitre = 190, certification = null, qrEnTete = false }) {
   const margeGauche = doc.page.margins.left;
-  const droite = doc.page.width - doc.page.margins.right;
+  // QR code en tête (documents sans zone de signature, comme les emplois du
+  // temps) : le bloc titre se décale vers la gauche pour lui laisser la place.
+  const tailleQrEnTete = certification && qrEnTete ? 58 : 0;
+  if (tailleQrEnTete) dessinerQr(doc, urlVerification(certification), doc.page.width - doc.page.margins.right - tailleQrEnTete, 44, tailleQrEnTete);
+  const droite = doc.page.width - doc.page.margins.right - (tailleQrEnTete ? tailleQrEnTete + 12 : 0);
   const yEntete = 44;
   const tailleLogo = 60;
   if (!dessinerLogo(doc, etablissement, margeGauche, yEntete, tailleLogo)) {
@@ -186,8 +192,52 @@ function enTeteOfficiel(doc, etablissement, { surtitre, titre, sousTitre, refere
     doc.font('Courier').fontSize(7).fillColor(COULEUR_TEXTE_CLAIR).text(reference, xTitre, doc.y + 3, { width: largeurTitre, align: 'right' });
   }
   const y = Math.max(yEntete + tailleLogo, yTexte, doc.y) + 14;
-  doc.moveTo(margeGauche, y).lineTo(droite, y).lineWidth(2).strokeColor(COULEUR_MARINE).stroke();
+  const finFilet = doc.page.width - doc.page.margins.right;
+  doc.moveTo(margeGauche, y).lineTo(finFilet, y).lineWidth(2).strokeColor(COULEUR_MARINE).stroke();
+  if (certification) microTexte(doc, margeGauche, y + 3.5, finFilet - margeGauche, etablissement, certification);
   return y + 16;
+}
+
+// Ligne de micro-impression sous le filet d'en-tête : sigle de l'école et
+// code du document répétés en corps 3,4. Illisible à l'œil nu, elle se
+// brouille à la photocopie ou au scanner et désigne le document d'origine.
+function microTexte(doc, x, y, largeur, etablissement, certification) {
+  const motif = `${sigleEtablissement(etablissement)} · DOCUMENT CERTIFIÉ ${certification.code} · VÉRIFIABLE EN LIGNE · `;
+  doc.font('Helvetica').fontSize(3.4);
+  const repetitions = Math.ceil(largeur / Math.max(1, doc.widthOfString(motif))) + 1;
+  doc.fillColor('#8C9AAE').text(motif.repeat(repetitions), x, y, { width: largeur, height: 5, lineBreak: false, ellipsis: false });
+}
+
+// QR code vectoriel (modules dessinés un à un) : net à toute taille
+// d'impression, sans image intermédiaire.
+function dessinerQr(doc, texte, x, y, taille, couleur = COULEUR_MARINE) {
+  const { modules } = QRCode.create(texte, { errorCorrectionLevel: 'M' });
+  const pas = taille / modules.size;
+  doc.save();
+  for (let ligne = 0; ligne < modules.size; ligne += 1) {
+    for (let colonne = 0; colonne < modules.size; colonne += 1) {
+      if (modules.get(ligne, colonne)) doc.rect(x + colonne * pas, y + ligne * pas, pas + 0.05, pas + 0.05);
+    }
+  }
+  doc.fill(couleur);
+  doc.restore();
+}
+
+// Cartouche de vérification : QR code, code à saisir, adresse de la page
+// publique. Placé sous « Fait à ... » dans le bloc de signature.
+function sceauVerification(doc, x, y, certification, { taille = 54, largeurTexte = 170 } = {}) {
+  const url = urlVerification(certification);
+  dessinerQr(doc, url, x, y, taille);
+  const xt = x + taille + 10;
+  doc.font('Helvetica-Bold').fontSize(6.2).fillColor(COULEUR_PRIMAIRE)
+    .text("VÉRIFICATION D'AUTHENTICITÉ", xt, y + 2, { width: largeurTexte, characterSpacing: 0.6 });
+  doc.font('Courier-Bold').fontSize(10.5).fillColor(COULEUR_MARINE).text(certification.code, xt, y + 13, { width: largeurTexte });
+  let adresse = url;
+  try { const u = new URL(url); adresse = `${u.host}/verifier`; } catch { /* adresse complète */ }
+  doc.font('Helvetica').fontSize(6.6).fillColor(COULEUR_TEXTE_CLAIR)
+    .text('Scannez le code ou saisissez-le sur', xt, y + 29, { width: largeurTexte });
+  doc.font('Helvetica-Bold').fontSize(6.6).fillColor(COULEUR_TEXTE).text(adresse, xt, y + 38, { width: largeurTexte, lineBreak: false, ellipsis: true });
+  return y + taille;
 }
 
 // Bloc d'identité : cases bordées [libellé, valeur, poids, police chasse fixe].
@@ -211,11 +261,12 @@ function blocIdentite(doc, x, y, largeurTotale, cellules) {
 }
 
 // Lieu et date à gauche, fonction du signataire et zone de signature à droite.
-function blocSignature(doc, y, etablissement, fonction) {
+function blocSignature(doc, y, etablissement, fonction, certification = null) {
   const margeGauche = doc.page.margins.left;
   const droite = doc.page.width - doc.page.margins.right;
-  const dateDuJour = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-  doc.font('Helvetica').fontSize(8.5).fillColor(COULEUR_TEXTE).text(`Fait à ${etablissement.ville}, le ${dateDuJour}`, margeGauche, y + 4);
+  const dateDuJour = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Libreville' });
+  doc.font('Helvetica').fontSize(8.5).fillColor(COULEUR_TEXTE).text(`Fait à ${etablissement.ville || 'Libreville'}, le ${dateDuJour}`, margeGauche, y + 4);
+  if (certification) sceauVerification(doc, margeGauche, y + 20, certification);
   const largeurSignature = 190;
   const xSignature = droite - largeurSignature;
   doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COULEUR_TEXTE).text(fonction, xSignature, y, { width: largeurSignature, align: 'center' });
@@ -225,7 +276,8 @@ function blocSignature(doc, y, etablissement, fonction) {
 }
 
 // Mention de bas de page sur chaque page (document ouvert avec bufferPages).
-function piedDePageOfficiel(doc, texte) {
+function piedDePageOfficiel(doc, texte, certification = null) {
+  if (certification) texte = `${texte}  ·  Code de vérification ${certification.code}`;
   const margeGauche = doc.page.margins.left;
   const largeur = doc.page.width - margeGauche - doc.page.margins.right;
   const pages = doc.bufferedPageRange();
@@ -233,8 +285,12 @@ function piedDePageOfficiel(doc, texte) {
     doc.switchToPage(i);
     const yPied = doc.page.height - doc.page.margins.bottom - 14;
     doc.moveTo(margeGauche, yPied - 6).lineTo(margeGauche + largeur, yPied - 6).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
-    doc.font('Helvetica').fontSize(6.5).fillColor(COULEUR_TEXTE_CLAIR)
-      .text(`${texte}${pages.count > 1 ? `  ·  Page ${i - pages.start + 1}/${pages.count}` : ''}`, margeGauche, yPied, { width: largeur, align: 'center', lineBreak: false });
+    const ligne = `${texte}${pages.count > 1 ? `  ·  Page ${i - pages.start + 1}/${pages.count}` : ''}`;
+    // Une seule ligne : le corps diminue si la mention est longue.
+    let taille = 6.5;
+    while (taille > 5 && doc.font('Helvetica').fontSize(taille).widthOfString(ligne) > largeur) taille -= 0.25;
+    doc.font('Helvetica').fontSize(taille).fillColor(COULEUR_TEXTE_CLAIR)
+      .text(ligne, margeGauche, yPied, { width: largeur, align: 'center', lineBreak: false });
   }
 }
 
@@ -340,8 +396,27 @@ function assurerPlace(doc, y, hauteurNecessaire, margeGauche) {
 // affiché à l'écran (BulletinDocument) : identité de l'établissement avec
 // son logo, bloc étudiant, résultats par UE et par matière, synthèse,
 // signature.
-async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles = { seuil: 10, eliminatoire: 7 } }) {
+async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles = { seuil: 10, eliminatoire: 7 }, emisParId = null }) {
   const nomFichier = `bulletin_${eleve.id}_${semestre.id}.pdf`;
+  const sansNotesCert = detailParUE.length === 0;
+  const certification = await certifier({
+    cle: `bulletin_${eleve.id}_${semestre.id}`,
+    type: 'bulletin',
+    etablissement,
+    titre: `Bulletin de notes, ${semestre.libelle || ''} ${semestre.anneeScolaire || ''}`.trim(),
+    titulaire: `${String(eleve.nom || '').toUpperCase()} ${eleve.prenom || ''}`.trim(),
+    elements: [
+      ['Matricule', eleve.matricule],
+      ['Classe', eleve.Classe ? `${eleve.Classe.nom} (${eleve.Classe.niveau})` : null],
+      ['Moyenne générale', sansNotesCert ? 'Non évaluée' : `${noteFr(moyenneGenerale)} / 20`],
+      ['Crédits validés', `${creditsValides} / ${creditsTotal}`],
+      ['Mention', sansNotesCert ? null : mention(moyenneGenerale)],
+      ['Décision', sansNotesCert ? 'En attente' : admis ? 'Admis(e)' : 'Rattrapage'],
+      ...detailParUE.map((u) => [`${u.code ? `${u.code} ` : ''}${u.ue}`, `${noteFr(u.moyenne)} / 20, ${libelleResultatUE(u).texte.toLowerCase()}`]),
+    ],
+    donnees: detailParUE.map((u) => [u.code, u.moyenne, u.matieres.map((m) => [m.code, m.moyenneCC, m.moyenneExamen, m.noteFinale])]),
+    emisParId,
+  });
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
@@ -355,6 +430,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
     titre: 'BULLETIN DE NOTES',
     sousTitre: semestre.libelle || '',
     reference: `Réf. ${reference}`,
+    certification,
   });
 
   // Bloc étudiant.
@@ -430,12 +506,13 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   y += hauteurSynthese + 30;
 
   // Lieu, date et signature, puis mentions de bas de page.
-  blocSignature(doc, y, etablissement, 'Le Directeur des études');
-  piedDePageOfficiel(doc, `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.`);
+  blocSignature(doc, y, etablissement, 'Le Directeur des études', certification);
+  piedDePageOfficiel(doc, `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.`, certification);
 
   doc.end();
   const contenu = await termine;
-  return { cheminRelatif, contenu, nomFichier };
+  await sceller(certification, contenu);
+  return { cheminRelatif, contenu, nomFichier, certification };
 }
 
 function mention(moyenne) {
@@ -461,19 +538,38 @@ const LIBELLE_STATUT_FRAIS = { du: 'Dû', partiel: 'Partiellement réglé', sold
 // genererRecuPDF(paiement) - diagramme 8. Document officiel au même
 // modèle que le bulletin : identité de l'école, élève, détail du règlement,
 // récapitulatif du frais, montant en toutes lettres, signature.
-async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissement }) {
+async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissement, emisParId = null }) {
   const nomFichier = `recu_${recuNumero}.pdf`;
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
   const largeurTotale = doc.page.width - margeGauche - doc.page.margins.right;
   const datePaiement = new Date(paiement.datePaiement || Date.now()).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const resteCert = Math.max(0, frais.montant - (frais.montantRegle || 0));
+  const certification = await certifier({
+    cle: `recu_${recuNumero}`,
+    type: 'recu',
+    etablissement,
+    titre: `Reçu de paiement N° ${recuNumero}`,
+    titulaire: `${String(eleve.nom || '').toUpperCase()} ${eleve.prenom || ''}`.trim(),
+    elements: [
+      ['Matricule', eleve.matricule],
+      ['Désignation', frais.libelle],
+      ['Montant réglé', `${formaterFCFA(paiement.montant)} FCFA`],
+      ['Mode de règlement', LIBELLE_MODE_PAIEMENT[paiement.modePaiement] || paiement.modePaiement],
+      ['Date du paiement', datePaiement],
+      ['Reste à payer après ce paiement', `${formaterFCFA(resteCert)} FCFA`],
+    ],
+    donnees: { paiement: paiement.id ?? null, frais: frais.id ?? null, montantFrais: frais.montant },
+    emisParId,
+  });
 
   let y = enTeteOfficiel(doc, etablissement, {
     surtitre: 'SERVICE FINANCIER',
     titre: 'REÇU DE PAIEMENT',
     sousTitre: `N° ${recuNumero}`,
     reference: `Émis le ${datePaiement}`,
+    certification,
   });
 
   y = blocIdentite(doc, margeGauche, y, largeurTotale, [
@@ -512,17 +608,18 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
   ]);
   y += 130;
 
-  blocSignature(doc, y, etablissement, 'Le Service financier');
-  piedDePageOfficiel(doc, `Reçu établi par ${etablissement.nom} via EduSphere  ·  N° ${recuNumero}  ·  Ce reçu fait foi de paiement, à conserver.`);
+  blocSignature(doc, y, etablissement, 'Le Service financier', certification);
+  piedDePageOfficiel(doc, `Reçu établi par ${etablissement.nom} via EduSphere  ·  N° ${recuNumero}  ·  Ce reçu fait foi de paiement, à conserver.`, certification);
 
   doc.end();
   const contenu = await termine;
-  return { cheminRelatif, contenu, nomFichier };
+  await sceller(certification, contenu);
+  return { cheminRelatif, contenu, nomFichier, certification };
 }
 
 // genererFichePaiePDF(versement) : même modèle que le reçu. Une fiche par
 // versement (pas cumulative sur l'année).
-async function genererFichePaiePDF({ personne, salaire, etablissement }) {
+async function genererFichePaiePDF({ personne, salaire, etablissement, emisParId = null }) {
   const nomFichier = `fiche_paie_${salaire.id}.pdf`;
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
@@ -532,12 +629,28 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
   const dateVersement = salaire.dateVersement
     ? new Date(`${salaire.dateVersement}T12:00:00`).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     : 'Non versé';
+  const certification = await certifier({
+    cle: `fiche_paie_${salaire.id}`,
+    type: 'fiche_paie',
+    etablissement,
+    titre: `Fiche de paie, ${salaire.periode}`,
+    titulaire: `${String(personne.nom || '').toUpperCase()} ${personne.prenom || ''}`.trim(),
+    elements: [
+      ['Poste', personne.poste],
+      ['Période', salaire.periode],
+      ['Net versé', `${formaterFCFA(salaire.montant)} FCFA`],
+      ['Date de versement', dateVersement],
+      ['Statut', salaire.statut === 'verse' ? 'Versé' : 'Prévu'],
+    ],
+    emisParId,
+  });
 
   let y = enTeteOfficiel(doc, etablissement, {
     surtitre: 'SERVICE FINANCIER',
     titre: 'FICHE DE PAIE',
     sousTitre: salaire.periode,
     reference: `N° ${numero}`,
+    certification,
   });
 
   y = blocIdentite(doc, margeGauche, y, largeurTotale, [
@@ -569,12 +682,13 @@ async function genererFichePaiePDF({ personne, salaire, etablissement }) {
   ]);
   y += 100;
 
-  blocSignature(doc, y, etablissement, "Pour l'employeur");
-  piedDePageOfficiel(doc, `Fiche établie par ${etablissement.nom} via EduSphere  ·  N° ${numero}  ·  À conserver sans limitation de durée.`);
+  blocSignature(doc, y, etablissement, "Pour l'employeur", certification);
+  piedDePageOfficiel(doc, `Fiche établie par ${etablissement.nom} via EduSphere  ·  N° ${numero}  ·  À conserver sans limitation de durée.`, certification);
 
   doc.end();
   const contenu = await termine;
-  return { cheminRelatif, contenu, nomFichier };
+  await sceller(certification, contenu);
+  return { cheminRelatif, contenu, nomFichier, certification };
 }
 
 const JOURS_EMPLOI = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
@@ -589,8 +703,17 @@ function versMinutesEmploi(hhmm) {
 // renseigné), mais en paysage et sous forme de grille hebdomadaire
 // proportionnelle aux horaires plutôt qu'un tableau — pensé pour rester
 // lisible partagé tel quel (WhatsApp, e-mail) sans repasser par l'appli.
-async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement }) {
+async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement, emisParId = null }) {
   const nomFichier = `emploi_du_temps_${classe.id}_${semestre.id}.pdf`;
+  const certification = await certifier({
+    cle: `emploi_du_temps_${classe.id}_${semestre.id}`,
+    type: 'emploi_du_temps',
+    etablissement,
+    titre: `Emploi du temps, ${classe.nom} (${classe.niveau}), ${semestre.libelle}`,
+    elements: [['Classe', `${classe.nom} (${classe.niveau})`], ['Semestre', semestre.libelle], ['Créneaux hebdomadaires', String(creneaux.length)]],
+    donnees: creneaux.map((c) => [c.jour, c.heureDebut, c.heureFin, c.matiere, c.salle || null]),
+    emisParId,
+  });
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { layout: 'landscape', bufferPages: true });
 
   const margeGauche = doc.page.margins.left;
@@ -602,6 +725,8 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
     sousTitre: `${classe.nom} (${classe.niveau})`,
     reference: semestre.libelle,
     largeurTitre: 230,
+    certification,
+    qrEnTete: true,
   });
   doc.y = yDebut;
 
@@ -655,11 +780,12 @@ async function genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablisseme
     }
   });
 
-  piedDePageOfficiel(doc, `Emploi du temps établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom} (${classe.niveau}), ${semestre.libelle}`);
+  piedDePageOfficiel(doc, `Emploi du temps établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom} (${classe.niveau}), ${semestre.libelle}`, certification);
 
   doc.end();
   const contenu = await termine;
-  return { cheminRelatif, contenu, nomFichier };
+  await sceller(certification, contenu);
+  return { cheminRelatif, contenu, nomFichier, certification };
 }
 
 module.exports = {
@@ -667,6 +793,7 @@ module.exports = {
   // Éléments communs réutilisés par les listes de l'Académie (documentsAcademieService).
   outils: {
     enTeteOfficiel, dessinerLigne, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, versMinutesEmploi, JOURS_EMPLOI,
+    sceauVerification, dessinerQr, certifier, sceller,
     couleurs: {
       COULEUR_PRIMAIRE, COULEUR_TEXTE, COULEUR_TEXTE_CLAIR, COULEUR_BORDURE, COULEUR_SUCCES, COULEUR_SUCCES_FOND, COULEUR_ERREUR,
       COULEUR_ERREUR_FOND, COULEUR_UE_FOND, COULEUR_RATTRAPAGE, COULEUR_MARINE,

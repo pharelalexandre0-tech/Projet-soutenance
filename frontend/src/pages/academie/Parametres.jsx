@@ -186,7 +186,7 @@ export default function Parametres() {
                 autoComplete="new-password"
                 value={nouveauCompte.motDePasse}
                 onChange={(e) => setNouveauCompte({ ...nouveauCompte, motDePasse: e.target.value })}
-                minLength={6}
+                minLength={10}
                 required
                 visible={motDePasseCompteVisible}
                 onBasculer={() => setMotDePasseCompteVisible((v) => !v)}

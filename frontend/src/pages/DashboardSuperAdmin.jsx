@@ -1,7 +1,7 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
-  IconDashboard, IconBuilding, IconShield, IconUserCog, IconToggle, IconRocket, IconMegaphone, IconHistory, IconDocument,
+  IconDashboard, IconBuilding, IconShield, IconUserCog, IconToggle, IconRocket, IconMegaphone, IconHistory, IconDocument, IconFingerprint,
 } from '../components/icons';
 
 const TableauDeBord = lazy(() => import('./superadmin/TableauDeBord'));
@@ -10,6 +10,7 @@ const Fonctionnalites = lazy(() => import('./superadmin/Fonctionnalites'));
 const MisesAJour = lazy(() => import('./superadmin/MisesAJour'));
 const AnnoncesMaintenance = lazy(() => import('./superadmin/AnnoncesMaintenance'));
 const Journal = lazy(() => import('./superadmin/Journal'));
+const AuditSecurite = lazy(() => import('./superadmin/AuditSecurite'));
 const Superadmins = lazy(() => import('./superadmin/Superadmins'));
 const MonProfil = lazy(() => import('./superadmin/MonProfil'));
 const PolitiqueConfidentialite = lazy(() => import('./superadmin/PolitiqueConfidentialite'));
@@ -29,6 +30,8 @@ const ONGLETS = [
     description: 'Politique de confidentialité publiée pour les écoles, les élèves et les familles.' },
   { id: 'journal', label: "Journal d'activité", composant: Journal, icone: IconHistory, groupe: 'Plateforme',
     description: 'Historique des actions effectuées par les superadmins.' },
+  { id: 'audit', label: 'Audit de sécurité', composant: AuditSecurite, icone: IconFingerprint, groupe: 'Plateforme',
+    description: 'Journal scellé de toutes les connexions et modifications de la plateforme, avec contrôle d’intégrité.' },
   { id: 'superadmins', label: 'Superadmins', composant: Superadmins, icone: IconShield, groupe: 'Administration',
     description: 'Comptes ayant accès à l’administration de la plateforme.' },
   { id: 'profil', label: 'Mon profil', composant: MonProfil, icone: IconUserCog, groupe: 'Administration',

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import BoutonDocument from '../../components/BoutonDocument';
+import RegistreCertifications from '../../components/RegistreCertifications';
 import { IconDownload, IconClipboard, IconDocument, IconCalendar, IconUsers } from '../../components/icons';
 
 // Documents à télécharger par l'Académie, à l'identité de l'établissement :
@@ -59,6 +60,9 @@ export default function Documents() {
   const [recap, setRecap] = useState({ classeId: '', du: '', au: '' });
   const [resultats, setResultats] = useState({ classeId: '', semestreId: '', ordre: 'merite' });
   const [edt, setEdt] = useState({ classeId: 'toutes', semestreId: '' });
+  // Un téléchargement certifie un document : le registre se recharge.
+  const [emissions, setEmissions] = useState(0);
+  const emis = () => setEmissions((n) => n + 1);
 
   function charger() {
     return Promise.all([
@@ -78,13 +82,14 @@ export default function Documents() {
   useActualisation(charger, { domaines: ['classes', 'semestres', 'professeurs'] });
 
   return (
+    <>
     <div className="grille-documents">
       <CarteDocument
         icone={IconClipboard}
         titre="Liste de présence"
         description="Feuille d'émargement à imprimer : élèves de la classe avec cases Présent, Absent, Retard et signature. Une page par classe."
         actions={(
-          <BoutonDocument className="primaire" chemin={`/api/documents/liste-presence?${requete(presence)}`} disabled={!presence.classeId}>
+          <BoutonDocument onTermine={emis} className="primaire" chemin={`/api/documents/liste-presence?${requete(presence)}`} disabled={!presence.classeId}>
             <IconDownload width={16} height={16} /> Télécharger en PDF
           </BoutonDocument>
         )}
@@ -104,7 +109,7 @@ export default function Documents() {
         description="Absences non justifiées, justifiées et retards enregistrés pour chaque élève, sur toute l'année ou sur une période."
         actions={(
           <>
-            <BoutonDocument className="primaire" chemin={`/api/documents/recapitulatif-presences?${requete(recap)}`} disabled={!recap.classeId}>
+            <BoutonDocument onTermine={emis} className="primaire" chemin={`/api/documents/recapitulatif-presences?${requete(recap)}`} disabled={!recap.classeId}>
               <IconDownload width={16} height={16} /> PDF
             </BoutonDocument>
             <BoutonDocument className="secondaire" chemin={`/api/documents/recapitulatif-presences?${requete({ ...recap, format: 'xlsx' })}`} disabled={!recap.classeId}>
@@ -124,7 +129,7 @@ export default function Documents() {
         description="Procès-verbal de la classe : moyenne de chaque UE, moyenne générale, crédits, mention, résultat et décision (admis ou rattrapage). L'Excel ajoute le détail des notes par matière."
         actions={(
           <>
-            <BoutonDocument className="primaire" chemin={`/api/documents/resultats?${requete(resultats)}`} disabled={!resultats.classeId || !resultats.semestreId}>
+            <BoutonDocument onTermine={emis} className="primaire" chemin={`/api/documents/resultats?${requete(resultats)}`} disabled={!resultats.classeId || !resultats.semestreId}>
               <IconDownload width={16} height={16} /> PDF
             </BoutonDocument>
             <BoutonDocument className="secondaire" chemin={`/api/documents/resultats?${requete({ ...resultats, format: 'xlsx' })}`} disabled={!resultats.classeId || !resultats.semestreId}>
@@ -148,7 +153,7 @@ export default function Documents() {
         titre="Emplois du temps"
         description="Semaine type de chaque classe, une couleur par matière, avec les salles et le volume horaire. Une page par classe."
         actions={(
-          <BoutonDocument className="primaire" chemin={`/api/documents/emplois-du-temps?${requete(edt)}`} disabled={!edt.classeId || !edt.semestreId}>
+          <BoutonDocument onTermine={emis} className="primaire" chemin={`/api/documents/emplois-du-temps?${requete(edt)}`} disabled={!edt.classeId || !edt.semestreId}>
             <IconDownload width={16} height={16} /> Télécharger en PDF
           </BoutonDocument>
         )}
@@ -157,5 +162,7 @@ export default function Documents() {
         <Champ label="Semestre" htmlFor="e-sem"><ChoixSemestre id="e-sem" semestres={semestres} valeur={edt.semestreId} onChange={(v) => setEdt({ ...edt, semestreId: v })} /></Champ>
       </CarteDocument>
     </div>
+    <RegistreCertifications actualiser={emissions} />
+    </>
   );
 }

@@ -13,11 +13,19 @@ function genererJetonEphemere() {
 // ambigus), mais tiré via crypto.randomInt plutôt que Math.random puisque
 // celui-ci finit dans un vrai mot de passe de connexion, pas juste une
 // suggestion que l'utilisateur peut changer avant de valider.
+// 12 caractères dont au moins deux chiffres : conforme à la règle des mots
+// de passe du personnel (utils/motDePasse).
 function motDePasseAleatoire() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let mot = '';
-  for (let i = 0; i < 10; i += 1) mot += alphabet[crypto.randomInt(alphabet.length)];
-  return mot;
+  const lettres = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
+  const chiffres = '23456789';
+  const alphabet = lettres + chiffres;
+  const mot = [chiffres[crypto.randomInt(chiffres.length)], chiffres[crypto.randomInt(chiffres.length)], lettres[crypto.randomInt(lettres.length)]];
+  while (mot.length < 12) mot.push(alphabet[crypto.randomInt(alphabet.length)]);
+  for (let i = mot.length - 1; i > 0; i -= 1) {
+    const j = crypto.randomInt(i + 1);
+    [mot[i], mot[j]] = [mot[j], mot[i]];
+  }
+  return mot.join('');
 }
 
 module.exports = { genererJetonEphemere, motDePasseAleatoire };

@@ -505,7 +505,7 @@ async function genererEmploiDuTempsPDFRoute(req, res) {
   }
   const creneaux = await EmploiDuTemps.findAll({ where: { classeId }, order: [['jour', 'ASC'], ['heureDebut', 'ASC']] });
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
-  const { cheminRelatif } = await genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement });
+  const { cheminRelatif } = await genererEmploiDuTempsPDF({ classe, semestre, creneaux, etablissement, emisParId: req.utilisateur.id });
   return res.json({ url: cheminRelatif });
 }
 

@@ -81,6 +81,17 @@ export function AuthProvider({ children }) {
       enCours.current = { email, motDePasse };
       return { doubleFacteurRequis: true, utilisateurId: res.data.utilisateurId, delaiRenvoi: res.data.delaiRenvoi };
     }
+    // Personnel : code de l'application d'authentification (ou première
+    // configuration de celle-ci).
+    if (res.data.applicationRequise) {
+      enCours.current = { email, motDePasse };
+      return {
+        applicationRequise: true,
+        configurationRequise: res.data.configurationRequise,
+        jetonEtape: res.data.jetonEtape,
+        prenom: res.data.prenom,
+      };
+    }
     ouvrirSession(res.data.token, res.data.profil);
     memoriserConnexion(email, motDePasse, res.data.token, res.data.profil);
     setProfil(res.data.profil);
@@ -99,7 +110,31 @@ export function AuthProvider({ children }) {
     return { profil: res.data.profil, appliquer: () => setProfil(res.data.profil) };
   }
 
+  // Session ouverte par l'étape de l'application d'authentification (code,
+  // code de secours ou première configuration).
+  function sessionDepuis(res) {
+    ouvrirSession(res.data.token, res.data.profil);
+    if (enCours.current) memoriserConnexion(enCours.current.email, enCours.current.motDePasse, res.data.token, res.data.profil);
+    enCours.current = null;
+    return { ...res.data, appliquer: () => setProfil(res.data.profil) };
+  }
+
+  async function verifierApplication(jetonEtape, code) {
+    return sessionDepuis(await client.post('/auth/connexion/application', { jetonEtape, code }));
+  }
+
+  async function preparerApplication(jetonEtape) {
+    return (await client.post('/auth/connexion/application/initialiser', { jetonEtape })).data;
+  }
+
+  async function activerApplication(jetonEtape, code) {
+    return sessionDepuis(await client.post('/auth/connexion/application/activer', { jetonEtape, code }));
+  }
+
   function seDeconnecter() {
+    // La session est aussi fermée côté serveur (le jeton ne vaut plus rien,
+    // même copié ailleurs).
+    if (sessionStorage.getItem('pgs_token')) client.post('/auth/deconnexion').catch(() => {});
     sessionStorage.removeItem('pgs_token');
     definirCompte(null);
     // Rien de l'école précédente ne doit rester pour le compte suivant.
@@ -117,7 +152,10 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ profil, chargement, seConnecter, verifierDoubleFacteur, seDeconnecter, mettreAJourProfil }}>
+    <AuthContext.Provider value={{
+      profil, chargement, seConnecter, verifierDoubleFacteur, verifierApplication, preparerApplication, activerApplication, seDeconnecter, mettreAJourProfil,
+    }}
+    >
       {children}
     </AuthContext.Provider>
   );

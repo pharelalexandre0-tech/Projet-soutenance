@@ -4,7 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const { rateLimit } = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+const { ipClient } = require('./utils/ipClient');
 const path = require('path');
 
 const authRoutes = require('./routes/auth');
@@ -50,7 +51,14 @@ app.use(cors({
     return callback(new Error('origine non autorisée'));
   },
 }));
-app.use(helmet());
+// En-têtes de sécurité de l'API. Politique de contenu minimale (l'API ne
+// sert que du JSON et des PDF), HSTS d'un an, aucune mise en cadre.
+app.use(helmet({
+  contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] } },
+  strictTransportSecurity: { maxAge: 31536000, includeSubDomains: true },
+  referrerPolicy: { policy: 'no-referrer' },
+}));
+app.disable('x-powered-by');
 app.use(compression());
 // Limite par défaut (100kb) trop basse pour le logo d'établissement,
 // envoyé en base64 dans le JSON (~1,4x sa taille binaire) — 3mb laisse une
@@ -65,10 +73,16 @@ app.use(express.json({ limit: '3mb' }));
 // tiers si on ne limitait pas les demandes).
 const limiteurConnexion = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 30,
+  // Une connexion du personnel compte deux requêtes (mot de passe, puis
+  // code de l'application) : 60 laisse ~25 connexions par quart d'heure
+  // depuis une même adresse (salle de cours derrière un seul routeur).
+  limit: 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: { erreur: 'trop de tentatives, réessaie dans quelques minutes' },
+  // Un compteur par visiteur (et non un compteur commun à tous derrière le
+  // relais du site).
+  keyGenerator: (req) => ipKeyGenerator(ipClient(req)),
 });
 app.use(['/api/auth/connexion', '/api/auth/mot-de-passe-oublie', '/api/auth/reinitialiser-mot-de-passe'], limiteurConnexion);
 
@@ -99,6 +113,7 @@ app.get('/api/sante', (req, res) => res.json({ etat: 'ok' }));
 // Mise à jour en direct : chaque modification réussie prévient les écrans
 // ouverts de l'école (services/evenementsService.js).
 app.use(diffuserModifications);
+app.use(require('./services/auditService').auditerModifications);
 app.use('/api/evenements', evenementsRoutes);
 app.use('/api/notifications', notificationsRoutes);
 
@@ -113,6 +128,8 @@ app.use('/api/predictions', predictionsRoutes);
 app.use('/api/plateforme', plateformeRoutes);
 app.use('/api/extensions', extensionsRoutes);
 app.use('/api/documents', require('./routes/documents'));
+app.use('/api', require('./routes/verification'));
+app.use('/api/audit', require('./routes/audit'));
 app.use('/api', referenceRoutes);
 app.use('/api/superadmin', superadminRoutes);
 

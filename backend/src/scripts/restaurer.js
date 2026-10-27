@@ -47,7 +47,13 @@ function ordreInsertion() {
     return;
   }
 
-  const brut = JSON.parse(fs.readFileSync(path.resolve(fichier), 'utf8'), relire);
+  // Sauvegarde chiffrée : déchiffrée avec CLE_SAUVEGARDE (la même phrase
+  // qu'à la sauvegarde).
+  const { dechiffrerSauvegarde, estChiffree } = require('../utils/chiffrementSauvegarde');
+  const contenu = fs.readFileSync(path.resolve(fichier));
+  if (estChiffree(contenu) && !process.env.CLE_SAUVEGARDE) throw new Error('sauvegarde chiffrée : définissez CLE_SAUVEGARDE');
+  const texte = estChiffree(contenu) ? dechiffrerSauvegarde(contenu, process.env.CLE_SAUVEGARDE) : contenu.toString('utf8');
+  const brut = JSON.parse(texte, relire);
   const tables = brut.tables || brut; // ancien format : les tables à la racine
   await sequelize.authenticate();
   // Base neuve : crée les tables manquantes, sans modifier les autres.

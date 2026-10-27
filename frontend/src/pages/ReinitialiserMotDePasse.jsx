@@ -52,11 +52,11 @@ export default function ReinitialiserMotDePasse() {
         <form className="formulaire" onSubmit={onSubmit}>
           <div className="champ">
             <label htmlFor="r-nouveau">Nouveau mot de passe</label>
-            <ChampMotDePasse id="r-nouveau" autoComplete="new-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} minLength={6} required autoFocus />
+            <ChampMotDePasse id="r-nouveau" autoComplete="new-password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} minLength={10} required autoFocus />
           </div>
           <div className="champ">
             <label htmlFor="r-confirmation">Confirmer le mot de passe</label>
-            <ChampMotDePasse id="r-confirmation" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} minLength={6} required />
+            <ChampMotDePasse id="r-confirmation" autoComplete="new-password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} minLength={10} required />
           </div>
           {erreur && <div className="message-erreur">{erreur}</div>}
           <button className="primaire" type="submit" disabled={enCours}>

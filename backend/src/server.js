@@ -10,6 +10,7 @@ const { assurerModeleIA, oublierModele } = require('./services/riskService');
 const { migrerComptesParents, fusionnerEspaceParents } = require('./services/migrationParents');
 const { demarrerEcoute, abonner } = require('./services/evenementsService');
 const { normaliserLogosEnregistres } = require('./services/logoService');
+const { poserProtections } = require('./services/protectionsBaseService');
 
 const PORT = process.env.PORT || 4000;
 
@@ -21,6 +22,7 @@ const PORT = process.env.PORT || 4000;
     // à remplacer par de vraies migrations Sequelize pour la production.
     await sequelize.sync({ alter: true });
     console.log('Connexion à PostgreSQL établie, modèles synchronisés.');
+    await poserProtections(sequelize);
     await fusionnerEspaceParents();
     await normaliserLogosEnregistres();
     await initialiserActivations();

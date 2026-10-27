@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import Toast from '../../components/Toast';
+import SecuriteCompte from '../../components/SecuriteCompte';
 import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { useAuth } from '../../context/AuthContext';
 import { messageErreur } from '../../utils/erreurs';
 import { dateCourte, dateHeure, depuis } from '../../utils/plateforme';
 import { IconHistory, IconLogin, IconCheck, IconChevronRight, IconClose } from '../../components/icons';
 
-const LONGUEUR_MIN = 6;
+const LONGUEUR_MIN = 10;
 
 const DROITS = [
   'Affilier, modifier, verrouiller ou supprimer une école',
@@ -76,6 +77,10 @@ export default function MonProfil({ onNaviguer }) {
         <div className="colonne-empilee">
           <InformationsPersonnelles profil={profil} onEnregistre={(p) => { mettreAJourProfil(p); notifier('Informations enregistrées.'); }} />
           <MotDePasse profil={profil} onEnregistre={() => notifier('Mot de passe modifié.')} />
+          <div className="carte">
+            <h2>Sécurité du compte</h2>
+            <SecuriteCompte />
+          </div>
         </div>
 
         <div className="colonne-empilee">
@@ -208,6 +213,7 @@ function MotDePasse({ profil, onEnregistre }) {
 
   const regles = [
     { ok: form.nouveau.length >= LONGUEUR_MIN, texte: `Au moins ${LONGUEUR_MIN} caractères` },
+    { ok: /[A-Za-zÀ-ÿ]/.test(form.nouveau) && /\d/.test(form.nouveau), texte: 'Lettres et chiffres' },
     { ok: Boolean(form.nouveau) && form.nouveau !== form.actuel, texte: "Différent de l'actuel" },
     { ok: Boolean(form.nouveau) && form.nouveau === form.confirmation, texte: 'Confirmation identique' },
   ];

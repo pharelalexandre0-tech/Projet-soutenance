@@ -148,4 +148,4 @@ async function etablissementDeLaRequete(req) {
   return null;
 }
 
-module.exports = { publier, abonner, demarrerEcoute, diffuserModifications };
+module.exports = { publier, abonner, demarrerEcoute, diffuserModifications, etablissementDeLaRequete };

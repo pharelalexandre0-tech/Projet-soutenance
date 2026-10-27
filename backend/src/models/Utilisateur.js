@@ -12,7 +12,7 @@ const sequelize = require('../config/db');
 class Utilisateur extends Model {
   toPublicJSON() {
     const { id, nom, prenom, email, role, service, fonction, etablissementId, statut, createdAt } = this;
-    return { id, nom, prenom, email, role, service, fonction, etablissementId, statut, createdAt };
+    return { id, nom, prenom, email, role, service, fonction, etablissementId, statut, createdAt, doubleFacteurActif: Boolean(this.totpActif) };
   }
 }
 
@@ -51,6 +51,27 @@ Utilisateur.init(
     // publiée après cette date compte comme non lue. Nul = jamais ouverte,
     // on repart alors de la création du compte (pas tout l'historique).
     nouveautesVuesLe: { type: DataTypes.DATE, allowNull: true },
+    // Code e-mail : essais restants avant qu'il soit invalidé (5 au plus).
+    codeDoubleFacteurEssais: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    // Application d'authentification (TOTP), obligatoire pour le personnel
+    // (Académie, Finance, Superadmin). Secret chiffré en base (AES-256-GCM),
+    // dernier pas de 30 s utilisé (un code ne sert qu'une fois), empreintes
+    // SHA-256 des codes de secours restants.
+    totpSecret: { type: DataTypes.TEXT, allowNull: true },
+    totpActif: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    totpActiveLe: { type: DataTypes.DATE, allowNull: true },
+    totpDernierPas: { type: DataTypes.BIGINT, allowNull: true },
+    totpCodesSecours: { type: DataTypes.JSON, allowNull: true },
+    // Nouveau secret en cours d'enregistrement (premier appareil ou
+    // changement de téléphone) : remplace le secret actif seulement après
+    // un premier code correct.
+    totpSecretEnAttente: { type: DataTypes.TEXT, allowNull: true },
+    // Verrouillage temporaire après des échecs répétés (mot de passe ou
+    // code) : freine l'essai de mots de passe en série sur un compte.
+    echecsConnexion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+    verrouilleJusqua: { type: DataTypes.DATE, allowNull: true },
+    derniereConnexion: { type: DataTypes.DATE, allowNull: true },
+    motDePasseChangeLe: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,
@@ -61,7 +82,12 @@ Utilisateur.init(
     // Utilisateur est inclus en relation imbriquée (ex. compte étudiant d'un
     // élève). Le scope "avecMotDePasse" (auth uniquement) permet de les
     // récupérer explicitement pour la vérification.
-    defaultScope: { attributes: { exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire', 'codeDoubleFacteurPour', 'tokenReinitialisation', 'tokenReinitialisationExpire'] } },
+    defaultScope: {
+      attributes: {
+        exclude: ['motDePasse', 'codeDoubleFacteur', 'codeDoubleFacteurExpire', 'codeDoubleFacteurPour', 'codeDoubleFacteurEssais', 'tokenReinitialisation',
+          'tokenReinitialisationExpire', 'totpSecret', 'totpSecretEnAttente', 'totpDernierPas', 'totpCodesSecours'],
+      },
+    },
     scopes: { avecMotDePasse: { attributes: {} } },
   }
 );

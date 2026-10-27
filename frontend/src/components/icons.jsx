@@ -6,7 +6,7 @@ import {
   Link2, Library, Video, Globe, Trash2, Pencil, Info, Send, Calendar, Newspaper, LifeBuoy, Briefcase, Award,
   Bus, Utensils, HandCoins, ArrowLeft, Database, Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye,
   EyeOff, Upload, UserPlus, Copy, School, Flag, Sparkles, Bot, Inbox, Table2, MessageCircleQuestion, ListChecks,
-  Trophy, HeartPulse, SendHorizontal, WifiOff,
+  Trophy, HeartPulse, SendHorizontal, WifiOff, ShieldX, ShieldAlert, FileCheck2, QrCode, Fingerprint,
 } from 'lucide-react';
 
 // Jeu d'icônes Lucide (trait régulier, dessin sobre) à la place des icônes
@@ -130,3 +130,8 @@ export function IconeFonctionnalite({ nom, ...props }) {
   return <Icone {...props} />;
 }
 export const IconHorsLigne = avecTrait(WifiOff);
+export const IconShieldX = avecTrait(ShieldX);
+export const IconShieldAlert = avecTrait(ShieldAlert);
+export const IconFileCheck = avecTrait(FileCheck2);
+export const IconQrCode = avecTrait(QrCode);
+export const IconFingerprint = avecTrait(Fingerprint);

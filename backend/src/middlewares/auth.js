@@ -1,4 +1,5 @@
 const { verifySession } = require('../utils/jwt');
+const { sessionValide } = require('../services/sessionService');
 const { Utilisateur, Etablissement } = require('../models');
 const { maintenanceEnCours, repondreMaintenance } = require('../services/plateformeService');
 
@@ -12,6 +13,12 @@ async function authentifier(req, res, next) {
   }
   try {
     const payload = verifySession(token);
+    // La session doit toujours être ouverte en base : fermée à distance,
+    // expirée ou inconnue, le jeton ne suffit plus.
+    const session = await sessionValide(payload);
+    if (!session) {
+      return res.status(401).json({ erreur: 'session expirée ou fermée, reconnectez-vous' });
+    }
     const utilisateur = await Utilisateur.findByPk(payload.id);
     if (!utilisateur) {
       return res.status(401).json({ erreur: "erreur d'authentification" });
@@ -36,6 +43,7 @@ async function authentifier(req, res, next) {
       if (maintenance) return repondreMaintenance(res, maintenance);
     }
     req.utilisateur = utilisateur;
+    req.session = session;
     // Session ouverte par le parent sur le compte étudiant de son enfant :
     // mêmes droits, seul l'affichage change (Espace Parents).
     req.sessionParent = utilisateur.role === 'etudiant' && payload.parent === true;

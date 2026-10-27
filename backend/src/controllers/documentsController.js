@@ -43,7 +43,7 @@ async function listePresence(req, res) {
   if (!classes.length) return res.status(404).json({ erreur: 'classe introuvable' });
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   const { date, cours, enseignant } = req.query;
-  const pdf = await docs.listePresencePDF({ etablissement, classes, date: date || null, cours, enseignant });
+  const pdf = await docs.listePresencePDF({ etablissement, classes, date: date || null, cours, enseignant, emisParId: req.utilisateur.id });
   const nom = classes.length > 1 ? 'toutes-les-classes' : propre(classes[0].classe.nom);
   return envoyer(res, pdf, `liste-de-presence-${nom}-${date || aujourdhui()}`, 'pdf');
 }
@@ -61,7 +61,7 @@ async function recapitulatifPresences(req, res) {
   });
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   const format = req.query.format === 'xlsx' ? 'xlsx' : 'pdf';
-  const donnees = { etablissement, classe: premiere.classe, eleves: premiere.eleves, absences, du, au };
+  const donnees = { etablissement, classe: premiere.classe, eleves: premiere.eleves, absences, du, au, emisParId: req.utilisateur.id };
   const contenu = format === 'xlsx' ? docs.recapitulatifPresencesXlsx(donnees) : await docs.recapitulatifPresencesPDF(donnees);
   return envoyer(res, contenu, `recapitulatif-presences-${propre(premiere.classe.nom)}-${aujourdhui()}`, format);
 }
@@ -79,7 +79,7 @@ async function resultats(req, res) {
   const regles = await reglesEtablissement(req.utilisateur.etablissementId);
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   const format = req.query.format === 'xlsx' ? 'xlsx' : 'pdf';
-  const donnees = { etablissement, classe: premiere.classe, semestre, ues, eleves: premiere.eleves, calculs, regles, ordre: req.query.ordre === 'alphabetique' ? 'alphabetique' : 'merite' };
+  const donnees = { etablissement, classe: premiere.classe, semestre, ues, eleves: premiere.eleves, calculs, regles, ordre: req.query.ordre === 'alphabetique' ? 'alphabetique' : 'merite', emisParId: req.utilisateur.id };
   const contenu = format === 'xlsx' ? docs.procesVerbalXlsx(donnees) : await docs.procesVerbalPDF(donnees);
   return envoyer(res, contenu, `resultats-${propre(premiere.classe.nom)}-${propre(semestre.libelle)}`, format);
 }
@@ -94,7 +94,7 @@ async function emploisDuTemps(req, res) {
   });
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   const pages = classes.map(({ classe }) => ({ classe, creneaux: creneaux.filter((c) => c.classeId === classe.id && (!c.semestreId || c.semestreId === semestre.id)) }));
-  const pdf = await docs.emploisDuTempsPDF({ etablissement, semestre, pages });
+  const pdf = await docs.emploisDuTempsPDF({ etablissement, semestre, pages, emisParId: req.utilisateur.id });
   const nom = classes.length > 1 ? 'toutes-les-classes' : propre(classes[0].classe.nom);
   return envoyer(res, pdf, `emploi-du-temps-${nom}-${propre(semestre.libelle)}`, 'pdf');
 }

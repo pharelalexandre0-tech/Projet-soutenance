@@ -29,6 +29,11 @@ function lienReinitialisation(jeton) {
   return `${baseAccesTemporaire().replace(/\/[^/]*$/, '/reinitialiser-mot-de-passe')}/${jeton}`;
 }
 
+// Page publique de vérification d'un document officiel (QR code imprimé).
+function lienVerification(code) {
+  return `${origineFrontend()}/verifier/${code}`;
+}
+
 function lienPlateforme() {
   return `${origineFrontend()}/`;
 }
@@ -47,5 +52,5 @@ function urlLogoEduSphere() {
 }
 
 module.exports = {
-  lienAccesTemporaire, lienReinitialisation, lienPlateforme, urlLogoEtablissement, urlLogoEduSphere,
+  lienAccesTemporaire, lienReinitialisation, lienPlateforme, lienVerification, urlLogoEtablissement, urlLogoEduSphere,
 };

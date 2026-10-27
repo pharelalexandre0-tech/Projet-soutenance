@@ -116,6 +116,7 @@ async function enregistrerPaiement(req, res) {
     frais,
     paiement,
     etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
+    emisParId: req.utilisateur.id,
   });
   const recu = await Recu.create({ numero: recuNumero, paiementId: paiement.id, fichierPDF: cheminRelatif });
 
@@ -274,6 +275,7 @@ async function verserSalaire(req, res) {
     personne,
     salaire,
     etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
+    emisParId: req.utilisateur.id,
   });
   salaire.fichierPDF = cheminRelatif;
   await salaire.save();

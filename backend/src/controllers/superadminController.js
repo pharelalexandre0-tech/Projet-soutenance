@@ -1,8 +1,10 @@
 const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
-const { erreurMotDePasseInvalide } = require('../utils/motDePasse');
+const { erreurMotDePasseInvalide, COUT_BCRYPT_PERSONNEL } = require('../utils/motDePasse');
 const { erreurLogoInvalide } = require('../utils/logo');
 const { motDePasseAleatoire } = require('../utils/tokenGenerator');
+const { revoquerSessions } = require('../services/sessionService');
+const { journaliserAudit } = require('../services/auditService');
 const { envoyerEmail, derniersEnvois } = require('../services/emailService');
 const { journaliser, clesDeLEcole, invaliderCache } = require('../services/plateformeService');
 const { MODULES_INTEGRES } = require('../config/fonctionnalites');
@@ -11,7 +13,7 @@ const {
   UniteEnseignement, Matiere, EmploiDuTemps, CompteEphemere, CahierDeTextes,
   Absence, Note, Bulletin, PredictionIA, MessageAnnonce, Notification,
   FraisScolarite, Paiement, Recu, Salaire, FonctionnalitePersonnalisee, ActivationFonctionnalite,
-  DocumentPDF, IncidentComportement, PublicationEmploiDuTemps, CompteRenduSaisie, EntreeExtension,
+  DocumentPDF, IncidentComportement, PublicationEmploiDuTemps, CompteRenduSaisie, EntreeExtension, CertificationDocument,
 } = require('../models');
 
 // Vue d'ensemble : le superadmin gère la PLATEFORME (écoles affiliées,
@@ -91,7 +93,7 @@ async function creerEtablissement(req, res) {
     telephone: telephone || null, email: email || null, logo: logo || null,
   });
 
-  const motDePasseHache = await bcrypt.hash(academieMotDePasse, 10);
+  const motDePasseHache = await bcrypt.hash(academieMotDePasse, COUT_BCRYPT_PERSONNEL);
   const compteAcademie = await Utilisateur.create({
     nom: academieNom,
     prenom: academiePrenom,
@@ -205,6 +207,7 @@ async function supprimerEtablissement(req, res) {
     await IncidentComportement.destroy({ where: { eleveId: { [Op.in]: eleveIds } } });
   }
   await CompteRenduSaisie.destroy({ where: { etablissementId } });
+  await CertificationDocument.destroy({ where: { etablissementId } });
   await EntreeExtension.destroy({ where: { etablissementId } });
   if (classeIds.length) await PublicationEmploiDuTemps.destroy({ where: { classeId: { [Op.in]: classeIds } } });
   if (classeIds.length) {
@@ -281,7 +284,7 @@ async function creerSuperadmin(req, res) {
   if (emailExistant) {
     return res.status(400).json({ erreur: 'cette adresse e-mail est déjà utilisée par un autre compte' });
   }
-  const motDePasseHache = await bcrypt.hash(motDePasse, 10);
+  const motDePasseHache = await bcrypt.hash(motDePasse, COUT_BCRYPT_PERSONNEL);
   const compte = await Utilisateur.create({ nom, prenom, email, motDePasse: motDePasseHache, role: 'superadmin' });
   await journaliser(req.utilisateur, 'compte', `Création du compte superadmin de ${prenom} ${nom}`);
   return res.status(201).json({ compte: compte.toPublicJSON() });
@@ -359,11 +362,21 @@ async function reinitialiserMotDePasseAcademie(req, res) {
   }
 
   const nouveauMotDePasse = motDePasseAleatoire();
-  compteAcademie.motDePasse = await bcrypt.hash(nouveauMotDePasse, 10);
+  compteAcademie.motDePasse = await bcrypt.hash(nouveauMotDePasse, COUT_BCRYPT_PERSONNEL);
   // Redonne l'accès pour de bon : un compte individuellement verrouillé
   // resterait bloqué même avec un nouveau mot de passe sinon.
   compteAcademie.statut = 'actif';
+  // Téléphone perdu : l'application d'authentification est à reconfigurer
+  // à la prochaine connexion, et toutes les sessions ouvertes sont fermées.
+  compteAcademie.totpActif = false;
+  compteAcademie.totpSecret = null;
+  compteAcademie.totpSecretEnAttente = null;
+  compteAcademie.totpCodesSecours = null;
+  compteAcademie.echecsConnexion = 0;
+  compteAcademie.verrouilleJusqua = null;
   await compteAcademie.save();
+  await revoquerSessions(compteAcademie.id, { motif: 'accès réinitialisé par le superadmin' });
+  await journaliserAudit(req, { action: 'acces_academie_reinitialise', cible: compteAcademie.email, etablissementId: etablissement.id });
 
   await journaliser(req.utilisateur, 'compte', `Réinitialisation de l'accès Académie de « ${etablissement.nom} »`);
   return res.json({ email: compteAcademie.email, motDePasse: nouveauMotDePasse });
@@ -417,7 +430,7 @@ async function mettreAJourMonProfil(req, res) {
     if (!motDePasseActuel || !(await bcrypt.compare(motDePasseActuel, avecMotDePasse.motDePasse))) {
       return res.status(400).json({ erreur: 'mot de passe actuel incorrect' });
     }
-    req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, 10);
+    req.utilisateur.motDePasse = await bcrypt.hash(motDePasse, COUT_BCRYPT_PERSONNEL);
   }
   // Nouvelle adresse (identifiant de connexion) : mot de passe actuel exigé,
   // adresse valide et libre.
@@ -437,7 +450,11 @@ async function mettreAJourMonProfil(req, res) {
   req.utilisateur.nom = nom;
   req.utilisateur.prenom = prenom;
   await req.utilisateur.save();
-  if (motDePasse) await journaliser(req.utilisateur, 'compte', 'Changement de son propre mot de passe');
+  if (motDePasse) {
+    await revoquerSessions(req.utilisateur.id, { sauf: req.session.id, motif: 'mot de passe changé' });
+    await journaliserAudit(req, { action: 'mot_de_passe_change', cible: req.utilisateur.email });
+    await journaliser(req.utilisateur, 'compte', 'Changement de son propre mot de passe');
+  }
   if (changeEmail) await journaliser(req.utilisateur, 'compte', 'Changement de son adresse e-mail de connexion');
   return res.json({ profil: req.utilisateur.toPublicJSON() });
 }

@@ -6,10 +6,14 @@
 // Jamais commité (voir .gitignore) : le dépôt est public et un instantané
 // contient noms, e-mails, notes et montants réels. Copie-le ensuite vers un
 // endroit sûr (disque externe, stockage cloud privé).
+// Avec CLE_SAUVEGARDE (phrase secrète longue, gardée hors du serveur), le
+// fichier est chiffré (AES-256-GCM) : un disque ou un cloud compromis ne
+// livre rien. Sans elle, la sauvegarde reste en clair, avec un avertissement.
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const modeles = require('../models');
+const { chiffrerSauvegarde } = require('../utils/chiffrementSauvegarde');
 
 const DOSSIER_SAUVEGARDES = path.join(__dirname, '..', '..', 'storage', 'sauvegardes');
 
@@ -35,11 +39,15 @@ function remplacer(cle, valeur) {
     instantane.tables[nom] = await modeles[nom].unscoped().findAll({ raw: true });
   }
 
+  const phrase = process.env.CLE_SAUVEGARDE;
+  const extension = phrase ? 'json.chiffre' : 'json';
   const chemin = process.argv[2]
     ? path.resolve(process.argv[2])
-    : path.join(DOSSIER_SAUVEGARDES, `sauvegarde-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);
+    : path.join(DOSSIER_SAUVEGARDES, `sauvegarde-${new Date().toISOString().replace(/[:.]/g, '-')}.${extension}`);
   fs.mkdirSync(path.dirname(chemin), { recursive: true });
-  fs.writeFileSync(chemin, JSON.stringify(instantane, remplacer));
+  const texte = JSON.stringify(instantane, remplacer);
+  fs.writeFileSync(chemin, phrase ? chiffrerSauvegarde(texte, phrase) : texte);
+  if (!phrase) console.warn('Attention : sauvegarde NON chiffrée. Définissez CLE_SAUVEGARDE pour la chiffrer.');
 
   const totalLignes = Object.values(instantane.tables).reduce((s, lignes) => s + lignes.length, 0);
   const taille = (fs.statSync(chemin).size / 1024 / 1024).toFixed(1);

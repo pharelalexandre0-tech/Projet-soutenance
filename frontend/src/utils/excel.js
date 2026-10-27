@@ -66,9 +66,18 @@ export async function lireFichierExcel(fichier) {
   });
 }
 
+// 12 caractères dont au moins deux chiffres (règle du serveur : 10
+// caractères au moins, lettres et chiffres), tirés par crypto.getRandomValues.
 export function motDePasseAleatoire() {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let mot = '';
-  for (let i = 0; i < 10; i += 1) mot += alphabet[Math.floor(Math.random() * alphabet.length)];
-  return mot;
+  const lettres = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
+  const chiffres = '23456789';
+  const tirer = (n) => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+  const mot = [chiffres[tirer(chiffres.length)], chiffres[tirer(chiffres.length)], lettres[tirer(lettres.length)]];
+  const alphabet = lettres + chiffres;
+  while (mot.length < 12) mot.push(alphabet[tirer(alphabet.length)]);
+  for (let i = mot.length - 1; i > 0; i -= 1) {
+    const j = tirer(i + 1);
+    [mot[i], mot[j]] = [mot[j], mot[i]];
+  }
+  return mot.join('');
 }

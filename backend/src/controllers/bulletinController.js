@@ -43,7 +43,7 @@ async function obtenirBulletin(req, res) {
     bulletin.moyenneGenerale = moyenneGenerale;
     bulletin.creditsValides = creditsValides;
     const { cheminRelatif: cheminMisAJour } = await genererBulletinPDF({
-      eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles,
+      eleve, semestre, moyenneGenerale, creditsValides, creditsTotal, admis, sessionGlobale, detailParUE, etablissement, regles, emisParId: req.utilisateur.id,
     });
     bulletin.fichierPDF = cheminMisAJour;
     await bulletin.save();
@@ -61,6 +61,7 @@ async function obtenirBulletin(req, res) {
     detailParUE,
     etablissement,
     regles,
+    emisParId: req.utilisateur.id,
   });
 
   bulletin = await Bulletin.create({
@@ -107,7 +108,7 @@ async function envoyerBulletinParEmail(req, res) {
   if (!contenu) {
     const calcul = await calculerBulletin(Number(eleveId), Number(semestreId));
     const genere = await genererBulletinPDF({
-      eleve, semestre, ...calcul, etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
+      eleve, semestre, ...calcul, etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId), emisParId: req.utilisateur.id,
     });
     contenu = genere.contenu;
     bulletin.fichierPDF = genere.cheminRelatif;

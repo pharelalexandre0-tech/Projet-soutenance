@@ -1,9 +1,36 @@
+# Adresse réelle du visiteur : dernière adresse de X-Forwarded-For, celle
+# qu'a ajoutée la passerelle de l'hébergeur (un visiteur ne peut pas la
+# falsifier, contrairement aux premières). Transmise au backend pour que la
+# limite d'essais de connexion et le journal d'audit visent chaque visiteur,
+# pas le relais nginx commun à tous.
+map $http_x_forwarded_for $edusphere_client {
+    "~(?<derniere>[^,\s]+)\s*$" $derniere;
+    default $remote_addr;
+}
+
 server {
     listen ${PORT};
     server_name _;
+    server_tokens off;
 
     root /usr/share/nginx/html;
     index index.html;
+
+    # En-têtes de sécurité du site.
+    #   - CSP : scripts uniquement servis par le site lui-même (aucun script
+    #     externe ni en ligne), polices Google, API EduSphere, rien d'autre ;
+    #     le site ne peut pas être affiché dans un cadre (clickjacking).
+    #   - HSTS : HTTPS imposé pendant un an.
+    #   - le navigateur ne devine pas les types de fichiers, n'envoie que
+    #     l'origine comme référent, et l'appareil photo, le micro et la
+    #     géolocalisation sont refusés.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: ${BACKEND_SCHEME}://${BACKEND_HOST}; connect-src 'self' ${BACKEND_SCHEME}://${BACKEND_HOST}; worker-src 'self'; manifest-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
+    add_header Cross-Origin-Opener-Policy "same-origin" always;
 
     # SPA React Router : toute route inconnue retombe sur index.html.
     location / {
@@ -17,6 +44,7 @@ server {
         proxy_pass ${BACKEND_SCHEME}://${BACKEND_HOST}/api/evenements;
         proxy_ssl_server_name on;
         proxy_set_header Host ${BACKEND_HOST};
+        proxy_set_header X-EduSphere-Client $edusphere_client;
         proxy_http_version 1.1;
         proxy_set_header Connection '';
         proxy_buffering off;
@@ -36,6 +64,7 @@ server {
         proxy_ssl_server_name on;
         proxy_set_header Host ${BACKEND_HOST};
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-EduSphere-Client $edusphere_client;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
@@ -44,5 +73,6 @@ server {
         proxy_pass ${BACKEND_SCHEME}://${BACKEND_HOST}/fichiers/;
         proxy_ssl_server_name on;
         proxy_set_header Host ${BACKEND_HOST};
+        proxy_set_header X-EduSphere-Client $edusphere_client;
     }
 }
