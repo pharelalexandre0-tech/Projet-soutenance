@@ -2,7 +2,7 @@
 // scripts, styles, polices) pour qu'elle s'ouvre sans réseau. Les données
 // (/api, /fichiers) ne passent pas par ici : l'application les garde
 // elle-même, rangées par compte (src/api/horsLigne.js).
-const COQUILLE = 'edusphere-coquille-v1';
+const COQUILLE = 'edusphere-coquille-v2';
 const POLICES = 'edusphere-polices-v1';
 // Les fichiers sont retrouvés par leur seule adresse : le serveur répond
 // avec « Vary » (Origin, Accept-Encoding) et les scripts de la page sont

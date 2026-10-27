@@ -108,7 +108,8 @@ app.get('/fichiers/:nomFichier', authentifier, async (req, res, next) => {
   }
 });
 
-app.get('/api/sante', (req, res) => res.json({ etat: 'ok' }));
+// Version déployée (commit fourni par Render) : permet de vérifier une mise en ligne.
+app.get('/api/sante', (req, res) => res.json({ etat: 'ok', version: (process.env.RENDER_GIT_COMMIT || 'locale').slice(0, 7) }));
 
 // Mise à jour en direct : chaque modification réussie prévient les écrans
 // ouverts de l'école (services/evenementsService.js).

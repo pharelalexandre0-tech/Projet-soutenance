@@ -32,9 +32,29 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()" always;
     add_header Cross-Origin-Opener-Policy "same-origin" always;
 
-    # SPA React Router : toute route inconnue retombe sur index.html.
+    # SPA React Router : toute route inconnue retombe sur index.html,
+    # toujours revérifiée auprès du serveur (sinon le navigateur peut garder
+    # une ancienne version de l'application).
     location / {
         try_files $uri /index.html;
+        add_header Cache-Control "no-cache" always;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: ${BACKEND_SCHEME}://${BACKEND_HOST}; connect-src 'self' ${BACKEND_SCHEME}://${BACKEND_HOST}; worker-src 'self'; manifest-src 'self'; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    }
+
+    # Fichiers versionnés par leur nom : gardés un an.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+        add_header X-Content-Type-Options "nosniff" always;
+    }
+
+    # Service hors ligne : toujours la dernière version.
+    location = /sw.js {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options "nosniff" always;
     }
 
     # Flux de mise à jour en direct (Server-Sent Events) : transmis sans
