@@ -156,16 +156,33 @@ export default function Verifier() {
               <FormulaireCode />
               <p className="verif-aide">Avec un téléphone, il suffit de scanner le QR code du document : cette page s’ouvre directement avec la réponse.</p>
             </section>
-            <figure className="verif-exemple" aria-label="Où trouver le code sur le document">
-              <div className="verif-exemple-feuille" aria-hidden="true">
-                <span className="ligne longue" /><span className="ligne" /><span className="ligne courte" />
-                <span className="ligne longue" /><span className="ligne" />
-                <div className="verif-exemple-pied">
-                  <img className="verif-exemple-qr" src={qrEduSphere} alt="" />
-                  <span className="verif-exemple-code"><small>Vérification d’authenticité</small>AB12-CD34-EF56</span>
+            <figure className="verif-exemple">
+              <div className="vx-scene" aria-hidden="true">
+                <div className="vx-feuille vx-dessous" />
+                <div className="vx-feuille">
+                  <div className="vx-entete">
+                    <span className="vx-logo">IDE</span>
+                    <span className="vx-etab"><b>Institut de Démonstration</b><i>Libreville · Gabon</i></span>
+                  </div>
+                  <div className="vx-titre">Relevé de notes</div>
+                  <div className="vx-identite"><span>Aïcha ABAGA</span><span>L1 Informatique · S1</span></div>
+                  <div className="vx-notes">
+                    {[['Informatique fondamentale', '15,40'], ['Mathématiques', '14,10'], ['Bases de données', '15,95'], ['Langues', '13,25']].map(([ue, note]) => (
+                      <div key={ue}><span>{ue}</span><b>{note}</b></div>
+                    ))}
+                  </div>
+                  <div className="vx-moyenne"><span>Moyenne</span><b>14,81</b><em>Validé</em></div>
+                  <div className="vx-pied">
+                    <img className="vx-qr" src={qrEduSphere} alt="" />
+                    <span className="vx-code"><small>Vérification d’authenticité</small>AB12-CD34-EF56</span>
+                  </div>
                 </div>
+                <span className="vx-repere">Votre code est ici</span>
               </div>
-              <figcaption>Le code se trouve à côté du QR code, en bas du document.</figcaption>
+              <figcaption>
+                <strong>Où trouver le code ?</strong>
+                En bas du document, à côté du QR code : trois groupes de 4 caractères.
+              </figcaption>
             </figure>
           </div>
         )}
