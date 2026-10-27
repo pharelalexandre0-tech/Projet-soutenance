@@ -36,6 +36,10 @@ const DELAI_RAFRAICHISSEMENT_MS = 5 * 60 * 1000;
 const CLE_ANNONCE_MASQUEE = 'edusphere_annonce_masquee';
 const GROUPE_EXTENSIONS = "Services de l'établissement";
 
+// Rubriques du dossier : chaque groupe du menu porte un numéro romain, et
+// chaque page une cote (rubrique.page), reprise dans l'en-tête de la page.
+const ROMAINS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
 function initiales(prenom, nom) {
   return `${prenom?.[0] ?? ''}${nom?.[0] ?? ''}`.toUpperCase();
 }
@@ -147,7 +151,8 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     if (section && section.id !== actif) onChange(section.id);
   }, [section, actif, onChange]);
 
-  // Onglets consécutifs d'un même groupe -> une section titrée du menu.
+  // Onglets consécutifs d'un même groupe -> une section titrée du menu,
+  // numérotée comme une rubrique de dossier.
   const groupes = useMemo(() => {
     const liste = [];
     ongletsVisibles.forEach((o) => {
@@ -155,8 +160,19 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
       if (dernier && dernier.titre === (o.groupe || null)) dernier.onglets.push(o);
       else liste.push({ titre: o.groupe || null, onglets: [o] });
     });
+    let rang = 0;
+    liste.forEach((g) => { if (g.titre) { g.numero = ROMAINS[rang] || String(rang + 1); rang += 1; } });
     return liste;
   }, [ongletsVisibles]);
+
+  // Cote de la page affichée : « II.3 » = 3e page de la rubrique II.
+  const cote = useMemo(() => {
+    const groupe = groupes.find((g) => g.onglets.some((o) => o.id === section?.id));
+    if (!groupe?.numero) return null;
+    return `${groupe.numero}.${groupe.onglets.findIndex((o) => o.id === section?.id) + 1}`;
+  }, [groupes, section?.id]);
+  const sigleCote = (etablissement?.sigle || 'ES').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6).toUpperCase();
+  const consulteLe = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     function surTouche(e) {
@@ -236,7 +252,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
         <nav className="nav-laterale">
           {groupes.map((g, i) => (
             <div className="nav-groupe" key={`${g.titre || 'principal'}-${i}`}>
-              {g.titre && <div className="nav-groupe-titre">{g.titre}</div>}
+              {g.titre && <div className="nav-groupe-titre"><span className="nav-groupe-numero">{g.numero}</span>{g.titre}</div>}
               {g.onglets.map((o) => {
                 const Icone = o.icone;
                 const estActif = section?.id === o.id;
@@ -300,12 +316,22 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
             {!bloquerContenu && (
               <>
                 {!section?.masquerEntete && (
-                  <div className="entete-page">
-                    <div>
-                      <h1>{section?.label}</h1>
-                      {section?.description && <p className="entete-page-description">{section.description}</p>}
+                  <header className="cartouche">
+                    <div className="cartouche-onglet">
+                      <span>{cote ? `Rubrique ${cote}` : 'Accueil'}</span>
+                      {section?.groupe && <span className="cartouche-onglet-groupe">{section.groupe}</span>}
                     </div>
-                  </div>
+                    <div className="cartouche-corps entete-page">
+                      <div className="cartouche-titre">
+                        <h1>{section?.label}</h1>
+                        {section?.description && <p className="entete-page-description">{section.description}</p>}
+                      </div>
+                      <dl className="cartouche-meta">
+                        <div><dt>Cote</dt><dd>{sigleCote}{cote ? `-${cote}` : ''}</dd></div>
+                        <div><dt>Consulté le</dt><dd>{consulteLe}</dd></div>
+                      </dl>
+                    </div>
+                  </header>
                 )}
                 <PlateformeContext.Provider value={etatPlateforme?.fonctionnalites || null}>
                   {/* Chaque onglet est chargé à la demande (lazy() dans chaque

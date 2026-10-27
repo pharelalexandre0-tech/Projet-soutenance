@@ -2643,3 +2643,172 @@ button.petit { display: inline-flex; align-items: center; gap: 6px; padding: 5px
 .etat-integrite.ok { background: var(--succes-fond); color: var(--succes); }
 .etat-integrite.refus { background: var(--erreur-fond); color: var(--erreur); }
 .bouton-plus { margin-top: 14px; }
+
+/* ==========================================================================
+   « Dossier universitaire » : langage visuel d'EduSphere (refonte 2026)
+   Chaque page est un dossier de scolarité : un onglet de chemise portant la
+   rubrique, un cartouche (titre, cote, date), des feuillets à en-tête
+   papier, des tableaux tenus comme des registres lignés, des onglets de
+   classeur. Couleurs inchangées : seules la structure, la typographie et
+   les filets changent. Placé en fin de feuille : prime sur les règles
+   précédentes sans retirer aucun composant.
+   ========================================================================== */
+
+:root {
+  --filet-registre: color-mix(in srgb, var(--edu-marine) 82%, transparent);
+  --ligne-registre: color-mix(in srgb, var(--bordure) 85%, var(--papier));
+  --papier-entete: color-mix(in srgb, var(--papier) 70%, var(--carte));
+  --rayon-feuillet: 6px;
+}
+
+/* --- Menu : rubriques numérotées ----------------------------------------- */
+.nav-groupe-titre { display: flex; align-items: baseline; gap: 8px; }
+.nav-groupe-numero {
+  min-width: 22px; font-family: var(--police-serif); font-size: 12.5px; font-weight: 700;
+  letter-spacing: 0; color: var(--edu-or); text-transform: none;
+}
+.item-nav { position: relative; }
+.item-nav.actif::before {
+  content: ""; position: absolute; left: -14px; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 0 3px 3px 0; background: var(--edu-or);
+}
+
+/* --- Cartouche de page ---------------------------------------------------- */
+.cartouche { margin-bottom: 26px; }
+.cartouche-onglet {
+  display: inline-flex; align-items: center; gap: 10px; max-width: 100%;
+  padding: 8px 16px 7px; margin-left: 18px;
+  background: var(--edu-marine); color: #fff;
+  border-radius: 9px 9px 0 0;
+  font: 600 12px/1 var(--police); letter-spacing: 0.1em; text-transform: uppercase;
+}
+.cartouche-onglet-groupe { color: color-mix(in srgb, #fff 62%, transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cartouche-onglet-groupe::before { content: "/"; margin-right: 10px; color: var(--edu-or); }
+.cartouche-corps.entete-page {
+  margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 24px;
+  padding: 22px 28px 20px;
+  background: var(--carte);
+  border: 1px solid var(--bordure); border-top: 3px solid var(--edu-marine);
+  border-radius: var(--rayon-feuillet);
+  box-shadow: var(--ombre);
+}
+.cartouche-titre { min-width: 0; }
+.cartouche h1 {
+  font-family: var(--police-serif); font-size: 31px; font-weight: 700; letter-spacing: -0.01em;
+  color: var(--edu-marine); text-wrap: balance;
+}
+.cartouche .entete-page-description { font-size: 15.5px; max-width: 760px; text-wrap: pretty; }
+.cartouche-meta {
+  margin: 0; display: grid; grid-auto-flow: column; gap: 0;
+  border-left: 1px solid var(--bordure);
+}
+.cartouche-meta > div { padding: 2px 20px; display: flex; flex-direction: column; gap: 4px; }
+.cartouche-meta > div + div { border-left: 1px dashed var(--bordure); }
+.cartouche-meta dt { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texte-clair); }
+.cartouche-meta dd { margin: 0; font-family: var(--police-mono); font-size: 13.5px; font-weight: 600; color: var(--edu-marine); white-space: nowrap; }
+
+/* --- Feuillets (panneaux) -------------------------------------------------- */
+.carte { border-radius: var(--rayon-feuillet); }
+:where(.carte) > h2:first-child,
+:where(.carte) > .entete-carte:first-child,
+:where(.carte) > .entete-section:first-child:has(> h2) {
+  background: var(--papier-entete);
+  border-bottom: 1px solid var(--ligne-registre);
+  border-radius: var(--rayon-feuillet) var(--rayon-feuillet) 0 0;
+}
+:where(.carte) h2, .modale-entete h2, .tiroir-entete h2 {
+  font-family: var(--police-serif); font-weight: 700; color: var(--edu-marine); letter-spacing: 0;
+}
+:where(.carte) h2 { font-size: 18.5px; }
+.entete-carte-compteur { font-family: var(--police-mono); font-size: 12.5px; background: var(--carte); border: 1px solid var(--bordure); }
+
+/* --- Registres (tableaux) ------------------------------------------------- */
+th {
+  background: var(--papier-entete); color: var(--edu-marine);
+  font-size: 12.5px; font-weight: 700; letter-spacing: 0.02em;
+  border-bottom: 2px solid var(--filet-registre);
+}
+td { border-bottom-color: var(--ligne-registre); }
+tbody tr:nth-child(even) > td { background: color-mix(in srgb, var(--papier) 45%, transparent); }
+tbody tr:hover > td { background: color-mix(in srgb, var(--primaire-clair) 55%, var(--carte)); }
+tbody tr:has(> td.vide):hover > td, tbody tr:has(> td.vide) > td { background: none; }
+
+/* --- Onglets de classeur --------------------------------------------------- */
+.onglets-secondaires {
+  gap: 4px; padding: 0 6px; border-bottom: 2px solid var(--edu-marine);
+}
+.onglets-secondaires button {
+  padding: 11px 18px 10px; margin-bottom: 0;
+  border: 1px solid var(--bordure); border-bottom: none; border-radius: 8px 8px 0 0;
+  background: color-mix(in srgb, var(--gris-fond) 70%, var(--carte));
+  color: var(--texte-clair);
+}
+.onglets-secondaires button:hover { background: var(--carte); color: var(--texte); }
+.onglets-secondaires button.actif {
+  background: var(--edu-marine); border-color: var(--edu-marine); color: #fff;
+}
+.onglets-secondaires button.actif .compteur { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.modale-corps .onglets-secondaires, .tiroir .onglets-secondaires { margin-top: -4px; }
+
+/* --- Indicateurs : bande de registre --------------------------------------- */
+.stats-grid { border-radius: var(--rayon-feuillet); border-top: 3px solid var(--edu-marine); }
+.stat-tile .valeur { font-family: var(--police-serif); font-weight: 700; font-size: 36px; letter-spacing: -0.01em; }
+.stat-tile .libelle { font-size: 13.5px; font-weight: 600; color: var(--texte-clair); }
+
+/* --- Fenêtres et volets ---------------------------------------------------- */
+.modale-carte, .tiroir { border-radius: var(--rayon-feuillet); }
+.tiroir { border-radius: 0; }
+.modale-entete, .tiroir-entete { background: var(--papier-entete); }
+.modale-accent { background: var(--edu-marine); }
+
+/* --- Commandes -------------------------------------------------------------- */
+button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, textarea, .champ-recherche, .bouton-recherche { border-radius: 6px; }
+.vide { border-radius: var(--rayon-feuillet); background: color-mix(in srgb, var(--papier) 55%, transparent); }
+
+/* --- Accueil : journal du jour --------------------------------------------- */
+.accueil-dossier { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 24px; align-items: start; }
+.accueil-dossier > .colonne-empilee > .carte { margin-bottom: 0; }
+.colonne-empilee { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+.journal-jour { list-style: none; margin: 0; padding: 0; position: relative; }
+.journal-jour::before { content: ""; position: absolute; left: 66px; top: 6px; bottom: 6px; width: 1px; background: var(--ligne-registre); }
+.journal-jour li { display: grid; grid-template-columns: 52px 30px minmax(0, 1fr) auto; gap: 0 10px; align-items: start; padding: 11px 0; }
+.journal-jour li + li { border-top: 1px dashed var(--ligne-registre); }
+.journal-heure { font-family: var(--police-mono); font-size: 12.5px; font-weight: 600; color: var(--texte-clair); padding-top: 4px; text-align: right; }
+.journal-pastille {
+  position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--carte); border: 1px solid var(--bordure); color: var(--primaire);
+}
+.journal-pastille svg { width: 15px; height: 15px; }
+.journal-pastille.vert { color: var(--succes); border-color: color-mix(in srgb, var(--succes) 35%, var(--bordure)); }
+.journal-pastille.or { color: var(--alerte); border-color: color-mix(in srgb, var(--alerte) 35%, var(--bordure)); }
+.journal-pastille.rouge { color: var(--erreur); border-color: color-mix(in srgb, var(--erreur) 35%, var(--bordure)); }
+.journal-texte { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
+.journal-texte strong { font-weight: 600; font-size: 14.5px; }
+.journal-texte span { color: var(--texte-clair); font-size: 13.5px; overflow-wrap: anywhere; }
+.journal-jour .bouton-texte { white-space: nowrap; }
+.journal-jour-date { margin: 4px 0 0; padding: 14px 0 4px; font-family: var(--police-serif); font-weight: 700; color: var(--edu-marine); font-size: 15px; border-top: 2px solid var(--filet-registre); }
+.journal-jour-date:first-child { border-top: none; padding-top: 0; }
+
+@media (max-width: 1180px) {
+  .accueil-dossier { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1024px) {
+  .cartouche-onglet { margin-left: 10px; }
+  .cartouche-corps.entete-page { grid-template-columns: minmax(0, 1fr); padding: 18px 18px 16px; gap: 14px; }
+  .cartouche h1 { font-size: 24px; }
+  .cartouche-meta { border-left: none; border-top: 1px solid var(--bordure); padding-top: 10px; }
+  .cartouche-meta > div:first-child { padding-left: 0; }
+  .item-nav.actif::before { left: -14px; }
+}
+@media (max-width: 520px) {
+  .cartouche-meta > div { padding: 0 14px 0 0; flex-direction: row; align-items: baseline; gap: 8px; }
+  .cartouche-meta > div + div { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-tile { padding: 16px 16px 18px; }
+  .stat-tile .valeur { font-size: 28px; }
+  .journal-jour::before { left: 52px; }
+  .journal-jour li { grid-template-columns: 40px 26px minmax(0, 1fr); }
+  .journal-jour li > :last-child:not(.journal-texte) { grid-column: 3; justify-self: start; }
+  .journal-pastille { width: 26px; height: 26px; }
+  .onglets-secondaires button { padding: 10px 12px 9px; }
+}

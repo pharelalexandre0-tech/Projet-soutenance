@@ -52,6 +52,11 @@ router.post('/messages', authentifier, communication, academie, ctrl.envoyerMess
 router.get('/messages', authentifier, communication, ctrl.listerMessages);
 
 router.get('/tableau-de-bord/academique', authentifier, academie, ctrl.statistiquesAcademiques);
+// Journal des derniers jours de l'école (accueil Académie).
+router.get('/tableau-de-bord/journal', authentifier, academie, async (req, res) => {
+  const { journalDeLEcole } = require('../services/journalEcoleService');
+  res.json({ evenements: await journalDeLEcole(req.utilisateur.etablissementId) });
+});
 
 router.get('/etablissement', authentifier, ctrl.obtenirEtablissement);
 router.put('/etablissement', authentifier, academie, ctrl.configurerEtablissement);
