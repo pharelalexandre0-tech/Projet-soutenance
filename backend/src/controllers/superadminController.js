@@ -238,6 +238,10 @@ async function supprimerEtablissement(req, res) {
   await m.ReclamationNote.destroy({ where: { etablissementId } });
   await m.ParcoursEleve.destroy({ where: { etablissementId } });
   await m.AffectationEnseignement.destroy({ where: { etablissementId } });
+  await m.RecommandationInspection.destroy({ where: { etablissementId } });
+  await m.Inspection.destroy({ where: { etablissementId } });
+  await m.HabilitationFormation.destroy({ where: { etablissementId } });
+  await m.AccuseCalendrier.destroy({ where: { etablissementId } });
   await m.AccuseCirculaire.destroy({ where: { etablissementId } });
   await m.DecisionAgrement.destroy({ where: { etablissementId } });
   await EntreeExtension.destroy({ where: { etablissementId } });

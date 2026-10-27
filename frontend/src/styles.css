@@ -3647,3 +3647,141 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 @media (max-width: 640px) {
   .fiche-coordonnees { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ==========================================================================
+   Console superadmin
+   ========================================================================== */
+.console-plateforme { display: flex; flex-direction: column; gap: 20px; }
+.console-plateforme > .etat-plateforme { margin: 0; }
+.console-entete {
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 28px;
+  padding: 26px 28px; background: #fff; border: 1px solid var(--bordure); border-radius: 12px;
+}
+.console-date { margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--edu-teal); }
+.console-entete h2 { margin: 6px 0 8px; font-family: var(--police-serif); font-size: clamp(1.8rem, 3.4vw, 2.4rem); letter-spacing: -.02em; color: var(--edu-marine); }
+.console-etat { margin: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 14.5px; color: var(--texte); }
+.console-version { color: var(--texte-clair); }
+.point-etat { width: 10px; height: 10px; border-radius: 50%; background: var(--succes); box-shadow: 0 0 0 4px color-mix(in srgb, var(--succes) 18%, transparent); }
+.point-etat.alerte { background: var(--erreur); box-shadow: 0 0 0 4px color-mix(in srgb, var(--erreur) 18%, transparent); }
+.console-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.console-chiffres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; background: #fff; border: 1px solid var(--bordure); border-radius: 12px; }
+.console-chiffres > div { padding: 20px 22px; border-left: 1px solid var(--bordure); }
+.console-chiffres > div:first-child { border-left: none; }
+.console-chiffres dt { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--texte-clair); }
+.console-chiffres dt svg { width: 16px; height: 16px; }
+.console-chiffres dd { margin: 10px 0 4px; font-family: var(--police-serif); font-size: 2.2rem; font-weight: 700; line-height: 1; color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.console-chiffres small { font-size: 12.5px; color: var(--texte-clair); }
+.console-chiffres .attention dd { color: var(--alerte); }
+.console-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.console-grille > .carte { margin: 0; }
+.console-calme { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 0; color: var(--texte); line-height: 1.55; }
+.console-calme svg { width: 20px; height: 20px; color: var(--succes); flex: none; margin-top: 1px; }
+.liste-vigilance { list-style: none; margin: 0; padding: 0; }
+.liste-vigilance li { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--bordure); font-size: 14px; }
+.liste-vigilance li:last-child { border-bottom: none; }
+.liste-vigilance li > svg { width: 18px; height: 18px; flex: none; }
+.liste-vigilance li > span { flex: 1; min-width: 0; }
+.liste-vigilance .ton-alerte > svg { color: var(--erreur); }
+.liste-vigilance .ton-attention > svg { color: var(--alerte); }
+.liste-vigilance .ton-info > svg { color: var(--edu-bleu); }
+.liste-activite-ecoles { list-style: none; margin: 0; padding: 0; }
+.liste-activite-ecoles li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+.liste-activite-ecoles li:last-child { border-bottom: none; }
+.activite-ecole-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.activite-ecole-texte strong { font-size: 14.5px; color: var(--edu-marine); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activite-ecole-texte small { font-size: 12.5px; color: var(--texte-clair); }
+.activite-ecole-quand { font-size: 12.5px; color: var(--texte-clair); white-space: nowrap; }
+.sous-titre-carte { margin: 22px 0 10px; font-size: 14px; color: var(--edu-marine); }
+@media (max-width: 960px) {
+  .console-grille { grid-template-columns: minmax(0, 1fr); }
+  .console-chiffres { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .console-chiffres > div:nth-child(3) { border-left: none; }
+  .console-chiffres > div:nth-child(n + 3) { border-top: 1px solid var(--bordure); }
+}
+
+/* ==========================================================================
+   Ministère : registre, classement, tutelle
+   ========================================================================== */
+.telechargements { display: flex; flex-wrap: wrap; gap: 8px; }
+.entete-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.filtres-puces { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.filtres-puces button {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 18px; cursor: pointer;
+  border: 1px solid var(--bordure-controle); background: #fff; font: 600 13.5px var(--police); color: var(--texte);
+}
+.filtres-puces button span { min-width: 22px; padding: 1px 7px; border-radius: 10px; background: var(--fond); font-size: 12px; font-variant-numeric: tabular-nums; }
+.filtres-puces button.actif { background: var(--edu-marine); border-color: var(--edu-marine); color: #fff; }
+.filtres-puces button.actif span { background: rgba(255, 255, 255, .18); color: #fff; }
+.cellule-texte-long { min-width: 220px; max-width: 420px; white-space: normal; line-height: 1.45; }
+.grille-deux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.grille-deux > .carte { margin: 0; }
+@media (max-width: 960px) { .grille-deux { grid-template-columns: minmax(0, 1fr); } }
+
+/* Podium du classement */
+.podium { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.podium-place { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 14px; padding: 18px; border: 1px solid var(--bordure); border-radius: 12px; background: #fff; }
+.podium-place.place-1 { border-color: var(--edu-or); box-shadow: inset 0 4px 0 var(--edu-or); }
+.podium-rang { grid-row: 1 / 3; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: var(--edu-marine); color: #fff; font-family: var(--police-serif); font-size: 1.5rem; font-weight: 700; }
+.place-1 .podium-rang { background: var(--edu-or); color: var(--edu-marine); }
+.podium-texte { display: flex; flex-direction: column; min-width: 0; }
+.podium-texte strong { font-family: var(--police-serif); font-size: 1.05rem; line-height: 1.3; color: var(--edu-marine); }
+.podium-texte small { font-size: 12.5px; color: var(--texte-clair); }
+.podium-valeur { font-size: 1.15rem; font-weight: 700; color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.pastille-rang { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 15px; background: var(--fond); font-weight: 700; color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.pastille-rang.haut { background: var(--edu-marine); color: #fff; }
+@media (max-width: 900px) { .podium { grid-template-columns: minmax(0, 1fr); } }
+
+/* Historique des décisions d'agrément */
+.historique-decisions { list-style: none; margin: 0; padding: 0; }
+.historique-decisions li { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--bordure); }
+.historique-decisions li:last-child { border-bottom: none; }
+.historique-date { font-size: 13px; font-weight: 700; color: var(--edu-teal); font-variant-numeric: tabular-nums; }
+.historique-decisions strong { color: var(--edu-marine); font-size: 14.5px; }
+.historique-decisions p { margin: 4px 0; font-size: 14px; line-height: 1.5; color: var(--texte); }
+.historique-decisions small { font-size: 12.5px; color: var(--texte-clair); }
+
+/* Inspections */
+.texte-paragraphe { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--texte); white-space: pre-line; }
+.liste-recommandations { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 14px; }
+.liste-recommandations li { padding-left: 4px; }
+.reco-entete { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.reco-entete strong { font-size: 14px; color: var(--edu-marine); line-height: 1.45; }
+.reco-entete select { flex: none; width: auto; height: 34px; font-size: 13px; }
+.liste-recommandations small { display: block; margin-top: 4px; font-size: 12.5px; color: var(--texte-clair); }
+.reco-reponse { margin: 8px 0 0; padding: 10px 12px; background: var(--fond); border-radius: 8px; font-size: 13.5px; line-height: 1.5; }
+.groupe-recommandations { margin: 0; padding: 14px; border: 1px solid var(--bordure); border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
+.groupe-recommandations legend { padding: 0 6px; font-size: 13.5px; font-weight: 700; color: var(--edu-marine); }
+.ligne-recommandation { display: grid; grid-template-columns: minmax(0, 1fr) 150px auto; gap: 8px; align-items: center; }
+.groupe-recommandations > button { align-self: flex-start; }
+@media (max-width: 560px) { .ligne-recommandation { grid-template-columns: minmax(0, 1fr) auto; } .ligne-recommandation input[type="date"] { grid-column: 1; } }
+
+/* Calendrier national */
+.selecteur-annee { display: flex; align-items: center; gap: 10px; }
+.selecteur-annee h2 { margin: 0; }
+.frise-calendrier { list-style: none; margin: 0 0 18px; padding: 0; border-left: 3px solid var(--bordure); }
+.periode { position: relative; display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 0 12px 20px; border-bottom: 1px solid var(--bordure); }
+.periode::before { content: ""; position: absolute; left: -8px; top: 50%; width: 13px; height: 13px; margin-top: -6.5px; border-radius: 50%; background: var(--teinte, var(--edu-bleu)); border: 3px solid #fff; }
+.periode-rentree { --teinte: var(--edu-vert); }
+.periode-examens, .periode-rattrapage { --teinte: var(--erreur); }
+.periode-deliberations { --teinte: var(--edu-marine); }
+.periode-vacances { --teinte: var(--edu-or); }
+.periode-cours { --teinte: var(--edu-teal); }
+.periode-dates { font-size: 13.5px; font-weight: 700; color: var(--edu-marine); font-variant-numeric: tabular-nums; }
+.periode-texte { display: flex; flex-direction: column; min-width: 0; }
+.periode-texte small { font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--texte-clair); }
+.periode-texte strong { font-size: 14.5px; color: var(--texte); }
+.ajout-periode { display: grid; grid-template-columns: 150px minmax(0, 1fr) 150px 150px auto; gap: 10px; align-items: end; padding: 14px; background: var(--fond); border-radius: 10px; }
+.ajout-periode .champ { margin: 0; min-width: 0; }
+.ajout-periode button { height: 42px; white-space: nowrap; }
+@media (max-width: 900px) {
+  .periode { grid-template-columns: minmax(0, 1fr) auto; }
+  .periode-dates { grid-column: 1 / -1; }
+  .ajout-periode { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ajout-periode .champ:nth-child(2), .ajout-periode button { grid-column: 1 / -1; }
+}
+
+/* Annuaire */
+.document-officiel { border-top: 4px solid var(--edu-marine); }
+.annuaire-chiffres { margin-top: 6px; row-gap: 14px; }
+
+.table-ministere .cellule-nom { min-width: 220px; }

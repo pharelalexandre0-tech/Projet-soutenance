@@ -73,11 +73,16 @@ const VUES = [
           count(*) FILTER (WHERE d."niveauRisque" = 'faible')::int AS risque_faible
    FROM dernieres d JOIN eleves el ON el.id = d."eleveId"
    GROUP BY el."etablissementId"`,
+  // Effectifs par niveau et par sexe, sans aucun nom (annuaire statistique).
+  `CREATE OR REPLACE VIEW vue_ministere_effectifs AS
+   SELECT el."etablissementId", coalesce(c.niveau, 'Non classé') AS niveau, coalesce(el.sexe, '?') AS sexe, count(*)::int AS nombre
+   FROM eleves el LEFT JOIN classes c ON c.id = el."classeId"
+   GROUP BY el."etablissementId", c.niveau, el.sexe`,
   `CREATE OR REPLACE VIEW vue_ministere_documents AS
    SELECT "etablissementId", "typeDocument", statut, count(*)::int AS nombre, sum("nombreVerifications")::int AS verifications
    FROM certifications_documents GROUP BY "etablissementId", "typeDocument", statut`,
 ];
-const NOMS_VUES = ['vue_ministere_etablissements', 'vue_ministere_resultats', 'vue_ministere_assiduite', 'vue_ministere_risques', 'vue_ministere_documents'];
+const NOMS_VUES = ['vue_ministere_etablissements', 'vue_ministere_resultats', 'vue_ministere_assiduite', 'vue_ministere_risques', 'vue_ministere_effectifs', 'vue_ministere_documents'];
 
 // Avant la synchronisation des modèles (sync alter) : les vues sont
 // retirées, sinon PostgreSQL refuse de retoucher les colonnes qu'elles

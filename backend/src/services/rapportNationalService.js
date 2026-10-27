@@ -101,4 +101,4 @@ async function rapportNationalPDF(donnees, agent) {
   return finaliser(doc, termine, certification);
 }
 
-module.exports = { rapportNationalPDF, MINISTERE };
+module.exports = { rapportNationalPDF, MINISTERE, titreSection, pct, entier };

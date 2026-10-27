@@ -24,7 +24,7 @@ router.get('/', authentifier, (req, res) => {
   const envoyer = (evenement) => {
     res.write(`data: ${JSON.stringify(evenement)}\n\n`);
   };
-  const desabonner = abonner(req.utilisateur.etablissementId, envoyer, { tout: req.utilisateur.role === 'superadmin' });
+  const desabonner = abonner(req.utilisateur.etablissementId, envoyer, { tout: ['superadmin', 'ministere'].includes(req.utilisateur.role) });
   const battement = setInterval(() => res.write(': battement\n\n'), BATTEMENT_MS);
   req.on('close', () => {
     clearInterval(battement);

@@ -48,6 +48,9 @@ const DecisionJury = require('./DecisionJury');
 const ReclamationNote = require('./ReclamationNote');
 const ParcoursEleve = require('./ParcoursEleve');
 const AffectationEnseignement = require('./AffectationEnseignement');
+const {
+  HabilitationFormation, Inspection, RecommandationInspection, EvenementCalendrier, AccuseCalendrier,
+} = require('./Tutelle');
 const DossierBourse = require('./DossierBourse');
 const PieceBourse = require('./PieceBourse');
 
@@ -228,6 +231,14 @@ AffectationEnseignement.belongsTo(Professeur, { foreignKey: 'professeurId' });
 AffectationEnseignement.belongsTo(Matiere, { foreignKey: 'matiereId' });
 AffectationEnseignement.belongsTo(Classe, { foreignKey: 'classeId' });
 
+// Tutelle : habilitations, inspections et recommandations.
+Etablissement.hasMany(HabilitationFormation, { foreignKey: 'etablissementId' });
+HabilitationFormation.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+Etablissement.hasMany(Inspection, { foreignKey: 'etablissementId' });
+Inspection.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+Inspection.hasMany(RecommandationInspection, { foreignKey: 'inspectionId', onDelete: 'CASCADE' });
+RecommandationInspection.belongsTo(Inspection, { foreignKey: 'inspectionId' });
+
 // ---- Bourses ANBG -----------------------------------------------------------
 DossierBourse.hasMany(PieceBourse, { foreignKey: 'dossierId' });
 PieceBourse.belongsTo(DossierBourse, { foreignKey: 'dossierId' });
@@ -281,6 +292,11 @@ module.exports = {
   ReclamationNote,
   ParcoursEleve,
   AffectationEnseignement,
+  HabilitationFormation,
+  Inspection,
+  RecommandationInspection,
+  EvenementCalendrier,
+  AccuseCalendrier,
   DossierBourse,
   PieceBourse,
 };

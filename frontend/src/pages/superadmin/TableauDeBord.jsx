@@ -3,22 +3,31 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import ChiffreAnime from '../../components/ChiffreAnime';
 import Toast from '../../components/Toast';
+import { useAuth } from '../../context/AuthContext';
 import { messageErreur } from '../../utils/erreurs';
+import { depuis } from '../../utils/plateforme';
 import {
-  IconBuilding, IconGraduationCap, IconUsers, IconLock, IconMapPin, IconMail, IconRocket, IconToggle, IconMegaphone, IconWrench,
-  IconCircleCheck,
+  IconBuilding, IconGraduationCap, IconUsers, IconLock, IconMail, IconRocket, IconToggle, IconMegaphone, IconWrench,
+  IconPlus, IconChevronRight, IconAlertTriangle, IconCircleCheck,
 } from '../../components/icons';
 
 // Gmail et Resend : services abandonnés, gardés pour les anciens envois du
 // journal.
 const LIBELLE_SERVICE = { brevo: 'Brevo', sendgrid: 'SendGrid', smtp: 'SMTP', gmail: 'Gmail', resend: 'Resend' };
+const TRENTE_JOURS = 30 * 24 * 3600 * 1000;
 
-// Vue d'ensemble de la plateforme, jamais du contenu d'une école précise :
-// des totaux additionnés sur tous les établissements affiliés, la tendance
-// d'adoption dans le temps, et l'état de la configuration technique
-// (envoi d'e-mail) — le pouls du système, pas le regard sur une école.
+function salutation() {
+  const h = new Date().getHours();
+  return h < 5 || h >= 18 ? 'Bonsoir' : 'Bonjour';
+}
+
+// Console de la plateforme : son état en une phrase, les actions courantes,
+// ce qui demande de l'attention, l'activité des écoles et la santé de
+// l'envoi d'e-mail. Des totaux de plateforme, jamais le contenu d'une école.
 export default function TableauDeBord({ onNaviguer }) {
+  const { profil } = useAuth();
   const [stats, setStats] = useState(null);
+  const [ecoles, setEcoles] = useState(null);
   const [configEmail, setConfigEmail] = useState(null);
   const [pilotage, setPilotage] = useState({ systeme: null, fonctionnalites: null, diffusion: null });
   const [testEnCours, setTestEnCours] = useState(false);
@@ -26,6 +35,7 @@ export default function TableauDeBord({ onNaviguer }) {
 
   function charger() {
     client.get('/superadmin/statistiques').then((res) => setStats(res.data));
+    client.get('/superadmin/etablissements').then((res) => setEcoles(res.data.etablissements)).catch(() => setEcoles([]));
     client.get('/superadmin/config-email').then((res) => setConfigEmail(res.data));
     client.get('/superadmin/systeme').then((res) => setPilotage((p) => ({ ...p, systeme: res.data }))).catch(() => {});
     client.get('/superadmin/fonctionnalites').then((res) => setPilotage((p) => ({ ...p, fonctionnalites: res.data.fonctionnalites }))).catch(() => {});
@@ -57,38 +67,93 @@ export default function TableauDeBord({ onNaviguer }) {
     }
   }
 
+  const { systeme, diffusion } = pilotage;
+  const maintenance = diffusion?.maintenance?.actif;
+  const annonce = diffusion?.annonce?.actif;
   const maxVille = Math.max(1, ...(stats?.repartitionParVille.map((v) => v.total) ?? [1]));
   const maxMois = Math.max(1, ...(stats?.croissance.map((m) => m.total) ?? [1]));
   const totalSurPeriode = stats?.croissance.reduce((somme, m) => somme + m.total, 0) ?? 0;
 
+  // Ce qui demande une action du superadmin.
+  const vigilance = [];
+  if (maintenance) vigilance.push({ ton: 'alerte', texte: 'La plateforme est en maintenance : les écoles n’y ont pas accès.', page: 'annonces', action: 'Gérer' });
+  (ecoles || []).filter((e) => e.statut !== 'actif').forEach((e) => vigilance.push({ ton: 'alerte', texte: `${e.nom} est verrouillée.`, page: 'etablissements', action: 'Ouvrir' }));
+  (ecoles || []).filter((e) => e.nbComptesVerrouilles > 0).forEach((e) => vigilance.push({ ton: 'attention', texte: `${e.nom} : ${e.nbComptesVerrouilles} compte(s) verrouillé(s).`, page: 'etablissements', action: 'Voir' }));
+  (ecoles || []).filter((e) => e.statut === 'actif' && (!e.derniereConnexion || Date.now() - new Date(e.derniereConnexion).getTime() > TRENTE_JOURS))
+    .forEach((e) => vigilance.push({ ton: 'info', texte: `${e.nom} : aucune connexion depuis plus de 30 jours.`, page: 'etablissements', action: 'Voir' }));
+  const echecsEmail = (configEmail?.derniersEnvois || []).filter((e) => !e.envoye && e.erreurs.length).length;
+  if (configEmail && !configEmail.actif) vigilance.push({ ton: 'alerte', texte: 'Aucun service d’e-mail configuré : les codes de connexion ne partent pas.', action: null });
+  else if (echecsEmail) vigilance.push({ ton: 'attention', texte: `${echecsEmail} e-mail(s) récent(s) non envoyé(s).`, action: null });
+
+  const recentes = [...(ecoles || [])].sort((a, b) => new Date(b.derniereConnexion || 0) - new Date(a.derniereConnexion || 0)).slice(0, 5);
+  const totalComptes = (ecoles || []).reduce((s, e) => s + e.nbComptes, 0);
+
   return (
-    <div>
-      <div className="stats-grid">
-        <div className="stat-tile">
-          <div className="stat-tile-haut"><span className="libelle">Écoles affiliées</span><span className="puce-icone petite"><IconBuilding width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEcoles} /> : '…'}</div>
+    <div className="console-plateforme">
+      <section className="console-entete">
+        <div>
+          <p className="console-date">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h2>{salutation()} {profil?.prenom}.</h2>
+          <p className="console-etat">
+            <span className={`point-etat ${maintenance ? 'alerte' : 'ok'}`} aria-hidden="true" />
+            {diffusion ? (maintenance ? 'Plateforme en maintenance' : 'Plateforme ouverte, tous les accès fonctionnent') : 'Lecture de l’état…'}
+            {systeme && <span className="console-version"> · version {systeme.version}{systeme.commit ? ` (${systeme.commit})` : ''}</span>}
+          </p>
         </div>
-        <div className="stat-tile tile-vert">
-          <div className="stat-tile-haut"><span className="libelle">Écoles actives</span><span className="puce-icone petite"><IconCircleCheck /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalActives} /> : '…'}</div>
+        <div className="console-actions">
+          <button type="button" className="primaire" onClick={() => onNaviguer?.('etablissements')}><IconPlus /> Affilier une école</button>
+          <button type="button" className="secondaire" onClick={() => onNaviguer?.('annonces')}><IconMegaphone /> {annonce ? 'Annonce en ligne' : 'Publier une annonce'}</button>
+          <button type="button" className="secondaire" onClick={() => onNaviguer?.('annonces')}><IconWrench /> Maintenance</button>
         </div>
-        <div className="stat-tile">
-          <div className="stat-tile-haut"><span className="libelle">Élèves (toutes écoles)</span><span className="puce-icone petite"><IconGraduationCap width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalEleves} /> : '…'}</div>
-        </div>
-        <div className="stat-tile">
-          <div className="stat-tile-haut"><span className="libelle">Professeurs (toutes écoles)</span><span className="puce-icone petite"><IconUsers width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalProfesseurs} /> : '…'}</div>
-        </div>
-        <div className={`stat-tile ${stats?.totalComptesVerrouilles > 0 ? 'tile-or' : 'tile-vert'}`}>
-          <div className="stat-tile-haut"><span className="libelle">Comptes verrouillés</span><span className="puce-icone petite"><IconLock width={16} height={16} /></span></div>
-          <div className="valeur">{stats ? <ChiffreAnime valeur={stats.totalComptesVerrouilles} /> : '…'}</div>
-        </div>
+      </section>
+
+      <dl className="console-chiffres">
+        <div><dt><IconBuilding aria-hidden="true" /> Écoles affiliées</dt><dd>{stats ? <ChiffreAnime valeur={stats.totalEcoles} /> : '…'}</dd><small>{stats ? `${stats.totalActives} active${stats.totalActives > 1 ? 's' : ''}` : ''}</small></div>
+        <div><dt><IconGraduationCap aria-hidden="true" /> Étudiants</dt><dd>{stats ? <ChiffreAnime valeur={stats.totalEleves} /> : '…'}</dd><small>toutes écoles confondues</small></div>
+        <div><dt><IconUsers aria-hidden="true" /> Professeurs</dt><dd>{stats ? <ChiffreAnime valeur={stats.totalProfesseurs} /> : '…'}</dd><small>{ecoles ? `${totalComptes} comptes au total` : ''}</small></div>
+        <div className={stats?.totalComptesVerrouilles ? 'attention' : ''}><dt><IconLock aria-hidden="true" /> Comptes verrouillés</dt><dd>{stats ? <ChiffreAnime valeur={stats.totalComptesVerrouilles} /> : '…'}</dd><small>{stats?.totalComptesVerrouilles ? 'à vérifier' : 'aucun blocage'}</small></div>
+      </dl>
+
+      <div className="console-grille">
+        <section className="carte">
+          <div className="entete-carte"><h2>À surveiller</h2>{ecoles && <span className={`badge ${vigilance.length ? 'or' : 'vert'}`}>{vigilance.length ? `${vigilance.length} point${vigilance.length > 1 ? 's' : ''}` : 'Rien à signaler'}</span>}</div>
+          {!ecoles && <div className="chargement">Chargement…</div>}
+          {ecoles && vigilance.length === 0 && (
+            <p className="console-calme"><IconCircleCheck aria-hidden="true" /> Toutes les écoles sont actives, aucun compte n’est bloqué et l’envoi d’e-mail fonctionne.</p>
+          )}
+          <ul className="liste-vigilance">
+            {vigilance.slice(0, 8).map((v) => (
+              <li key={v.texte} className={`ton-${v.ton}`}>
+                <IconAlertTriangle aria-hidden="true" />
+                <span>{v.texte}</span>
+                {v.action && v.page && <button type="button" className="bouton-texte" onClick={() => onNaviguer?.(v.page)}>{v.action} <IconChevronRight /></button>}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="carte">
+          <div className="entete-carte">
+            <h2>Activité des écoles</h2>
+            <button type="button" className="bouton-texte" onClick={() => onNaviguer?.('etablissements')}>Toutes les écoles <IconChevronRight /></button>
+          </div>
+          {!ecoles && <div className="chargement">Chargement…</div>}
+          {ecoles && ecoles.length === 0 && <div className="vide">Aucune école affiliée pour le moment.</div>}
+          <ul className="liste-activite-ecoles">
+            {recentes.map((e) => (
+              <li key={e.id}>
+                <span className="vignette-logo">{e.logo ? <img src={e.logo} alt="" /> : <IconBuilding />}</span>
+                <span className="activite-ecole-texte"><strong>{e.nom}</strong><small>{e.nbComptes} comptes · {e.nbFonctionnalites} modules</small></span>
+                <span className="activite-ecole-quand">{e.derniereConnexion ? depuis(e.derniereConnexion) : 'jamais connectée'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
 
       <EtatPlateforme pilotage={pilotage} onNaviguer={onNaviguer} />
 
-      <div className="grille-2">
+      <div className="console-grille">
         <div className="carte carte-histogramme">
           <h2>Écoles affiliées par mois</h2>
           {!stats && <div className="chargement">Chargement…</div>}
@@ -111,85 +176,75 @@ export default function TableauDeBord({ onNaviguer }) {
               </p>
             </>
           )}
-        </div>
-
-        <div className="colonne-empilee">
-          <div className="carte">
-            <div className="entete-carte">
-              <h2>Répartition par ville</h2>
-              <span className="puce-icone petite"><IconMapPin /></span>
-            </div>
-            {!stats && <div className="chargement">Chargement…</div>}
-            {stats && stats.repartitionParVille.length === 0 && <div className="vide">Aucun établissement pour le moment</div>}
-            {stats && stats.repartitionParVille.length > 0 && (
+          {stats && stats.repartitionParVille.length > 0 && (
+            <>
+              <h3 className="sous-titre-carte">Répartition par ville</h3>
               <div className="barres-liste">
                 {stats.repartitionParVille.map((v) => (
                   <div className="barre-ligne" key={v.ville}>
                     <span>{v.ville}</span>
-                    <div className="barre-piste">
-                      <div className="barre-remplissage" style={{ width: `${(v.total / maxVille) * 100}%` }} />
-                    </div>
+                    <div className="barre-piste"><div className="barre-remplissage" style={{ width: `${(v.total / maxVille) * 100}%` }} /></div>
                     <span>{v.total}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </>
+          )}
+        </div>
 
-          <div className="carte">
-            <div className="entete-carte">
-              <h2>Envoi d'e-mail</h2>
-              <span className="puce-icone petite"><IconMail /></span>
-            </div>
-            {!configEmail && <div className="chargement">Chargement…</div>}
-            {configEmail && (
-              <>
-                <ul className="liste-services">
-                  {['brevo', 'sendgrid', 'smtp'].map((service) => (
-                    <li key={service}>
-                      <span>
-                        {LIBELLE_SERVICE[service]}
-                        {configEmail.actif === service && <small> · service utilisé</small>}
-                      </span>
-                      <span className={`badge ${configEmail[service] ? 'vert' : 'gris'}`}>
-                        {configEmail[service] ? 'Configuré' : 'Absent'}
+        <div className="carte">
+          <div className="entete-carte">
+            <h2>Envoi d'e-mail</h2>
+            <span className="puce-icone petite"><IconMail /></span>
+          </div>
+          {!configEmail && <div className="chargement">Chargement…</div>}
+          {configEmail && (
+            <>
+              <ul className="liste-services">
+                {['brevo', 'sendgrid', 'smtp'].map((service) => (
+                  <li key={service}>
+                    <span>
+                      {LIBELLE_SERVICE[service]}
+                      {configEmail.actif === service && <small> · service utilisé</small>}
+                    </span>
+                    <span className={`badge ${configEmail[service] ? 'vert' : 'gris'}`}>
+                      {configEmail[service] ? 'Configuré' : 'Absent'}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="note-secondaire" style={{ margin: '14px 0', fontSize: 14 }}>
+                {configEmail.actif
+                  ? "Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité Brevo, puis SendGrid et SMTP). Brevo authentifie lui-même les envois, ce qui les tient à l'écart des courriers indésirables."
+                  : 'Aucun service configuré : les e-mails sont seulement écrits dans le journal du serveur.'}
+              </p>
+              <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>
+                <IconMail /> {testEnCours ? 'Envoi du test…' : "Tester l'envoi vers mon adresse"}
+              </button>
+              <h3 className="tiroir-section-titre" style={{ margin: '22px 0 0' }}>Derniers envois</h3>
+              {(configEmail.derniersEnvois || []).length === 0 && (
+                <p className="note-secondaire" style={{ margin: '8px 0 0', fontSize: 14 }}>Aucun envoi depuis le dernier redémarrage du serveur.</p>
+              )}
+              {(configEmail.derniersEnvois || []).length > 0 && (
+                <ul className="liste-envois">
+                  {configEmail.derniersEnvois.slice(0, 6).map((envoi) => (
+                    <li key={`${envoi.le}-${envoi.sujet}`}>
+                      <div>
+                        <strong>{envoi.sujet}</strong>
+                        <small>{envoi.destinataire} · {new Date(envoi.le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>
+                        {envoi.erreurs.map((e) => (
+                          <small key={e.service} className="erreur-envoi">{LIBELLE_SERVICE[e.service] || e.service} : {e.message}</small>
+                        ))}
+                      </div>
+                      <span className={`badge ${envoi.envoye ? 'vert' : envoi.erreurs.length ? 'rouge' : 'gris'}`}>
+                        {envoi.envoye ? `Envoyé (${LIBELLE_SERVICE[envoi.service]})` : envoi.erreurs.length ? 'Non envoyé' : 'Simulé'}
                       </span>
                     </li>
                   ))}
                 </ul>
-                <p className="note-secondaire" style={{ margin: '14px 0', fontSize: 14 }}>
-                  {configEmail.actif
-                    ? "Les codes de connexion, reçus et accès temporaires partent réellement par e-mail (priorité Brevo, puis SendGrid et SMTP). Brevo authentifie lui-même les envois, ce qui les tient à l'écart des courriers indésirables."
-                    : 'Aucun service configuré : les e-mails sont seulement écrits dans le journal du serveur.'}
-                </p>
-                <button className="secondaire" onClick={testerEnvoi} disabled={testEnCours}>
-                  <IconMail /> {testEnCours ? 'Envoi du test…' : "Tester l'envoi vers mon adresse"}
-                </button>
-                <h3 className="tiroir-section-titre" style={{ margin: '22px 0 0' }}>Derniers envois</h3>
-                {(configEmail.derniersEnvois || []).length === 0 && (
-                  <p className="note-secondaire" style={{ margin: '8px 0 0', fontSize: 14 }}>Aucun envoi depuis le dernier redémarrage du serveur.</p>
-                )}
-                {(configEmail.derniersEnvois || []).length > 0 && (
-                  <ul className="liste-envois">
-                    {configEmail.derniersEnvois.slice(0, 6).map((envoi) => (
-                      <li key={`${envoi.le}-${envoi.sujet}`}>
-                        <div>
-                          <strong>{envoi.sujet}</strong>
-                          <small>{envoi.destinataire} · {new Date(envoi.le).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</small>
-                          {envoi.erreurs.map((e) => (
-                            <small key={e.service} className="erreur-envoi">{LIBELLE_SERVICE[e.service] || e.service} : {e.message}</small>
-                          ))}
-                        </div>
-                        <span className={`badge ${envoi.envoye ? 'vert' : envoi.erreurs.length ? 'rouge' : 'gris'}`}>
-                          {envoi.envoye ? `Envoyé (${LIBELLE_SERVICE[envoi.service]})` : envoi.erreurs.length ? 'Non envoyé' : 'Simulé'}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-          </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 

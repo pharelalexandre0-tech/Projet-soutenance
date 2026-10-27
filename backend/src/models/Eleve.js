@@ -9,6 +9,8 @@ Eleve.init(
     nom: { type: DataTypes.STRING, allowNull: false },
     prenom: { type: DataTypes.STRING, allowNull: false },
     dateNaissance: { type: DataTypes.DATEONLY, allowNull: true },
+    // F ou M, facultatif : sert aux statistiques nationales (annuaire).
+    sexe: { type: DataTypes.STRING(1), allowNull: true, validate: { isIn: [['F', 'M']] } },
     // Numéro d'étudiant attribué automatiquement à l'inscription (sigle de
     // l'établissement, code de 2 caractères, numéro d'ordre : ex.
     // CDP-2N-0001). Sert

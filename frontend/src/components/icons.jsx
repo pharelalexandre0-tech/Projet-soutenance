@@ -62,6 +62,7 @@ export const IconShield = avecTrait(ShieldCheck);
 export const IconUserCog = avecTrait(UserCog);
 export const IconChevronRight = avecTrait(ChevronRight);
 export const IconChevronDown = avecTrait(ChevronDown);
+export const IconTrophy = avecTrait(Trophy);
 export const IconPlus = avecTrait(Plus);
 export const IconExternal = avecTrait(ExternalLink);
 export const IconTrash = avecTrait(Trash2);

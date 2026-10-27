@@ -60,6 +60,9 @@ async function collecterDonnees(etablissementId) {
   d.semestres = await lire(m.Semestre, { etablissementId });
   d.professeurs = await lire(m.Professeur, { etablissementId });
   d.affectations_enseignement = await lire(m.AffectationEnseignement, { etablissementId });
+  d.habilitations_formations = await lire(m.HabilitationFormation, { etablissementId });
+  d.inspections = await lire(m.Inspection, { etablissementId });
+  d.recommandations_inspection = await lire(m.RecommandationInspection, { etablissementId });
   d.personnel = await lire(m.Personnel, { etablissementId });
   d.eleves = await lire(m.Eleve, { etablissementId });
   d.unites_enseignement = await lire(m.UniteEnseignement, parmi('semestreId', ids(d.semestres)));

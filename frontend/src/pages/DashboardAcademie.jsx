@@ -2,7 +2,7 @@ import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
   IconDashboard, IconUsers, IconDocument, IconPencil, IconKey, IconMessage, IconSettings, IconCalendar, IconLayers, IconTrendingDown,
-  IconClipboard, IconDownload, IconFingerprint, IconMegaphone, IconGraduationCap,
+  IconClipboard, IconDownload, IconFingerprint, IconMegaphone, IconGraduationCap, IconBuilding,
 } from '../components/icons';
 
 // Chaque onglet dans son propre chunk, chargé au premier clic dessus plutôt
@@ -12,6 +12,7 @@ import {
 const TableauDeBord = lazy(() => import('./academie/TableauDeBord'));
 const JournalSecurite = lazy(() => import('./academie/JournalSecurite'));
 const CirculairesRecues = lazy(() => import('./academie/CirculairesRecues'));
+const TutelleMinistere = lazy(() => import('./academie/TutelleMinistere'));
 const ElevesClasses = lazy(() => import('./academie/ElevesClasses'));
 const UnitesEnseignement = lazy(() => import('./academie/UnitesEnseignement'));
 const EmploisDuTemps = lazy(() => import('./academie/EmploisDuTemps'));
@@ -66,6 +67,8 @@ const ONGLETS = [
     description: 'Identité de l’établissement et comptes du personnel.' },
   { id: 'circulaires', label: 'Circulaires du Ministère', composant: CirculairesRecues, icone: IconMegaphone, groupe: 'Établissement',
     description: 'Circulaires du Ministère de l’Enseignement supérieur, situation d’agrément et accusés de réception.' },
+  { id: 'tutelle', label: 'Tutelle du Ministère', composant: TutelleMinistere, icone: IconBuilding, groupe: 'Établissement',
+    description: 'Formations habilitées, calendrier universitaire national, inspections et réponses aux recommandations du Ministère.' },
   { id: 'audit', label: 'Journal d’audit', composant: JournalSecurite, icone: IconFingerprint, groupe: 'Établissement',
     description: 'Connexions, refus, changements de sécurité et modifications de données de l’établissement, scellés et vérifiables.' },
 ];

@@ -93,7 +93,12 @@ async function synchroniser() {
   if (!roleEnCours || estHorsLigne() || enCours) return enCours;
   enCours = (async () => {
     try {
-      await toutLire(COMMUN.filter((a) => roleEnCours !== 'superadmin' || !a.startsWith('/etablissement')));
+      // Le Ministère n'a ni établissement, ni notifications, ni semestres :
+      // seulement ses propres données nationales.
+      const communes = roleEnCours === 'ministere'
+        ? ['/auth/moi', '/plateforme/statut', '/plateforme/confidentialite', '/ministere/vue-nationale', '/ministere/registre']
+        : COMMUN.filter((a) => roleEnCours !== 'superadmin' || !a.startsWith('/etablissement'));
+      await toutLire(communes);
       await PAR_ROLE[roleEnCours]?.();
     } finally {
       enCours = null;

@@ -299,5 +299,5 @@ async function statistiquesDocuments(req, res) {
 module.exports = {
   vueNationale, ficheEtablissement, deciderAgrement, listerCirculaires, publierCirculaire, suiviCirculaire,
   circulairesRecues, marquerLue: (req, res) => marquerCirculaire(req, res, 'lue'), accuserReception: (req, res) => marquerCirculaire(req, res, 'accuse'),
-  rapport, statistiquesDocuments, LIBELLES_AGREMENT, LIBELLES_TYPE,
+  rapport, statistiquesDocuments, LIBELLES_AGREMENT, LIBELLES_TYPE, donneesNationales, synthese, TYPES, STATUTS_AGREMENT,
 };

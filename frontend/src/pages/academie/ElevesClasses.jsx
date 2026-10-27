@@ -14,7 +14,7 @@ import {
   IconCopy, IconKey, IconTrash, IconGraduationCap, IconUserCog, IconInfo, IconClose,
 } from '../../components/icons';
 
-const ELEVE_VIDE = { nom: '', prenom: '', classeId: '', email: '', emailParent: '' };
+const ELEVE_VIDE = { nom: '', prenom: '', classeId: '', email: '', emailParent: '', sexe: '' };
 // sessionStorage (pas useState seul) : changer d'onglet du tableau de bord
 // démonte ce composant, ce qui vidait le journal des identifiants même si
 // l'Académie n'avait fait que jeter un œil ailleurs entre-temps. Le mot de
@@ -654,6 +654,14 @@ function InscriptionEleve({ classes, classeParDefaut, onFermer, onInscrit }) {
         <div className="ligne-champs">
           <div className="champ"><label htmlFor="ie-prenom">Prénom</label><input id="ie-prenom" value={form.prenom} onChange={maj('prenom')} required autoFocus /></div>
           <div className="champ"><label htmlFor="ie-nom">Nom</label><input id="ie-nom" value={form.nom} onChange={maj('nom')} required /></div>
+          <div className="champ">
+            <label htmlFor="ie-sexe">Sexe</label>
+            <select id="ie-sexe" value={form.sexe || ''} onChange={maj('sexe')}>
+              <option value="">Non précisé</option>
+              <option value="F">Féminin</option>
+              <option value="M">Masculin</option>
+            </select>
+          </div>
         </div>
         <div className="ligne-champs">
           <div className="champ">
@@ -722,6 +730,7 @@ function ImportEleves({ classes, classeParDefaut, onFermer, onImporte }) {
       try {
         const res = await client.post('/eleves', {
           nom, prenom, email, emailParent: emailParent || undefined, classeId, dateNaissance: ligne.datenaissance || undefined,
+          sexe: ['F', 'M'].includes(String(ligne.sexe || '').trim().toUpperCase().slice(0, 1)) ? String(ligne.sexe).trim().toUpperCase().slice(0, 1) : undefined,
         });
         const matricule = res.data.eleve.matricule;
         const compteId = res.data.compteEtudiant.id;

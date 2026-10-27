@@ -273,6 +273,7 @@ async function creerEleve(req, res) {
   });
   const eleve = await Eleve.create({
     nom, prenom, dateNaissance, classeId,
+    sexe: ['F', 'M'].includes(req.body.sexe) ? req.body.sexe : null,
     compteEtudiantId: compteEtudiant.id,
     emailParent,
     etablissementId: req.utilisateur.etablissementId,

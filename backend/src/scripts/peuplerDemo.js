@@ -48,6 +48,15 @@ const PRENOMS = [
   'Yvon', 'Zita', 'Aymar', 'Bénédicte', 'Clarisse', 'Darius', 'Estelle', 'Franck', 'Gaëlle', 'Hugues', 'Inès', 'Jordan', 'Kelly',
   'Landry', 'Mireille', 'Nathan', 'Océane', 'Parfait', 'Queen', 'Régis', 'Sonia', 'Tatiana', 'Ulrich', 'Viviane',
 ];
+// Prénoms féminins de la liste ci-dessus : le sexe des étudiants fictifs
+// alimente les statistiques nationales (annuaire du Ministère).
+const PRENOMS_F = new Set([
+  'Grâce', 'Ornella', 'Merveille', 'Prisca', 'Divine', 'Chancelle', 'Hermine', 'Rolande', 'Lauriane', 'Nadège', 'Carine', 'Josiane',
+  'Laetitia', 'Nelly', 'Patricia', 'Sandrine', 'Ursule', 'Vanessa', 'Zita', 'Bénédicte', 'Clarisse', 'Estelle', 'Gaëlle', 'Inès',
+  'Kelly', 'Mireille', 'Océane', 'Queen', 'Sonia', 'Tatiana', 'Viviane', 'Aïcha',
+]);
+const sexeDe = (prenom) => (PRENOMS_F.has(prenom) ? 'F' : 'M');
+
 const NOMS = [
   'MBA', 'NGUEMA', 'OBAME', 'ELLA', 'NDONG', 'MOUSSAVOU', 'MBOUMBA', 'NZIENGUI', 'MOUKAGNI', 'BOUSSOUGOU', 'MAKAYA', 'MOUNDOUNGA',
   'NDOUTOUME', 'OYANE', 'MINTSA', 'ESSONE', 'NTOUTOUME', 'MAGANGA', 'BIYOGO', 'MENDOME', 'KOUMBA', 'IBINGA', 'NZE', 'ONDO',
@@ -113,8 +122,12 @@ async function peuplerDemo({ fermer = true } = {}) {
     where: { email: 'ministere@mesr.example.com' },
     defaults: { nom: 'MOUSSAVOU', prenom: 'Gérard', fonction: "Directeur général de l'Enseignement supérieur", motDePasse: hache, role: 'ministere' },
   });
-  if (await m.Etablissement.findOne({ where: { sigle: SIGLE } })) {
-    console.log(`L'établissement de démonstration (${SIGLE}) existe déjà : rien n'a été modifié.`);
+  const existant = await m.Etablissement.findOne({ where: { sigle: SIGLE } });
+  if (existant) {
+    // Démo créée avant le champ « sexe » : complété une fois d'après le prénom.
+    const sansSexe = await m.Eleve.findAll({ where: { etablissementId: existant.id, sexe: null } });
+    for (const el of sansSexe) await el.update({ sexe: sexeDe(el.prenom) });
+    console.log(`L'établissement de démonstration (${SIGLE}) existe déjà : rien d'autre n'a été modifié.`);
     if (fermer) await m.sequelize.close();
     return;
   }
@@ -164,7 +177,7 @@ async function peuplerDemo({ fermer = true } = {}) {
       if (emailParent) compter('parents');
       const eleve = await m.Eleve.create({
         nom, prenom, dateNaissance: `${entier(2003, 2007)}-${String(entier(1, 12)).padStart(2, '0')}-${String(entier(1, 28)).padStart(2, '0')}`,
-        classeId: classe.id, etablissementId: etab.id, compteEtudiantId: compte.id, emailParent,
+        classeId: classe.id, etablissementId: etab.id, compteEtudiantId: compte.id, emailParent, sexe: sexeDe(prenom),
       });
       await attribuerMatricule(eleve);
       eleves.push({ eleve, profil, classe });

@@ -129,8 +129,8 @@ function diffuserModifications(req, res, next) {
     const domaine = (req.originalUrl.split('?')[0].split('/')[2] || 'donnees');
     etablissementDeLaRequete(req)
       .then((etablissementId) => {
-        // Superadmin (sans école) : changement de plateforme, pour tous.
-        if (etablissementId || req.utilisateur?.role === 'superadmin') publier(etablissementId, domaine);
+        // Superadmin ou Ministère (sans école) : diffusé à toutes les écoles.
+        if (etablissementId || ['superadmin', 'ministere'].includes(req.utilisateur?.role)) publier(etablissementId, domaine);
       })
       .catch(() => {});
   });
