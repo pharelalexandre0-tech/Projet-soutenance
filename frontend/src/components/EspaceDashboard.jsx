@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import {
-  IconLogout, IconMenu, IconClose, IconSettings, IconSearch, IconBell, IconChevronRight, IconSparkles,
+  IconLogout, IconSettings, IconSearch, IconBell, IconSparkles,
   IconeFonctionnalite,
 } from './icons';
 import ModaleMonCompte from './ModaleMonCompte';
@@ -228,89 +228,84 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     </>
   );
 
+  // Rubrique (onglet de classeur) de la page affichée, et ses intercalaires.
+  const groupeActif = groupes.find((g) => g.onglets.some((o) => o.id === section?.id)) || groupes[0];
+
   return (
-    <div className="espace">
-      <header className="entete-mobile">
-        <button className="bouton-icone" onClick={() => setMenuOuvert(true)} aria-label="Ouvrir le menu"><IconMenu /></button>
-        <span className="marque-pastille">{vignette}</span>
-        <span className="entete-mobile-nom">{nomAffiche}</span>
-        <button className="bouton-icone" onClick={() => setPaletteOuverte(true)} aria-label="Rechercher une page"><IconSearch /></button>
-        {boutonNouveautes}
-      </header>
-
-      {menuOuvert && <div className="voile-menu-mobile" onClick={() => setMenuOuvert(false)} />}
-
-      <aside className={`panneau-lateral ${menuOuvert ? 'ouvert' : ''}`} aria-label="Navigation principale">
-        <div className="marque-laterale">
-          <span className="marque-pastille">{vignette}</span>
-          <div className="marque-texte">
-            <strong>{nomAffiche}</strong>
-            <small>{libelleEspace(profil)}</small>
-          </div>
-          <button className="bouton-fermer-menu" onClick={() => setMenuOuvert(false)} aria-label="Fermer le menu">
-            <IconClose width={18} height={18} />
-          </button>
-        </div>
-
-        <nav className="nav-laterale">
-          {groupes.map((g, i) => (
-            <div className="nav-groupe" key={`${g.titre || 'principal'}-${i}`}>
-              {g.titre && <div className="nav-groupe-titre"><span className="nav-groupe-numero">{g.numero}</span>{g.titre}</div>}
-              {g.onglets.map((o) => {
-                const Icone = o.icone;
-                const estActif = section?.id === o.id;
-                return (
-                  <button
-                    key={o.id}
-                    className={`item-nav ${estActif ? 'actif' : ''}`}
-                    onClick={() => choisirOnglet(o.id)}
-                    aria-current={estActif ? 'page' : undefined}
-                  >
-                    {Icone && <Icone />}
-                    <span>{o.label}</span>
-                  </button>
-                );
-              })}
+    <div className="espace classeur">
+      <header className="bandeau-classeur">
+        <div className="bandeau-haut">
+          <div className="classeur-marque">
+            <span className="marque-pastille">{vignette}</span>
+            <div className="marque-texte">
+              <strong>{nomAffiche}</strong>
+              <small>{libelleEspace(profil)}</small>
             </div>
-          ))}
-        </nav>
-
-        <div className="profil-lateral">
-          <div className="avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
-          <div className="profil-info">
-            <strong>{profil?.modeParent ? `Parent de ${profil.prenom}` : `${profil?.prenom ?? ''} ${profil?.nom ?? ''}`}</strong>
-            <small>{profil?.modeParent ? profil.emailParent : profil?.email}</small>
           </div>
-          {profil?.role !== 'superadmin' && (
-            <button className="bouton-parametres-compte" onClick={() => setCompteOuvert(true)} title="Mon compte" aria-label="Mon compte">
-              <IconSettings width={17} height={17} />
-            </button>
-          )}
-          <button className="bouton-deconnexion" onClick={seDeconnecter} title="Se déconnecter" aria-label="Se déconnecter">
-            <IconLogout width={17} height={17} />
-          </button>
-        </div>
-      </aside>
-
-      <div className="colonne-principale">
-        <header className="barre-superieure">
-          <nav className="fil-ariane" aria-label="Fil d'Ariane">
-            <span>{libelleEspace(profil)}</span>
-            {section?.groupe && <><IconChevronRight /><span>{section.groupe}</span></>}
-            <IconChevronRight />
-            <strong>{section?.label}</strong>
-          </nav>
-          <div className="barre-superieure-actions">
-            <button className="bouton-recherche" onClick={() => setPaletteOuverte(true)}>
+          <div className="bandeau-actions">
+            <button className="bouton-recherche" onClick={() => setPaletteOuverte(true)} aria-label="Rechercher une page">
               <IconSearch />
               <span>Rechercher une page</span>
               <kbd>Ctrl K</kbd>
             </button>
             {boutonNouveautes}
+            <div className="classeur-compte">
+              <div className="avatar" aria-hidden="true">{initiales(profil?.prenom, profil?.nom)}</div>
+              <div className="profil-info">
+                <strong>{profil?.modeParent ? `Parent de ${profil.prenom}` : `${profil?.prenom ?? ''} ${profil?.nom ?? ''}`}</strong>
+                <small>{profil?.modeParent ? profil.emailParent : profil?.email}</small>
+              </div>
+              {profil?.role !== 'superadmin' && (
+                <button className="bouton-parametres-compte" onClick={() => setCompteOuvert(true)} title="Mon compte" aria-label="Mon compte">
+                  <IconSettings width={17} height={17} />
+                </button>
+              )}
+              <button className="bouton-deconnexion" onClick={seDeconnecter} title="Se déconnecter" aria-label="Se déconnecter">
+                <IconLogout width={17} height={17} />
+              </button>
+            </div>
           </div>
-        </header>
+        </div>
+        {/* Rubriques : un onglet de classeur par groupe de pages. */}
+        <nav className="onglets-classeur" aria-label="Rubriques">
+          {groupes.map((g, i) => {
+            const actifGroupe = g === groupeActif;
+            const IconeGroupe = g.onglets[0]?.icone;
+            return (
+              <button
+                key={`${g.titre || 'accueil'}-${i}`}
+                type="button"
+                className={`onglet-classeur ${actifGroupe ? 'actif' : ''}`}
+                aria-current={actifGroupe ? 'true' : undefined}
+                onClick={() => choisirOnglet(actifGroupe ? section.id : g.onglets[0].id)}
+              >
+                {g.numero ? <span className="onglet-numero">{g.numero}</span> : IconeGroupe && <IconeGroupe />}
+                <span>{g.titre || 'Accueil'}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </header>
 
-        <main className="espace-contenu">
+      <div className="classeur-corps">
+        {/* Intercalaires : les pages de la rubrique ouverte. */}
+        {groupeActif && groupeActif.onglets.length > 1 && (
+          <nav className="intercalaires" aria-label={`Pages de la rubrique ${groupeActif.titre || 'Accueil'}`}>
+            {groupeActif.onglets.map((o, j) => {
+              const Icone = o.icone;
+              const estActif = section?.id === o.id;
+              return (
+                <button key={o.id} type="button" className={`intercalaire ${estActif ? 'actif' : ''}`} aria-current={estActif ? 'page' : undefined} onClick={() => choisirOnglet(o.id)}>
+                  <span className="intercalaire-cote">{groupeActif.numero ? `${groupeActif.numero}.${j + 1}` : j + 1}</span>
+                  {Icone && <Icone />}
+                  <span>{o.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        )}
+
+        <main className="espace-contenu feuille-classeur">
           <div className="espace-contenu-interieur" key={section?.id}>
             {annonceVisible && (
               <BandeauAnnonce niveau={annonce.niveau} message={annonce.message} publieeLe={annonce.publieeLe} onMasquer={masquerAnnonce} />
@@ -320,12 +315,9 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
               <>
                 {!section?.masquerEntete && (
                   <header className="cartouche">
-                    <div className="cartouche-onglet">
-                      <span>{cote ? `Rubrique ${cote}` : 'Accueil'}</span>
-                      {section?.groupe && <span className="cartouche-onglet-groupe">{section.groupe}</span>}
-                    </div>
                     <div className="cartouche-corps entete-page">
                       <div className="cartouche-titre">
+                        <span className="cartouche-rubrique">{cote ? `Rubrique ${cote}` : 'Accueil'}{section?.groupe ? ` · ${section.groupe}` : ''}</span>
                         <h1>{section?.label}</h1>
                         {section?.description && <p className="entete-page-description">{section.description}</p>}
                       </div>
@@ -337,9 +329,6 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
                   </header>
                 )}
                 <PlateformeContext.Provider value={etatPlateforme?.fonctionnalites || null}>
-                  {/* Chaque onglet est chargé à la demande (lazy() dans chaque
-                      DashboardX.jsx) : un seul repli ici, qui garde le menu
-                      affiché pendant le chargement. */}
                   <Suspense fallback={<div className="chargement">Chargement…</div>}>
                     {section?.extension ? <PageExtension extension={section.extension} /> : children}
                   </Suspense>

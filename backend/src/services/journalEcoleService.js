@@ -19,6 +19,8 @@ const LIBELLES_DOCUMENTS = {
   recapitulatif_presences: ['récapitulatif des présences émis', 'récapitulatifs des présences émis'],
   proces_verbal: ['procès-verbal émis', 'procès-verbaux émis'],
   attestation: ['attestation émise', 'attestations émises'],
+  releve: ['relevé de notes émis', 'relevés de notes émis'],
+  pv_deliberation: ['procès-verbal de délibération émis', 'procès-verbaux de délibération émis'],
 };
 
 // Regroupe des lignes par clé et garde l'heure la plus récente du groupe.
