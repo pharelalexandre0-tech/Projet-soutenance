@@ -6,6 +6,7 @@ import LimiteErreurChargement from './components/LimiteErreurChargement';
 import EcranMaintenance from './components/EcranMaintenance';
 import BandeauHorsLigne from './components/BandeauHorsLigne';
 import EcranDemarrage, { demarrageAAfficher } from './components/EcranDemarrage';
+import IntroMobile from './mobile/IntroApplication';
 import Login from './pages/Login';
 
 // Chaque profil ne charge jamais que son propre tableau de bord — les
@@ -24,7 +25,9 @@ const DashboardMinistere = lazy(() => import('./pages/DashboardMinistere'));
 // Application Android seulement (construction en mode « android ») : son
 // animation d'ouverture. Dans la construction du site, la condition est
 // fausse dès la compilation et ce code n'est pas inclus.
-const IntroApplication = import.meta.env.MODE === 'android' ? lazy(() => import('./mobile/IntroApplication')) : null;
+// Chargée tout de suite (pas en différé) : aucun temps mort entre l'écran
+// natif d'Android et l'animation.
+const IntroApplication = import.meta.env.MODE === 'android' ? IntroMobile : null;
 if (import.meta.env.MODE === 'android') import('./mobile/application.css');
 
 function Accueil() {
@@ -76,7 +79,7 @@ export default function App() {
           <EcranMaintenance />
           <BandeauHorsLigne />
           {demarrage && (IntroApplication
-            ? <Suspense fallback={null}><IntroApplication onTermine={() => setDemarrage(false)} /></Suspense>
+            ? <IntroApplication onTermine={() => setDemarrage(false)} />
             : <EcranDemarrage onTermine={() => setDemarrage(false)} />)}
         </LimiteErreurChargement>
       </BrowserRouter>

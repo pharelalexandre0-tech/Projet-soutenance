@@ -34,7 +34,7 @@ export default function IntroApplication({ onTermine }) {
 
   return (
     <div className={`intro-app ${depart ? 'depart' : ''}`} onClick={terminer} aria-hidden="true">
-      <div className="intro-motif"><Tissage colonnes={6} lignes={12} className="intro-tissage" /></div>
+      <div className="intro-motif"><Tissage colonnes={5} lignes={10} className="intro-tissage" /></div>
       <div className="intro-papier">
         <span className="intro-logo"><img src={logoIcon} alt="" /></span>
         <strong className="intro-nom">EduSphere</strong>

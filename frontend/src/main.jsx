@@ -1,6 +1,21 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+// Polices embarquées (alphabet latin) : aucune dépendance à Google Fonts,
+// rendu identique hors ligne et dans l'application Android.
+import '@fontsource/source-serif-4/latin-500.css';
+import '@fontsource/source-serif-4/latin-600.css';
+import '@fontsource/source-serif-4/latin-700.css';
+import '@fontsource/public-sans/latin-400.css';
+import '@fontsource/public-sans/latin-500.css';
+import '@fontsource/public-sans/latin-600.css';
+import '@fontsource/public-sans/latin-700.css';
+import '@fontsource/jetbrains-mono/latin-500.css';
+import '@fontsource/jetbrains-mono/latin-600.css';
+import '@fontsource/jetbrains-mono/latin-700.css';
+import '@fontsource/bricolage-grotesque/latin-600.css';
+import '@fontsource/bricolage-grotesque/latin-700.css';
+import '@fontsource/bricolage-grotesque/latin-800.css';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

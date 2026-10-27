@@ -8,20 +8,27 @@
 }
 .intro-app.depart { opacity: 0; }
 
-/* Le motif garde la taille de l'écran : la bande le recadre sans l'écraser. */
+/* Le motif remonte par un simple déplacement (transform), calculé par la
+   carte graphique : aucune mise en page recalculée pendant le mouvement. */
 .intro-motif {
   position: absolute; top: 0; left: 0; right: 0; height: 100%; overflow: hidden; background: #0B1E3D;
-  animation: intro-motif-remonte .7s cubic-bezier(.65, 0, .35, 1) 1.35s both;
+  will-change: transform; contain: strict; transform: translateZ(0);
+  animation: intro-motif-remonte .75s cubic-bezier(.65, 0, .35, 1) 1.25s both;
 }
-@keyframes intro-motif-remonte { from { height: 100%; } to { height: 32%; } }
-.intro-tissage { position: absolute; top: 0; left: 0; right: 0; height: 100vh; }
-.intro-tissage .maille { animation-duration: .45s; animation-delay: calc(.05s + var(--delai) * .9); }
+@keyframes intro-motif-remonte { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -68%, 0); } }
+.intro-tissage { position: absolute; inset: 0; }
+/* Cases : apparition légère (opacité et échelle seulement, sans rotation). */
+.intro-tissage .maille { animation: intro-maille .4s ease-out both; animation-delay: calc(.05s + var(--delai) * .8); }
+.intro-tissage .maille.retourne { animation-name: intro-maille-retourne; }
+@keyframes intro-maille { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes intro-maille-retourne { from { opacity: 0; transform: scaleX(-1) scale(.6); } to { opacity: 1; transform: scaleX(-1); } }
 
 .intro-papier {
   position: absolute; left: 0; right: 0; top: 32%; bottom: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 24px 8%;
   text-align: center; color: #0B1E3D;
 }
+.intro-logo, .intro-nom, .intro-sous-titre { will-change: transform, opacity; }
 .intro-logo {
   width: 64px; height: 64px; padding: 6px; border-radius: 14px; background: #fff; border: 1px solid #E3E6EC;
   display: grid; place-items: center; animation: intro-monte .5s cubic-bezier(.2, .8, .2, 1) 1.9s both;
