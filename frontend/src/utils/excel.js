@@ -24,7 +24,7 @@ function chargerXLSX() {
 // exactement "prenom"/"nom" sans accent ni majuscule — on normalise les
 // en-têtes (accents, casse, espaces) pour retrouver "Prénom", "PRENOM " ou
 // "Prénom élève" de la même façon.
-function normaliserCle(cle) {
+export function normaliserCle(cle) {
   return cle
     .toString()
     .trim()

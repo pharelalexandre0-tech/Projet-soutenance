@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
-import { lireFichierExcel, normaliserTexte } from '../../utils/excel';
+import { lireFichierExcel, normaliserTexte, normaliserCle } from '../../utils/excel';
 import LegendeSeuils from '../../components/LegendeSeuils';
 import { REGLES_PAR_DEFAUT, reglesEtablissement, tonNote, noteFr, saisieNoteValide } from '../../utils/seuils';
 
@@ -23,6 +23,7 @@ export default function Notes() {
   const [importMessage, setImportMessage] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [alerteSaisie, setAlerteSaisie] = useState(false);
+  const [importGlobal, setImportGlobal] = useState(null); // { enCours, message, erreur }
   const [regles, setRegles] = useState(REGLES_PAR_DEFAUT);
   useEffect(() => { client.get('/etablissement').then((res) => setRegles(reglesEtablissement(res.data.etablissement))).catch(() => {}); }, []);
 
@@ -53,6 +54,7 @@ export default function Notes() {
     setValeurs({});
     setImportMessage('');
     setMessage('');
+    setImportGlobal(null);
   }, [classeId, semestreId, ueId, matiereId, session]);
   // Les valeurs en cours de saisie ne sont pas touchées : seules les
   // listes (classes, semestres, UE, élèves) se mettent à jour.
@@ -171,6 +173,56 @@ export default function Notes() {
     }
   }
 
+  // Import de TOUTES les matières du semestre en un seul fichier : une ligne
+  // par élève (Nom, Prénom), puis deux colonnes par matière, « CODE CC » et
+  // « CODE Examen ». Les élèves sont reconnus par leur nom dans la classe
+  // choisie ; les notes hors de 0 à 20 sont écartées et signalées.
+  async function importerToutesMatieres(e) {
+    const fichier = e.target.files[0];
+    e.target.value = '';
+    if (!fichier || !classeId || !semestreId) return;
+    const toutesMatieres = ues.flatMap((u) => (u.Matieres || []).map((m) => ({ ...m, ue: u.code })));
+    if (!toutesMatieres.length) { setImportGlobal({ erreur: "ce semestre n'a encore aucune matière : importez d'abord les UE et matières" }); return; }
+    setImportGlobal({ enCours: true });
+    const parNom = new Map();
+    eleves.forEach((el) => {
+      parNom.set(normaliserTexte(`${el.prenom} ${el.nom}`), el);
+      parNom.set(normaliserTexte(`${el.nom} ${el.prenom}`), el);
+      if (el.matricule) parNom.set(normaliserTexte(el.matricule), el);
+    });
+    const lignes = await lireFichierExcel(fichier);
+    const colonnes = toutesMatieres.map((m) => ({ m, cc: `${normaliserCle(m.code)}cc`, ex: `${normaliserCle(m.code)}examen` }));
+    const reconnues = colonnes.filter((c) => lignes.length && (c.cc in lignes[0] || c.ex in lignes[0]));
+    if (!reconnues.length) { setImportGlobal({ erreur: 'aucune colonne de matière reconnue : les en-têtes doivent être « CODE CC » et « CODE Examen » (codes des matières du semestre)' }); return; }
+    const notes = []; const introuvables = []; let horsEchelle = 0;
+    lignes.forEach((l, i) => {
+      const el = (l.matricule && parNom.get(normaliserTexte(l.matricule)))
+        || parNom.get(normaliserTexte(`${l.prenom || ''} ${l.nom || ''}`)) || parNom.get(normaliserTexte(`${l.nom || ''} ${l.prenom || ''}`));
+      if (!el) { introuvables.push(`ligne ${i + 2}`); return; }
+      reconnues.forEach(({ m, cc, ex }) => {
+        [['cc', l[cc]], ['examen', l[ex]]].forEach(([categorie, brut]) => {
+          const v = String(brut ?? '').trim();
+          if (v === '') return;
+          if (!saisieNoteValide(v)) { horsEchelle += 1; return; }
+          notes.push({ eleveId: el.id, matiereId: m.id, categorie, valeur: v });
+        });
+      });
+    });
+    if (!notes.length) { setImportGlobal({ erreur: 'aucune note valide trouvée dans le fichier' }); return; }
+    try {
+      const res = await client.post('/notes', { notes, session });
+      const nbEleves = new Set(notes.map((n) => n.eleveId)).size;
+      setImportGlobal({
+        message: `${res.data.resultats.length} moyennes enregistrées pour ${nbEleves} élève${nbEleves > 1 ? 's' : ''} dans ${reconnues.length} matière${reconnues.length > 1 ? 's' : ''} (session ${session}).`
+          + (introuvables.length ? ` Élèves non reconnus dans la classe : ${introuvables.slice(0, 8).join(', ')}${introuvables.length > 8 ? '…' : ''}.` : '')
+          + (horsEchelle ? ` ${horsEchelle} note${horsEchelle > 1 ? 's' : ''} hors de 0 à 20 écartée${horsEchelle > 1 ? 's' : ''}.` : '')
+          + (reconnues.length < toutesMatieres.length ? ` Matières absentes du fichier : ${toutesMatieres.filter((m) => !reconnues.some((r) => r.m.id === m.id)).map((m) => m.code).join(', ')}.` : ''),
+      });
+    } catch (err) {
+      setImportGlobal({ erreur: err.response?.data?.erreur || "échec de l'enregistrement" });
+    }
+  }
+
   // Note finale d'une matière : (CC + Examen) / 2, ou la seule note saisie.
   function noteFinale(eleveId) {
     const lire = (cle) => { const v = valeur(eleveId, cle); const n = Number(String(v ?? '').replace(',', '.')); return v === '' || v === undefined || v === null || !Number.isFinite(n) ? null : n; };
@@ -233,6 +285,16 @@ export default function Notes() {
           </div>
         )}
 
+        {classeId && semestreId && eleves.length > 0 && (
+          <div className="encart-import">
+            <div className="encart-import-titre">Import de toutes les matières du semestre</div>
+            <p>Un seul fichier pour toute la classe : colonnes <strong>Nom</strong>, <strong>Prénom</strong>, puis pour chaque matière <strong>CODE CC</strong> et <strong>CODE Examen</strong> (ex. « L1-INF-111 CC »). Les notes sont enregistrées directement, en session {session === 'rattrapage' ? 'de rattrapage' : 'normale'}.</p>
+            <input type="file" accept=".xlsx,.xls,.csv" onChange={importerToutesMatieres} disabled={importGlobal?.enCours} />
+            {importGlobal?.enCours && <div className="note-secondaire" style={{ marginTop: 8 }}>Import en cours…</div>}
+            {importGlobal?.message && <div className="message-succes" style={{ marginTop: 8 }}>{importGlobal.message}</div>}
+            {importGlobal?.erreur && <div className="message-erreur" style={{ marginTop: 8 }}>{importGlobal.erreur}</div>}
+          </div>
+        )}
         {matiereId && eleves.length > 0 && (
           <div className="encart-import">
             <div className="encart-import-titre">Import rapide (recommandé pour une classe nombreuse)</div>

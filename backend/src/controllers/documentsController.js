@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Classe, Semestre, Eleve, Absence, EmploiDuTemps, UniteEnseignement } = require('../models');
+const { Classe, Semestre, Eleve, Absence, EmploiDuTemps, UniteEnseignement, Matiere } = require('../models');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
 const { calculerBulletinsClasse, reglesEtablissement } = require('../services/moyenneService');
 const docs = require('../services/documentsAcademieService');
@@ -70,8 +70,12 @@ async function resultats(req, res) {
   const [premiere] = await classesDemandees(req);
   const semestre = await semestreDeLEcole(req);
   if (!premiere || req.query.classeId === 'toutes' || !semestre) return res.status(404).json({ erreur: 'classe ou semestre introuvable' });
-  const ues = await UniteEnseignement.findAll({ where: { semestreId: semestre.id }, order: [['code', 'ASC']] });
+  let ues = await UniteEnseignement.findAll({ where: { semestreId: semestre.id }, include: [Matiere], order: [['code', 'ASC']] });
   const calculs = await calculerBulletinsClasse(premiere.eleves.map((e) => e.id), semestre.id);
+  // Les UE appartiennent au semestre, pas à la classe : seules celles où la
+  // classe a des notes entrent dans le procès-verbal (toutes si aucune).
+  const notees = new Set([...calculs.values()].flatMap((c) => c.detailParUE.map((d) => d.code)));
+  if (notees.size) ues = ues.filter((u) => notees.has(u.code));
   const regles = await reglesEtablissement(req.utilisateur.etablissementId);
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   const format = req.query.format === 'xlsx' ? 'xlsx' : 'pdf';

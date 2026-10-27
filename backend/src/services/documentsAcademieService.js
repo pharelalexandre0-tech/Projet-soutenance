@@ -225,39 +225,104 @@ async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, c
     ['Plus haute / plus basse', stats.plusHaute === null ? '-' : `${noteFr(stats.plusHaute)} / ${noteFr(stats.plusBasse)}`, 1.3],
   ]) + 12;
 
-  const fixes = [32, 62, 140];
-  const fin = [52, 44, 64, 58, 62];
-  const largeurUE = Math.max(40, (largeur - fixes.reduce((a, b) => a + b, 0) - fin.reduce((a, b) => a + b, 0)) / Math.max(ues.length, 1));
-  const largeurs = [...fixes, ...ues.map(() => largeurUE), ...fin];
-  const entete = ['Rang', 'Matricule', 'Nom et prénom', ...ues.map((u) => u.code), 'Moy. gén.', 'Crédits', 'Mention', 'Résultat', 'Décision'];
-  const cellules = lignes.map((l) => {
+  // Colonnes groupées par UE : la note finale de chaque matière, puis la
+  // moyenne de l'UE. Double en-tête : UE en haut, matières en dessous.
+  const groupes = ues.map((u) => ({ ue: u, matieres: [...(u.Matieres || [])].sort((x, z) => String(x.code).localeCompare(String(z.code))) }));
+  const nbNotes = groupes.reduce((n, g) => n + g.matieres.length + 1, 0);
+  const fixesG = [24, 100];
+  const fixesD = [34, 30, 44, 52, 48];
+  const reste = largeur - fixesG.reduce((a, b) => a + b, 0) - fixesD.reduce((a, b) => a + b, 0);
+  const lNote = Math.max(20, reste / Math.max(nbNotes, 1));
+  const taille = lNote < 30 ? 6.1 : 6.8;
+  const colonnes = [
+    ...fixesG,
+    ...groupes.flatMap((g) => [...g.matieres.map(() => lNote), lNote]),
+    ...fixesD,
+  ];
+  const abreger = (code) => String(code || '').split(/[-_ ]/).pop().slice(-6);
+  const xDe = (i) => marge + colonnes.slice(0, i).reduce((a, b) => a + b, 0);
+
+  function enTetes(yy) {
+    const h1 = 22; const h2 = 14;
+    // Ligne 1 : blocs fixes (fusionnés sur deux lignes) et une case par UE.
+    const fond = C.COULEUR_MARINE;
+    const caseTexte = (x, w, h, texte, opts = {}) => {
+      doc.rect(x, yy, w, h).fill(opts.fond || fond);
+      doc.rect(x, yy, w, h).lineWidth(0.5).strokeColor('#FFFFFF').stroke();
+      doc.font('Helvetica-Bold').fontSize(opts.taille || 6.6).fillColor('#FFFFFF')
+        .text(texte, x + 2, yy + (h - (opts.taille || 6.6)) / 2 - 1, { width: w - 4, align: 'center', lineBreak: false, ellipsis: true });
+    };
+    let i = 0;
+    caseTexte(xDe(0), colonnes[0], h1 + h2, 'Rang'); caseTexte(xDe(1), colonnes[1], h1 + h2, 'Nom et prénom');
+    i = 2;
+    for (const g of groupes) {
+      const n = g.matieres.length + 1;
+      const w = colonnes.slice(i, i + n).reduce((a, b) => a + b, 0);
+      doc.rect(xDe(i), yy, w, h1).fill(C.COULEUR_PRIMAIRE);
+      doc.rect(xDe(i), yy, w, h1).lineWidth(0.5).strokeColor('#FFFFFF').stroke();
+      doc.font('Helvetica-Bold').fontSize(6.3).fillColor('#FFFFFF').text(`${g.ue.code} (${g.ue.credits} cr.)`, xDe(i) + 2, yy + 3, { width: w - 4, align: 'center', lineBreak: false, ellipsis: true });
+      doc.font('Helvetica').fontSize(6).fillColor('#DCE6F4').text(g.ue.intitule, xDe(i) + 2, yy + 12, { width: w - 4, align: 'center', lineBreak: false, ellipsis: true });
+      g.matieres.forEach((m, k) => {
+        const x = xDe(i + k);
+        doc.rect(x, yy + h1, colonnes[i + k], h2).fill('#1B355F');
+        doc.rect(x, yy + h1, colonnes[i + k], h2).lineWidth(0.5).strokeColor('#FFFFFF').stroke();
+        doc.font('Helvetica-Bold').fontSize(5.8).fillColor('#FFFFFF').text(abreger(m.code), x + 1, yy + h1 + 4, { width: colonnes[i + k] - 2, align: 'center', lineBreak: false, ellipsis: true });
+      });
+      const xm = xDe(i + n - 1);
+      doc.rect(xm, yy + h1, colonnes[i + n - 1], h2).fill('#2C4F86');
+      doc.rect(xm, yy + h1, colonnes[i + n - 1], h2).lineWidth(0.5).strokeColor('#FFFFFF').stroke();
+      doc.font('Helvetica-Bold').fontSize(5.8).fillColor('#FFFFFF').text('Moy. UE', xm + 1, yy + h1 + 4, { width: colonnes[i + n - 1] - 2, align: 'center', lineBreak: false });
+      i += n;
+    }
+    ['Moy. gén.', 'Crédits', 'Mention', 'Résultat', 'Décision'].forEach((t, k) => caseTexte(xDe(i + k), colonnes[i + k], h1 + h2, t));
+    return yy + h1 + h2;
+  }
+
+  y = enTetes(y);
+  const hLigne = 16;
+  lignes.forEach((l, idx) => {
+    if (y + hLigne > limiteBas(doc)) { doc.addPage(); y = enTetes(doc.page.margins.top); }
     const c = l.calcul;
     const parUE = new Map((c?.detailParUE || []).map((d) => [d.code, d]));
-    return [
+    const cellules = [
       { texte: l.rang ? String(l.rang) : '-', align: 'center', gras: true },
-      { texte: l.eleve.matricule || '' },
       { texte: nomComplet(l.eleve), gras: true },
-      ...ues.map((u) => {
-        const d = parUE.get(u.code);
-        if (!d) return { texte: '-', align: 'center', couleur: C.COULEUR_TEXTE_CLAIR };
-        return { texte: noteFr(d.moyenne) + (d.eliminatoire ? ' E' : ''), align: 'center', gras: true, couleur: d.eliminatoire ? C.COULEUR_ERREUR : d.valide ? C.COULEUR_SUCCES : COULEUR_LIMITE };
-      }),
+    ];
+    for (const g of groupes) {
+      const d = parUE.get(g.ue.code);
+      const parMatiere = new Map((d?.matieres || []).map((mm) => [mm.code, mm]));
+      for (const m of g.matieres) {
+        const mm = parMatiere.get(m.code);
+        cellules.push(mm
+          ? { texte: noteFr(mm.noteFinale), align: 'center', couleur: couleurNote(mm.noteFinale, regles), gras: mm.eliminatoire }
+          : { texte: '-', align: 'center', couleur: C.COULEUR_TEXTE_CLAIR });
+      }
+      cellules.push(d
+        ? { texte: noteFr(d.moyenne), align: 'center', gras: true, couleur: d.eliminatoire ? C.COULEUR_ERREUR : d.valide ? C.COULEUR_SUCCES : COULEUR_LIMITE }
+        : { texte: '-', align: 'center', couleur: C.COULEUR_TEXTE_CLAIR });
+    }
+    cellules.push(
       { texte: l.evalue ? noteFr(c.moyenneGenerale) : '-', align: 'center', gras: true, couleur: l.evalue ? couleurNote(c.moyenneGenerale, regles) : C.COULEUR_TEXTE_CLAIR },
       { texte: l.evalue ? `${c.creditsValides}/${c.creditsTotal}` : '-', align: 'center' },
       { texte: l.evalue ? mention(c.moyenneGenerale) : '-' },
       { texte: l.evalue ? (c.admis ? 'Validé' : 'Non validé') : 'Non évalué', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_ERREUR },
       { texte: l.evalue ? (c.admis ? 'Admis(e)' : 'Rattrapage') : 'En attente', gras: true, couleur: !l.evalue ? C.COULEUR_TEXTE_CLAIR : c.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
-    ];
+    );
+    // Fond léger sous les moyennes d'UE pour les distinguer des notes de matière.
+    let i = 2;
+    for (const g of groupes) { i += g.matieres.length; doc.rect(xDe(i), y, colonnes[i], hLigne).fill('#EEF3FA'); i += 1; }
+    y = dessinerLigne(doc, marge, y, colonnes, cellules, { hauteur: hLigne, taille, fond: undefined });
+    if (idx % 2) doc.rect(marge, y - hLigne, largeur, hLigne).fillOpacity(0.025).fill('#000000').fillOpacity(1);
   });
-  y = tableau(doc, marge, y, largeurs, entete, cellules, { hauteur: 17, taille: 7.6, reserveFin: 130 });
+  if (y + 130 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
 
   // Légende des UE et des couleurs
   y += 10;
   doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.COULEUR_TEXTE).text('Unités d’enseignement : ', marge, y, { continued: true })
     .font('Helvetica').fillColor(C.COULEUR_TEXTE_CLAIR)
-    .text(ues.map((u) => `${u.code} ${u.intitule} (${u.credits} crédits)`).join('  ·  '), { width: largeur });
+    .text(groupes.map((g) => `${g.ue.code} ${g.ue.intitule} : ${g.matieres.map((m) => `${abreger(m.code)} ${m.intitule} (coef. ${m.coefficient})`).join(', ')}`).join('  ·  '), { width: largeur });
   doc.font('Helvetica').fontSize(7.2).fillColor(C.COULEUR_TEXTE_CLAIR)
-    .text(`Vert : UE validée (${surVingt(regles.seuil)} et plus, sans note éliminatoire).  Jaune : UE non validée.  Rouge et « E » : note éliminatoire (moins de ${surVingt(regles.eliminatoire)}/20 dans une matière).`, marge, doc.y + 3, { width: largeur });
+    .text(`Notes de matière : (CC + examen) / 2.  Vert : ${surVingt(regles.seuil)} et plus (UE validée).  Jaune : sous le seuil (UE non validée).  Rouge : note éliminatoire (moins de ${surVingt(regles.eliminatoire)}/20), qui bloque l'UE.`, marge, doc.y + 3, { width: largeur });
   const ySig = doc.y + 14;
   blocSignature(doc, ySig, etablissement, 'Le Président du jury');
   piedDePageOfficiel(doc, `Procès-verbal établi par ${etablissement.nom} via EduSphere  ·  ${classe.nom}, ${semestre.libelle}`);
@@ -274,7 +339,12 @@ function procesVerbalXlsx({ classe, semestre, ues, eleves, calculs, regles, ordr
     const ligne = { Rang: l.rang || '', Matricule: l.eleve.matricule || '', Nom: l.eleve.nom, 'Prénom': l.eleve.prenom };
     for (const u of ues) {
       const d = parUE.get(u.code);
-      ligne[`${u.code} ${u.intitule}`] = d ? d.moyenne : '';
+      const parMatiere = new Map((d?.matieres || []).map((mm) => [mm.code, mm]));
+      for (const m of [...(u.Matieres || [])].sort((x, z) => String(x.code).localeCompare(String(z.code)))) {
+        const mm = parMatiere.get(m.code);
+        ligne[`${m.code} ${m.intitule}`] = mm ? mm.noteFinale : '';
+      }
+      ligne[`${u.code} moyenne UE`] = d ? d.moyenne : '';
       ligne[`${u.code} résultat`] = d ? (d.eliminatoire ? 'Éliminatoire' : d.valide ? 'Validée' : 'Non validée') : '';
     }
     Object.assign(ligne, {
@@ -308,7 +378,7 @@ function procesVerbalXlsx({ classe, semestre, ues, eleves, calculs, regles, ordr
     ['Taux de réussite (%)', stats.tauxReussite], ['Moyenne de classe', stats.moyenneClasse ?? ''], ['Plus haute moyenne', stats.plusHaute ?? ''], ['Plus basse moyenne', stats.plusBasse ?? ''],
   ];
   return versXlsx([
-    { nom: 'Résultats', lignes: resultats, largeurs: [6, 14, 16, 16, ...ues.flatMap(() => [16, 14]), 16, 14, 16, 12, 12, 12] },
+    { nom: 'Résultats', lignes: resultats, largeurs: [6, 14, 16, 16, ...ues.flatMap((u) => [...(u.Matieres || []).map(() => 14), 14, 14]), 16, 14, 16, 12, 12, 12] },
     { nom: 'Notes détaillées', lignes: notes.length ? notes : [{ Matricule: 'Aucune note' }], largeurs: [14, 16, 16, 30, 32, 11, 16, 10, 11, 11, 13] },
     { nom: 'Synthèse', lignes: synthese, largeurs: [24, 32] },
   ]);

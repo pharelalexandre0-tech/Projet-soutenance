@@ -197,11 +197,25 @@ async function etablissementDuDestinataire(email) {
   }
 }
 
+// Domaines réservés aux tests (RFC 2606) : example.com/.org/.net et
+// .test, .invalid, .localhost. Ils n'existent pas : y envoyer un e-mail ne
+// sert à rien, consomme le quota et nuit à la réputation de l'expéditeur.
+// Ces envois sont simulés (journalisés) au lieu d'être transmis.
+function adresseDeTest(adresse) {
+  const domaine = String(adresse || '').trim().toLowerCase().split('@')[1] || '';
+  return /(^|\.)example\.(com|org|net)$/.test(domaine) || /\.(test|invalid|localhost|example)$/.test(domaine);
+}
+
 async function envoyerEmail(destinataire, sujet, corps, piecesJointes = [], options = {}) {
   const etablissement = options.etablissement || await etablissementDuDestinataire(destinataire);
   const html = options.html || emailGenerique(corps, { titre: sujet, etablissement });
   const entetes = enTetes(typeof etablissement === 'object' ? etablissement : null);
   const erreurs = [];
+
+  if (adresseDeTest(destinataire)) {
+    consigner(destinataire, sujet, 'simulation', erreurs);
+    return { envoye: true, simule: true, service: 'simulation', erreurs };
+  }
 
   if (process.env.BREVO_API_KEY && process.env.BREVO_FROM) {
     try {

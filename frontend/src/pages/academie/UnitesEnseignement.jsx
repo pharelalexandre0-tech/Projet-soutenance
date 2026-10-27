@@ -3,7 +3,9 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
-import { IconTrash } from '../../components/icons';
+import { IconTrash, IconUpload } from '../../components/icons';
+import Modal from '../../components/Modal';
+import { lireFichierExcel } from '../../utils/excel';
 import { messageErreur } from '../../utils/erreurs';
 
 const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '' };
@@ -27,6 +29,7 @@ export default function UnitesEnseignement() {
   const [message, setMessage] = useState('');
   const [matiereASupprimer, setMatiereASupprimer] = useState(null);
   const [toast, setToast] = useState(null);
+  const [importStructure, setImportStructure] = useState(false);
 
   function charger() {
     client.get('/unites-enseignement').then((res) => setUes(res.data.ues));
@@ -99,7 +102,12 @@ export default function UnitesEnseignement() {
   return (
     <div className="grille-2">
       <div className="carte">
-        <h2>Unités d'enseignement</h2>
+        <div className="entete-carte">
+          <h2>Unités d'enseignement</h2>
+          <button type="button" className="secondaire" onClick={() => setImportStructure(true)} disabled={semestres.length === 0}>
+            <IconUpload width={16} height={16} /> Importer UE et matières
+          </button>
+        </div>
         <p style={{ fontSize: '0.83rem', color: 'var(--texte-clair)', marginTop: -8, marginBottom: 16 }}>
           Une UE regroupe plusieurs matières allant dans le même sens (ex. l'UE « Programmation » regroupe
           Python, PHP, Java). Clique une UE pour voir/ajouter ses matières.
@@ -249,7 +257,94 @@ export default function UnitesEnseignement() {
           La matière sera retirée de son UE. Les notes déjà saisies pour cette matière (session normale et rattrapage) seront aussi supprimées, et les bulletins recalculés sans elle. Cette action est irréversible.
         </ConfirmModal>
       )}
+      {importStructure && (
+        <ImportStructure semestres={semestres} ues={ues} onFermer={() => setImportStructure(false)} onImporte={() => charger()} />
+      )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
+  );
+}
+
+// Import d'un fichier Excel/CSV décrivant les UE et leurs matières d'un
+// semestre : une ligne par matière (Code UE, Intitulé UE, Crédits, Code
+// matière, Matière, Coefficient). Une UE déjà présente dans ce semestre
+// (même code) est complétée, jamais dupliquée ; une matière déjà présente
+// dans son UE (même code) est ignorée.
+function ImportStructure({ semestres, ues, onFermer, onImporte }) {
+  const [semestreId, setSemestreId] = useState(semestres[0] ? String(semestres[0].id) : '');
+  const [enCours, setEnCours] = useState(false);
+  const [resultat, setResultat] = useState(null);
+
+  async function importer(e) {
+    e.preventDefault();
+    const fichier = e.target.elements.fichierStructure.files[0];
+    if (!semestreId || !fichier) return;
+    setEnCours(true);
+    setResultat(null);
+    const lignes = await lireFichierExcel(fichier);
+    const parUE = new Map();
+    const erreurs = [];
+    lignes.forEach((l, i) => {
+      const codeUE = String(l.codeue || '').trim();
+      const intituleUE = String(l.intituleue || l.ue || '').trim();
+      const codeMatiere = String(l.codematiere || '').trim();
+      const intituleMatiere = String(l.matiere || l.intitulematiere || '').trim();
+      if (!codeUE || !intituleUE || !codeMatiere || !intituleMatiere) { erreurs.push(`ligne ${i + 2} : code ou intitulé manquant`); return; }
+      if (!parUE.has(codeUE)) parUE.set(codeUE, { code: codeUE, intitule: intituleUE, credits: Number(l.credits) || 0, matieres: [] });
+      parUE.get(codeUE).matieres.push({ code: codeMatiere, intitule: intituleMatiere, coefficient: Number(String(l.coefficient || 1).replace(',', '.')) || 1 });
+    });
+    let uesCreees = 0; let matieresCreees = 0;
+    for (const ue of parUE.values()) {
+      try {
+        let existante = ues.find((u) => u.code === ue.code && String(u.semestreId ?? u.Semestre?.id) === semestreId);
+        if (!existante) {
+          const res = await client.post('/unites-enseignement', { code: ue.code, intitule: ue.intitule, credits: ue.credits, coefficient: ue.credits || 1, semestreId });
+          existante = { ...res.data.ue, Matieres: [] };
+          uesCreees += 1;
+        }
+        for (const m of ue.matieres) {
+          if ((existante.Matieres || []).some((x) => x.code === m.code)) continue;
+          try {
+            await client.post('/matieres', { ...m, uniteEnseignementId: existante.id });
+            matieresCreees += 1;
+          } catch (err) { erreurs.push(`matière ${m.code} : ${messageErreur(err, 'refusée')}`); }
+        }
+      } catch (err) { erreurs.push(`UE ${ue.code} : ${messageErreur(err, 'refusée')}`); }
+    }
+    setResultat({ uesCreees, matieresCreees, erreurs });
+    setEnCours(false);
+    onImporte();
+    e.target.reset();
+  }
+
+  return (
+    <Modal titre="Importer les UE et leurs matières" onFermer={enCours ? () => {} : onFermer} largeur={600}>
+      <form className="formulaire" onSubmit={importer}>
+        <p className="note-secondaire" style={{ marginTop: 0 }}>
+          Une ligne par matière, avec les colonnes <strong>Code UE</strong>, <strong>Intitulé UE</strong>, <strong>Crédits</strong>,
+          {' '}<strong>Code matière</strong>, <strong>Matière</strong> et <strong>Coefficient</strong>. Les UE déjà présentes dans le semestre sont complétées, pas dupliquées.
+        </p>
+        <div className="champ">
+          <label htmlFor="is-sem">Semestre</label>
+          <select id="is-sem" value={semestreId} onChange={(e) => setSemestreId(e.target.value)}>
+            {semestres.map((s) => <option key={s.id} value={s.id}>{s.libelle} ({s.anneeScolaire})</option>)}
+          </select>
+        </div>
+        <div className="champ">
+          <label htmlFor="is-fichier">Fichier Excel ou CSV</label>
+          <input id="is-fichier" name="fichierStructure" type="file" accept=".xlsx,.xls,.csv" required />
+        </div>
+        {resultat && (
+          <div className={resultat.erreurs.length ? 'message-erreur' : 'message-succes'}>
+            {resultat.uesCreees} UE et {resultat.matieresCreees} matière{resultat.matieresCreees > 1 ? 's' : ''} créée{resultat.matieresCreees > 1 ? 's' : ''}.
+            {resultat.erreurs.length > 0 && <> {resultat.erreurs.length} problème{resultat.erreurs.length > 1 ? 's' : ''} : {resultat.erreurs.slice(0, 5).join(' ; ')}.</>}
+          </div>
+        )}
+        <div className="confirmation-actions">
+          <button type="button" className="secondaire" onClick={onFermer} disabled={enCours}>Fermer</button>
+          <button type="submit" className="primaire" disabled={enCours || !semestreId}><IconUpload width={16} height={16} /> {enCours ? 'Import…' : 'Importer'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
