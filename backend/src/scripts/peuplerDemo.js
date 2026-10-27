@@ -122,6 +122,16 @@ async function peuplerDemo({ fermer = true } = {}) {
     where: { email: 'ministere@mesr.example.com' },
     defaults: { nom: 'MOUSSAVOU', prenom: 'Gérard', fonction: "Directeur général de l'Enseignement supérieur", motDePasse: hache, role: 'ministere' },
   });
+  // Une seule fois : le personnel de démonstration passe au code par
+  // e-mail (l'application d'authentification reste réactivable ensuite).
+  const { lireParametre, ecrireParametre } = require('../services/plateformeService');
+  if (!(await lireParametre('demo_code_email'))) {
+    await m.Utilisateur.update(
+      { totpActif: false, totpSecret: null, totpSecretEnAttente: null, totpCodesSecours: null, totpDernierPas: null },
+      { where: { role: ['academie', 'finance', 'ministere'], email: { [require('sequelize').Op.like]: '%.example.com' } } },
+    );
+    await ecrireParametre('demo_code_email', { fait: true, le: new Date() });
+  }
   const existant = await m.Etablissement.findOne({ where: { sigle: SIGLE } });
   if (existant) {
     // Démo créée avant le champ « sexe » : complété une fois d'après le prénom.

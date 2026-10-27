@@ -3874,3 +3874,31 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 @media (max-width: 860px) { .ecran-maintenance-tisse .maintenance-retour > div + div { border-left: none; border-top: 1px solid var(--bordure); } }
 .ecran-maintenance.ecran-maintenance-tisse { align-items: stretch; justify-content: stretch; }
 @media (max-width: 860px) { .maintenance-motif .tissage { grid-template-rows: repeat(var(--lignes), calc(100vw / 8)); } }
+.marque-pastille { overflow: hidden; }
+.marque-initiales.longues { font-size: 12px; letter-spacing: 0; }
+@media (max-width: 760px) { .classeur-marque .marque-pastille { width: 44px; height: 44px; } .marque-initiales { font-size: 13px; } .marque-initiales.longues { font-size: 10.5px; } }
+
+/* --- Accueil étudiant ------------------------------------------------------ */
+.accueil-etudiant { display: flex; flex-direction: column; gap: 20px; }
+.console-chiffres dd.petit { font-size: 1.35rem; line-height: 1.6rem; }
+.liste-cours-jour, .liste-a-suivre { list-style: none; margin: 0; padding: 0; }
+.liste-cours-jour li { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--bordure); }
+.liste-cours-jour li:last-child, .liste-a-suivre li:last-child { border-bottom: none; }
+.cours-heure { font-size: 13.5px; font-weight: 700; color: var(--edu-teal); font-variant-numeric: tabular-nums; }
+.cours-texte { display: flex; flex-direction: column; }
+.cours-texte strong { color: var(--edu-marine); }
+.cours-texte small { font-size: 12.5px; color: var(--texte-clair); }
+.liste-a-suivre li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--bordure); }
+.liste-a-suivre li > svg { width: 20px; height: 20px; flex: none; color: var(--edu-bleu); }
+.liste-a-suivre li > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.liste-a-suivre strong { font-size: 14.5px; color: var(--edu-marine); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.liste-a-suivre small { font-size: 12.5px; color: var(--texte-clair); }
+@media (max-width: 560px) {
+  .console-entete { padding: 20px 18px; }
+  .console-actions { width: 100%; }
+  .console-actions > button { flex: 1 1 auto; justify-content: center; }
+  .console-chiffres > div { padding: 16px; }
+  .console-chiffres dd { font-size: 1.8rem; }
+  .liste-cours-jour li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+.console-plateforme > .stats-grid, .console-plateforme > .grille-3 { margin: 0; }

@@ -77,7 +77,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     return (mots.map((m) => m[0]).join('').slice(0, 3) || 'E').toUpperCase();
   })();
   const vignette = sansLogo
-    ? <span className="marque-initiales" aria-hidden="true">{initialesEcole}</span>
+    ? <span className={`marque-initiales ${initialesEcole.length > 3 ? 'longues' : ''}`} aria-hidden="true">{initialesEcole}</span>
     : <img src={logoAffiche} alt="" />;
   const nomAffiche = ministere ? "Ministère de l'Enseignement supérieur" : (etablissement?.nom || 'EduSphere');
 

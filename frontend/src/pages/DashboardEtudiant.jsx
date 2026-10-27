@@ -3,7 +3,7 @@ import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import { useAuth } from '../context/AuthContext';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag, IconGraduationCap } from '../components/icons';
+import { IconDashboard, IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag, IconGraduationCap } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -15,10 +15,13 @@ const EmploiDuTemps = lazy(() => import('./etudiant/EmploiDuTemps'));
 const MesDocuments = lazy(() => import('./etudiant/MesDocuments'));
 const MesReclamations = lazy(() => import('./etudiant/MesReclamations'));
 const BourseANBG = lazy(() => import('./etudiant/BourseANBG'));
+const Accueil = lazy(() => import('./etudiant/Accueil'));
 
 function onglets(parent) {
   const dossier = parent ? 'Dossier de l’enfant' : 'Mon dossier';
   return [
+    { id: 'accueil', label: 'Accueil', icone: IconDashboard,
+      description: parent ? 'Où en est votre enfant : résultats, assiduité, cours du jour, frais et messages.' : 'Où tu en es : résultats, assiduité, cours du jour, frais et messages.' },
     { id: 'bulletin', label: 'Bulletin', icone: IconDocument, groupe: dossier,
       description: parent ? 'Bulletin officiel du semestre de votre enfant.' : 'Ton bulletin officiel du semestre.' },
     { id: 'notes', label: 'Relevé de notes', icone: IconClipboard, groupe: dossier,
@@ -52,7 +55,7 @@ export default function DashboardEtudiant() {
   const { profil } = useAuth();
   const [monDossier, setMonDossier] = useState(null);
   const [chargement, setChargement] = useState(true);
-  const [onglet, setOnglet] = useState('bulletin');
+  const [onglet, setOnglet] = useState('accueil');
 
   useEffect(() => {
     client.get('/eleves').then((res) => {
@@ -74,6 +77,7 @@ export default function DashboardEtudiant() {
       avantContenu={!chargement && !monDossier && <div className="vide">Aucun dossier étudiant rattaché à ce compte.</div>}
       bloquerContenu={!chargement && !monDossier}
     >
+      {onglet === 'accueil' && <Accueil eleveId={eleveId} eleve={monDossier} onNaviguer={setOnglet} />}
       {onglet === 'bulletin' && <Bulletin eleveId={eleveId} eleve={monDossier} />}
       {onglet === 'notes' && <RelevesNotes eleveId={eleveId} eleve={monDossier} />}
       {onglet === 'absences' && <AbsencesEtudiant eleveId={eleveId} />}

@@ -6,9 +6,11 @@ import ChiffreAnime from '../../components/ChiffreAnime';
 import { IconBanknote, IconCard, IconAlertTriangle, IconWallet } from '../../components/icons';
 import { totalElevesParClasses } from '../../utils/totaux';
 import { useFonctionnaliteOuverte } from '../../context/PlateformeContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function TableauDeBord({ onNaviguer }) {
   const estOuverte = useFonctionnaliteOuverte();
+  const { profil } = useAuth();
   const [impayes, setImpayes] = useState([]);
   const [totalEleves, setTotalEleves] = useState(0);
 
@@ -26,8 +28,24 @@ export default function TableauDeBord({ onNaviguer }) {
   const enRetard = impayes.filter((f) => new Date(f.dateEcheance) < new Date()).length;
   const tauxAJour = totalEleves > 0 ? Math.round(((totalEleves - elevesConcernes) / totalEleves) * 100) : null;
 
+  const tauxRecouvrement = tauxAJour;
   return (
-    <div>
+    <div className="console-plateforme">
+      <section className="console-entete">
+        <div>
+          <p className="console-date">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h2>{profil?.prenom ? `Bonjour ${profil.prenom}.` : 'Situation financière'}</h2>
+          <p className="console-etat">
+            <span className={`point-etat ${enRetard ? 'alerte' : 'ok'}`} aria-hidden="true" />
+            {impayes.length === 0 ? 'Aucun impayé : tous les étudiants sont à jour.' : `${montantTotalDu.toLocaleString('fr-FR')} FCFA restent à encaisser auprès de ${elevesConcernes} étudiant${elevesConcernes > 1 ? 's' : ''}${tauxRecouvrement != null ? ` · ${tauxRecouvrement} % à jour` : ''}.`}
+          </p>
+        </div>
+        <div className="console-actions">
+          <button type="button" className="primaire" onClick={() => onNaviguer?.('frais')}><IconBanknote /> Frais &amp; paiements</button>
+          <button type="button" className="secondaire" onClick={() => onNaviguer?.('impayes')}><IconAlertTriangle /> Voir les impayés</button>
+          {estOuverte('paie') && <button type="button" className="secondaire" onClick={() => onNaviguer?.('salaires')}><IconWallet /> Verser un salaire</button>}
+        </div>
+      </section>
       <div className="stats-grid">
         <div className={`stat-tile ${impayes.length > 0 ? 'tile-rouge' : 'tile-vert'}`}>
           <div className="stat-tile-haut">
@@ -105,25 +123,6 @@ export default function TableauDeBord({ onNaviguer }) {
         </div>
       </div>
 
-      <div className="carte">
-        <h2>Actions rapides</h2>
-        <div className="actions-rapides" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
-          <button className="action-rapide" onClick={() => onNaviguer?.('frais')}>
-            <span className="puce-icone petite"><IconBanknote width={16} height={16} /></span>
-            Frais &amp; paiements
-          </button>
-          <button className="action-rapide" onClick={() => onNaviguer?.('impayes')}>
-            <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
-            Voir les impayés
-          </button>
-          {estOuverte('paie') && (
-            <button className="action-rapide" onClick={() => onNaviguer?.('salaires')}>
-              <span className="puce-icone petite"><IconWallet width={16} height={16} /></span>
-              Verser un salaire
-            </button>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

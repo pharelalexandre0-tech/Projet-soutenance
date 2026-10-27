@@ -41,6 +41,15 @@ export default function Bulletin({ eleveId, eleve }) {
 
   const semestre = semestres.find((s) => String(s.id) === String(semestreId));
 
+  // À l'ouverture : le dernier semestre est choisi et son bulletin affiché
+  // tout de suite, sans menu à manipuler.
+  useEffect(() => {
+    if (!semestreId && semestres.length) setSemestreId(String(semestres[semestres.length - 1].id));
+  }, [semestres]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (eleveId && semestreId) demanderBulletin();
+  }, [eleveId, semestreId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function demanderBulletin() {
     setErreur('');
     setBulletin(null);
