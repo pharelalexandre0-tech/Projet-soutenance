@@ -61,7 +61,15 @@ router.get('/tableau-de-bord/academique', authentifier, academie, ctrl.statistiq
 // Journal des derniers jours de l'école (accueil Académie).
 router.get('/tableau-de-bord/journal', authentifier, academie, async (req, res) => {
   const { journalDeLEcole } = require('../services/journalEcoleService');
-  res.json({ evenements: await journalDeLEcole(req.utilisateur.etablissementId) });
+  // Semaine calme : le journal remonte aux 90 derniers jours plutôt que de
+  // rester vide.
+  let jours = 7;
+  let evenements = await journalDeLEcole(req.utilisateur.etablissementId, jours);
+  if (!evenements.length) {
+    jours = 90;
+    evenements = await journalDeLEcole(req.utilisateur.etablissementId, jours);
+  }
+  res.json({ evenements, jours });
 });
 
 router.get('/etablissement', authentifier, ctrl.obtenirEtablissement);

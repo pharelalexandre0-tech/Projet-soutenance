@@ -75,9 +75,18 @@ export default function TableauDeBord({ onNaviguer }) {
   const [absences, setAbsences] = useState(null);
   const [academique, setAcademique] = useState(null);
   const [journal, setJournal] = useState(null);
+  const [joursJournal, setJoursJournal] = useState(7);
+  const [suivi, setSuivi] = useState(null);
 
   function charger() {
-    client.get('/tableau-de-bord/journal').then((res) => setJournal(res.data.evenements)).catch(() => setJournal((j) => j || []));
+    client.get('/tableau-de-bord/journal').then((res) => { setJournal(res.data.evenements); setJoursJournal(res.data.jours || 7); }).catch(() => setJournal((j) => j || []));
+    // Ce qui attend une action : chaque source peut manquer sans bloquer les autres.
+    Promise.all([
+      client.get('/reclamations').then((r) => r.data.enAttente || 0).catch(() => 0),
+      client.get('/circulaires').then((r) => r.data.nonLues || 0).catch(() => 0),
+      client.get('/tutelle').then((r) => r.data).catch(() => null),
+      estOuverte('prediction') ? client.get('/predictions/alertes').then((r) => (r.data.alertes || []).filter((a) => a.niveauRisque === 'eleve').length).catch(() => 0) : 0,
+    ]).then(([reclamations, circulaires, tutelle, risques]) => setSuivi({ reclamations, circulaires, tutelle, risques }));
     client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
     client.get('/professeurs').then((res) => setProfesseurs(res.data.professeurs)).catch(() => {});
     client.get('/absences/statistiques').then((res) => setAbsences(res.data)).catch(() => {});
@@ -92,6 +101,21 @@ export default function TableauDeBord({ onNaviguer }) {
   const maxEffectif = Math.max(1, ...classes.map((c) => c.Eleves?.length ?? 0));
   const tauxNonJustifie = absences?.tauxNonJustifie ?? 0;
   const tauxJustifie = absences && absences.total > 0 ? Math.round((absences.justifiees / absences.total) * 100) : null;
+
+  const pl = (n, un, plusieurs) => `${n} ${n > 1 ? plusieurs : un}`;
+  const recosOuvertes = (suivi?.tutelle?.inspections || []).flatMap((i) => i.RecommandationInspections || []).filter((r) => r.statut !== 'realisee').length;
+  const calendrier = suivi?.tutelle?.calendrier;
+  const aTraiter = suivi && [
+    classes.length === 0 && { ton: 'info', texte: 'Créez votre première classe pour commencer.', page: 'eleves' },
+    classes.length > 0 && totalEleves === 0 && { ton: 'info', texte: 'Inscrivez vos premiers élèves.', page: 'eleves' },
+    suivi.reclamations > 0 && { ton: 'attention', texte: `${pl(suivi.reclamations, 'réclamation de note en attente', 'réclamations de notes en attente')}.`, page: 'reclamations' },
+    suivi.risques > 0 && { ton: 'alerte', texte: `${pl(suivi.risques, 'étudiant à risque élevé de décrochage', 'étudiants à risque élevé de décrochage')}.`, page: 'prediction' },
+    suivi.circulaires > 0 && { ton: 'attention', texte: `${pl(suivi.circulaires, 'circulaire du Ministère non lue', 'circulaires du Ministère non lues')}.`, page: 'circulaires' },
+    recosOuvertes > 0 && { ton: 'attention', texte: `${pl(recosOuvertes, 'recommandation d’inspection à traiter', 'recommandations d’inspection à traiter')}.`, page: 'tutelle' },
+    calendrier?.evenements?.length > 0 && !calendrier.accuseLe && { ton: 'info', texte: 'Calendrier national à accuser réception.', page: 'tutelle' },
+  ].filter(Boolean);
+  const auj = new Date().toISOString().slice(0, 10);
+  const prochaine = (calendrier?.evenements || []).find((e) => e.dateDebut >= auj);
 
   return (
     <div>
@@ -135,62 +159,7 @@ export default function TableauDeBord({ onNaviguer }) {
         </div>
       </div>
 
-      <div className="accueil-dossier">
-        <section className="carte">
-          <div className="entete-carte"><h2>Journal de l’établissement {journal && <span className="entete-carte-compteur">{journal.length}</span>}</h2><span className="note-secondaire">7 derniers jours</span></div>
-          <JournalDuJour evenements={journal} onNaviguer={onNaviguer} />
-        </section>
-        <div className="colonne-empilee">
-          <div className="carte">
-            <h2>Actions rapides</h2>
-            <div className="actions-rapides">
-              <button className="action-rapide" onClick={() => onNaviguer?.('eleves')}>
-                <span className="puce-icone petite"><IconUsers width={16} height={16} /></span>
-                Inscrire un élève
-              </button>
-              <button className="action-rapide" onClick={() => onNaviguer?.('notes')}>
-                <span className="puce-icone petite"><IconPencil width={16} height={16} /></span>
-                Saisir des notes
-              </button>
-              {estOuverte('acces-temporaires') && (
-                <button className="action-rapide" onClick={() => onNaviguer?.('comptes')}>
-                  <span className="puce-icone petite"><IconKey width={16} height={16} /></span>
-                  Générer un accès professeur
-                </button>
-              )}
-              {estOuverte('prediction') && (
-                <button className="action-rapide" onClick={() => onNaviguer?.('prediction')}>
-                  <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
-                  Voir les alertes décrochage
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="carte panneau-anneau">
-            <h2 style={{ alignSelf: 'flex-start' }}>Répartition des absences</h2>
-            {tauxJustifie === null ? (
-              <div className="vide">Aucune absence enregistrée</div>
-            ) : (
-              <>
-                <AnneauProgression valeur={tauxJustifie} sousLabel="justifiées" couleur="var(--succes)" />
-                <div className="legende-anneau">
-                  <div className="legende-item">
-                    <span className="legende-pastille" style={{ background: 'var(--succes)' }} />
-                    Justifiées ({absences.justifiees})
-                  </div>
-                  <div className="legende-item">
-                    <span className="legende-pastille" style={{ background: 'var(--erreur)' }} />
-                    Non justifiées ({absences.nonJustifiees})
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-        </div>
-      </div>
-
-      <div className="grille-2">
+      <div className="accueil-trois">
         <div className="carte">
           <h2>Effectif par classe</h2>
           {classes.length === 0 && <div className="vide">Aucune classe pour le moment</div>}
@@ -226,6 +195,77 @@ export default function TableauDeBord({ onNaviguer }) {
           </div>
         </div>
 
+        <div className="carte panneau-anneau">
+          <h2 style={{ alignSelf: 'flex-start' }}>Répartition des absences</h2>
+          {tauxJustifie === null ? (
+            <div className="vide">Aucune absence enregistrée</div>
+          ) : (
+            <>
+              <AnneauProgression valeur={tauxJustifie} sousLabel="justifiées" couleur="var(--succes)" />
+              <div className="legende-anneau">
+                <div className="legende-item">
+                  <span className="legende-pastille" style={{ background: 'var(--succes)' }} />
+                  Justifiées ({absences.justifiees})
+                </div>
+                <div className="legende-item">
+                  <span className="legende-pastille" style={{ background: 'var(--erreur)' }} />
+                  Non justifiées ({absences.nonJustifiees})
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="accueil-dossier">
+        <section className="carte">
+          <div className="entete-carte"><h2>Journal de l’établissement {journal && <span className="entete-carte-compteur">{journal.length}</span>}</h2><span className="note-secondaire">{joursJournal} derniers jours</span></div>
+          <JournalDuJour evenements={journal} onNaviguer={onNaviguer} />
+        </section>
+        <div className="colonne-empilee">
+          <div className="carte">
+            <div className="entete-carte"><h2>À traiter</h2>{aTraiter && <span className={`badge ${aTraiter.length ? 'or' : 'vert'}`}>{aTraiter.length ? `${aTraiter.length} point${aTraiter.length > 1 ? 's' : ''}` : 'À jour'}</span>}</div>
+            {!aTraiter && <div className="chargement">Chargement…</div>}
+            {aTraiter && aTraiter.length === 0 && <p className="console-calme"><IconCircleCheck aria-hidden="true" /> Rien en attente pour le moment.</p>}
+            <ul className="liste-vigilance">
+              {(aTraiter || []).map((v) => (
+                <li key={v.texte} className={`ton-${v.ton}`}>
+                  <IconAlertTriangle aria-hidden="true" />
+                  <span>{v.texte}</span>
+                  <button type="button" className="bouton-texte" onClick={() => onNaviguer?.(v.page)}>Ouvrir <IconChevronRight /></button>
+                </li>
+              ))}
+            </ul>
+            {prochaine && (
+              <p className="prochaine-echeance"><IconCalendarAlert aria-hidden="true" /> <span><strong>{prochaine.libelle}</strong> le {new Date(prochaine.dateDebut).toLocaleDateString('fr-FR')}, calendrier national</span></p>
+            )}
+          </div>
+          <div className="carte">
+            <h2>Actions rapides</h2>
+            <div className="actions-rapides">
+              <button className="action-rapide" onClick={() => onNaviguer?.('eleves')}>
+                <span className="puce-icone petite"><IconUsers width={16} height={16} /></span>
+                Inscrire un élève
+              </button>
+              <button className="action-rapide" onClick={() => onNaviguer?.('notes')}>
+                <span className="puce-icone petite"><IconPencil width={16} height={16} /></span>
+                Saisir des notes
+              </button>
+              {estOuverte('acces-temporaires') && (
+                <button className="action-rapide" onClick={() => onNaviguer?.('comptes')}>
+                  <span className="puce-icone petite"><IconKey width={16} height={16} /></span>
+                  Générer un accès professeur
+                </button>
+              )}
+              {estOuverte('prediction') && (
+                <button className="action-rapide" onClick={() => onNaviguer?.('prediction')}>
+                  <span className="puce-icone petite"><IconAlertTriangle width={16} height={16} /></span>
+                  Voir les alertes décrochage
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -221,6 +221,13 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   // Rubrique (onglet de classeur) de la page affichée, et ses intercalaires.
   const groupeActif = groupes.find((g) => g.onglets.some((o) => o.id === section?.id)) || groupes[0];
 
+  // Écran étroit : l'onglet et l'intercalaire ouverts restent visibles.
+  useEffect(() => {
+    document.querySelectorAll('.onglet-classeur.actif, .intercalaire.actif').forEach((e) => {
+      e.scrollIntoView?.({ inline: 'center', block: 'nearest' });
+    });
+  }, [section?.id]);
+
   return (
     <div className="espace classeur">
       <header className="bandeau-classeur">

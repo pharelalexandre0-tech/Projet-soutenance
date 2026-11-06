@@ -3944,6 +3944,39 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 th { background: #F7F8F6; color: var(--texte-clair); }
 .console-plateforme > .stats-grid { margin: 0; }
 .composition-acces .carte-formulaire-acces .bouton-connexion { justify-content: center; gap: 10px; text-align: center; }
-@media (max-width: 640px) { .stats-grid > .stat-tile:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 .ouverture-logo, .intro-logo { box-sizing: border-box; overflow: hidden; }
 .ouverture-logo img, .intro-logo img { min-width: 0; min-height: 0; }
+
+/* ==========================================================================
+   Accueils pleins et responsive : les chiffres occupent toujours toute la
+   ligne, trois panneaux de données, onglets signalés quand ils débordent
+   ========================================================================== */
+.stats-grid { display: flex; flex-wrap: wrap; }
+.stats-grid > .stat-tile { flex: 1 1 190px; min-width: 0; }
+.accueil-trois { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 20px; margin-bottom: 20px; }
+.accueil-trois > .carte { margin: 0; }
+.accueil-dossier { gap: 20px; }
+.accueil-dossier > .carte { margin-bottom: 0; }
+.prochaine-echeance { display: flex; align-items: flex-start; gap: 10px; margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--bordure); font-size: 14px; line-height: 1.45; color: var(--texte); }
+.prochaine-echeance svg { width: 18px; height: 18px; flex: none; color: var(--edu-teal); }
+@media (max-width: 1180px) {
+  .onglets-classeur, .intercalaires {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    padding-right: 28px;
+  }
+  .intercalaires { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .intercalaire { flex: none; }
+}
+@media (max-width: 640px) {
+  .stats-grid { gap: 10px; }
+  .stats-grid > .stat-tile { flex-basis: calc(50% - 5px); padding: 14px 14px 16px; }
+  .stat-tile .valeur { font-size: 26px; }
+  .stat-tile .stat-tile-haut { min-height: 0; }
+  .bandeau-classeur { padding-left: 14px; padding-right: 14px; }
+}
+.accueil-trois { display: flex; flex-wrap: wrap; }
+.accueil-trois > .carte { flex: 1 1 320px; min-width: 0; }
+.accueil-trois .barre-ligne { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; align-items: baseline; }
+.accueil-trois .barre-ligne .barre-piste { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+.console-etat { display: block; line-height: 1.55; }
+.console-etat .point-etat { display: inline-block; margin-right: 10px; vertical-align: 1px; }

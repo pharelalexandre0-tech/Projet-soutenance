@@ -37,9 +37,9 @@ function grouper(lignes, cle, horodatage) {
   return [...groupes.values()];
 }
 
-async function journalDeLEcole(etablissementId) {
+async function journalDeLEcole(etablissementId, jours = JOURS) {
   const m = require('../models');
-  const depuis = new Date(Date.now() - JOURS * 24 * 3600 * 1000);
+  const depuis = new Date(Date.now() - jours * 24 * 3600 * 1000);
   const classes = await m.Classe.findAll({ where: { etablissementId }, attributes: ['id', 'nom'], raw: true });
   const nomClasse = new Map(classes.map((c) => [c.id, c.nom]));
   const eleves = await m.Eleve.findAll({ where: { etablissementId }, attributes: ['id', 'nom', 'prenom', 'classeId', 'createdAt'], raw: true });
