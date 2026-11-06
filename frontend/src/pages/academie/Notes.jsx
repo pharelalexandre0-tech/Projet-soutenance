@@ -17,7 +17,9 @@ export default function Notes() {
   const [ueId, setUeId] = useState('');
   const [matiereId, setMatiereId] = useState('');
   const [session, setSession] = useState('normale');
-  const [eleves, setEleves] = useState([]);
+  const [elevesClasse, setEleves] = useState([]);
+  const [dettes, setDettes] = useState([]);
+  const eleves = [...elevesClasse, ...dettes];
   const [valeurs, setValeurs] = useState({});
   const [message, setMessage] = useState('');
   const [importMessage, setImportMessage] = useState('');
@@ -32,14 +34,24 @@ export default function Notes() {
     client.get('/semestres').then((res) => setSemestres(res.data.semestres));
   }, []);
 
+  // UE proposées : celles du semestre, limitées à la formation de la classe
+  // quand elle en a une.
+  const urlUes = `/unites-enseignement?semestreId=${semestreId}${classeId ? `&classeId=${classeId}` : ''}`;
   // Changement de semestre : nouvelles UE, et l'UE et la matière choisies
   // ne valent plus.
   useEffect(() => {
     setUeId('');
     setMatiereId('');
-    if (semestreId) client.get(`/unites-enseignement?semestreId=${semestreId}`).then((res) => setUes(res.data.ues));
-    else setUes([]);
   }, [semestreId]);
+  useEffect(() => {
+    if (semestreId) client.get(urlUes).then((res) => setUes(res.data.ues));
+    else setUes([]);
+  }, [semestreId, classeId]);
+  // Étudiants d'autres classes qui doivent encore cette UE (passage avec dette).
+  useEffect(() => {
+    setDettes([]);
+    if (classeId && ueId) client.get(`/scolarite/dettes?ueId=${ueId}&classeId=${classeId}`).then((res) => setDettes(res.data.eleves)).catch(() => {});
+  }, [classeId, ueId]);
 
   // Changement de classe : la liste suit aussitôt (pas d'anciens élèves
   // affichés pendant le chargement).
@@ -61,7 +73,7 @@ export default function Notes() {
   useActualisation(() => {
     client.get('/classes').then((res) => setClasses(res.data.classes)).catch(() => {});
     client.get('/semestres').then((res) => setSemestres(res.data.semestres)).catch(() => {});
-    if (semestreId) client.get(`/unites-enseignement?semestreId=${semestreId}`).then((res) => setUes(res.data.ues)).catch(() => {});
+    if (semestreId) client.get(urlUes).then((res) => setUes(res.data.ues)).catch(() => {});
     if (classeId) client.get(`/eleves?classeId=${classeId}`).then((res) => setEleves(res.data.eleves)).catch(() => {});
   });
 
@@ -322,7 +334,7 @@ export default function Notes() {
               <tbody>
                 {eleves.map((el) => (
                   <tr key={el.id}>
-                    <td>{el.prenom} {el.nom}</td>
+                    <td>{el.prenom} {el.nom}{el.dette && <span className="badge or sans-point" style={{ marginLeft: 8 }}>UE à repasser, {el.classeNom}</span>}</td>
                     <td className={tonNote(valeur(el.id, 'cc'), regles) ? `note-${tonNote(valeur(el.id, 'cc'), regles)}` : ''}>
                       <input
                         type="text" inputMode="decimal" maxLength={5} placeholder="/ 20" aria-label={`Moyenne CC de ${el.prenom} ${el.nom}, sur 20`}

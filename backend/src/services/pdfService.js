@@ -22,16 +22,11 @@ const COULEUR_UE_FOND = '#E3ECF6';
 const COULEUR_RATTRAPAGE = '#A67C1E';
 const COULEUR_MARINE = '#0B1E3D';
 
-// Une UE passée par le rattrapage n'est jamais étiquetée "validée" au même
-// titre qu'une validation en session normale, même si la moyenne recalculée
-// franchit le seuil — voir moyenneService.calculerBulletin.
+// Résultat d'une UE : validée au rattrapage, compensée ou accordée par le jury
+// restent distinguées d'une validation en session normale.
 function libelleResultatUE(ligneUE) {
-  if (ligneUE.eliminatoire) {
-    return { texte: ligneUE.session === 'rattrapage' ? 'Éliminatoire (rattr.)' : 'Éliminatoire', couleur: COULEUR_ERREUR };
-  }
-  if (ligneUE.session === 'rattrapage') return { texte: 'Rattrapage', couleur: COULEUR_RATTRAPAGE };
-  if (ligneUE.valide) return { texte: 'Validée', couleur: COULEUR_SUCCES };
-  return { texte: 'Non validée', couleur: COULEUR_ERREUR };
+  const { libelleEtatUE } = require('./moyenneService');
+  return { texte: libelleEtatUE(ligneUE, true), couleur: ligneUE.acquise ? COULEUR_SUCCES : COULEUR_ERREUR };
 }
 
 // Logo de l'établissement, dessiné en haut à gauche de chaque document

@@ -262,6 +262,8 @@ async function supprimerEtablissement(req, res) {
   if (utilisateurIds.length) await MessageAnnonce.destroy({ where: { auteurId: { [Op.in]: utilisateurIds } } });
 
   await Eleve.destroy({ where: { etablissementId } });
+  await m.Classe.update({ formationId: null }, { where: { etablissementId } });
+  await m.Formation.destroy({ where: { etablissementId } });
   await Classe.destroy({ where: { etablissementId } });
   await Semestre.destroy({ where: { etablissementId } });
   await Professeur.destroy({ where: { etablissementId } });

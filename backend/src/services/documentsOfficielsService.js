@@ -129,7 +129,7 @@ async function attestationPDF({ etablissement, eleve, classe, type, semestre, re
 // ---------------------------------------------------------------------------
 // Relevé de notes officiel
 // ---------------------------------------------------------------------------
-async function relevePDF({ etablissement, eleve, classe, semestres, emisParId }) {
+async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisParId }) {
   // semestres : [{ semestre, calcul }] dans l'ordre.
   const evalues = semestres.filter((s) => s.calcul.detailParUE.length);
   const certification = await certifier({
@@ -168,7 +168,7 @@ async function relevePDF({ etablissement, eleve, classe, semestres, emisParId })
     const lignes = [];
     for (const u of calcul.detailParUE) {
       lignes.push([{ texte: u.code || '', gras: true, couleur: C.COULEUR_MARINE }, { texte: `${u.ue} (${u.credits} cr.)`, gras: true, couleur: C.COULEUR_MARINE }, { texte: '' }, { texte: '' }, { texte: '' },
-        { texte: noteFr(u.moyenne), align: 'right', gras: true }, { texte: u.valide ? 'Validée' : u.eliminatoire ? 'Éliminatoire' : 'Non validée', gras: true, couleur: u.valide ? C.COULEUR_SUCCES : C.COULEUR_ERREUR }]);
+        { texte: noteFr(u.moyenne), align: 'right', gras: true }, { texte: require('./moyenneService').libelleEtatUE(u, true), gras: true, couleur: u.acquise ? C.COULEUR_SUCCES : C.COULEUR_ERREUR }]);
       for (const m of u.matieres) {
         lignes.push([{ texte: m.code || '', couleur: C.COULEUR_TEXTE_CLAIR }, { texte: `   ${m.matiere}` }, { texte: String(m.coefficient ?? ''), align: 'right' },
           { texte: noteFr(m.moyenneCC), align: 'right' }, { texte: noteFr(m.moyenneExamen), align: 'right' }, { texte: noteFr(m.noteFinale), align: 'right', gras: true }, { texte: '' }]);
@@ -180,6 +180,14 @@ async function relevePDF({ etablissement, eleve, classe, semestres, emisParId })
       { texte: `Moyenne ${noteFr(calcul.moyenneGenerale)}/20`, gras: true },
       { texte: `Crédits ${calcul.creditsValides}/${calcul.creditsTotal}` },
       { texte: LIBELLES_DECISION[calcul.decisionJury || (calcul.admis ? 'admis' : 'rattrapage')], gras: true, couleur: calcul.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
+    ], { hauteur: 20, fond: '#EEF3FA' }) + 16;
+  }
+  if (cumul && evalues.length) {
+    if (y + 40 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
+    y = dessinerLigne(doc, marge, y, [largeur * 0.4, largeur * 0.3, largeur * 0.3], [
+      { texte: `Cumul du cycle ${cumul.libelleCycle}`, gras: true },
+      { texte: `Crédits acquis ${cumul.creditsAcquis} / ${cumul.creditsRequis}`, gras: true },
+      { texte: `Restants ${cumul.creditsRestants}` },
     ], { hauteur: 20, fond: '#EEF3FA' }) + 16;
   }
   if (y + 100 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }

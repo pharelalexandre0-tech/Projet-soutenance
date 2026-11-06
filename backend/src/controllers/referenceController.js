@@ -24,6 +24,7 @@ const {
   Recu,
   CompteEphemere,
   CompteRenduSaisie,
+  Formation,
 } = require('../models');
 const { envoyerALaFamille, erreurEmailParent } = require('../services/familleService');
 const { obtenirEtablissementDe } = require('../services/etablissementService');
@@ -119,7 +120,22 @@ async function configurerRegles(req, res) {
   }
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
-  await etablissement.update({ seuilValidation: seuil, noteEliminatoire: eliminatoire });
+  // Compensation et passage avec dette : valeurs propres à l'école, exigées
+  // seulement quand elle active la règle.
+  const actif = (v) => v === true || v === 'true';
+  const nombre = (v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.')));
+  const b = req.body;
+  const compensationActive = b.compensationActive === undefined ? etablissement.compensationActive : actif(b.compensationActive);
+  const noteMinCompensation = b.noteMinCompensation === undefined ? etablissement.noteMinCompensation : nombre(b.noteMinCompensation);
+  const passageDetteActif = b.passageDetteActif === undefined ? etablissement.passageDetteActif : actif(b.passageDetteActif);
+  const creditsMinPassagePct = b.creditsMinPassagePct === undefined ? etablissement.creditsMinPassagePct : nombre(b.creditsMinPassagePct);
+  if (compensationActive && (noteMinCompensation === null || !Number.isFinite(noteMinCompensation) || noteMinCompensation < eliminatoire || noteMinCompensation >= seuil)) {
+    return res.status(400).json({ erreur: 'la note minimale de compensation doit être comprise entre la note éliminatoire et le seuil de validation' });
+  }
+  if (passageDetteActif && (creditsMinPassagePct === null || !Number.isFinite(creditsMinPassagePct) || creditsMinPassagePct <= 0 || creditsMinPassagePct >= 100)) {
+    return res.status(400).json({ erreur: 'la part de crédits exigée pour un passage avec dette doit être comprise entre 1 et 99 %' });
+  }
+  await etablissement.update({ seuilValidation: seuil, noteEliminatoire: eliminatoire, compensationActive, noteMinCompensation, passageDetteActif, creditsMinPassagePct });
   return res.json({ etablissement });
 }
 
@@ -153,12 +169,22 @@ const LIBELLES_TYPE_MESSAGE = { message: 'Message', annonce: 'Annonce', convocat
 // compte connecté, jamais choisie librement, et chaque liste ne renvoie que
 // les données de cet établissement — deux écoles ne se voient jamais.
 
+// Formation choisie dans un formulaire : vide = aucune, sinon elle doit être
+// une formation de cette école.
+async function formationDeLEcole(valeur, etablissementId) {
+  if (valeur === undefined || valeur === null || valeur === '') return null;
+  const formation = await Formation.findOne({ where: { id: valeur, etablissementId } });
+  if (!formation) throw Object.assign(new Error('formation introuvable'), { status: 400 });
+  return formation.id;
+}
+
 async function creerClasse(req, res) {
-  const classe = await Classe.create({ ...req.body, etablissementId: req.utilisateur.etablissementId });
+  const formationId = await formationDeLEcole(req.body.formationId, req.utilisateur.etablissementId);
+  const classe = await Classe.create({ ...req.body, formationId, etablissementId: req.utilisateur.etablissementId });
   return res.status(201).json({ classe });
 }
 async function listerClasses(req, res) {
-  const classes = await Classe.findAll({ where: { etablissementId: req.utilisateur.etablissementId }, include: [Eleve] });
+  const classes = await Classe.findAll({ where: { etablissementId: req.utilisateur.etablissementId }, include: [Eleve, Formation] });
   return res.json({ classes });
 }
 async function modifierClasse(req, res) {
@@ -167,7 +193,9 @@ async function modifierClasse(req, res) {
     return res.status(404).json({ erreur: 'classe introuvable' });
   }
   const { nom, niveau } = req.body;
-  await classe.update({ nom, niveau });
+  const champs = { nom, niveau };
+  if (req.body.formationId !== undefined) champs.formationId = await formationDeLEcole(req.body.formationId, req.utilisateur.etablissementId);
+  await classe.update(champs);
   return res.json({ classe });
 }
 // Une classe avec des élèves ne se supprime pas directement — il faut
@@ -387,17 +415,88 @@ async function creerUE(req, res) {
   if (!semestre || semestre.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'semestre introuvable' });
   }
-  const ue = await UniteEnseignement.create(req.body);
+  const formationId = await formationDeLEcole(req.body.formationId, req.utilisateur.etablissementId);
+  // L'index unique ne voit pas les doublons sans formation (NULL) : vérifié ici.
+  const doublon = await UniteEnseignement.findOne({ where: { semestreId, code: req.body.code, formationId } });
+  if (doublon) return res.status(409).json({ erreur: 'ce code d’UE existe déjà pour ce semestre et cette formation' });
+  const ue = await UniteEnseignement.create({ ...req.body, formationId });
   return res.status(201).json({ ue });
 }
 async function listerUE(req, res) {
   const where = {};
   if (req.query.semestreId) where.semestreId = req.query.semestreId;
+  // Pour une classe rattachée à une formation : ses UE et les UE communes.
+  if (req.query.classeId) {
+    const classe = await Classe.findOne({ where: { id: req.query.classeId, etablissementId: req.utilisateur.etablissementId } });
+    if (classe?.formationId) where.formationId = { [Op.or]: [null, classe.formationId] };
+  }
   const ues = await UniteEnseignement.findAll({
     where,
-    include: [{ model: Semestre, where: { etablissementId: req.utilisateur.etablissementId } }, Matiere],
+    include: [{ model: Semestre, where: { etablissementId: req.utilisateur.etablissementId } }, Matiere, Formation],
   });
   return res.json({ ues });
+}
+// Modifier une UE : intitulé, crédits, formation. Le coefficient suit les
+// crédits quand l'école a gardé la convention coefficient = crédits.
+async function modifierUE(req, res) {
+  const ue = await UniteEnseignement.findByPk(req.params.id, { include: [Semestre] });
+  if (!ue || ue.Semestre?.etablissementId !== req.utilisateur.etablissementId) return res.status(404).json({ erreur: 'unité d’enseignement introuvable' });
+  const champs = {};
+  if (req.body.intitule !== undefined) champs.intitule = String(req.body.intitule).trim();
+  if (req.body.credits !== undefined) {
+    const credits = Number(req.body.credits);
+    if (!Number.isInteger(credits) || credits < 1) return res.status(400).json({ erreur: 'les crédits doivent être un nombre entier positif' });
+    if (ue.coefficient === ue.credits) champs.coefficient = credits;
+    champs.credits = credits;
+  }
+  if (req.body.formationId !== undefined) champs.formationId = await formationDeLEcole(req.body.formationId, req.utilisateur.etablissementId);
+  const doublon = await UniteEnseignement.findOne({ where: { semestreId: ue.semestreId, code: ue.code, formationId: champs.formationId === undefined ? ue.formationId : champs.formationId, id: { [Op.ne]: ue.id } } });
+  if (doublon) return res.status(409).json({ erreur: 'ce code d’UE existe déjà pour ce semestre et cette formation' });
+  await ue.update(champs);
+  return res.json({ ue });
+}
+
+// Formations (maquettes) de l'école.
+const CREDITS_PAR_CYCLE = { licence: 180, master: 120, doctorat: 180 };
+function champsFormation(corps) {
+  const cycle = ['licence', 'master', 'doctorat'].includes(corps.cycle) ? corps.cycle : 'licence';
+  const mention = String(corps.mention || '').trim();
+  if (!mention) throw Object.assign(new Error('indiquez la mention de la formation'), { status: 400 });
+  const creditsRequis = corps.creditsRequis === undefined || corps.creditsRequis === '' ? CREDITS_PAR_CYCLE[cycle] : Number(corps.creditsRequis);
+  if (!Number.isInteger(creditsRequis) || creditsRequis < 1 || creditsRequis > 600) throw Object.assign(new Error('les crédits requis doivent être un nombre entier positif'), { status: 400 });
+  return { cycle, mention, domaine: String(corps.domaine || '').trim() || null, parcours: String(corps.parcours || '').trim() || null, creditsRequis };
+}
+async function listerFormations(req, res) {
+  const etablissementId = req.utilisateur.etablissementId;
+  const formations = await Formation.findAll({ where: { etablissementId }, include: [{ model: Classe, attributes: ['id', 'nom', 'niveau'] }, { model: UniteEnseignement, attributes: ['id', 'credits', 'semestreId'] }], order: [['cycle', 'ASC'], ['mention', 'ASC'], ['parcours', 'ASC']] });
+  return res.json({ formations });
+}
+async function creerFormation(req, res) {
+  const formation = await Formation.create({ ...champsFormation(req.body), etablissementId: req.utilisateur.etablissementId });
+  return res.status(201).json({ formation });
+}
+async function modifierFormation(req, res) {
+  const formation = await Formation.findOne({ where: { id: req.params.id, etablissementId: req.utilisateur.etablissementId } });
+  if (!formation) return res.status(404).json({ erreur: 'formation introuvable' });
+  await formation.update(champsFormation(req.body));
+  return res.json({ formation });
+}
+// Supprimer une formation ne supprime ni ses classes ni ses UE : elles
+// redeviennent communes à l'école. Une UE de même code déjà commune sur le
+// semestre l'empêche : la suppression est alors refusée.
+async function supprimerFormation(req, res) {
+  const formation = await Formation.findOne({ where: { id: req.params.id, etablissementId: req.utilisateur.etablissementId } });
+  if (!formation) return res.status(404).json({ erreur: 'formation introuvable' });
+  const siennes = await UniteEnseignement.findAll({ where: { formationId: formation.id } });
+  for (const ue of siennes) {
+    if (await UniteEnseignement.findOne({ where: { semestreId: ue.semestreId, code: ue.code, formationId: null } })) {
+      return res.status(409).json({ erreur: `l’UE ${ue.code} existe déjà en UE commune sur ce semestre : rattachez l’une des deux ailleurs avant de supprimer la formation` });
+    }
+  }
+  await UniteEnseignement.update({ formationId: null }, { where: { formationId: formation.id } });
+  await Classe.update({ formationId: null }, { where: { formationId: formation.id } });
+  await formation.destroy();
+  return res.json({ message: 'formation supprimée' });
 }
 
 // Une matière (ex. Python, PHP, Java) appartient à une UE (ex. "Programmation").
@@ -620,6 +719,11 @@ async function statistiquesAcademiques(req, res) {
 }
 
 module.exports = {
+  modifierUE,
+  listerFormations,
+  creerFormation,
+  modifierFormation,
+  supprimerFormation,
   creerClasse,
   supprimerMatiere,
   configurerRegles,

@@ -58,6 +58,7 @@ async function collecterDonnees(etablissementId) {
   d.utilisateurs = await lire(m.Utilisateur, { etablissementId });
   d.classes = await lire(m.Classe, { etablissementId });
   d.semestres = await lire(m.Semestre, { etablissementId });
+  d.formations = await lire(m.Formation, { etablissementId });
   d.professeurs = await lire(m.Professeur, { etablissementId });
   d.affectations_enseignement = await lire(m.AffectationEnseignement, { etablissementId });
   d.habilitations_formations = await lire(m.HabilitationFormation, { etablissementId });

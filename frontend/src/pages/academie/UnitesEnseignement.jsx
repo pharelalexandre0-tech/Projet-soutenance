@@ -3,12 +3,13 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
-import { IconTrash, IconUpload } from '../../components/icons';
+import { IconEdit, IconTrash, IconUpload } from '../../components/icons';
+import Formations from './Formations';
 import Modal from '../../components/Modal';
 import { lireFichierExcel } from '../../utils/excel';
 import { messageErreur } from '../../utils/erreurs';
 
-const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '' };
+const UE_VIDE = { code: '', intitule: '', credits: '', semestreId: '', formationId: '' };
 const MATIERE_VIDE = { code: '', intitule: '', coefficient: '1' };
 const SEMESTRE_VIDE = { cycle: 'licence', numero: '1', anneeScolaire: '' };
 const CYCLES = [
@@ -30,6 +31,9 @@ export default function UnitesEnseignement() {
   const [matiereASupprimer, setMatiereASupprimer] = useState(null);
   const [toast, setToast] = useState(null);
   const [importStructure, setImportStructure] = useState(false);
+  const [formations, setFormations] = useState([]);
+  const [ueEditee, setUeEditee] = useState(null);
+  const chargerFormations = () => client.get('/formations').then((res) => setFormations(res.data.formations)).catch(() => {});
 
   function charger() {
     client.get('/unites-enseignement').then((res) => setUes(res.data.ues));
@@ -40,9 +44,11 @@ export default function UnitesEnseignement() {
   useEffect(() => {
     charger();
     chargerSemestres();
+    chargerFormations();
   }, []);
   useActualisation(() => {
     charger();
+    chargerFormations();
     chargerSemestres().catch(() => {});
   });
 
@@ -64,6 +70,7 @@ export default function UnitesEnseignement() {
       // crédits (convention LMD courante : coefficient = crédits ECTS).
       await client.post('/unites-enseignement', {
         ...nouvelleUE,
+        formationId: nouvelleUE.formationId || null,
         credits: Number(nouvelleUE.credits),
         coefficient: Number(nouvelleUE.credits),
       });
@@ -100,6 +107,8 @@ export default function UnitesEnseignement() {
   }
 
   return (
+    <>
+    <Formations />
     <div className="grille-2">
       <div className="carte">
         <div className="entete-carte">
@@ -123,13 +132,16 @@ export default function UnitesEnseignement() {
             >
               <span>
                 <strong style={{ fontFamily: 'var(--police-mono)', fontSize: '0.8rem' }}>{ue.code}</strong>
-                {' : '}{ue.intitule} <span style={{ color: 'var(--texte-clair)' }}>({ue.Semestre?.libelle}, coef. {ue.coefficient}, {ue.credits} crédits)</span>
+                {' : '}{ue.intitule} <span style={{ color: 'var(--texte-clair)' }}>({ue.Semestre?.libelle}, coef. {ue.coefficient}, {ue.credits} crédits, {ue.Formation ? ue.Formation.mention : 'commune'})</span>
               </span>
               <span style={{ fontSize: '0.78rem', color: 'var(--texte-clair)' }}>{ue.Matieres?.length ?? 0} matière(s)</span>
             </button>
 
             {ueOuverte === ue.id && (
               <div style={{ padding: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                  <button type="button" className="secondaire" onClick={() => setUeEditee({ id: ue.id, code: ue.code, intitule: ue.intitule, credits: String(ue.credits), formationId: ue.formationId ? String(ue.formationId) : '' })}><IconEdit width={16} height={16} /> Modifier l’UE</button>
+                </div>
                 <div className="table-scroll">
                   <table>
                     <thead><tr><th>Code</th><th>Matière</th><th>Coef.</th><th aria-label="Actions" /></tr></thead>
@@ -248,6 +260,13 @@ export default function UnitesEnseignement() {
               <input type="number" min="1" value={nouvelleUE.credits} onChange={(e) => setNouvelleUE({ ...nouvelleUE, credits: e.target.value })} required />
             </div>
           </div>
+          <div className="champ">
+            <label htmlFor="ue-formation">Formation</label>
+            <select id="ue-formation" value={nouvelleUE.formationId} onChange={(e) => setNouvelleUE({ ...nouvelleUE, formationId: e.target.value })}>
+              <option value="">Commune à toutes les classes</option>
+              {formations.map((f) => <option key={f.id} value={f.id}>{libelleFormation(f)}</option>)}
+            </select>
+          </div>
           <button className="primaire" type="submit">Créer l'UE</button>
           {message && <div className={message === 'UE créée.' ? 'message-succes' : 'message-erreur'}>{message}</div>}
         </form>
@@ -260,8 +279,65 @@ export default function UnitesEnseignement() {
       {importStructure && (
         <ImportStructure semestres={semestres} ues={ues} onFermer={() => setImportStructure(false)} onImporte={() => charger()} />
       )}
+      {ueEditee && (
+        <ModifierUE
+          ue={ueEditee} formations={formations} onFermer={() => setUeEditee(null)}
+          onModifiee={() => { setUeEditee(null); setToast({ message: 'UE modifiée.', type: 'succes' }); charger(); chargerFormations(); }}
+        />
+      )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
+    </>
+  );
+}
+
+const libelleFormation = (f) => [f.mention, f.parcours].filter(Boolean).join(', ');
+
+function ModifierUE({ ue, formations, onFermer, onModifiee }) {
+  const [form, setForm] = useState(ue);
+  const [erreur, setErreur] = useState('');
+  const [enCours, setEnCours] = useState(false);
+
+  async function enregistrer(e) {
+    e.preventDefault();
+    setEnCours(true);
+    setErreur('');
+    try {
+      await client.put(`/unites-enseignement/${ue.id}`, { intitule: form.intitule, credits: Number(form.credits), formationId: form.formationId || null });
+      onModifiee();
+    } catch (err) {
+      setErreur(messageErreur(err, 'modification impossible'));
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <Modal titre={`Modifier ${ue.code}`} onFermer={onFermer} largeur={520}>
+      <form className="formulaire" onSubmit={enregistrer}>
+        <div className="champ">
+          <label htmlFor="mu-intitule">Intitulé</label>
+          <input id="mu-intitule" value={form.intitule} onChange={(e) => setForm({ ...form, intitule: e.target.value })} required />
+        </div>
+        <div className="ligne-champs">
+          <div className="champ">
+            <label htmlFor="mu-credits">Crédits</label>
+            <input id="mu-credits" type="number" min="1" value={form.credits} onChange={(e) => setForm({ ...form, credits: e.target.value })} required />
+          </div>
+          <div className="champ">
+            <label htmlFor="mu-formation">Formation</label>
+            <select id="mu-formation" value={form.formationId} onChange={(e) => setForm({ ...form, formationId: e.target.value })}>
+              <option value="">Commune à toutes les classes</option>
+              {formations.map((f) => <option key={f.id} value={f.id}>{libelleFormation(f)}</option>)}
+            </select>
+          </div>
+        </div>
+        {erreur && <div className="message-erreur">{erreur}</div>}
+        <div className="confirmation-actions">
+          <button type="button" className="secondaire" onClick={onFermer}>Annuler</button>
+          <button type="submit" className="primaire" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer'}</button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

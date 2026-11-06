@@ -40,6 +40,11 @@ router.get('/semestres', authentifier, ctrl.listerSemestres);
 
 router.post('/unites-enseignement', authentifier, academie, ctrl.creerUE);
 router.get('/unites-enseignement', authentifier, ctrl.listerUE);
+router.put('/unites-enseignement/:id', authentifier, academie, ctrl.modifierUE);
+router.get('/formations', authentifier, academie, ctrl.listerFormations);
+router.post('/formations', authentifier, academie, ctrl.creerFormation);
+router.put('/formations/:id', authentifier, academie, ctrl.modifierFormation);
+router.delete('/formations/:id', authentifier, academie, ctrl.supprimerFormation);
 
 router.post('/matieres', authentifier, academie, ctrl.creerMatiere);
 router.delete('/matieres/:id', authentifier, academie, ctrl.supprimerMatiere);

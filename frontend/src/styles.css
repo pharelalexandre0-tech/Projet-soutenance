@@ -3985,3 +3985,30 @@ th { background: #F7F8F6; color: var(--texte-clair); }
 .edt-agenda-heures { padding-top: 10px; font-family: var(--police-mono); }
 .edt-agenda .edt-tuile { min-height: 72px; }
 .edt-agenda .edt-retirer { opacity: 1; }
+
+/* Parcours LMD de l'étudiant */
+.parcours-lmd { display: flex; flex-direction: column; gap: 16px; }
+.parcours-formation { color: var(--texte-clair); margin: -4px 0 14px; }
+.parcours-cumul { margin: 0 0 10px; font-size: 16px; color: var(--texte); }
+.parcours-cumul strong { font-size: 40px; line-height: 1; color: var(--primaire); font-variant-numeric: tabular-nums; margin-right: 4px; }
+.parcours-jauge { position: relative; height: 14px; border-radius: 3px; background: var(--gris-fond); border: 1px solid var(--bordure); overflow: hidden; }
+.parcours-jauge > span { display: block; height: 100%; background: #157A8C; }
+.parcours-jauge > i { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--carte); }
+.parcours-reperes { display: grid; margin-top: 4px; font-size: 12px; color: var(--texte-clair); }
+.parcours-reperes span { text-align: right; padding-right: 2px; }
+.parcours-chiffres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0 0; }
+.parcours-chiffres > div { border-top: 1px solid var(--bordure); padding-top: 8px; }
+.parcours-chiffres dt { font-size: 12.5px; color: var(--texte-clair); }
+.parcours-chiffres dd { margin: 2px 0 0; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.parcours-semestre + .parcours-semestre { margin-top: 20px; }
+.parcours-semestre-titre { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
+.parcours-semestre-titre h3 { margin: 0; font-size: 15px; }
+.parcours-semestre-titre small { font-weight: 400; color: var(--texte-clair); }
+.parcours-explications { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 28px; margin: 0; }
+.parcours-explications dt { font-weight: 600; margin-bottom: 3px; }
+.parcours-explications dd { margin: 0; color: var(--texte-clair); line-height: 1.5; }
+@media (max-width: 720px) {
+  .parcours-chiffres { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .parcours-explications { grid-template-columns: minmax(0, 1fr); }
+  .parcours-cumul strong { font-size: 32px; }
+}

@@ -1,13 +1,14 @@
 import { Fragment, useEffect, useState } from 'react';
 import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
-
-const SEUIL_VALIDATION_UE = 10;
+import { reglesEtablissement } from '../../utils/seuils';
 
 export default function RelevesNotes({ eleveId, eleve }) {
   const [notes, setNotes] = useState([]);
   const [chargement, setChargement] = useState(true);
   const [etablissement, setEtablissement] = useState(null);
+  const [etatsUE, setEtatsUE] = useState(new Map());
+  const SEUIL_VALIDATION_UE = reglesEtablissement(etablissement).seuil;
 
   useEffect(() => {
     client.get('/etablissement').then((res) => setEtablissement(res.data.etablissement));
@@ -20,6 +21,9 @@ export default function RelevesNotes({ eleveId, eleve }) {
       setNotes(res.data.notes);
       setChargement(false);
     }).catch(() => setChargement(false));
+    client.get('/scolarite/parcours').then((res) => {
+      setEtatsUE(new Map(res.data.semestres.flatMap((s) => s.ues.map((u) => [u.ueId, u]))));
+    }).catch(() => {});
   }
   useEffect(() => { charger(); }, [eleveId]);
   useActualisation(() => charger(true));
@@ -99,15 +103,14 @@ export default function RelevesNotes({ eleveId, eleve }) {
               const eliminatoireUE = matieres.some((n) => n.eliminatoire);
               const rattrapageUE = matieres.some((n) => n.session === 'rattrapage');
               const seuilAtteintUE = moyenneUE != null && moyenneUE >= SEUIL_VALIDATION_UE && !eliminatoireUE;
-              // Une UE passée par le rattrapage n'est jamais étiquetée "validée"
-              // au même titre qu'une validation en session normale, même si la
-              // moyenne recalculée franchit le seuil.
-              const valideUE = seuilAtteintUE && !rattrapageUE;
+              // Le serveur donne le résultat exact (compensation, jury compris).
+              const etat = etatsUE.get(ue?.id);
               const resultatUE = moyenneUE == null
                 ? null
+                : etat ? { texte: etat.libelle, classe: etat.acquise ? 'vert' : etat.etat === 'eliminatoire' ? 'rouge' : 'gris' }
                 : eliminatoireUE ? { texte: rattrapageUE ? 'Éliminatoire (rattrapage)' : 'Éliminatoire', classe: 'rouge' }
-                : rattrapageUE ? { texte: 'Rattrapage', classe: 'or' }
-                : valideUE ? { texte: 'UE validée', classe: 'vert' }
+                : seuilAtteintUE ? { texte: rattrapageUE ? 'Validée au rattrapage' : 'UE validée', classe: 'vert' }
+                : rattrapageUE ? { texte: 'Non validée', classe: 'rouge' }
                 : { texte: 'Passe en rattrapage', classe: 'rouge' };
               return (
                 <Fragment key={ue?.id ?? 'sans-ue'}>

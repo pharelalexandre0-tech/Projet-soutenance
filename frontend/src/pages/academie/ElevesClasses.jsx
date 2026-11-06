@@ -33,6 +33,24 @@ function chargerIdentifiantsSession(cle) {
     return [];
   }
 }
+// Formations de l'école, proposées à la création et à la modification d'une classe.
+function useFormations() {
+  const [formations, setFormations] = useState([]);
+  useEffect(() => { client.get('/formations').then((r) => setFormations(r.data.formations)).catch(() => {}); }, []);
+  return formations;
+}
+function ChampFormation({ id, formations, valeur, onChange }) {
+  return (
+    <div className="champ">
+      <label htmlFor={id}>Formation</label>
+      <select id={id} value={valeur} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Aucune (UE communes de l’établissement)</option>
+        {formations.map((f) => <option key={f.id} value={f.id}>{[f.mention, f.parcours].filter(Boolean).join(', ')}</option>)}
+      </select>
+    </div>
+  );
+}
+
 // Deux classes peuvent partager le même nom avec un niveau différent : le
 // niveau accompagne toujours le nom.
 function nomClasse(c) {
@@ -498,7 +516,8 @@ export default function ElevesClasses() {
 }
 
 function NouvelleClasse({ onFermer, onCree }) {
-  const [form, setForm] = useState({ nom: '', niveau: '' });
+  const [form, setForm] = useState({ nom: '', niveau: '', formationId: '' });
+  const formations = useFormations();
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
 
@@ -507,7 +526,7 @@ function NouvelleClasse({ onFermer, onCree }) {
     setEnCours(true);
     setErreur('');
     try {
-      await client.post('/classes', form);
+      await client.post('/classes', { ...form, formationId: form.formationId || null });
       onCree(form);
     } catch (err) {
       setErreur(messageErreur(err, 'impossible de créer la classe'));
@@ -531,6 +550,7 @@ function NouvelleClasse({ onFermer, onCree }) {
             </select>
           </div>
         </div>
+        <ChampFormation id="nc-formation" formations={formations} valeur={form.formationId} onChange={(v) => setForm({ ...form, formationId: v })} />
         {erreur && <div className="message-erreur">{erreur}</div>}
         <div className="confirmation-actions">
           <button type="button" className="secondaire" onClick={onFermer}>Annuler</button>
@@ -542,7 +562,8 @@ function NouvelleClasse({ onFermer, onCree }) {
 }
 
 function GestionClasse({ classe, onFermer, onModifiee, onSupprimee }) {
-  const [form, setForm] = useState({ nom: classe.nom, niveau: classe.niveau });
+  const [form, setForm] = useState({ nom: classe.nom, niveau: classe.niveau, formationId: classe.formationId ? String(classe.formationId) : '' });
+  const formations = useFormations();
   const [stats, setStats] = useState(null);
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
@@ -558,7 +579,7 @@ function GestionClasse({ classe, onFermer, onModifiee, onSupprimee }) {
     setEnCours(true);
     setErreur('');
     try {
-      await client.put(`/classes/${classe.id}`, form);
+      await client.put(`/classes/${classe.id}`, { ...form, formationId: form.formationId || null });
       onModifiee();
     } catch (err) {
       setErreur(messageErreur(err, 'impossible de modifier la classe'));
@@ -600,6 +621,7 @@ function GestionClasse({ classe, onFermer, onModifiee, onSupprimee }) {
             </select>
           </div>
         </div>
+        <ChampFormation id="gc-formation" formations={formations} valeur={form.formationId} onChange={(v) => setForm({ ...form, formationId: v })} />
         {erreur && <div className="message-erreur">{erreur}</div>}
         <div className="confirmation-actions separees">
           <button type="button" className="secondaire danger" onClick={() => setSuppression(true)}><IconTrash /> Supprimer la classe</button>

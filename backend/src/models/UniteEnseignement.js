@@ -8,12 +8,15 @@ class UniteEnseignement extends Model {}
 UniteEnseignement.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    code: { type: DataTypes.STRING, allowNull: false, unique: true },
+    code: { type: DataTypes.STRING, allowNull: false },
     intitule: { type: DataTypes.STRING, allowNull: false },
     credits: { type: DataTypes.INTEGER, allowNull: false },
     coefficient: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 1 },
   },
-  { sequelize, modelName: 'UniteEnseignement', tableName: 'unites_enseignement' }
+  {
+    sequelize, modelName: 'UniteEnseignement', tableName: 'unites_enseignement',
+    indexes: [{ unique: true, name: 'ue_semestre_code_formation', fields: ['semestreId', 'code', 'formationId'] }],
+  }
 );
 
 module.exports = UniteEnseignement;

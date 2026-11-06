@@ -2,7 +2,7 @@ const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 
 // Parcours d'un étudiant d'une année à l'autre : classe quittée, décision
-// de fin d'année (passage, redoublement, sortie) et classe d'arrivée.
+// de fin d'année (passage, passage avec dette, redoublement, sortie) et classe d'arrivée.
 class ParcoursEleve extends Model {}
 
 ParcoursEleve.init(
@@ -13,7 +13,7 @@ ParcoursEleve.init(
     anneeScolaire: { type: DataTypes.STRING(20), allowNull: true },
     classeDepart: { type: DataTypes.STRING(160), allowNull: true },
     niveauDepart: { type: DataTypes.STRING(60), allowNull: true },
-    decision: { type: DataTypes.STRING(15), allowNull: false, validate: { isIn: [['passage', 'redoublement', 'sortie']] } },
+    decision: { type: DataTypes.STRING(15), allowNull: false, validate: { isIn: [['passage', 'passage_dette', 'redoublement', 'sortie']] } },
     classeArriveeId: { type: DataTypes.INTEGER, allowNull: true },
     classeArrivee: { type: DataTypes.STRING(160), allowNull: true },
     moyenneAnnuelle: { type: DataTypes.FLOAT, allowNull: true },

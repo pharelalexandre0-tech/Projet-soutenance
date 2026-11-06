@@ -5,11 +5,11 @@ import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
 
 const note = (n) => (n == null ? '-' : String(Math.round(n * 100) / 100).replace('.', ','));
-const DECISIONS = { passage: 'Passage', redoublement: 'Redoublement', sortie: 'Sortie' };
+const DECISIONS = { passage: 'Passage', passage_dette: 'Passage avec dette', redoublement: 'Redoublement', sortie: 'Sortie' };
 
-// Fin d'année : chaque étudiant d'une classe passe en année supérieure,
-// redouble ou quitte l'établissement. Proposition calculée (tous les
-// semestres de l'année validés = passage), modifiable, puis appliquée.
+// Fin d'année : chaque étudiant d'une classe passe en année supérieure (avec
+// ou sans UE à repasser), redouble ou quitte l'établissement. Proposition
+// calculée selon les règles de l'école, modifiable, puis appliquée.
 export default function Passage() {
   const [classes, setClasses] = useState([]);
   const [classeId, setClasseId] = useState('');
@@ -40,6 +40,7 @@ export default function Passage() {
   }
 
   const compte = (d) => Object.values(decisions).filter((x) => x === d).length;
+  const passent = compte('passage') + compte('passage_dette');
   return (
     <>
       <section className="carte">
@@ -67,13 +68,13 @@ export default function Passage() {
           <div className="entete-carte">
             <h2>Année {donnees.anneeScolaire} <span className="entete-carte-compteur">{donnees.lignes.length}</span></h2>
             <div className="actions-entete">
-              <span className="note-secondaire">{compte('passage')} passage · {compte('redoublement')} redoublement · {compte('sortie')} sortie</span>
-              <button type="button" className="primaire" disabled={!donnees.lignes.length || (compte('passage') > 0 && !superieure)} onClick={() => setConfirmation(true)}>Valider les passages</button>
+              <span className="note-secondaire">{compte('passage')} passage · {compte('passage_dette')} avec dette · {compte('redoublement')} redoublement · {compte('sortie')} sortie</span>
+              <button type="button" className="primaire" disabled={!donnees.lignes.length || (passent > 0 && !superieure)} onClick={() => setConfirmation(true)}>Valider les passages</button>
             </div>
           </div>
           <div className="table-scroll">
             <table>
-              <thead><tr><th>Matricule</th><th>Nom et prénom</th>{donnees.semestres.map((s) => <th key={s.id}>{s.libelle}</th>)}<th>Moyenne annuelle</th><th>Proposition</th><th>Décision</th></tr></thead>
+              <thead><tr><th>Matricule</th><th>Nom et prénom</th>{donnees.semestres.map((s) => <th key={s.id}>{s.libelle}</th>)}<th>Moyenne annuelle</th><th>Crédits de l’année</th><th>Crédits cumulés</th><th>UE à repasser</th><th>Proposition</th><th>Décision</th></tr></thead>
               <tbody>
                 {donnees.lignes.map((l) => (
                   <tr key={l.eleveId}>
@@ -83,6 +84,9 @@ export default function Passage() {
                       <td key={r.semestreId}>{r.evalue ? <span className={`badge ${r.admis ? 'vert' : 'or'}`}>{note(r.moyenne)} {r.admis ? (r.decisionJury === 'admis_jury' ? 'jury' : 'validé') : 'rattrapage'}</span> : <span className="note-secondaire">Non évalué</span>}</td>
                     ))}
                     <td className="cellule-nombre">{note(l.moyenneAnnuelle)}</td>
+                    <td className="cellule-nombre">{l.creditsAnnee} / {l.creditsAnneeTotal}</td>
+                    <td className="cellule-nombre">{l.creditsAcquis} / {l.creditsRequis}</td>
+                    <td className="mono">{l.uesDues.length ? l.uesDues.join(', ') : '-'}</td>
                     <td>{DECISIONS[l.proposition]}</td>
                     <td>
                       <select value={decisions[l.eleveId]} onChange={(e) => setDecisions({ ...decisions, [l.eleveId]: e.target.value })} aria-label={`Décision pour ${l.prenom} ${l.nom}`}>
@@ -91,7 +95,7 @@ export default function Passage() {
                     </td>
                   </tr>
                 ))}
-                {donnees.lignes.length === 0 && <tr><td colSpan={5 + donnees.semestres.length} className="vide">Aucun étudiant dans cette classe.</td></tr>}
+                {donnees.lignes.length === 0 && <tr><td colSpan={8 + donnees.semestres.length} className="vide">Aucun étudiant dans cette classe.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -110,7 +114,7 @@ export default function Passage() {
       )}
       {confirmation && (
         <ConfirmModal titre="Valider les passages" boutonConfirmer="Valider" boutonEnCours="Enregistrement…" onConfirmer={appliquer} onAnnuler={() => setConfirmation(false)}>
-          {compte('passage')} étudiant(s) rejoindront la classe supérieure choisie, {compte('redoublement')} restent dans leur classe, {compte('sortie')} quittent l’établissement. Le parcours de chacun est enregistré, les notes déjà acquises sont conservées.
+          {passent} étudiant(s) rejoindront la classe supérieure choisie, dont {compte('passage_dette')} avec des UE à repasser, {compte('redoublement')} restent dans leur classe, {compte('sortie')} quittent l’établissement. Le parcours de chacun est enregistré, les notes déjà acquises sont conservées.
         </ConfirmModal>
       )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}

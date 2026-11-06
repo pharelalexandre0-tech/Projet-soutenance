@@ -3,7 +3,7 @@ import client from '../api/client';
 import useActualisation from '../hooks/useActualisation';
 import { useAuth } from '../context/AuthContext';
 import EspaceDashboard from '../components/EspaceDashboard';
-import { IconDashboard, IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag, IconGraduationCap } from '../components/icons';
+import { IconDashboard, IconDocument, IconClipboard, IconCalendarAlert, IconReceipt, IconMessage, IconCalendar, IconFlag, IconGraduationCap, IconLayers } from '../components/icons';
 
 const Bulletin = lazy(() => import('./etudiant/Bulletin'));
 const RelevesNotes = lazy(() => import('./etudiant/RelevesNotes'));
@@ -16,12 +16,15 @@ const MesDocuments = lazy(() => import('./etudiant/MesDocuments'));
 const MesReclamations = lazy(() => import('./etudiant/MesReclamations'));
 const BourseANBG = lazy(() => import('./etudiant/BourseANBG'));
 const Accueil = lazy(() => import('./etudiant/Accueil'));
+const MonParcours = lazy(() => import('./etudiant/MonParcours'));
 
 function onglets(parent) {
   const dossier = parent ? 'Dossier de l’enfant' : 'Mon dossier';
   return [
     { id: 'accueil', label: 'Accueil', icone: IconDashboard,
       description: parent ? 'Où en est votre enfant : résultats, assiduité, cours du jour, frais et messages.' : 'Où tu en es : résultats, assiduité, cours du jour, frais et messages.' },
+    { id: 'parcours', label: 'Parcours LMD', icone: IconLayers, groupe: dossier,
+      description: parent ? 'Crédits acquis sur tout le cycle, UE à repasser et système LMD expliqué simplement.' : 'Tes crédits acquis sur tout le cycle, tes UE à repasser et le système LMD expliqué simplement.' },
     { id: 'bulletin', label: 'Bulletin', icone: IconDocument, groupe: dossier,
       description: parent ? 'Bulletin officiel du semestre de votre enfant.' : 'Ton bulletin officiel du semestre.' },
     { id: 'notes', label: 'Relevé de notes', icone: IconClipboard, groupe: dossier,
@@ -78,6 +81,7 @@ export default function DashboardEtudiant() {
       bloquerContenu={!chargement && !monDossier}
     >
       {onglet === 'accueil' && <Accueil eleveId={eleveId} eleve={monDossier} onNaviguer={setOnglet} />}
+      {onglet === 'parcours' && <MonParcours onNaviguer={setOnglet} />}
       {onglet === 'bulletin' && <Bulletin eleveId={eleveId} eleve={monDossier} />}
       {onglet === 'notes' && <RelevesNotes eleveId={eleveId} eleve={monDossier} />}
       {onglet === 'absences' && <AbsencesEtudiant eleveId={eleveId} />}

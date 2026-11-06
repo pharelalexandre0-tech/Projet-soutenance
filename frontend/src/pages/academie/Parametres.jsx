@@ -233,8 +233,12 @@ function ReglesValidation() {
   useEffect(() => {
     client.get('/etablissement').then((res) => {
       const e = res.data.etablissement;
-      setForm({ seuilValidation: String(e.seuilValidation ?? 10), noteEliminatoire: String(e.noteEliminatoire ?? 7) });
-    }).catch(() => setForm({ seuilValidation: '10', noteEliminatoire: '7' }));
+      setForm({
+        seuilValidation: String(e.seuilValidation ?? 10), noteEliminatoire: String(e.noteEliminatoire ?? 7),
+        compensationActive: Boolean(e.compensationActive), noteMinCompensation: e.noteMinCompensation == null ? '' : String(e.noteMinCompensation),
+        passageDetteActif: Boolean(e.passageDetteActif), creditsMinPassagePct: e.creditsMinPassagePct == null ? '' : String(e.creditsMinPassagePct),
+      });
+    }).catch(() => setForm({ seuilValidation: '10', noteEliminatoire: '7', compensationActive: false, noteMinCompensation: '', passageDetteActif: false, creditsMinPassagePct: '' }));
   }, []);
 
   async function enregistrer(e) {
@@ -260,7 +264,8 @@ function ReglesValidation() {
       </div>
       <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
         Une UE est validée quand sa moyenne atteint le seuil, sans aucune matière sous la note éliminatoire.
-        Sinon, l'étudiant passe au rattrapage. Ces valeurs colorent aussi la saisie des notes.
+        Sinon, l'étudiant passe au rattrapage ; s'il y atteint le seuil, l'UE est validée et donne ses crédits.
+        Ces valeurs colorent aussi la saisie des notes.
       </p>
       {!form && <div className="chargement">Chargement…</div>}
       {form && (
@@ -275,6 +280,28 @@ function ReglesValidation() {
               <input id="r-elim" type="number" min="0" max="20" step="0.25" value={form.noteEliminatoire} onChange={(e) => setForm({ ...form, noteEliminatoire: e.target.value })} required />
             </div>
           </div>
+          <label className="case-confirmation">
+            <input type="checkbox" checked={form.compensationActive} onChange={(e) => setForm({ ...form, compensationActive: e.target.checked })} />
+            Compenser les UE d'un semestre entre elles
+          </label>
+          {form.compensationActive && (
+            <div className="champ">
+              <label htmlFor="r-comp">Moyenne minimale d'une UE compensable (sur 20)</label>
+              <input id="r-comp" type="number" min="0" max="20" step="0.25" value={form.noteMinCompensation} onChange={(e) => setForm({ ...form, noteMinCompensation: e.target.value })} required />
+              <small className="note-secondaire">L'UE est acquise si la moyenne du semestre atteint le seuil et qu'aucune de ses matières n'est éliminatoire.</small>
+            </div>
+          )}
+          <label className="case-confirmation">
+            <input type="checkbox" checked={form.passageDetteActif} onChange={(e) => setForm({ ...form, passageDetteActif: e.target.checked })} />
+            Autoriser le passage en année supérieure avec des UE à repasser
+          </label>
+          {form.passageDetteActif && (
+            <div className="champ">
+              <label htmlFor="r-dette">Part minimale des crédits de l'année (en %)</label>
+              <input id="r-dette" type="number" min="1" max="99" step="1" value={form.creditsMinPassagePct} onChange={(e) => setForm({ ...form, creditsMinPassagePct: e.target.value })} required />
+              <small className="note-secondaire">Par exemple, 75 % correspond à 45 crédits sur 60.</small>
+            </div>
+          )}
           <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer les règles'}</button>
         </form>
       )}

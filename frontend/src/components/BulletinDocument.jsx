@@ -14,13 +14,12 @@ function mention(moyenne) {
   return 'Insuffisant';
 }
 
-// Une UE passée par le rattrapage n'est jamais étiquetée "validée" au même
-// titre qu'une validation en session normale, même si la moyenne recalculée
-// franchit le seuil : elle reste distinctement marquée "Rattrapage".
+// Résultat d'une UE : validée au rattrapage, compensée ou accordée par le jury
+// restent distinguées d'une validation en session normale.
+const ETATS_UE = { acquise: 'Validée', acquise_rattrapage: 'Validée au rattrapage', compensee: 'Compensée', jury: 'Validée par le jury' };
 function resultatUE(ligneUE) {
+  if (ETATS_UE[ligneUE.etat]) return { texte: ETATS_UE[ligneUE.etat], ton: 'reussite' };
   if (ligneUE.eliminatoire) return { texte: ligneUE.session === 'rattrapage' ? 'Éliminatoire (rattr.)' : 'Éliminatoire', ton: 'echec' };
-  if (ligneUE.session === 'rattrapage') return { texte: 'Rattrapage', ton: 'attente' };
-  if (ligneUE.valide) return { texte: 'Validée', ton: 'reussite' };
   return { texte: 'Non validée', ton: 'echec' };
 }
 

@@ -5,6 +5,7 @@ const Professeur = require('./Professeur');
 const Classe = require('./Classe');
 const Semestre = require('./Semestre');
 const UniteEnseignement = require('./UniteEnseignement');
+const Formation = require('./Formation');
 const Matiere = require('./Matiere');
 const EmploiDuTemps = require('./EmploiDuTemps');
 const PublicationEmploiDuTemps = require('./PublicationEmploiDuTemps');
@@ -87,6 +88,13 @@ PublicationEmploiDuTemps.belongsTo(Utilisateur, { foreignKey: 'publieParId', as:
 
 Semestre.hasMany(UniteEnseignement, { foreignKey: 'semestreId' });
 UniteEnseignement.belongsTo(Semestre, { foreignKey: 'semestreId' });
+
+// Maquette : une classe et une UE peuvent appartenir à une formation. Sans
+// formation, l'UE reste commune à toutes les classes de l'école.
+Formation.hasMany(Classe, { foreignKey: { name: 'formationId', allowNull: true }, onDelete: 'SET NULL' });
+Classe.belongsTo(Formation, { foreignKey: { name: 'formationId', allowNull: true }, onDelete: 'SET NULL' });
+Formation.hasMany(UniteEnseignement, { foreignKey: { name: 'formationId', allowNull: true }, onDelete: 'SET NULL' });
+UniteEnseignement.belongsTo(Formation, { foreignKey: { name: 'formationId', allowNull: true }, onDelete: 'SET NULL' });
 
 // Une UE regroupe plusieurs matières allant "dans le même sens"
 // (ex. UE "Programmation" -> Python, PHP, Java).
@@ -246,6 +254,7 @@ DossierBourse.belongsTo(Eleve, { foreignKey: 'eleveId' });
 
 module.exports = {
   sequelize,
+  Formation,
   Utilisateur,
   Professeur,
   Classe,

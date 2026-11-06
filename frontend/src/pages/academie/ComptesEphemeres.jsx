@@ -499,10 +499,10 @@ function NouvelAcces({ professeurs, professeurInitial, onFermer, onCree, onCopie
   // Les UE dépendent du semestre ; en changer vide l'UE et la matière déjà
   // choisies, qui appartenaient à l'ancien semestre.
   useEffect(() => {
-    if (form.semestreId) client.get(`/unites-enseignement?semestreId=${form.semestreId}`).then((res) => setUes(res.data.ues));
+    if (form.semestreId) client.get(`/unites-enseignement?semestreId=${form.semestreId}${form.classeId ? `&classeId=${form.classeId}` : ''}`).then((res) => setUes(res.data.ues));
     else setUes([]);
     setForm((f) => ({ ...f, ueId: '', matiereId: '' }));
-  }, [form.semestreId]);
+  }, [form.semestreId, form.classeId]);
 
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
   const notes = form.tache === 'saisie_notes';

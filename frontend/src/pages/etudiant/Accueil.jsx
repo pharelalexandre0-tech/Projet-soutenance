@@ -25,6 +25,7 @@ export default function Accueil({ eleveId, eleve, onNaviguer }) {
   const [frais, setFrais] = useState(null);
   const [messages, setMessages] = useState(null);
   const [bourse, setBourse] = useState(null);
+  const [parcours, setParcours] = useState(null);
 
   function charger() {
     if (!eleveId) return;
@@ -32,8 +33,9 @@ export default function Accueil({ eleveId, eleve, onNaviguer }) {
       const dernier = r.data.semestres[r.data.semestres.length - 1];
       if (!dernier) { setResultat({ vide: true }); return; }
       const b = await client.get(`/bulletins/${eleveId}/${dernier.id}`).catch(() => null);
-      setResultat(b ? { semestre: dernier, moyenne: b.data.bulletin?.moyenneGenerale, credits: b.data.creditsTotal, admis: b.data.admis, jury: b.data.decisionJury } : { semestre: dernier });
+      setResultat(b ? { semestre: dernier, moyenne: b.data.bulletin?.moyenneGenerale, admis: b.data.admis, jury: b.data.decisionJury } : { semestre: dernier });
     }).catch(() => setResultat({ vide: true }));
+    client.get('/scolarite/parcours').then((r) => setParcours(r.data)).catch(() => {});
     client.get(`/absences/eleve/${eleveId}`).then((r) => setAbsences(r.data.absences)).catch(() => setAbsences([]));
     if (eleve?.classeId && estOuverte('emplois-du-temps')) client.get(`/emplois-du-temps?classeId=${eleve.classeId}`).then((r) => setCours(r.data.emplois)).catch(() => setCours([]));
     if (estOuverte('frais-en-ligne')) client.get(`/finance/frais/eleve/${eleveId}`).then((r) => setFrais(r.data.frais)).catch(() => setFrais([]));
@@ -72,9 +74,9 @@ export default function Accueil({ eleveId, eleve, onNaviguer }) {
           <small>{resultat ? (decision || 'Bulletin pas encore établi') : ''}</small>
         </div>
         <div>
-          <dt><IconClipboard aria-hidden="true" /> Crédits validés</dt>
-          <dd>{resultat?.credits ?? (resultat ? 0 : '…')}</dd>
-          <small>{resultat?.semestre ? resultat.semestre.anneeScolaire : ''}</small>
+          <dt><IconClipboard aria-hidden="true" /> Crédits acquis</dt>
+          <dd>{parcours ? parcours.creditsAcquis : '…'}</dd>
+          <small>{parcours ? `sur ${parcours.creditsRequis}, ${parcours.libelleCycle.toLowerCase()}` : ''}</small>
         </div>
         <div className={nonJustifiees ? 'attention' : ''}>
           <dt><IconCalendarAlert aria-hidden="true" /> Absences non justifiées</dt>
@@ -127,6 +129,11 @@ export default function Accueil({ eleveId, eleve, onNaviguer }) {
               <IconCalendar aria-hidden="true" />
               <span><strong>Absences et retards</strong><small>{absences ? `${absences.length} enregistrement${absences.length > 1 ? 's' : ''}` : ''}</small></span>
               <button type="button" className="bouton-texte" onClick={() => onNaviguer('absences')}>Détail <IconChevronRight /></button>
+            </li>
+            <li>
+              <IconGraduationCap aria-hidden="true" />
+              <span><strong>Parcours LMD</strong><small>{parcours ? (parcours.dettes.length ? `${parcours.dettes.length} UE à repasser` : `${parcours.creditsRestants} crédits restants`) : ''}</small></span>
+              <button type="button" className="bouton-texte" onClick={() => onNaviguer('parcours')}>Voir <IconChevronRight /></button>
             </li>
             <li>
               <IconClipboard aria-hidden="true" />

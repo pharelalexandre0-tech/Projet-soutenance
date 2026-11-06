@@ -1,4 +1,4 @@
-const { Note, Matiere, UniteEnseignement, Semestre, Etablissement, Eleve } = require('../models');
+const { Note, Matiere, UniteEnseignement, Semestre, Etablissement, Eleve, Classe, Formation, ParcoursEleve } = require('../models');
 
 // Valeurs par défaut (convention LMD), remplacées par celles de l'école :
 // seuil de validation d'une UE, et note sous laquelle une matière est
@@ -12,10 +12,14 @@ function reglesDe(etablissement) {
   return {
     seuil: Number.isFinite(seuil) ? seuil : REGLES_PAR_DEFAUT.seuil,
     eliminatoire: Number.isFinite(eliminatoire) ? eliminatoire : REGLES_PAR_DEFAUT.eliminatoire,
+    compensationActive: Boolean(etablissement.compensationActive),
+    noteMinCompensation: etablissement.noteMinCompensation ?? null,
+    passageDetteActif: Boolean(etablissement.passageDetteActif),
+    creditsMinPassagePct: etablissement.creditsMinPassagePct ?? null,
   };
 }
 async function reglesEtablissement(etablissementId) {
-  return reglesDe(etablissementId ? await Etablissement.findByPk(etablissementId, { attributes: ['seuilValidation', 'noteEliminatoire'] }) : null);
+  return reglesDe(etablissementId ? await Etablissement.findByPk(etablissementId, { attributes: ['seuilValidation', 'noteEliminatoire', 'compensationActive', 'noteMinCompensation', 'passageDetteActif', 'creditsMinPassagePct'] }) : null);
 }
 async function reglesEleve(eleveId) {
   const eleve = await Eleve.findByPk(eleveId, { attributes: ['etablissementId'] });
@@ -88,10 +92,10 @@ async function obtenirResultatMatiere(eleveId, matiereId, regles = null, notes =
 // Utilisé par le diagramme 5 (Bulletin) et par le relevé de notes de l'Étudiant :
 // moyenne générale pondérée par le coefficient de chaque UE (chaque UE étant
 // elle-même la moyenne de ses matières pondérée par leur propre coefficient).
-// Une UE n'est "validée" que si sa moyenne atteint le seuil, qu'aucune de ses
-// matières retenues n'est éliminatoire, ET qu'aucune n'est passée par le
-// rattrapage — une UE rattrapée reste étiquetée "rattrapage", jamais confondue
-// avec une validation en session normale, même quand la moyenne suffirait.
+// Une UE est acquise (et donne ses crédits) quand sa moyenne atteint le seuil
+// sans matière éliminatoire, en session normale comme au rattrapage ; `etat`
+// garde la distinction : acquise, acquise_rattrapage, compensee, jury,
+// eliminatoire ou non_validee.
 // `contexte` (facultatif) : { ues, regles, notes } déjà chargés, pour
 // calculer toute une classe sans relire la base élève par élève.
 async function calculerBulletin(eleveId, semestreId, contexte = null) {
@@ -149,11 +153,7 @@ async function calculerBulletin(eleveId, semestreId, contexte = null) {
     // compris une note éliminatoire qu'elle contenait.
     const moyenneUE = sommeCoefficientsUE > 0 ? Math.round((sommePondereeUE / sommeCoefficientsUE) * 100) / 100 : 0;
     const seuilAtteint = moyenneUE >= regles.seuil && !eliminatoireUE;
-    // Une UE qui est passée par le rattrapage n'est jamais comptée comme
-    // "validée" au même titre qu'une validation en session normale — même
-    // si la moyenne recalculée franchit le seuil, elle reste étiquetée
-    // "rattrapage" et ne rapporte pas les crédits de la session normale.
-    const valide = seuilAtteint && !rattrapageUtilise;
+    const valide = seuilAtteint;
 
     sommePondereeGenerale += moyenneUE * ue.coefficient;
     sommeCoefficientsGenerale += ue.coefficient;
@@ -161,6 +161,10 @@ async function calculerBulletin(eleveId, semestreId, contexte = null) {
     if (valide) creditsValides += ue.credits;
 
     detailParUE.push({
+      ueId: ue.id,
+      semestreId,
+      etat: valide ? (rattrapageUtilise ? 'acquise_rattrapage' : 'acquise') : (eliminatoireUE ? 'eliminatoire' : 'non_validee'),
+      acquise: valide,
       ue: ue.intitule,
       code: ue.code,
       moyenne: moyenneUE,
@@ -179,9 +183,21 @@ async function calculerBulletin(eleveId, semestreId, contexte = null) {
       ? Math.round((sommePondereeGenerale / sommeCoefficientsGenerale) * 100) / 100
       : 0;
 
-  // Admis seulement si chaque UE évaluée est individuellement validée — la
-  // moyenne générale seule ne suffit pas à compenser une UE éliminatoire ou
-  // sous le seuil (conforme au fonctionnement réel d'un jury LMD).
+  // Compensation entre les UE du semestre, seulement si l'école l'a activée :
+  // moyenne du semestre au seuil, UE au-dessus du minimum fixé par l'école et
+  // sans matière éliminatoire.
+  if (regles.compensationActive && regles.noteMinCompensation != null && moyenneGenerale >= regles.seuil) {
+    for (const u of detailParUE) {
+      if (u.valide || u.eliminatoire || u.moyenne < regles.noteMinCompensation) continue;
+      u.valide = true;
+      u.acquise = true;
+      u.etat = 'compensee';
+      creditsValides += u.credits;
+    }
+  }
+
+  // Admis quand chaque UE évaluée est acquise (normale, rattrapage ou
+  // compensation) ; une moyenne générale seule ne rachète jamais une UE.
   const admis = detailParUE.length > 0 && detailParUE.every((u) => u.valide);
   const sessionGlobale = detailParUE.some((u) => u.session === 'rattrapage') ? 'rattrapage' : 'normale';
 
@@ -194,6 +210,16 @@ async function calculerBulletin(eleveId, semestreId, contexte = null) {
   }
   const decisionJury = jury?.decision || null;
   const admisRetenu = decisionJury ? decisionJury !== 'rattrapage' : admis;
+  // Semestre accordé par le jury : les UE restantes donnent leurs crédits,
+  // sans être confondues avec une validation par les notes.
+  if (decisionJury === 'admis_jury') {
+    for (const u of detailParUE) {
+      if (u.acquise) continue;
+      u.acquise = true;
+      u.etat = 'jury';
+      creditsValides += u.credits;
+    }
+  }
 
   return { moyenneGenerale, creditsValides, creditsTotal, admis: admisRetenu, admisCalcule: admis, decisionJury, sessionGlobale, detailParUE, regles };
 }
@@ -214,8 +240,127 @@ async function calculerBulletinsClasse(eleveIds, semestreId) {
   return resultats;
 }
 
+// Libellé du résultat d'une UE, le même sur tous les documents.
+function libelleEtatUE(u, court = false) {
+  switch (u.etat) {
+    case 'acquise': return 'Validée';
+    case 'acquise_rattrapage': return court ? 'Validée (rattr.)' : 'Validée au rattrapage';
+    case 'compensee': return 'Compensée';
+    case 'jury': return court ? 'Validée (jury)' : 'Validée par le jury';
+    case 'eliminatoire': return u.session === 'rattrapage' ? 'Éliminatoire (rattr.)' : 'Éliminatoire';
+    default: return 'Non validée';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Parcours LMD : capitalisation et crédits cumulés sur tout le cycle
+// ---------------------------------------------------------------------------
+const CREDITS_CYCLE = { licence: 180, master: 120, doctorat: 180 };
+const LIBELLES_CYCLE = { licence: 'Licence', master: 'Master', doctorat: 'Doctorat' };
+
+function cycleDeNiveau(niveau) {
+  const m = /licence|master|doctorat/i.exec(niveau || '');
+  return m ? m[0].toLowerCase() : null;
+}
+const normaliser = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+
+// Une même UE d'une année sur l'autre : même cycle, même numéro de semestre,
+// et même code ou même intitulé.
+function clesUE(semestre, code, intitule) {
+  const base = `${semestre.cycle}|${semestre.numero}`;
+  return [`${base}|c:${normaliser(code)}`, `${base}|i:${normaliser(intitule)}`];
+}
+
+// `cache` (facultatif) : mêmes règles et mêmes UE pour toute une classe.
+async function calculerParcours(eleveId, cache = {}) {
+  const { decisionsJury } = require('./deliberationService');
+  const eleve = await Eleve.findByPk(eleveId, { include: [{ model: Classe, include: [Formation] }] });
+  if (!eleve) return null;
+  cache.ues = cache.ues || new Map();
+  const regles = cache.regles || (cache.regles = await reglesEtablissement(eleve.etablissementId));
+  const formation = eleve.Classe?.Formation || null;
+
+  const toutes = await Note.findAll({ where: { eleveId }, include: [{ model: Matiere, attributes: ['id'], include: [{ model: UniteEnseignement, attributes: ['id', 'semestreId'] }] }] });
+  const notes = new Map(toutes.map((n) => [`${n.matiereId}|${n.session}`, n]));
+  const semestreIds = [...new Set(toutes.map((n) => n.Matiere?.UniteEnseignement?.semestreId).filter(Boolean))];
+  const semestres = semestreIds.length ? await Semestre.findAll({ where: { id: semestreIds }, order: [['anneeScolaire', 'ASC'], ['numero', 'ASC']] }) : [];
+
+  const cycle = formation?.cycle || cycleDeNiveau(eleve.Classe?.niveau) || semestres[semestres.length - 1]?.cycle || 'licence';
+  const creditsRequis = formation?.creditsRequis || CREDITS_CYCLE[cycle];
+
+  // Du plus ancien au plus récent : une UE acquise le reste ; une UE repassée
+  // remplace la tentative échouée ; aucune UE n'est comptée deux fois.
+  const suivi = new Map();
+  const lignesSemestres = [];
+  for (const s of semestres) {
+    if (!cache.ues.has(s.id)) cache.ues.set(s.id, await UniteEnseignement.findAll({ where: { semestreId: s.id }, include: [Matiere] }));
+    const calcul = await calculerBulletin(eleveId, s.id, { ues: cache.ues.get(s.id), regles, notes, decisionsJury: await decisionsJury([eleveId], s.id) });
+    const ues = [];
+    for (const u of calcul.detailParUE) {
+      const cles = clesUE(s, u.code, u.ue);
+      const ligne = {
+        ueId: u.ueId, code: u.code, intitule: u.ue, credits: u.credits, moyenne: u.moyenne, session: u.session,
+        etat: u.etat, libelle: libelleEtatUE(u), acquise: u.acquise,
+        semestreId: s.id, semestre: s.libelle, anneeScolaire: s.anneeScolaire, cycle: s.cycle, cles,
+      };
+      const precedente = cles.map((c) => suivi.get(c)).find(Boolean);
+      if (precedente?.acquise) {
+        ligne.etat = 'deja_acquise';
+        ligne.libelle = 'Déjà acquise';
+        ligne.dejaComptee = true;
+      } else {
+        if (precedente) {
+          precedente.etat = 'repassee';
+          precedente.libelle = 'Repassée ensuite';
+          for (const c of precedente.cles) suivi.delete(c);
+        }
+        for (const c of cles) suivi.set(c, ligne);
+      }
+      ues.push(ligne);
+    }
+    lignesSemestres.push({
+      id: s.id, libelle: s.libelle, anneeScolaire: s.anneeScolaire, cycle: s.cycle, moyenne: calcul.moyenneGenerale,
+      admis: calcul.admis, decisionJury: calcul.decisionJury, creditsValides: calcul.creditsValides, creditsTotal: calcul.creditsTotal, ues,
+    });
+  }
+
+  const finales = [...new Set(suivi.values())];
+  const parCycle = (c) => finales.filter((l) => l.cycle === c);
+  const creditsAcquis = parCycle(cycle).filter((l) => l.acquise).reduce((t, l) => t + l.credits, 0);
+  const dettes = parCycle(cycle).filter((l) => !l.acquise);
+  const autresCycles = Object.keys(LIBELLES_CYCLE).filter((c) => c !== cycle && parCycle(c).length)
+    .map((c) => ({ cycle: c, libelle: LIBELLES_CYCLE[c], creditsAcquis: parCycle(c).filter((l) => l.acquise).reduce((t, l) => t + l.credits, 0) }));
+
+  // Programme restant : seulement quand la classe a une formation, sinon on
+  // ne sait pas quelles UE de l'école concernent cet étudiant.
+  const aVenir = [];
+  if (formation) {
+    const programme = await UniteEnseignement.findAll({ where: { formationId: formation.id }, include: [Semestre], order: [['code', 'ASC']] });
+    const vues = new Set();
+    for (const ue of programme) {
+      const cles = clesUE(ue.Semestre, ue.code, ue.intitule);
+      if (cles.some((c) => suivi.has(c) || vues.has(c))) continue;
+      cles.forEach((c) => vues.add(c));
+      aVenir.push({ ueId: ue.id, code: ue.code, intitule: ue.intitule, credits: ue.credits, semestre: ue.Semestre.libelle, anneeScolaire: ue.Semestre.anneeScolaire });
+    }
+  }
+
+  return {
+    cycle, libelleCycle: LIBELLES_CYCLE[cycle], creditsRequis, creditsAcquis,
+    creditsRestants: Math.max(0, creditsRequis - creditsAcquis),
+    pourcentage: Math.min(100, Math.round((creditsAcquis / creditsRequis) * 100)),
+    formation: formation ? { id: formation.id, domaine: formation.domaine, mention: formation.mention, parcours: formation.parcours } : null,
+    classe: eleve.Classe ? { id: eleve.Classe.id, nom: eleve.Classe.nom, niveau: eleve.Classe.niveau } : null,
+    semestres: lignesSemestres, dettes, aVenir, autresCycles, regles,
+    historique: await ParcoursEleve.findAll({ where: { eleveId }, order: [['createdAt', 'ASC']], attributes: ['id', 'anneeScolaire', 'classeDepart', 'decision', 'classeArrivee', 'moyenneAnnuelle'] }),
+  };
+}
+
 module.exports = {
   REGLES_PAR_DEFAUT,
+  libelleEtatUE,
+  calculerParcours,
+  clesUE,
   calculerBulletinsClasse,
   reglesDe,
   reglesEtablissement,

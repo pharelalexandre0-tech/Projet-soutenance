@@ -76,6 +76,7 @@ async function resultats(req, res) {
   // classe a des notes entrent dans le procès-verbal (toutes si aucune).
   const notees = new Set([...calculs.values()].flatMap((c) => c.detailParUE.map((d) => d.code)));
   if (notees.size) ues = ues.filter((u) => notees.has(u.code));
+  else if (premiere.classe.formationId) ues = ues.filter((u) => !u.formationId || u.formationId === premiere.classe.formationId);
   const regles = await reglesEtablissement(req.utilisateur.etablissementId);
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   const format = req.query.format === 'xlsx' ? 'xlsx' : 'pdf';

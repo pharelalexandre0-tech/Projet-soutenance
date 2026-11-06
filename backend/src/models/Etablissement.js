@@ -29,6 +29,12 @@ Etablissement.init(
     // éliminatoire et bloque son UE (7 par défaut). Réglées dans Paramètres.
     seuilValidation: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 10 },
     noteEliminatoire: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 7 },
+    // Compensation entre UE d'un semestre et passage avec dette : choix de
+    // l'école, désactivés tant qu'elle ne les a pas réglés.
+    compensationActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    noteMinCompensation: { type: DataTypes.FLOAT, allowNull: true },
+    passageDetteActif: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    creditsMinPassagePct: { type: DataTypes.FLOAT, allowNull: true },
     // Dernière fois que l'école a téléchargé l'archive de ses données
     // (Paramètres > Récupérer les données) : vérifié avant toute suppression.
     dernierExportLe: { type: DataTypes.DATE, allowNull: true },

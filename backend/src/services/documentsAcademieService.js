@@ -348,7 +348,7 @@ async function procesVerbalPDF({ etablissement, classe, semestre, ues, eleves, c
           : { texte: '-', align: 'center', couleur: C.COULEUR_TEXTE_CLAIR });
       }
       cellules.push(d
-        ? { texte: noteFr(d.moyenne), align: 'center', gras: true, couleur: d.eliminatoire ? C.COULEUR_ERREUR : d.valide ? C.COULEUR_SUCCES : COULEUR_LIMITE }
+        ? { texte: noteFr(d.moyenne), align: 'center', gras: true, couleur: d.acquise ? C.COULEUR_SUCCES : d.eliminatoire ? C.COULEUR_ERREUR : COULEUR_LIMITE }
         : { texte: '-', align: 'center', couleur: C.COULEUR_TEXTE_CLAIR });
     }
     cellules.push(
@@ -394,7 +394,7 @@ function procesVerbalXlsx({ classe, semestre, ues, eleves, calculs, regles, ordr
         ligne[`${m.code} ${m.intitule}`] = mm ? mm.noteFinale : '';
       }
       ligne[`${u.code} moyenne UE`] = d ? d.moyenne : '';
-      ligne[`${u.code} résultat`] = d ? (d.eliminatoire ? 'Éliminatoire' : d.valide ? 'Validée' : 'Non validée') : '';
+      ligne[`${u.code} résultat`] = d ? require('./moyenneService').libelleEtatUE(d) : '';
     }
     Object.assign(ligne, {
       'Moyenne générale': l.evalue ? c.moyenneGenerale : '',

@@ -23,6 +23,8 @@ router.get('/reclamations', authentifier, academie, reclamations.lister);
 router.post('/reclamations/:id/traiter', authentifier, academie, reclamations.traiter);
 
 // Attestations, relevé officiel
+router.get('/scolarite/parcours', authentifier, academieOuEtudiant, scolarite.parcours);
+router.get('/scolarite/dettes', authentifier, academie, scolarite.dettesUE);
 router.get('/scolarite/attestation', authentifier, academieOuEtudiant, scolarite.attestation);
 router.get('/scolarite/releve', authentifier, academieOuEtudiant, scolarite.releve);
 router.get('/scolarite/semestres', authentifier, academieOuEtudiant, scolarite.semestresValides);
