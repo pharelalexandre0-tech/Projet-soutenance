@@ -3,7 +3,7 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import { useAuth } from '../../context/AuthContext';
 import { useFonctionnaliteOuverte } from '../../context/PlateformeContext';
-import { JOURS } from '../../utils/jours';
+import { JOURS, libelleSalle } from '../../utils/jours';
 import {
   IconDocument, IconClipboard, IconCalendarAlert, IconCalendar, IconReceipt, IconMessage, IconGraduationCap, IconChevronRight,
 } from '../../components/icons';
@@ -100,7 +100,7 @@ export default function Accueil({ eleveId, eleve, onNaviguer }) {
             {coursDuJour.map((c) => (
               <li key={c.id}>
                 <span className="cours-heure">{c.heureDebut} à {c.heureFin}</span>
-                <span className="cours-texte"><strong>{c.matiere || 'Cours'}</strong>{c.salle && <small>Salle {c.salle}</small>}</span>
+                <span className="cours-texte"><strong>{c.matiere || 'Cours'}</strong>{c.salle && <small>{libelleSalle(c.salle)}</small>}</span>
               </li>
             ))}
           </ul>

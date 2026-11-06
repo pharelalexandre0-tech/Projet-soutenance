@@ -5,3 +5,9 @@
 // par jour doit comparer contre ces mêmes chaînes, pas une variante
 // (minuscules, ordre différent) recréée localement.
 export const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+// « Salle A1 » que l'établissement ait saisi « A1 » ou « Salle A1 ».
+export function libelleSalle(salle) {
+  const nom = String(salle || '').trim().replace(/^salle\s+/i, '');
+  return nom ? `Salle ${nom}` : '';
+}

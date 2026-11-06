@@ -1,30 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { JOURS } from '../utils/jours';
-import { IconMapPin, IconClock, IconClose } from './icons';
+import { Fragment, useEffect, useMemo, useState } from 'react';
+import { JOURS, libelleSalle } from '../utils/jours';
+import { IconMapPin, IconClose, IconPlus } from './icons';
 
-const HAUTEUR_HEURE = 64;
-const DEBUT_DEFAUT = 8 * 60;
-const FIN_DEFAUT = 18 * 60;
-
-// Une teinte de la charte par matière (toujours la même pour une matière
-// donnée), pour qu'on repère d'un coup d'œil tous les cours d'une même
-// matière dans la semaine.
-const TEINTES = ['var(--edu-bleu)', 'var(--edu-teal)', 'var(--edu-vert)', 'var(--edu-or)', 'var(--edu-marine)', 'var(--primaire-fonce)'];
-
-function teinte(matiere) {
-  const texte = (matiere || '').toLowerCase();
-  let somme = 0;
-  for (let i = 0; i < texte.length; i += 1) somme = (somme * 31 + texte.charCodeAt(i)) % 997;
-  return TEINTES[somme % TEINTES.length];
-}
+// Tuiles pleines aux couleurs du motif tissé : une couleur par matière,
+// attribuée dans l'ordre alphabétique pour limiter les doublons.
+const TEINTES = [
+  ['var(--edu-marine)', '#fff'], ['var(--edu-bleu)', '#fff'], ['var(--edu-teal)', '#fff'], ['var(--edu-vert)', '#fff'], ['var(--edu-or)', 'var(--edu-marine)'],
+];
+const cleMatiere = (matiere) => (matiere || '').trim().toLowerCase();
+// Plages proposées à l'Académie tant que la grille est vide.
+const PLAGES_DEFAUT = [['08:00', '10:00'], ['10:15', '12:15'], ['14:00', '16:00']];
+// En dessous de cette durée, l'écart entre deux plages n'est pas une pause.
+const PAUSE_MIN = 30;
 
 function versMinutes(hhmm) {
   const [h, m] = String(hhmm).split(':').map(Number);
   return h * 60 + (m || 0);
-}
-
-function versHeure(minutes) {
-  return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
 function duree(minutes) {
@@ -52,9 +43,9 @@ function useEstEtroit() {
 }
 
 // Emploi du temps hebdomadaire, en lecture (étudiant, parent) ou en édition
-// (Académie : clic sur une case vide pour ajouter un cours à cette heure,
-// croix pour retirer un cours). Sur téléphone, la grille de six colonnes
-// devient un agenda jour par jour.
+// (Académie : case vide pour ajouter un cours, croix pour le retirer). Grille
+// de cours : une ligne par plage horaire réellement utilisée, pauses marquées,
+// sans heures vides. Sur téléphone, elle devient un agenda jour par jour.
 export default function GrilleEmploiDuTemps({ creneaux, onAjouter, onRetirer }) {
   const etroit = useEstEtroit();
   const aujourdhui = indexAujourdhui();
@@ -66,43 +57,44 @@ export default function GrilleEmploiDuTemps({ creneaux, onAjouter, onRetirer }) 
     return () => clearInterval(minuteur);
   }, []);
 
-  const { debut, fin, parJour, totalMinutes, matieres } = useMemo(() => {
-    const bornes = creneaux.flatMap((c) => [versMinutes(c.heureDebut), versMinutes(c.heureFin)]);
-    const d = Math.floor(Math.min(DEBUT_DEFAUT, ...bornes) / 60) * 60;
-    const f = Math.ceil(Math.max(FIN_DEFAUT, ...bornes) / 60) * 60;
+  const { plages, parJour, totalMinutes, matieres, couleurs } = useMemo(() => {
     const groupes = JOURS.map((jour) => creneaux
       .filter((c) => c.jour === jour)
-      .sort((a, b) => versMinutes(a.heureDebut) - versMinutes(b.heureDebut)));
+      .sort((x, y) => versMinutes(x.heureDebut) - versMinutes(y.heureDebut)));
+    const distinctes = [...new Set(creneaux.map((c) => cleMatiere(c.matiere)).filter(Boolean))].sort();
+    const paires = creneaux.length ? creneaux.map((c) => [c.heureDebut, c.heureFin]) : (onAjouter ? PLAGES_DEFAUT : []);
+    const uniques = [...new Map(paires.map(([d, f]) => [`${d}|${f}`, [d, f]])).values()]
+      .sort((x, y) => versMinutes(x[0]) - versMinutes(y[0]) || versMinutes(x[1]) - versMinutes(y[1]));
     return {
-      debut: d,
-      fin: f,
+      plages: uniques,
       parJour: groupes,
-      totalMinutes: creneaux.reduce((s, c) => s + Math.max(0, versMinutes(c.heureFin) - versMinutes(c.heureDebut)), 0),
-      matieres: new Set(creneaux.map((c) => (c.matiere || '').trim().toLowerCase()).filter(Boolean)).size,
+      totalMinutes: creneaux.reduce((t, c) => t + Math.max(0, versMinutes(c.heureFin) - versMinutes(c.heureDebut)), 0),
+      matieres: distinctes.length,
+      couleurs: new Map(distinctes.map((m, i) => [m, TEINTES[i % TEINTES.length]])),
     };
-  }, [creneaux]);
+  }, [creneaux, Boolean(onAjouter)]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const heures = [];
-  for (let m = debut; m < fin; m += 60) heures.push(m);
-  const hauteur = ((fin - debut) / 60) * HAUTEUR_HEURE;
   const minutesMaintenant = maintenant.getHours() * 60 + maintenant.getMinutes();
-  const ligneMaintenant = minutesMaintenant >= debut && minutesMaintenant <= fin
-    ? ((minutesMaintenant - debut) / 60) * HAUTEUR_HEURE
-    : null;
-
-  function ajouterA(jour, e) {
-    if (!onAjouter) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const minutes = debut + Math.floor(((e.clientY - rect.top) / HAUTEUR_HEURE)) * 60;
-    onAjouter({ jour, heureDebut: versHeure(minutes), heureFin: versHeure(Math.min(minutes + 60, 23 * 60 + 59)) });
-  }
+  const enCours = (c, i) => i === aujourdhui && minutesMaintenant >= versMinutes(c.heureDebut) && minutesMaintenant < versMinutes(c.heureFin);
+  const stylesTuile = (c) => {
+    const [fond, encre] = couleurs.get(cleMatiere(c.matiere)) || TEINTES[0];
+    return { '--teinte': fond, '--encre': encre };
+  };
+  const prochain = aujourdhui >= 0 ? parJour[aujourdhui].find((c) => versMinutes(c.heureDebut) > minutesMaintenant) : null;
 
   const resume = (
     <div className="edt-resume">
       <span><strong>{creneaux.length}</strong> cours par semaine</span>
       <span><strong>{duree(totalMinutes)}</strong> de cours</span>
       <span><strong>{matieres}</strong> matière{matieres > 1 ? 's' : ''}</span>
+      {prochain && <span className="edt-prochain">Prochain cours : <strong>{prochain.matiere || 'Cours'}</strong> à {prochain.heureDebut}</span>}
     </div>
+  );
+
+  const boutonRetirer = (c) => onRetirer && (
+    <button type="button" className="edt-retirer" onClick={() => onRetirer(c)} aria-label={`Retirer ${c.matiere || 'ce cours'}`} title="Retirer ce cours">
+      <IconClose />
+    </button>
   );
 
   if (etroit) {
@@ -128,20 +120,17 @@ export default function GrilleEmploiDuTemps({ creneaux, onAjouter, onRetirer }) 
         {cours.length === 0 && <div className="vide">Aucun cours le {JOURS[jourMobile].toLowerCase()}.</div>}
         <ol className="edt-agenda">
           {cours.map((c) => (
-            <li key={c.id} style={{ '--teinte': teinte(c.matiere) }}>
+            <li key={c.id}>
               <div className="edt-agenda-heures">
                 <strong>{c.heureDebut}</strong>
                 <span>{c.heureFin}</span>
               </div>
-              <div className="edt-agenda-cours">
+              <div className="edt-tuile" style={stylesTuile(c)}>
                 <strong>{c.matiere || 'Cours'}</strong>
-                <span>{duree(versMinutes(c.heureFin) - versMinutes(c.heureDebut))}{c.salle ? `, salle ${c.salle}` : ''}</span>
+                <span className="edt-tuile-info">{[duree(versMinutes(c.heureFin) - versMinutes(c.heureDebut)), libelleSalle(c.salle)].filter(Boolean).join(' · ')}</span>
+                {enCours(c, jourMobile) && <span className="edt-en-cours">En cours</span>}
+                {boutonRetirer(c)}
               </div>
-              {onRetirer && (
-                <button type="button" className="edt-retirer" onClick={() => onRetirer(c)} aria-label={`Retirer ${c.matiere || 'ce cours'}`}>
-                  <IconClose />
-                </button>
-              )}
             </li>
           ))}
         </ol>
@@ -157,62 +146,71 @@ export default function GrilleEmploiDuTemps({ creneaux, onAjouter, onRetirer }) 
   return (
     <div className="edt">
       {resume}
-      <div className="edt-grille">
-        <div className="edt-entete">
-          <div className="edt-coin" />
-          {JOURS.map((jour, i) => (
-            <div key={jour} className={`edt-jour ${i === aujourdhui ? 'aujourdhui' : ''}`}>
-              <span>{jour}</span>
-              <small>{parJour[i].length ? `${parJour[i].length} cours` : 'Libre'}</small>
-            </div>
-          ))}
-        </div>
-
-        <div className="edt-corps" style={{ height: hauteur, '--hauteur-heure': `${HAUTEUR_HEURE}px` }}>
-          <div className="edt-heures">
-            {heures.map((m) => (
-              <span key={m} style={{ top: ((m - debut) / 60) * HAUTEUR_HEURE }}>{versHeure(m)}</span>
-            ))}
-          </div>
-          {JOURS.map((jour, i) => (
-            <div
-              key={jour}
-              className={`edt-colonne ${i === aujourdhui ? 'aujourdhui' : ''} ${onAjouter ? 'editable' : ''}`}
-              onClick={(e) => { if (e.target === e.currentTarget) ajouterA(jour, e); }}
-              title={onAjouter ? `Cliquer pour ajouter un cours le ${jour.toLowerCase()}` : undefined}
-            >
-              {i === aujourdhui && ligneMaintenant !== null && (
-                <div className="edt-maintenant" style={{ top: ligneMaintenant }} aria-label="Heure actuelle" />
-              )}
-              {parJour[i].map((c) => {
-                const d = versMinutes(c.heureDebut);
-                const f = Math.max(versMinutes(c.heureFin), d + 20);
-                const court = f - d < 50;
-                return (
-                  <div
-                    key={c.id}
-                    className={`edt-cours ${court ? 'court' : ''}`}
-                    style={{
-                      top: ((d - debut) / 60) * HAUTEUR_HEURE + 2,
-                      height: ((f - d) / 60) * HAUTEUR_HEURE - 4,
-                      '--teinte': teinte(c.matiere),
-                    }}
-                    title={`${c.matiere || 'Cours'}, ${c.heureDebut} à ${c.heureFin}${c.salle ? `, salle ${c.salle}` : ''}`}
-                  >
-                    <strong>{c.matiere || 'Cours'}</strong>
-                    <span className="edt-cours-info"><IconClock />{c.heureDebut} à {c.heureFin}</span>
-                    {c.salle && !court && <span className="edt-cours-info"><IconMapPin />Salle {c.salle}</span>}
-                    {onRetirer && (
-                      <button type="button" className="edt-retirer" onClick={() => onRetirer(c)} aria-label={`Retirer ${c.matiere || 'ce cours'}`}>
-                        <IconClose />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+      <div className="edt-defilement">
+        <table className="edt-table">
+          <thead>
+            <tr>
+              <th scope="col" className="edt-coin">Horaire</th>
+              {JOURS.map((jour, i) => (
+                <th key={jour} scope="col" className={i === aujourdhui ? 'aujourdhui' : ''}>
+                  <span>{jour}</span>
+                  <small>{i === aujourdhui ? 'Aujourd’hui' : parJour[i].length ? `${parJour[i].length} cours` : 'Libre'}</small>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {plages.map(([debut, fin], n) => {
+              const ecart = n > 0 ? versMinutes(debut) - versMinutes(plages[n - 1][1]) : 0;
+              return (
+                <Fragment key={`${debut}|${fin}`}>
+                  {ecart >= PAUSE_MIN && (
+                    <tr className="edt-pause"><td colSpan={JOURS.length + 1}><span>Pause · {duree(ecart)}</span></td></tr>
+                  )}
+                  <tr>
+                    <th scope="row" className="edt-plage">
+                      <strong>{debut}</strong>
+                      <span>{fin}</span>
+                      <small>{duree(versMinutes(fin) - versMinutes(debut))}</small>
+                    </th>
+                    {JOURS.map((jour, i) => {
+                      const cours = parJour[i].filter((c) => c.heureDebut === debut && c.heureFin === fin);
+                      return (
+                        <td key={jour} className={i === aujourdhui ? 'aujourdhui' : ''}>
+                          {cours.map((c) => (
+                            <div key={c.id} className={`edt-tuile ${enCours(c, i) ? 'actuelle' : ''}`} style={stylesTuile(c)} title={`${c.matiere || 'Cours'}, ${debut} à ${fin}${c.salle ? `, ${libelleSalle(c.salle)}` : ''}`}>
+                              <strong>{c.matiere || 'Cours'}</strong>
+                              {c.salle && <span className="edt-tuile-info"><IconMapPin />{libelleSalle(c.salle)}</span>}
+                              {enCours(c, i) && <span className="edt-en-cours">En cours</span>}
+                              {boutonRetirer(c)}
+                            </div>
+                          ))}
+                          {cours.length === 0 && onAjouter && (
+                            <button type="button" className="edt-case-vide" onClick={() => onAjouter({ jour, heureDebut: debut, heureFin: fin })} aria-label={`Ajouter un cours le ${jour.toLowerCase()} de ${debut} à ${fin}`}>
+                              <IconPlus />
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                </Fragment>
+              );
+            })}
+            {onAjouter && (
+              <tr className="edt-autre">
+                <th scope="row" className="edt-plage"><small>Autre horaire</small></th>
+                {JOURS.map((jour) => (
+                  <td key={jour}>
+                    <button type="button" className="edt-case-vide petite" onClick={() => onAjouter({ jour, heureDebut: '16:15', heureFin: '18:15' })} aria-label={`Ajouter un cours le ${jour.toLowerCase()} à un autre horaire`}>
+                      <IconPlus />
+                    </button>
+                  </td>
+                ))}
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
