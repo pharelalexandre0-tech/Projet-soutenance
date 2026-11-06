@@ -9,8 +9,8 @@ const DUREE_MS = 3600;
 
 // Animation d'ouverture de l'application Android : le motif tissé
 // d'EduSphere remplit l'écran case par case, puis remonte en bande comme sur
-// l'écran de connexion ; le logo, le nom et le fil apparaissent sur le papier
-// clair dessous (jamais dans un encadré). Un toucher passe l'animation.
+// l'écran de connexion ; le logo, le nom et le fil apparaissent sur le fond
+// marine dessous (jamais dans un encadré). Un toucher passe l'animation.
 export default function IntroApplication({ onTermine }) {
   const [depart, setDepart] = useState(false);
   const fini = useRef(false);

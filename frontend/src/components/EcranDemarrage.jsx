@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import logoIcon from '../assets/logo-icon.png';
 import FilOuverture from './FilOuverture';
+import BandesTissees from './BandesTissees';
 
 const CLE_DEMARRAGE = 'edusphere_demarrage_vu';
 const NOM = 'EduSphere';
@@ -27,7 +28,7 @@ export function demarrageAAfficher() {
   return true;
 }
 
-// Écran de démarrage : fond clair, le logo et le nom apparaissent, le fil
+// Écran de démarrage : fond marine et motif tissé, le logo et le nom apparaissent, le fil
 // aux couleurs d'EduSphere se tisse dessous. Il s'efface ensuite d'un fondu
 // court pour laisser place à la connexion.
 export default function EcranDemarrage({ onTermine }) {
@@ -65,6 +66,7 @@ export default function EcranDemarrage({ onTermine }) {
 
   return (
     <div className={`ecran-demarrage ecran-ouverture ${depart ? 'depart' : ''}`} ref={racineRef} aria-hidden="true">
+      <BandesTissees />
       <div className="ouverture-centre">
         <span className="ouverture-logo"><img src={logoIcon} alt="" /></span>
         <h1 className="ouverture-nom">{NOM}</h1>

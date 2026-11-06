@@ -22,7 +22,7 @@
   --primaire-fonce: #164A85;
   --primaire-clair: #E3ECF6;
 
-  --fond: #E7EBEF;
+  --fond: #F2F3F0;
   --carte: #FFFFFF;
   --papier: #FBF9F1;
   --texte: #1C2321;
@@ -2655,10 +2655,10 @@ button.petit { display: inline-flex; align-items: center; gap: 6px; padding: 5px
    ========================================================================== */
 
 :root {
-  --filet-registre: color-mix(in srgb, var(--edu-marine) 82%, transparent);
+  --filet-registre: var(--bordure);
   --ligne-registre: color-mix(in srgb, var(--bordure) 85%, var(--papier));
-  --papier-entete: color-mix(in srgb, var(--papier) 70%, var(--carte));
-  --rayon-feuillet: 6px;
+  --papier-entete: var(--carte);
+  --rayon-feuillet: 12px;
 }
 
 /* --- Menu : rubriques numérotées ----------------------------------------- */
@@ -2735,7 +2735,7 @@ tbody tr:has(> td.vide):hover > td, tbody tr:has(> td.vide) > td { background: n
 
 /* --- Onglets de classeur --------------------------------------------------- */
 .onglets-secondaires {
-  gap: 4px; padding: 0 6px; border-bottom: 2px solid var(--edu-marine);
+  gap: 4px; padding: 0 6px; border-bottom: 1px solid var(--bordure);
 }
 .onglets-secondaires button {
   padding: 11px 18px 10px; margin-bottom: 0;
@@ -2751,7 +2751,7 @@ tbody tr:has(> td.vide):hover > td, tbody tr:has(> td.vide) > td { background: n
 .modale-corps .onglets-secondaires, .tiroir .onglets-secondaires { margin-top: -4px; }
 
 /* --- Indicateurs : bande de registre --------------------------------------- */
-.stats-grid { border-radius: var(--rayon-feuillet); border-top: 3px solid var(--edu-marine); }
+.stats-grid { border-radius: var(--rayon-feuillet); }
 .stat-tile .valeur { font-family: var(--police-serif); font-weight: 700; font-size: 36px; letter-spacing: -0.01em; }
 .stat-tile .libelle { font-size: 13.5px; font-weight: 600; color: var(--texte-clair); }
 
@@ -2944,7 +2944,6 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 /* Cartouche dans la feuille : la rubrique est déjà sur l'onglet. */
 .espace.classeur .cartouche-onglet { display: none; }
 .cartouche-rubrique { display: block; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--edu-bleu); margin-bottom: 6px; }
-.espace.classeur .cartouche-corps.entete-page { border-top-width: 1px; border-left: 4px solid var(--edu-marine); }
 
 @media (max-width: 1100px) {
   .bandeau-classeur .bouton-recherche { width: 42px; padding: 0; justify-content: center; }
@@ -3781,7 +3780,6 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
 }
 
 /* Annuaire */
-.document-officiel { border-top: 4px solid var(--edu-marine); }
 .annuaire-chiffres { margin-top: 6px; row-gap: 14px; }
 
 .table-ministere .cellule-nom { min-width: 220px; }
@@ -3902,3 +3900,50 @@ button.primaire, a.bouton-primaire, button.secondaire, .badge, input, select, te
   .liste-cours-jour li { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
 .console-plateforme > .stats-grid, .console-plateforme > .grille-3 { margin: 0; }
+
+/* ==========================================================================
+   Écrans d'ouverture : marine, motif tissé en haut et en bas, texte clair
+   ========================================================================== */
+.ecran-demarrage.ecran-ouverture,
+.transition-ouverture.ecran-ouverture { background: var(--edu-marine); color: #fff; overflow: hidden; }
+.ouverture-bande { position: absolute; left: 0; right: 0; height: 30vw; max-height: 26vh; overflow: hidden; }
+.ouverture-bande.haut { top: 0; }
+.ouverture-bande.bas { bottom: 0; transform: scaleY(-1); }
+.ouverture-bande .tissage { bottom: auto; height: 30vw; }
+.ouverture-centre { position: relative; z-index: 1; }
+.ecran-ouverture .ouverture-logo { border-color: transparent; box-shadow: none; }
+.ecran-ouverture .ouverture-nom { color: #fff; }
+.transition-ouverture.ecran-ouverture p.ouverture-surtitre, .ecran-ouverture .ouverture-surtitre { color: var(--edu-or); font-size: 12px; margin-top: 10px; }
+.ecran-ouverture .ouverture-plateforme { color: rgba(255, 255, 255, .7); }
+
+/* ==========================================================================
+   Connexion et étapes de vérification : contenu centré dans la colonne
+   ========================================================================== */
+.composition-acces .carte-formulaire-acces { align-items: center; }
+.composition-acces .carte-formulaire-acces .acces-eyebrow,
+.composition-acces .carte-formulaire-acces h2,
+.composition-acces .carte-formulaire-acces .connexion-aide,
+.composition-acces .carte-formulaire-acces .connexion-note-parent,
+.composition-acces .carte-formulaire-acces .connexion-renvoi { text-align: center; }
+.composition-acces .carte-formulaire-acces .connexion-retour { display: block; width: 100%; text-align: center; }
+
+/* ==========================================================================
+   Tableaux de bord : sans bordure marine, titre libre, chiffres en cartes
+   ========================================================================== */
+.espace.classeur .cartouche { margin-bottom: 22px; }
+.espace.classeur .cartouche-corps.entete-page {
+  display: block; padding: 4px 2px 0; background: none; border: none; border-radius: 0; box-shadow: none;
+}
+.espace.classeur .cartouche-rubrique { color: var(--edu-teal); letter-spacing: .12em; }
+.espace.classeur .cartouche h1 { font-size: clamp(1.75rem, 3vw, 2.25rem); letter-spacing: -.02em; }
+.stats-grid { gap: 14px; background: none; border: none; box-shadow: none; overflow: visible; border-radius: 0; }
+.stat-tile { padding: 20px 22px; background: var(--carte); border: 1px solid var(--bordure); border-radius: 12px; box-shadow: none; }
+.stat-tile .stat-tile-haut { margin-bottom: 10px; }
+.stat-tile .valeur { font-size: 32px; }
+.carte { border-radius: 12px; box-shadow: none; }
+th { background: #F7F8F6; color: var(--texte-clair); }
+.console-plateforme > .stats-grid { margin: 0; }
+.composition-acces .carte-formulaire-acces .bouton-connexion { justify-content: center; gap: 10px; text-align: center; }
+@media (max-width: 640px) { .stats-grid > .stat-tile:last-child:nth-child(odd) { grid-column: 1 / -1; } }
+.ouverture-logo, .intro-logo { box-sizing: border-box; overflow: hidden; }
+.ouverture-logo img, .intro-logo img { min-width: 0; min-height: 0; }

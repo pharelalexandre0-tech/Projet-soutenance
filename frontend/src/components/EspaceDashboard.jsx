@@ -40,7 +40,7 @@ const CLE_ANNONCE_MASQUEE = 'edusphere_annonce_masquee';
 const GROUPE_EXTENSIONS = "Services de l'établissement";
 
 // Rubriques du dossier : chaque groupe du menu porte un numéro romain, et
-// chaque page une cote (rubrique.page), reprise dans l'en-tête de la page.
+// chaque page une cote (rubrique.page) sur son intercalaire.
 const ROMAINS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
 
 function lireAnnonceMasquee() {
@@ -166,14 +166,6 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
     return liste;
   }, [ongletsVisibles]);
 
-  // Cote de la page affichée : « II.3 » = 3e page de la rubrique II.
-  const cote = useMemo(() => {
-    const groupe = groupes.find((g) => g.onglets.some((o) => o.id === section?.id));
-    if (!groupe?.numero) return null;
-    return `${groupe.numero}.${groupe.onglets.findIndex((o) => o.id === section?.id) + 1}`;
-  }, [groupes, section?.id]);
-  const sigleCote = (ministere ? 'MESR' : etablissement?.sigle || 'ES').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 6).toUpperCase();
-  const consulteLe = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
     function surTouche(e) {
@@ -307,14 +299,10 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
                   <header className="cartouche">
                     <div className="cartouche-corps entete-page">
                       <div className="cartouche-titre">
-                        <span className="cartouche-rubrique">{cote ? `Rubrique ${cote}` : 'Accueil'}{section?.groupe ? ` · ${section.groupe}` : ''}</span>
+                        <span className="cartouche-rubrique">{section?.groupe || 'Accueil'}</span>
                         <h1>{section?.label}</h1>
                         {section?.description && <p className="entete-page-description">{section.description}</p>}
                       </div>
-                      <dl className="cartouche-meta">
-                        <div><dt>Cote</dt><dd>{sigleCote}{cote ? `-${cote}` : ''}</dd></div>
-                        <div><dt>Consulté le</dt><dd>{consulteLe}</dd></div>
-                      </dl>
                     </div>
                   </header>
                 )}
