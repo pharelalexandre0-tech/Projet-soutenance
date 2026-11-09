@@ -64,7 +64,7 @@ app.use(compression());
 // envoyé en base64 dans le JSON (~1,4x sa taille binaire) — 3mb laisse une
 // marge confortable sur une image déjà bridée à 1mb côté frontend.
 // Préinscription publique : un dossier peut porter quelques pièces (PDF, photos).
-app.use('/api/preinscriptions-publiques', rateLimit({ windowMs: 60 * 60 * 1000, limit: (req) => (req.method === 'POST' ? 8 : 120), standardHeaders: true, legacyHeaders: false, message: { erreur: 'trop de dossiers envoyés depuis cette connexion, réessayez dans une heure' } }), express.json({ limit: '12mb' }), require('./routes/modulesLmd').publique);
+app.use('/api/preinscriptions-publiques', rateLimit({ windowMs: 60 * 60 * 1000, limit: (req) => (req.method === 'POST' && req.path === '/' ? 8 : 60), keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.method === 'POST' && req.path === '/' ? 'depot' : 'inscription'}`, standardHeaders: true, legacyHeaders: false, message: { erreur: 'trop de dossiers envoyés depuis cette connexion, réessayez dans une heure' } }), express.json({ limit: '12mb' }), require('./routes/modulesLmd').publique);
 app.use(express.json({ limit: '3mb' }));
 
 // Un formulaire de connexion mal protégé accepte des centaines d'essais

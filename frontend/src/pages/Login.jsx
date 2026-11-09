@@ -350,7 +350,10 @@ export default function Login() {
               <img src={logoIcon} alt="" />
               <span><strong>EduSphere</strong><small>Enseignement supérieur · Gabon</small></span>
             </span>
-            <a href="/verifier"><IconShield aria-hidden="true" /> Vérifier un document</a>
+            <span className="login-liens-publics">
+              <a href="/preinscription">S’inscrire en ligne</a>
+              <a href="/verifier"><IconShield aria-hidden="true" /> Vérifier un document</a>
+            </span>
           </div>
           <p className="acces-eyebrow">Espace sécurisé</p>
           <h2>Bonjour.</h2>

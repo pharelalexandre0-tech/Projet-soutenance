@@ -108,6 +108,10 @@ async function deciderPreinscription(req, res) {
   if (!statut) throw erreur('décision invalide');
   if (dossier.statut === 'inscrite') throw erreur('ce candidat est déjà inscrit');
   await dossier.update({ statut, commentaire: texte(req.body.commentaire, 2000), decideParNom: nomAgent(req.utilisateur) });
+  if (statut === 'acceptee') {
+    await require('./inscriptionEnLigneController').ouvrirInscription(dossier, req.body);
+    return res.json({ dossier });
+  }
   if (statut !== 'en_examen') {
     const ecole = await Etablissement.findByPk(dossier.etablissementId, { attributes: ['nom'] });
     const corps = statut === 'acceptee'

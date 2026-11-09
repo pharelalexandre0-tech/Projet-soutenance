@@ -28,6 +28,17 @@ Preinscription.init(
     commentaire: { type: DataTypes.TEXT, allowNull: true },
     decideParNom: { type: DataTypes.STRING(160), allowNull: true },
     eleveId: { type: DataTypes.INTEGER, allowNull: true },
+    // Inscription en ligne après acceptation : classe, frais, lien personnel (empreinte), paiement.
+    classeId: { type: DataTypes.INTEGER, allowNull: true },
+    fraisInscription: { type: DataTypes.FLOAT, allowNull: true },
+    jetonInscription: { type: DataTypes.STRING(64), allowNull: true },
+    jetonExpire: { type: DataTypes.DATE, allowNull: true },
+    paiementStatut: { type: DataTypes.STRING(12), allowNull: true },
+    paiementReference: { type: DataTypes.STRING(40), allowNull: true },
+    operateur: { type: DataTypes.STRING(12), allowNull: true },
+    telephone2: { type: DataTypes.STRING(20), allowNull: true },
+    fournisseur: { type: DataTypes.STRING(30), allowNull: true },
+    inscritLe: { type: DataTypes.DATE, allowNull: true },
   },
   { sequelize, modelName: 'Preinscription', tableName: 'preinscriptions', indexes: [{ fields: ['etablissementId'] }] }
 );

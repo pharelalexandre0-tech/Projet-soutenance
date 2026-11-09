@@ -97,12 +97,14 @@ export function Preinscriptions() {
 
 function DossierCandidat({ dossier: d, classes, onFermer, onFait }) {
   const [commentaire, setCommentaire] = useState(d.commentaire || '');
-  const [classeId, setClasseId] = useState('');
+  const [classeId, setClasseId] = useState(d.classeId ? String(d.classeId) : '');
+  const [frais, setFrais] = useState(d.fraisInscription != null ? String(d.fraisInscription) : '');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   async function decider(statut) {
+    if (statut === 'acceptee' && !classeId) { setErreur('choisissez d’abord la classe d’inscription'); return; }
     setEnCours(true); setErreur('');
-    try { await client.put(`/preinscriptions/${d.id}`, { statut, commentaire }); onFait(statut === 'acceptee' ? 'Dossier accepté : le candidat est prévenu par e-mail.' : statut === 'refusee' ? 'Dossier refusé : le candidat est prévenu par e-mail.' : 'Dossier mis en examen.'); }
+    try { await client.put(`/preinscriptions/${d.id}`, { statut, commentaire, classeId, fraisInscription: frais }); onFait(statut === 'acceptee' ? 'Dossier accepté : le candidat reçoit un lien pour finaliser son inscription en ligne.' : statut === 'refusee' ? 'Dossier refusé : le candidat est prévenu par e-mail.' : 'Dossier mis en examen.'); }
     catch (err) { setErreur(messageErreur(err, 'action impossible')); setEnCours(false); }
   }
   async function inscrire() {
@@ -125,11 +127,14 @@ function DossierCandidat({ dossier: d, classes, onFermer, onFait }) {
         </dl>
         {d.pieces.length > 0 && <div className="puces">{d.pieces.map((p) => <BoutonDocument key={p.id} className="secondaire" chemin={`/api/preinscriptions/pieces/${p.id}`} nomFichier={p.nomFichier}><IconDownload width={14} height={14} /> {PIECES[p.type]}</BoutonDocument>)}</div>}
         <div className="champ"><label htmlFor="pre-com">Message au candidat (facultatif)</label><textarea id="pre-com" rows={2} value={commentaire} onChange={(e) => setCommentaire(e.target.value)} /></div>
-        {d.statut === 'acceptee' && (
+        {d.statut !== 'inscrite' && (
           <div className="ligne-champs">
             <div className="champ"><label htmlFor="pre-classe">Classe d’inscription</label><select id="pre-classe" value={classeId} onChange={(e) => setClasseId(e.target.value)}><option value="">Choisir une classe</option>{classes.map((c) => <option key={c.id} value={c.id}>{c.nom} ({c.niveau})</option>)}</select></div>
-            <button type="button" className="primaire" disabled={!classeId || enCours} onClick={inscrire} style={{ alignSelf: 'flex-end' }}>Inscrire l’étudiant</button>
+            <div className="champ" style={{ maxWidth: 220 }}><label htmlFor="pre-frais">Frais d’inscription (FCFA)</label><input id="pre-frais" type="number" min="0" placeholder="0 si aucun" value={frais} onChange={(e) => setFrais(e.target.value)} /></div>
           </div>
+        )}
+        {d.statut === 'acceptee' && (
+          <p className="note-secondaire" style={{ margin: 0 }}>{d.paiementStatut === 'en_attente' ? 'Le candidat a reçu son lien d’inscription et n’a pas encore réglé ses frais.' : 'Le candidat a reçu son lien d’inscription.'} Vous pouvez aussi l’inscrire directement : <button type="button" className="lien-texte" disabled={!classeId || enCours} onClick={inscrire}>inscrire maintenant</button>.</p>
         )}
         {erreur && <div className="message-erreur">{erreur}</div>}
         <div className="confirmation-actions separees">
@@ -138,7 +143,7 @@ function DossierCandidat({ dossier: d, classes, onFermer, onFait }) {
             <span style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button type="button" className="secondaire" disabled={enCours} onClick={() => decider('en_examen')}>Mettre en examen</button>
               <button type="button" className="secondaire danger" disabled={enCours} onClick={() => decider('refusee')}>Refuser</button>
-              <button type="button" className="primaire" disabled={enCours} onClick={() => decider('acceptee')}>Accepter</button>
+              <button type="button" className="primaire" disabled={enCours} onClick={() => decider('acceptee')}>{d.statut === 'acceptee' ? 'Renvoyer le lien d’inscription' : 'Accepter et envoyer le lien'}</button>
             </span>
           )}
         </div>

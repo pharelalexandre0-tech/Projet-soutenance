@@ -45,5 +45,10 @@ router.delete('/transferts/:id', authentifier, academie, module_('mobilite'), ct
 const publique = express.Router();
 publique.get('/offres', ctrl.offresPubliques);
 publique.post('/', ctrl.deposer);
+const inscription = require('../controllers/inscriptionEnLigneController');
+publique.get('/inscription/:jeton', inscription.consulter);
+publique.post('/inscription/:jeton/paiement', inscription.payer);
+publique.post('/inscription/:jeton/confirmer-test', inscription.confirmerTest);
+publique.post('/inscription/:jeton/guichet', inscription.payerAuGuichet);
 
 module.exports = { router, publique };
