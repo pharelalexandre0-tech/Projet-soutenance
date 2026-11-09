@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import client from '../../api/client';
 import BoutonDocument from '../../components/BoutonDocument';
+import { useFonctionnaliteOuverte } from '../../context/PlateformeContext';
 import { IconDownload, IconDocument, IconShield } from '../../components/icons';
 
 // Documents officiels de l'étudiant, certifiés et vérifiables par QR code :
@@ -10,6 +11,14 @@ export default function MesDocuments() {
   const [semestres, setSemestres] = useState(null);
   useEffect(() => { client.get('/scolarite/semestres').then((r) => setSemestres(r.data.semestres)).catch(() => setSemestres([])); }, []);
   const valides = (semestres || []).filter((s) => s.valide);
+  const estOuverte = useFonctionnaliteOuverte();
+  const [diplomes, setDiplomes] = useState([]);
+  const [memoires, setMemoires] = useState([]);
+  useEffect(() => {
+    if (estOuverte('diplomes')) client.get('/diplomes/moi').then((r) => setDiplomes(r.data.diplomes)).catch(() => {});
+    if (estOuverte('soutenances')) client.get('/memoires/moi').then((r) => setMemoires(r.data.memoires)).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const soutenus = memoires.filter((m) => ['soutenu', 'ajourne'].includes(m.statut));
 
   return (
     <>
@@ -44,6 +53,23 @@ export default function MesDocuments() {
             ))}
           </div>
         </section>
+        {diplomes.map((d) => (
+          <section key={d.id} className="carte carte-document">
+            <div className="entete-carte"><h2><IconDocument /> Diplôme {d.numero}</h2></div>
+            <p className="carte-document-texte">Diplôme du cycle {d.cycle}, mention {d.mentionObtenue}, avec son supplément qui décrit tout le parcours.</p>
+            <div className="carte-document-actions">
+              <BoutonDocument className="primaire" chemin={`/api/diplomes/${d.id}/pdf`}><IconDownload width={16} height={16} /> Diplôme</BoutonDocument>
+              <BoutonDocument className="secondaire" chemin={`/api/diplomes/${d.id}/supplement`}><IconDownload width={16} height={16} /> Supplément au diplôme</BoutonDocument>
+            </div>
+          </section>
+        ))}
+        {soutenus.map((m) => (
+          <section key={m.id} className="carte carte-document">
+            <div className="entete-carte"><h2><IconDocument /> Procès-verbal de soutenance</h2></div>
+            <p className="carte-document-texte">{m.sujet}</p>
+            <div className="carte-document-actions"><BoutonDocument className="primaire" chemin={`/api/memoires/${m.id}/pv`}><IconDownload width={16} height={16} /> Télécharger</BoutonDocument></div>
+          </section>
+        ))}
       </div>
     </>
   );

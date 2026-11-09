@@ -29,6 +29,11 @@ const Reclamations = lazy(() => import('./academie/Reclamations'));
 const Passage = lazy(() => import('./academie/Passage'));
 const BoursesANBG = lazy(() => import('./academie/BoursesANBG'));
 const Professeurs = lazy(() => import('./academie/Professeurs'));
+const Preinscriptions = lazy(() => import('./academie/ModulesLmd').then((m) => ({ default: m.Preinscriptions })));
+const Anonymat = lazy(() => import('./academie/ModulesLmd').then((m) => ({ default: m.Anonymat })));
+const Soutenances = lazy(() => import('./academie/ModulesLmd').then((m) => ({ default: m.Soutenances })));
+const Diplomes = lazy(() => import('./academie/ModulesLmd').then((m) => ({ default: m.Diplomes })));
+const Mobilite = lazy(() => import('./academie/ModulesLmd').then((m) => ({ default: m.Mobilite })));
 
 const ONGLETS = [
   { id: 'tableau-de-bord', label: 'Tableau de bord', composant: TableauDeBord, icone: IconDashboard,
@@ -41,6 +46,10 @@ const ONGLETS = [
     description: 'Créneaux hebdomadaires de chaque classe, et export PDF.' },
   { id: 'appels', label: "Feuilles d'appel", composant: FeuillesAppel, icone: IconClipboard, groupe: 'Scolarité', fonctionnalite: 'acces-temporaires',
     description: 'Appels faits par les professeurs depuis leur accès temporaire : présents, absents et retards de chaque séance.' },
+  { id: 'preinscriptions', label: 'Préinscriptions', composant: Preinscriptions, icone: IconClipboard, groupe: 'Scolarité', fonctionnalite: 'preinscription',
+    description: 'Dossiers de candidature déposés en ligne : examen, réponse par e-mail, inscription des candidats acceptés.' },
+  { id: 'mobilite', label: 'Transferts de crédits', composant: Mobilite, icone: IconLayers, groupe: 'Scolarité', fonctionnalite: 'mobilite',
+    description: 'Crédits obtenus dans un autre établissement, reconnus et comptés dans le parcours LMD.' },
   { id: 'bourses', label: 'Boursiers ANBG', composant: BoursesANBG, icone: IconGraduationCap, groupe: 'Scolarité',
     description: 'Liste des étudiants boursiers de l’Agence nationale des bourses du Gabon, et son export Excel.' },
   { id: 'notes', label: 'Notes', composant: Notes, icone: IconPencil, groupe: 'Évaluation',
@@ -49,6 +58,12 @@ const ONGLETS = [
     description: 'Bulletins semestriels : consultation et envoi aux étudiants.' },
   { id: 'deliberations', label: 'Délibérations', composant: Deliberations, icone: IconClipboard, groupe: 'Évaluation',
     description: 'Séance du jury : décisions, admission par décision du jury, clôture qui verrouille les notes, procès-verbal certifié.' },
+  { id: 'anonymat', label: 'Anonymat des copies', composant: Anonymat, icone: IconClipboard, groupe: 'Évaluation', fonctionnalite: 'anonymat',
+    description: 'Numéros d’anonymat par examen, saisie des notes d’examen par numéro, levée de l’anonymat.' },
+  { id: 'soutenances', label: 'Mémoires et soutenances', composant: Soutenances, icone: IconDocument, groupe: 'Évaluation', fonctionnalite: 'soutenances',
+    description: 'Sujets, encadrement, soutenances, jury, note et procès-verbal certifié ; thèses de doctorat.' },
+  { id: 'diplomes', label: 'Diplômes', composant: Diplomes, icone: IconGraduationCap, groupe: 'Évaluation', fonctionnalite: 'diplomes',
+    description: 'Diplômes de licence, master et doctorat et supplément au diplôme, certifiés, pour les étudiants qui ont réuni leurs crédits.' },
   { id: 'reclamations', label: 'Réclamations de notes', composant: Reclamations, icone: IconMessage, groupe: 'Évaluation',
     description: 'Réclamations déposées par les étudiants : réponse motivée et correction de la note.' },
   { id: 'passage', label: 'Passage d’année', composant: Passage, icone: IconUsers, groupe: 'Évaluation',

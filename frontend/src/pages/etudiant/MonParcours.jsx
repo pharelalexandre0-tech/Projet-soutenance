@@ -6,7 +6,7 @@ import { IconDocument } from '../../components/icons';
 
 const note = (n) => (n == null ? '-' : String(Math.round(n * 100) / 100).replace('.', ','));
 const DECISIONS = { passage: 'Passage', passage_dette: 'Passage avec dette', redoublement: 'Redoublement', sortie: 'Sortie' };
-const TONS = { acquise: 'vert', acquise_rattrapage: 'vert', compensee: 'bleu', jury: 'bleu', deja_acquise: 'gris', repassee: 'gris', eliminatoire: 'rouge', non_validee: 'or' };
+const TONS = { transfere: 'vert', acquise: 'vert', acquise_rattrapage: 'vert', compensee: 'bleu', jury: 'bleu', deja_acquise: 'gris', repassee: 'gris', eliminatoire: 'rouge', non_validee: 'or' };
 
 // Parcours LMD de l'étudiant (et de son parent) : crédits acquis sur tout le
 // cycle, UE à repasser, détail par semestre et le système expliqué simplement.
@@ -103,6 +103,18 @@ export default function MonParcours({ onNaviguer }) {
           </div>
         ))}
       </section>
+
+      {p.transferts?.length > 0 && (
+        <section className="carte">
+          <div className="entete-carte"><h2>Crédits obtenus dans un autre établissement <span className="entete-carte-compteur">{p.transferts.length}</span></h2></div>
+          <div className="table-scroll">
+            <table>
+              <thead><tr><th>Établissement</th><th>Code</th><th>Unité d’enseignement</th><th>Équivalence</th><th className="cellule-nombre">Crédits</th></tr></thead>
+              <tbody>{p.transferts.map((t) => <tr key={t.id}><td>{t.etablissementOrigine}</td><td className="mono">{t.code || ''}</td><td>{t.intitule}</td><td>{t.semestre}</td><td className="cellule-nombre">{t.credits}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {p.aVenir.length > 0 && (
         <section className="carte">

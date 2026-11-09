@@ -324,6 +324,25 @@ async function calculerParcours(eleveId, cache = {}) {
     });
   }
 
+  // Crédits obtenus ailleurs (mobilité, transfert) : acquis, et ils soldent
+  // une UE à repasser de même code ou de même intitulé.
+  const { CreditExterne } = require('../models');
+  const externes = await CreditExterne.findAll({ where: { eleveId }, order: [['createdAt', 'ASC']] });
+  const transferts = [];
+  for (const t of externes) {
+    const cles = clesUE({ cycle: t.cycle, numero: t.numeroSemestre }, t.code || t.intitule, t.intitule);
+    const ligne = {
+      ueId: `ext-${t.id}`, code: t.code, intitule: t.intitule, credits: t.credits, moyenne: t.note, etat: 'transfere', libelle: 'Transférée',
+      acquise: true, semestre: `${LIBELLES_CYCLE[t.cycle] || t.cycle}, Semestre ${t.numeroSemestre}`, anneeScolaire: t.anneeScolaire, cycle: t.cycle, cles,
+      etablissementOrigine: t.etablissementOrigine,
+    };
+    const precedente = cles.map((c) => suivi.get(c)).find(Boolean);
+    if (precedente?.acquise) continue;
+    if (precedente) { precedente.etat = 'repassee'; precedente.libelle = 'Validée par transfert'; for (const c of precedente.cles) suivi.delete(c); }
+    for (const c of cles) suivi.set(c, ligne);
+    transferts.push({ id: t.id, code: t.code, intitule: t.intitule, credits: t.credits, note: t.note, etablissementOrigine: t.etablissementOrigine, pays: t.pays, semestre: ligne.semestre, anneeScolaire: t.anneeScolaire });
+  }
+
   const finales = [...new Set(suivi.values())];
   const parCycle = (c) => finales.filter((l) => l.cycle === c);
   const creditsAcquis = parCycle(cycle).filter((l) => l.acquise).reduce((t, l) => t + l.credits, 0);
@@ -351,7 +370,7 @@ async function calculerParcours(eleveId, cache = {}) {
     pourcentage: Math.min(100, Math.round((creditsAcquis / creditsRequis) * 100)),
     formation: formation ? { id: formation.id, domaine: formation.domaine, mention: formation.mention, parcours: formation.parcours } : null,
     classe: eleve.Classe ? { id: eleve.Classe.id, nom: eleve.Classe.nom, niveau: eleve.Classe.niveau } : null,
-    semestres: lignesSemestres, dettes, aVenir, autresCycles, regles,
+    semestres: lignesSemestres, dettes, aVenir, autresCycles, regles, transferts,
     historique: await ParcoursEleve.findAll({ where: { eleveId }, order: [['createdAt', 'ASC']], attributes: ['id', 'anneeScolaire', 'classeDepart', 'decision', 'classeArrivee', 'moyenneAnnuelle'] }),
   };
 }

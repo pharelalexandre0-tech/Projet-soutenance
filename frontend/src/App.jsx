@@ -18,6 +18,7 @@ const AccesTemporaire = lazy(() => import('./pages/AccesTemporaire'));
 const ReinitialiserMotDePasse = lazy(() => import('./pages/ReinitialiserMotDePasse'));
 const Confidentialite = lazy(() => import('./pages/Confidentialite'));
 const Verifier = lazy(() => import('./pages/Verifier'));
+const PreinscriptionPublique = lazy(() => import('./pages/PreinscriptionPublique'));
 const DashboardAcademie = lazy(() => import('./pages/DashboardAcademie'));
 const DashboardEtudiant = lazy(() => import('./pages/DashboardEtudiant'));
 const DashboardFinance = lazy(() => import('./pages/DashboardFinance'));
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="/reinitialiser-mot-de-passe/:jeton" element={<ReinitialiserMotDePasse />} />
               <Route path="/confidentialite" element={<Confidentialite />} />
               <Route path="/verifier" element={<Verifier />} />
+              <Route path="/preinscription" element={<PreinscriptionPublique />} />
               <Route path="/verifier/:code" element={<Verifier />} />
               <Route
                 path="/"

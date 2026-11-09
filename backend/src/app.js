@@ -63,6 +63,8 @@ app.use(compression());
 // Limite par défaut (100kb) trop basse pour le logo d'établissement,
 // envoyé en base64 dans le JSON (~1,4x sa taille binaire) — 3mb laisse une
 // marge confortable sur une image déjà bridée à 1mb côté frontend.
+// Préinscription publique : un dossier peut porter quelques pièces (PDF, photos).
+app.use('/api/preinscriptions-publiques', express.json({ limit: '12mb' }), require('./routes/modulesLmd').publique);
 app.use(express.json({ limit: '3mb' }));
 
 // Un formulaire de connexion mal protégé accepte des centaines d'essais
@@ -126,6 +128,7 @@ app.use('/api/absences', absencesRoutes);
 app.use('/api/incidents', incidentsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/paiements-en-ligne', require('./routes/paiementsEnLigne'));
+app.use('/api', require('./routes/modulesLmd').router);
 app.use('/api/predictions', predictionsRoutes);
 app.use('/api/plateforme', plateformeRoutes);
 app.use('/api/extensions', extensionsRoutes);

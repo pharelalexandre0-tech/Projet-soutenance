@@ -9,6 +9,7 @@ const Formation = require('./Formation');
 const RegleNationale = require('./RegleNationale');
 const RequeteIdempotente = require('./RequeteIdempotente');
 const PaiementEnLigne = require('./PaiementEnLigne');
+const { Preinscription, PieceCandidature, NumeroAnonymat, Memoire, Diplome, CreditExterne } = require('./ModulesLmd');
 const Matiere = require('./Matiere');
 const EmploiDuTemps = require('./EmploiDuTemps');
 const PublicationEmploiDuTemps = require('./PublicationEmploiDuTemps');
@@ -213,6 +214,9 @@ Paiement.belongsTo(Utilisateur, { foreignKey: 'enregistreParFinanceId', as: 'enr
 
 Paiement.hasOne(Recu, { foreignKey: 'paiementId' });
 PaiementEnLigne.belongsTo(Eleve, { foreignKey: 'eleveId' });
+NumeroAnonymat.belongsTo(Eleve, { foreignKey: 'eleveId' });
+Memoire.belongsTo(Eleve, { foreignKey: 'eleveId' });
+Diplome.belongsTo(Eleve, { foreignKey: 'eleveId' });
 PaiementEnLigne.belongsTo(FraisScolarite, { foreignKey: 'fraisId' });
 Recu.belongsTo(Paiement, { foreignKey: 'paiementId' });
 
@@ -263,6 +267,12 @@ module.exports = {
   RegleNationale,
   RequeteIdempotente,
   PaiementEnLigne,
+  Preinscription,
+  PieceCandidature,
+  NumeroAnonymat,
+  Memoire,
+  Diplome,
+  CreditExterne,
   Utilisateur,
   Professeur,
   Classe,
