@@ -148,6 +148,10 @@ const LIBELLES_TYPE_MESSAGE = { message: 'Message', annonce: 'Annonce', convocat
 
 // Formation choisie dans un formulaire : vide = aucune, sinon elle doit être
 // une formation de cette école.
+// Seuls les champs attendus d'un formulaire sont gardés : un identifiant ou
+// une école glissés dans la requête sont ignorés.
+const choisir = (corps, cles) => Object.fromEntries(cles.filter((k) => corps?.[k] !== undefined).map((k) => [k, corps[k]]));
+
 async function formationDeLEcole(valeur, etablissementId) {
   if (valeur === undefined || valeur === null || valeur === '') return null;
   const formation = await Formation.findOne({ where: { id: valeur, etablissementId } });
@@ -157,7 +161,7 @@ async function formationDeLEcole(valeur, etablissementId) {
 
 async function creerClasse(req, res) {
   const formationId = await formationDeLEcole(req.body.formationId, req.utilisateur.etablissementId);
-  const classe = await Classe.create({ ...req.body, formationId, etablissementId: req.utilisateur.etablissementId });
+  const classe = await Classe.create({ ...choisir(req.body, ['nom', 'niveau']), formationId, etablissementId: req.utilisateur.etablissementId });
   return res.status(201).json({ classe });
 }
 async function listerClasses(req, res) {
@@ -224,7 +228,7 @@ async function statistiquesClasse(req, res) {
 }
 
 async function creerProfesseur(req, res) {
-  const professeur = await Professeur.create({ ...req.body, etablissementId: req.utilisateur.etablissementId });
+  const professeur = await Professeur.create({ ...choisir(req.body, ['nom', 'prenom', 'email', 'matiere', 'telephone', 'statut', 'grade']), etablissementId: req.utilisateur.etablissementId });
   // Il apparaît aussitôt dans la paie du personnel (Espace Finance).
   await rattacherProfesseursALaPaie(req.utilisateur.etablissementId);
   return res.status(201).json({ professeur });
@@ -397,7 +401,7 @@ async function creerUE(req, res) {
   // L'index unique ne voit pas les doublons sans formation (NULL) : vérifié ici.
   const doublon = await UniteEnseignement.findOne({ where: { semestreId, code: req.body.code, formationId } });
   if (doublon) return res.status(409).json({ erreur: 'ce code d’UE existe déjà pour ce semestre et cette formation' });
-  const ue = await UniteEnseignement.create({ ...req.body, formationId });
+  const ue = await UniteEnseignement.create({ ...choisir(req.body, ['code', 'intitule', 'credits', 'coefficient', 'semestreId']), formationId });
   return res.status(201).json({ ue });
 }
 async function listerUE(req, res) {
@@ -484,7 +488,7 @@ async function creerMatiere(req, res) {
   if (!ue || ue.Semestre?.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: "unité d'enseignement introuvable" });
   }
-  const matiere = await Matiere.create(req.body);
+  const matiere = await Matiere.create({ ...choisir(req.body, ['code', 'intitule', 'coefficient']), uniteEnseignementId: ue.id });
   return res.status(201).json({ matiere });
 }
 
@@ -509,7 +513,11 @@ async function creerEmploiDuTemps(req, res) {
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'classe introuvable' });
   }
-  const emploi = await EmploiDuTemps.create(req.body);
+  if (req.body.semestreId) {
+    const semestre = await Semestre.findOne({ where: { id: req.body.semestreId, etablissementId: req.utilisateur.etablissementId } });
+    if (!semestre) return res.status(404).json({ erreur: 'semestre introuvable' });
+  }
+  const emploi = await EmploiDuTemps.create({ ...choisir(req.body, ['jour', 'heureDebut', 'heureFin', 'salle', 'matiere', 'semestreId']), classeId: classe.id });
   return res.status(201).json({ emploi });
 }
 async function listerEmploisDuTemps(req, res) {
@@ -606,7 +614,7 @@ async function ajouterCahierDeTextes(req, res) {
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'classe introuvable' });
   }
-  const entree = await CahierDeTextes.create({ ...req.body, academieId: req.utilisateur.id });
+  const entree = await CahierDeTextes.create({ ...choisir(req.body, ['date', 'contenuSeance']), classeId: classe.id, academieId: req.utilisateur.id });
   return res.status(201).json({ entree });
 }
 

@@ -64,7 +64,7 @@ app.use(compression());
 // envoyé en base64 dans le JSON (~1,4x sa taille binaire) — 3mb laisse une
 // marge confortable sur une image déjà bridée à 1mb côté frontend.
 // Préinscription publique : un dossier peut porter quelques pièces (PDF, photos).
-app.use('/api/preinscriptions-publiques', express.json({ limit: '12mb' }), require('./routes/modulesLmd').publique);
+app.use('/api/preinscriptions-publiques', rateLimit({ windowMs: 60 * 60 * 1000, limit: (req) => (req.method === 'POST' ? 8 : 120), standardHeaders: true, legacyHeaders: false, message: { erreur: 'trop de dossiers envoyés depuis cette connexion, réessayez dans une heure' } }), express.json({ limit: '12mb' }), require('./routes/modulesLmd').publique);
 app.use(express.json({ limit: '3mb' }));
 
 // Un formulaire de connexion mal protégé accepte des centaines d'essais
@@ -165,6 +165,12 @@ app.use((err, req, res, next) => {
   if (err.name === 'SequelizeUniqueConstraintError') {
     return res.status(409).json({ erreur: 'cette valeur existe déjà' });
   }
+  if (err.name === 'SequelizeDatabaseError' && ['22P02', '22007', '22008', '22003'].includes(err.parent?.code)) {
+    return res.status(400).json({ erreur: 'paramètre invalide' });
+  }
+  if (err.message === 'origine non autorisée') return res.status(403).json({ erreur: 'origine non autorisée' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ erreur: 'contenu trop volumineux' });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ erreur: 'requête mal formée' });
   console.error(err);
   const exposable = Number.isInteger(err.status);
   res.status(err.status || 500).json({ erreur: exposable ? err.message : 'erreur interne du serveur' });

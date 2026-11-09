@@ -68,6 +68,8 @@ async function deposer(req, res) {
     const m = /^data:([^;]+);base64,(.+)$/.exec(String(p.contenu || ''));
     if (!m || !TYPES_FICHIER.includes(m[1])) throw erreur('chaque pièce doit être un PDF, un JPEG ou un PNG');
     const contenu = Buffer.from(m[2], 'base64');
+    const signature = { 'application/pdf': [0x25, 0x50, 0x44, 0x46], 'image/jpeg': [0xFF, 0xD8, 0xFF], 'image/png': [0x89, 0x50, 0x4E, 0x47] }[m[1]];
+    if (!signature.every((o, i) => contenu[i] === o)) throw erreur(`le fichier « ${String(p.nomFichier || '').slice(0, 60)} » n’est pas un vrai ${m[1] === 'application/pdf' ? 'PDF' : 'fichier image'}`);
     if (contenu.length > TAILLE_MAX) throw erreur('chaque pièce doit faire moins de 2 Mo');
     fichiers.push({ type: PIECES[p.type] ? p.type : 'autre', nomFichier: texte(p.nomFichier, 200) || 'piece', typeMime: m[1], taille: contenu.length, contenu });
   }
@@ -95,7 +97,7 @@ async function telechargerPiece(req, res) {
   const piece = await PieceCandidature.findByPk(req.params.id);
   const dossier = piece && await Preinscription.findOne({ where: { id: piece.preinscriptionId, etablissementId: req.utilisateur.etablissementId } });
   if (!dossier) throw erreur('pièce introuvable', 404);
-  res.set({ 'Content-Type': piece.typeMime, 'Content-Disposition': `inline; filename="${encodeURIComponent(piece.nomFichier)}"`, 'Cache-Control': 'private, no-store' });
+  res.set({ 'Content-Type': piece.typeMime, 'Content-Disposition': `attachment; filename="${encodeURIComponent(piece.nomFichier)}"`, 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' });
   return res.send(piece.contenu);
 }
 

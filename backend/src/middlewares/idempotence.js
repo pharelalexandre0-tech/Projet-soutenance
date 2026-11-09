@@ -5,7 +5,8 @@ function idempotence(req, res, next) {
   const cle = String(req.get('X-Idempotence') || '').trim().slice(0, 80);
   if (!cle) return next();
   const { RequeteIdempotente } = require('../models');
-  const route = `${req.method} ${req.baseUrl}${req.route?.path || req.path}`.slice(0, 160);
+  const qui = req.utilisateur ? `u${req.utilisateur.id}${req.sessionParent ? 'p' : ''}` : req.compteEphemere ? `e${req.compteEphemere.id}` : 'anonyme';
+  const route = `${qui} ${req.method} ${req.baseUrl}${req.route?.path || req.path}`.slice(0, 160);
   RequeteIdempotente.findOne({ where: { cle, route } }).then((deja) => {
     if (deja) return res.status(deja.statut).json(deja.reponse);
     const json = res.json.bind(res);
