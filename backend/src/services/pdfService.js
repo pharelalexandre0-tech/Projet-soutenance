@@ -534,7 +534,7 @@ const LIBELLE_STATUT_FRAIS = { du: 'Dû', partiel: 'Partiellement réglé', sold
 // genererRecuPDF(paiement) - diagramme 8. Document officiel au même
 // modèle que le bulletin : identité de l'école, élève, détail du règlement,
 // récapitulatif du frais, montant en toutes lettres, signature.
-async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissement, emisParId = null }) {
+async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissement, emisParId = null, modeTest = false }) {
   const nomFichier = `recu_${recuNumero}.pdf`;
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
 
@@ -546,7 +546,7 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
     cle: `recu_${recuNumero}`,
     type: 'recu',
     etablissement,
-    titre: `Reçu de paiement N° ${recuNumero}`,
+    titre: `${modeTest ? 'SPÉCIMEN (mode test) : ' : ''}Reçu de paiement N° ${recuNumero}`,
     titulaire: `${String(eleve.nom || '').toUpperCase()} ${eleve.prenom || ''}`.trim(),
     elements: [
       ['Matricule', eleve.matricule],
@@ -562,8 +562,8 @@ async function genererRecuPDF({ recuNumero, eleve, frais, paiement, etablissemen
 
   let y = enTeteOfficiel(doc, etablissement, {
     surtitre: 'SERVICE FINANCIER',
-    titre: 'REÇU DE PAIEMENT',
-    sousTitre: `N° ${recuNumero}`,
+    titre: modeTest ? 'SPÉCIMEN, MODE TEST' : 'REÇU DE PAIEMENT',
+    sousTitre: modeTest ? `N° ${recuNumero} · aucun argent débité` : `N° ${recuNumero}`,
     reference: `Émis le ${datePaiement}`,
     certification,
   });

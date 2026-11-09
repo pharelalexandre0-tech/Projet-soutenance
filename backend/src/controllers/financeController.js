@@ -97,43 +97,7 @@ async function enregistrerPaiement(req, res) {
     return res.status(400).json({ erreur: 'erreur (montant incorrect)' });
   }
 
-  const paiement = await Paiement.create({
-    fraisId,
-    montant,
-    modePaiement,
-    statut: 'valide',
-    enregistreParFinanceId: req.utilisateur.id,
-  });
-
-  frais.montantRegle += montant;
-  frais.statut = frais.montantRegle >= frais.montant ? 'solde' : 'partiel';
-  await frais.save();
-
-  const recuNumero = `REC-${new Date().getFullYear()}-${String(paiement.id).padStart(5, '0')}`;
-  const { contenu, cheminRelatif } = await genererRecuPDF({
-    recuNumero,
-    eleve: frais.Eleve,
-    frais,
-    paiement,
-    etablissement: await obtenirEtablissementDe(req.utilisateur.etablissementId),
-    emisParId: req.utilisateur.id,
-  });
-  const recu = await Recu.create({ numero: recuNumero, paiementId: paiement.id, fichierPDF: cheminRelatif });
-
-  const adresses = await envoyerALaFamille(
-    frais.Eleve,
-    `Reçu de paiement : ${frais.libelle}`,
-    `Votre paiement de ${montant} FCFA a été enregistré. Vous trouverez le reçu ${recuNumero} en pièce jointe.`,
-    [{ contenu, nomFichier: `${recuNumero}.pdf` }]
-  );
-  if (frais.Eleve.compteEtudiant) {
-    await Notification.create({
-      utilisateurId: frais.Eleve.compteEtudiant.id,
-      contenu: `Paiement de ${montant} FCFA reçu pour "${frais.libelle}". Statut du frais : ${frais.statut}.`,
-    });
-  }
-  const recuEnvoyeA = adresses.length ? adresses.join(', ') : null;
-
+  const { paiement, recu, recuEnvoyeA } = await require('../services/encaissementService').encaisser({ frais, montant, modePaiement, enregistreParId: req.utilisateur.id });
   return res.status(201).json({ paiement, recu, frais, recuEnvoyeA });
 }
 

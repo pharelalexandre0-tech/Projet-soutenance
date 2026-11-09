@@ -4053,3 +4053,14 @@ th { background: #F7F8F6; color: var(--texte-clair); }
 @keyframes clignote-attente { 50% { opacity: .3; } }
 .message-attente { background: var(--alerte-fond); color: var(--alerte); border-radius: 8px; padding: 12px 14px; font-size: 14px; line-height: 1.45; }
 @media (max-width: 760px) { .saisies-attente { left: 16px; right: 16px; transform: none; justify-content: center; } }
+
+/* Paiement mobile money */
+.choix-operateur { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.choix-operateur .operateur { all: unset; box-sizing: border-box; text-align: center; cursor: pointer; padding: 14px; border-radius: 10px; border: 2px solid var(--bordure); font-weight: 700; }
+.choix-operateur .operateur.airtel.choisi { border-color: #E30613; color: #B0050F; background: #FDECEC; }
+.choix-operateur .operateur.moov.choisi { border-color: #0067B1; color: #00518B; background: #E8F1F9; }
+.choix-operateur .operateur:focus-visible { outline: 2px solid var(--primaire); outline-offset: 2px; }
+.attente-telephone { display: flex; gap: 14px; align-items: flex-start; background: var(--gris-fond); border-radius: 10px; padding: 14px; }
+.attente-telephone p { margin: 4px 0 0; font-size: 14px; color: var(--texte-clair); }
+.rond-attente { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--primaire); border-top-color: transparent; animation: tourne-attente 1s linear infinite; margin-top: 2px; }
+@keyframes tourne-attente { to { transform: rotate(360deg); } }

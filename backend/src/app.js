@@ -125,6 +125,7 @@ app.use('/api/bulletins', bulletinsRoutes);
 app.use('/api/absences', absencesRoutes);
 app.use('/api/incidents', incidentsRoutes);
 app.use('/api/finance', financeRoutes);
+app.use('/api/paiements-en-ligne', require('./routes/paiementsEnLigne'));
 app.use('/api/predictions', predictionsRoutes);
 app.use('/api/plateforme', plateformeRoutes);
 app.use('/api/extensions', extensionsRoutes);

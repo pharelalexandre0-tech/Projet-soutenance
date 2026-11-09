@@ -6,7 +6,7 @@ import {
   Link2, Library, Video, Globe, Trash2, Pencil, Info, Send, Calendar, Newspaper, LifeBuoy, Briefcase, Award,
   Bus, Utensils, HandCoins, ArrowLeft, Database, Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye,
   EyeOff, Upload, UserPlus, Copy, School, Flag, Sparkles, Bot, Inbox, Table2, MessageCircleQuestion, ListChecks,
-  Trophy, HeartPulse, SendHorizontal, WifiOff, ShieldX, ShieldAlert, FileCheck2, QrCode, Fingerprint,
+  Trophy, HeartPulse, SendHorizontal, WifiOff, ShieldX, ShieldAlert, FileCheck2, QrCode, Fingerprint, Smartphone,
 } from 'lucide-react';
 
 // Jeu d'icônes Lucide (trait régulier, dessin sobre) à la place des icônes
@@ -53,6 +53,7 @@ export const IconWrench = avecTrait(Wrench);
 export const IconCalendar = avecTrait(CalendarDays);
 export const IconCheck = avecTrait(Check);
 export const IconScale = avecTrait(Scale);
+export const IconSmartphone = avecTrait(Smartphone);
 
 export const IconLayers = avecTrait(Layers);
 export const IconTrendingDown = avecTrait(TrendingDown);
@@ -91,6 +92,7 @@ export const IconFlag = avecTrait(Flag);
 // ICONES_PERSONNALISABLES côté backend), plus celles des modules intégrés.
 export const ICONES_FONCTIONNALITES = {
   FileText: avecTrait(FileText),
+  Smartphone: avecTrait(Smartphone),
   BookOpen: avecTrait(BookOpen),
   Library: avecTrait(Library),
   GraduationCap: avecTrait(GraduationCap),

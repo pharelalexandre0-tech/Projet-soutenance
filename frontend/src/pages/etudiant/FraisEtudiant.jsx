@@ -3,6 +3,8 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import { IconBanknote, IconCard } from '../../components/icons';
 import BoutonDocument from '../../components/BoutonDocument';
+import PaiementMobileMoney from '../../components/PaiementMobileMoney';
+import { useFonctionnaliteOuverte } from '../../context/PlateformeContext';
 
 const STYLE_STATUT = { du: 'gris', partiel: 'or', solde: 'vert', impaye: 'rouge' };
 const LIBELLE_STATUT = { du: 'Dû', partiel: 'Partiel', solde: 'Soldé', impaye: 'Impayé' };
@@ -14,6 +16,9 @@ function dateLongue(iso) {
 export default function FraisEtudiant({ eleveId }) {
   const [frais, setFrais] = useState([]);
   const [paiements, setPaiements] = useState([]);
+  const [aPayer, setAPayer] = useState(null);
+  const estOuverte = useFonctionnaliteOuverte();
+  const paiementEnLigne = estOuverte('paiement-en-ligne');
 
   function charger() {
     if (!eleveId) return;
@@ -54,7 +59,7 @@ export default function FraisEtudiant({ eleveId }) {
         <h2>Frais et échéances</h2>
         <div className="table-scroll">
           <table>
-            <thead><tr><th>Frais</th><th className="chiffre">Montant</th><th>Échéance</th><th>Réglé</th><th>Statut</th></tr></thead>
+            <thead><tr><th>Frais</th><th className="chiffre">Montant</th><th>Échéance</th><th>Réglé</th><th>Statut</th>{paiementEnLigne && <th aria-label="Payer" />}</tr></thead>
             <tbody>
               {frais.map((f) => {
                 const pct = f.montant > 0 ? Math.min(100, Math.round((f.montantRegle / f.montant) * 100)) : 0;
@@ -70,10 +75,11 @@ export default function FraisEtudiant({ eleveId }) {
                       </div>
                     </td>
                     <td><span className={`badge ${STYLE_STATUT[f.statut]}`}>{LIBELLE_STATUT[f.statut] ?? f.statut}</span></td>
+                    {paiementEnLigne && <td className="cellule-actions">{f.montant - f.montantRegle > 0.5 && <button type="button" className="primaire" onClick={() => setAPayer(f)}>Payer par mobile money</button>}</td>}
                   </tr>
                 );
               })}
-              {frais.length === 0 && <tr><td colSpan={5} className="vide">Aucun frais enregistré pour le moment</td></tr>}
+              {frais.length === 0 && <tr><td colSpan={paiementEnLigne ? 6 : 5} className="vide">Aucun frais enregistré pour le moment</td></tr>}
             </tbody>
           </table>
         </div>
@@ -101,6 +107,7 @@ export default function FraisEtudiant({ eleveId }) {
           </table>
         </div>
       </div>
+      {aPayer && <PaiementMobileMoney frais={aPayer} onFermer={() => { setAPayer(null); charger(); }} onPaye={charger} />}
     </>
   );
 }

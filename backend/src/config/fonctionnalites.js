@@ -51,6 +51,13 @@ const MODULES_INTEGRES = [
     icone: 'Wallet',
   },
   {
+    cle: 'paiement-en-ligne',
+    nom: 'Paiement mobile money',
+    description: 'Les étudiants et les parents paient leurs frais par Airtel Money ou Moov Money depuis l’application ; le reçu certifié est émis automatiquement.',
+    espaces: ['etudiant', 'finance'],
+    icone: 'Smartphone',
+  },
+  {
     cle: 'frais-en-ligne',
     nom: 'Frais et reçus en ligne',
     description: 'Consultation des frais de scolarité, des paiements et des reçus par les étudiants et les parents.',

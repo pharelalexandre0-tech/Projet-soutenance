@@ -8,6 +8,7 @@ const UniteEnseignement = require('./UniteEnseignement');
 const Formation = require('./Formation');
 const RegleNationale = require('./RegleNationale');
 const RequeteIdempotente = require('./RequeteIdempotente');
+const PaiementEnLigne = require('./PaiementEnLigne');
 const Matiere = require('./Matiere');
 const EmploiDuTemps = require('./EmploiDuTemps');
 const PublicationEmploiDuTemps = require('./PublicationEmploiDuTemps');
@@ -211,6 +212,8 @@ Utilisateur.hasMany(Paiement, { foreignKey: 'enregistreParFinanceId' });
 Paiement.belongsTo(Utilisateur, { foreignKey: 'enregistreParFinanceId', as: 'enregistrePar' });
 
 Paiement.hasOne(Recu, { foreignKey: 'paiementId' });
+PaiementEnLigne.belongsTo(Eleve, { foreignKey: 'eleveId' });
+PaiementEnLigne.belongsTo(FraisScolarite, { foreignKey: 'fraisId' });
 Recu.belongsTo(Paiement, { foreignKey: 'paiementId' });
 
 Utilisateur.hasMany(Salaire, { foreignKey: 'gereParFinanceId' });
@@ -259,6 +262,7 @@ module.exports = {
   Formation,
   RegleNationale,
   RequeteIdempotente,
+  PaiementEnLigne,
   Utilisateur,
   Professeur,
   Classe,
