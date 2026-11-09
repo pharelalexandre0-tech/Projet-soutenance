@@ -177,7 +177,9 @@ export default function Notes() {
       // Enregistré : les champs se vident pour la saisie suivante.
       setValeurs({});
       setImportMessage('');
-      setMessage(`${res.data.resultats.length} moyenne(s) enregistrée(s) (session ${session === 'rattrapage' ? 'de rattrapage' : 'normale'}).`);
+      setMessage(res.data.enAttente
+        ? `Hors ligne : ${notes.length} moyenne(s) gardée(s) sur cet appareil. Elles seront envoyées automatiquement au retour du réseau.`
+        : `${res.data.resultats.length} moyenne(s) enregistrée(s) (session ${session === 'rattrapage' ? 'de rattrapage' : 'normale'}).`);
     } catch (err) {
       setMessage(err.response?.data?.erreur || "échec de l'enregistrement");
     } finally {
@@ -224,6 +226,7 @@ export default function Notes() {
     try {
       const res = await client.post('/notes', { notes, session });
       const nbEleves = new Set(notes.map((n) => n.eleveId)).size;
+      if (res.data.enAttente) { setImportGlobal({ message: `Hors ligne : ${notes.length} moyennes gardées sur cet appareil, envoyées automatiquement au retour du réseau.` }); return; }
       setImportGlobal({
         message: `${res.data.resultats.length} moyennes enregistrées pour ${nbEleves} élève${nbEleves > 1 ? 's' : ''} dans ${reconnues.length} matière${reconnues.length > 1 ? 's' : ''} (session ${session}).`
           + (introuvables.length ? ` Élèves non reconnus dans la classe : ${introuvables.slice(0, 8).join(', ')}${introuvables.length > 8 ? '…' : ''}.` : '')

@@ -29,7 +29,7 @@ const fraisEnLigne = exigerFonctionnalite('frais-en-ligne', { roles: ['etudiant'
 router.post('/frais/classe', authentifier, finance, definirFraisClasse);
 router.get('/frais/eleve/:eleveId', authentifier, fraisEnLigne, listerFraisEleve);
 
-router.post('/paiements', authentifier, finance, enregistrerPaiement);
+router.post('/paiements', authentifier, finance, require('../middlewares/idempotence'), enregistrerPaiement);
 router.get('/paiements/eleve/:eleveId', authentifier, fraisEnLigne, listerPaiementsEleve);
 
 router.post('/impayes/verifier', authentifier, finance, verifierImpayes);

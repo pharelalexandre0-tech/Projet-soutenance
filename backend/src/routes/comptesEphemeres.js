@@ -35,7 +35,7 @@ router.get('/comptes-rendus/:id', ...academieAvecModule, detailCompteRendu);
 // selon la tâche du compte éphémère). Pas de session classique ici, le
 // jeton fait office d'authentification temporaire.
 router.get('/:jeton', ...lienProfesseur, verifierJeton);
-router.post('/:jeton/notes', ...lienProfesseur, enregistrerNotesEphemere);
-router.post('/:jeton/absences', ...lienProfesseur, saisirAppelEphemere);
+router.post('/:jeton/notes', ...lienProfesseur, require('../middlewares/idempotence'), enregistrerNotesEphemere);
+router.post('/:jeton/absences', ...lienProfesseur, require('../middlewares/idempotence'), saisirAppelEphemere);
 
 module.exports = router;

@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import LimiteErreurChargement from './components/LimiteErreurChargement';
 import EcranMaintenance from './components/EcranMaintenance';
 import BandeauHorsLigne from './components/BandeauHorsLigne';
+import SaisiesEnAttente from './components/SaisiesEnAttente';
 import EcranDemarrage, { demarrageAAfficher } from './components/EcranDemarrage';
 import IntroMobile from './mobile/IntroApplication';
 import Login from './pages/Login';
@@ -78,6 +79,7 @@ export default function App() {
           </Suspense>
           <EcranMaintenance />
           <BandeauHorsLigne />
+          <SaisiesEnAttente />
           {demarrage && (IntroApplication
             ? <IntroApplication onTermine={() => setDemarrage(false)} />
             : <EcranDemarrage onTermine={() => setDemarrage(false)} />)}

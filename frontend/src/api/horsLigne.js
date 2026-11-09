@@ -7,14 +7,17 @@
 // - Connexion sans réseau : possible seulement sur un appareil où ce compte
 //   s'est déjà connecté en ligne. Le mot de passe n'est pas gardé, seulement
 //   une empreinte (PBKDF2 salé) qui permet de le vérifier.
-// - Les modifications (ajout, saisie, paiement...) demandent le serveur :
-//   hors ligne, elles sont refusées avec un message clair.
+// - Les saisies courantes (moyennes, feuille d'appel, paiement) faites sans
+//   réseau sont gardées dans une file d'attente sur l'appareil, puis envoyées
+//   d'elles-mêmes au retour du réseau (voir fileAttente.js). Les autres
+//   modifications demandent le serveur et sont refusées avec un message clair.
 //
 // Stockage : IndexedDB (accepte les PDF en Blob), base « edusphere-hors-ligne ».
 
 const BASE = 'edusphere-hors-ligne';
 const LECTURES = 'lectures';
 const COMPTES = 'comptes';
+const ATTENTE = 'attente';
 const CLE_COMPTE = 'es_compte_hors_ligne';
 
 let basePromesse = null;
@@ -22,11 +25,12 @@ function ouvrirBase() {
   if (basePromesse) return basePromesse;
   basePromesse = new Promise((resoudre, rejeter) => {
     if (typeof indexedDB === 'undefined') { rejeter(new Error('stockage indisponible')); return; }
-    const demande = indexedDB.open(BASE, 1);
+    const demande = indexedDB.open(BASE, 2);
     demande.onupgradeneeded = () => {
       const db = demande.result;
       if (!db.objectStoreNames.contains(LECTURES)) db.createObjectStore(LECTURES);
       if (!db.objectStoreNames.contains(COMPTES)) db.createObjectStore(COMPTES);
+      if (!db.objectStoreNames.contains(ATTENTE)) db.createObjectStore(ATTENTE);
     };
     demande.onsuccess = () => resoudre(demande.result);
     demande.onerror = () => rejeter(demande.error);
@@ -84,6 +88,76 @@ export async function retrouverLecture(config) {
   const compte = compteCourant();
   if (!compte) return null;
   try { return (await lire(LECTURES, `${compte}|${cleLecture(config)}`)) || null; } catch { return null; }
+}
+
+// ---- File d'attente des saisies faites hors ligne ----
+// Seules ces saisies peuvent attendre le réseau : elles sont rejouées telles
+// quelles, avec une clé qui empêche tout doublon côté serveur.
+const SAISIES_DIFFERABLES = [
+  { motif: /^\/notes$/, libelle: 'Moyennes saisies' },
+  { motif: /^\/finance\/paiements$/, libelle: 'Paiement encaissé' },
+  { motif: /^\/comptes-ephemeres\/[^/]+\/notes$/, libelle: 'Notes du professeur' },
+  { motif: /^\/comptes-ephemeres\/[^/]+\/absences$/, libelle: "Feuille d'appel" },
+];
+const cheminDe = (config) => String(config.url || '').replace(/^https?:\/\/[^/]+/, '').replace(/^\/api/, '').split('?')[0];
+export function saisieDifferable(config) {
+  if ((config.method || 'get').toLowerCase() !== 'post') return null;
+  const chemin = cheminDe(config);
+  return SAISIES_DIFFERABLES.find((s) => s.motif.test(chemin))?.libelle || null;
+}
+function compteDeLaSaisie(config) {
+  const lien = cheminDe(config).match(/^\/comptes-ephemeres\/([^/]+)\//);
+  return compteCourant() || (lien ? `lien:${lien[1]}` : null);
+}
+const ecouteursAttente = new Set();
+async function diffuserAttente() {
+  const liste = await listerAttente();
+  ecouteursAttente.forEach((f) => { try { f(liste); } catch { /* sans effet sur les autres */ } });
+}
+export function suivreAttente(f) {
+  ecouteursAttente.add(f);
+  listerAttente().then(f).catch(() => {});
+  return () => ecouteursAttente.delete(f);
+}
+export async function mettreEnAttente(config, libelle) {
+  const compte = compteDeLaSaisie(config);
+  if (!compte) return null;
+  let corps = config.data;
+  if (typeof corps === 'string') { try { corps = JSON.parse(corps); } catch { /* garde le texte */ } }
+  const cle = config.headers?.['X-Idempotence'] || config.headers?.get?.('X-Idempotence') || (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+  const fiche = { id: cle, compte, methode: 'post', url: cheminDe(config), corps, libelle, date: Date.now(), rejet: null };
+  await ecrire(ATTENTE, cle, fiche);
+  diffuserAttente();
+  return fiche;
+}
+export async function listerAttente() {
+  const compte = compteCourant();
+  try {
+    const db = await ouvrirBase();
+    const toutes = await new Promise((resoudre, rejeter) => {
+      const demande = db.transaction(ATTENTE).objectStore(ATTENTE).getAll();
+      demande.onsuccess = () => resoudre(demande.result || []);
+      demande.onerror = () => rejeter(demande.error);
+    });
+    const page = typeof window !== 'undefined' ? window.location.pathname : '';
+    return toutes
+      .filter((f) => f.compte === compte || (f.compte.startsWith('lien:') && page.includes(f.compte.slice(5))))
+      .sort((a, b) => a.date - b.date);
+  } catch { return []; }
+}
+export async function retirerAttente(id) {
+  const db = await ouvrirBase();
+  await new Promise((resoudre) => {
+    const tx = db.transaction(ATTENTE, 'readwrite');
+    tx.objectStore(ATTENTE).delete(id);
+    tx.oncomplete = () => resoudre();
+    tx.onerror = () => resoudre();
+  });
+  diffuserAttente();
+}
+export async function marquerRejet(fiche, message) {
+  await ecrire(ATTENTE, fiche.id, { ...fiche, rejet: message });
+  diffuserAttente();
 }
 
 // ---- État de la connexion, pour le bandeau ----

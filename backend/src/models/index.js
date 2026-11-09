@@ -7,6 +7,7 @@ const Semestre = require('./Semestre');
 const UniteEnseignement = require('./UniteEnseignement');
 const Formation = require('./Formation');
 const RegleNationale = require('./RegleNationale');
+const RequeteIdempotente = require('./RequeteIdempotente');
 const Matiere = require('./Matiere');
 const EmploiDuTemps = require('./EmploiDuTemps');
 const PublicationEmploiDuTemps = require('./PublicationEmploiDuTemps');
@@ -257,6 +258,7 @@ module.exports = {
   sequelize,
   Formation,
   RegleNationale,
+  RequeteIdempotente,
   Utilisateur,
   Professeur,
   Classe,

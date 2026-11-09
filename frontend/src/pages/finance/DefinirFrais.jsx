@@ -275,7 +275,7 @@ function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
     setErreur('');
     try {
       const res = await client.post('/finance/paiements', { fraisId: eleve.fraisActifId, montant: Number(form.montant), modePaiement: form.modePaiement });
-      setConfirmation({ montant: Number(form.montant), recu: res.data.recu, recuEnvoyeA: res.data.recuEnvoyeA });
+      setConfirmation({ montant: Number(form.montant), recu: res.data.recu, recuEnvoyeA: res.data.recuEnvoyeA, enAttente: Boolean(res.data.enAttente) });
       onPaye();
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'erreur (montant incorrect)');
@@ -290,6 +290,9 @@ function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
         <div className="message-succes" style={{ marginBottom: 16 }}>
           {confirmation.montant.toLocaleString('fr-FR')} FCFA encaissé pour {eleve.prenom} {eleve.nom}.
         </div>
+        {confirmation.enAttente ? (
+          <div className="message-attente">Hors ligne : le paiement est gardé sur cet appareil. Il sera enregistré dès le retour du réseau ; le reçu sera alors créé et envoyé à la famille.</div>
+        ) : (
         <BoutonDocument
           chemin={confirmation.recu.fichierPDF}
           className="primaire"
@@ -297,6 +300,7 @@ function FormulairePaiementRapide({ eleve, onFermer, onPaye }) {
         >
           Télécharger le reçu n° {confirmation.recu.numero}
         </BoutonDocument>
+        )}
         {confirmation.recuEnvoyeA && (
           <p className="note-secondaire" style={{ marginTop: 12, marginBottom: 0 }}>
             Un exemplaire a aussi été envoyé par e-mail à {confirmation.recuEnvoyeA}.

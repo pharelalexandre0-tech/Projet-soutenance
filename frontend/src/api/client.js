@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { estErreurReseau, estHorsLigne, garderLecture, retrouverLecture, signalerEnLigne, signalerHorsLigne } from './horsLigne';
+import { estErreurReseau, estHorsLigne, garderLecture, retrouverLecture, signalerEnLigne, signalerHorsLigne, saisieDifferable, mettreEnAttente } from './horsLigne';
 
 // Adresse du serveur. Vide : même origine (proxy de Vite en local, de nginx
 // dans Docker). Sur Vercel, VITE_API_URL = adresse publique du backend.
@@ -11,6 +11,24 @@ client.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('pgs_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Saisie qui peut attendre le réseau : elle porte une clé unique, réutilisée
+// si elle doit être renvoyée plus tard (aucun doublon côté serveur).
+// Déjà hors ligne : elle part directement dans la file d'attente.
+const reponseEnAttente = (config, fiche) => ({
+  data: { enAttente: true, horsLigne: true, libelle: fiche?.libelle, resultats: [], message: 'gardé sur cet appareil, envoi automatique au retour du réseau' },
+  status: 202, statusText: 'Accepted', headers: {}, config, request: {}, horsLigne: true,
+});
+client.interceptors.request.use(async (config) => {
+  const libelle = config.rejeu ? null : saisieDifferable(config);
+  if (!libelle) return config;
+  if (!config.headers['X-Idempotence']) config.headers['X-Idempotence'] = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  if (estHorsLigne()) {
+    const fiche = await mettreEnAttente(config, libelle);
+    if (fiche) config.adapter = async () => reponseEnAttente(config, fiche);
   }
   return config;
 });
@@ -55,6 +73,12 @@ client.interceptors.response.use(
           signalerHorsLigne(copie.date);
           return { data: copie.donnees, status: 200, statusText: 'OK', headers: {}, config: err.config, horsLigne: true, date: copie.date };
         }
+      }
+      const libelle = err.config.rejeu ? null : saisieDifferable(err.config);
+      if (libelle) {
+        signalerHorsLigne();
+        const fiche = await mettreEnAttente(err.config, libelle);
+        if (fiche) return reponseEnAttente(err.config, fiche);
       }
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         signalerHorsLigne();

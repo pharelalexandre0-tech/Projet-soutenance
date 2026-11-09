@@ -273,9 +273,10 @@ function FormulaireNotes({ jeton, session, onEnvoye }) {
   async function envoyer() {
     setEnCours(true);
     try {
-      await client.post(`/comptes-ephemeres/${jeton}/notes`, {
+      const res = await client.post(`/comptes-ephemeres/${jeton}/notes`, {
         notes: saisies.map((e) => ({ eleveId: e.id, valeur: Number(String(notes[e.id]).replace(',', '.')) })),
       });
+      if (res.data?.enAttente) { onEnvoye(`Hors ligne : ${saisies.length} note${saisies.length > 1 ? 's' : ''} gardée${saisies.length > 1 ? 's' : ''} sur ce téléphone. Gardez cette page ouverte ou rouvrez le lien avec du réseau : l’envoi se fera automatiquement.`); return; }
       onEnvoye(`${saisies.length} moyenne${saisies.length > 1 ? 's' : ''} de ${session.portee.matiere} enregistrée${saisies.length > 1 ? 's' : ''} pour la classe ${session.portee.classe}.`);
     } catch (err) {
       setConfirmation(false);
@@ -389,7 +390,8 @@ function FormulaireAppel({ jeton, session, onEnvoye }) {
     setEnCours(true);
     const ids = (s) => Object.entries(statuts).filter(([, v]) => v === s).map(([id]) => Number(id));
     try {
-      await client.post(`/comptes-ephemeres/${jeton}/absences`, { date: dateDuJour(), absentEleveIds: ids('absence'), retardEleveIds: ids('retard') });
+      const res = await client.post(`/comptes-ephemeres/${jeton}/absences`, { date: dateDuJour(), absentEleveIds: ids('absence'), retardEleveIds: ids('retard') });
+      if (res.data?.enAttente) { onEnvoye('Hors ligne : la feuille d’appel est gardée sur ce téléphone. Gardez cette page ouverte ou rouvrez le lien avec du réseau : l’envoi se fera automatiquement.'); return; }
       onEnvoye(`${presents} présent${presents > 1 ? 's' : ''}, ${absents} absent${absents > 1 ? 's' : ''} et ${retards} retard${retards > 1 ? 's' : ''} enregistrés pour la classe ${session.portee.classe}.`);
     } catch (err) {
       setConfirmation(false);
