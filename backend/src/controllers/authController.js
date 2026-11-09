@@ -163,6 +163,9 @@ async function seConnecter(req, res) {
     if (!etablissement || etablissement.statut === 'suspendu') {
       return res.status(403).json({ erreur: 'établissement suspendu, contactez le support' });
     }
+    if (require('../services/parametrageEcoleService').abonnementExpire(etablissement)) {
+      return res.status(403).json({ erreur: 'l’abonnement de l’établissement a expiré, contactez l’éditeur pour le renouveler' });
+    }
   }
 
   // Vérifié après le mot de passe : il faut savoir QUI se connecte pour

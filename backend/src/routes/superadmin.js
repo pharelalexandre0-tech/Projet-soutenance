@@ -35,6 +35,15 @@ router.delete('/etablissements/:id', authentifier, superadmin, ctrl.supprimerEta
 router.patch('/etablissements/:id/statut', authentifier, superadmin, ctrl.changerStatutEtablissement);
 router.put('/etablissements/:id/reinitialiser-academie', authentifier, superadmin, ctrl.reinitialiserMotDePasseAcademie);
 
+const parametrage = require('../controllers/parametrageEcoleController');
+router.get('/etablissements/:id/parametrage', authentifier, superadmin, parametrage.obtenir);
+router.put('/etablissements/:id/regles', authentifier, superadmin, parametrage.regles);
+router.put('/etablissements/:id/abonnement', authentifier, superadmin, parametrage.abonnement);
+router.post('/etablissements/:id/maquette', authentifier, superadmin, parametrage.maquette);
+router.post('/etablissements/:id/structure', authentifier, superadmin, parametrage.importer);
+router.post('/etablissements/:id/comptes', authentifier, superadmin, parametrage.creerCompte);
+router.patch('/etablissements/:id/comptes/:uid', authentifier, superadmin, parametrage.statutCompte);
+router.post('/etablissements/:id/comptes/:uid/reinitialiser', authentifier, superadmin, parametrage.reinitialiserCompte);
 router.get('/statistiques', authentifier, superadmin, ctrl.obtenirStatistiques);
 router.get('/config-email', authentifier, superadmin, ctrl.obtenirConfigEmail);
 router.post('/email-test', authentifier, superadmin, ctrl.envoyerEmailTest);

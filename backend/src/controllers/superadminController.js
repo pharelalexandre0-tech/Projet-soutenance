@@ -135,8 +135,36 @@ async function creerEtablissement(req, res) {
     invaliderCache();
   }
 
+  // Assistant de création : règles, abonnement, compte Finance et maquettes
+  // LMD peuvent être fournis dès l'affiliation.
+  const P = require('../services/parametrageEcoleService');
+  const suite = { avertissements: [] };
+  try {
+    if (req.body.regles) await etablissement.update(P.validerRegles(req.body.regles, etablissement));
+    if (req.body.abonnement) await etablissement.update(P.validerAbonnement(req.body.abonnement));
+  } catch (err) { suite.avertissements.push(err.message); }
+  const f = req.body.finance;
+  if (f && f.email && f.nom && f.prenom) {
+    const emailF = String(f.email).trim().toLowerCase();
+    if (await Utilisateur.findOne({ where: { email: emailF } })) suite.avertissements.push(`compte Finance non créé : ${emailF} est déjà utilisé`);
+    else {
+      const erreurMdp = f.motDePasse ? erreurMotDePasseInvalide(f.motDePasse) : null;
+      const motDePasseF = !f.motDePasse || erreurMdp ? motDePasseAleatoire() : f.motDePasse;
+      const compteF = await Utilisateur.create({ nom: f.nom, prenom: f.prenom, email: emailF, role: 'finance', etablissementId: etablissement.id, motDePasse: await bcrypt.hash(motDePasseF, COUT_BCRYPT_PERSONNEL) });
+      suite.compteFinance = compteF.toPublicJSON();
+      if (!f.motDePasse || erreurMdp) suite.motDePasseFinance = motDePasseF;
+    }
+  }
+  suite.maquettes = [];
+  for (const m of Array.isArray(req.body.maquettes) ? req.body.maquettes : []) {
+    try {
+      const r = await P.creerMaquette(etablissement.id, m);
+      suite.maquettes.push({ mention: r.formation.mention, cycle: r.formation.cycle, semestres: r.semestres.length, classes: r.classes.length });
+    } catch (err) { suite.avertissements.push(`maquette « ${m.mention || ''} » : ${err.message}`); }
+  }
+
   await journaliser(req.utilisateur, 'etablissement', `Affiliation de l'établissement « ${etablissement.nom} » (${etablissement.ville}) avec ${clesChoisies.length} fonctionnalité${clesChoisies.length > 1 ? 's' : ''}`);
-  return res.status(201).json({ etablissement, compteAcademie: compteAcademie.toPublicJSON() });
+  return res.status(201).json({ etablissement, compteAcademie: compteAcademie.toPublicJSON(), ...suite });
 }
 
 // Mise à jour des informations administratives d'une école affiliée

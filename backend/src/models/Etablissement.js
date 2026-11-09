@@ -38,6 +38,12 @@ Etablissement.init(
     // Dernière fois que l'école a téléchargé l'archive de ses données
     // (Paramètres > Récupérer les données) : vérifié avant toute suppression.
     dernierExportLe: { type: DataTypes.DATE, allowNull: true },
+    // Abonnement et quotas fixés par le superadmin (vides = sans limite).
+    // À la date de fin dépassée, l'école perd l'accès comme si elle était suspendue.
+    quotaEtudiants: { type: DataTypes.INTEGER, allowNull: true },
+    quotaPersonnel: { type: DataTypes.INTEGER, allowNull: true },
+    abonnementOffre: { type: DataTypes.STRING(80), allowNull: true },
+    abonnementFin: { type: DataTypes.DATEONLY, allowNull: true },
     // Tutelle : Ministère de l'Enseignement supérieur. Province (déduite de
     // la ville, modifiable), type d'établissement et agrément en vigueur ;
     // l'historique des décisions est dans decisions_agrement.

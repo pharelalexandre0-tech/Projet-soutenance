@@ -36,6 +36,9 @@ async function authentifier(req, res, next) {
       if (!etablissement || etablissement.statut === 'suspendu') {
         return res.status(403).json({ erreur: 'établissement suspendu, contactez le support' });
       }
+      if (require('../services/parametrageEcoleService').abonnementExpire(etablissement)) {
+        return res.status(403).json({ erreur: 'l’abonnement de l’établissement a expiré, contactez l’éditeur pour le renouveler' });
+      }
     }
     // Mode maintenance : seul le superadmin garde la main (c'est lui qui
     // conduit la maintenance), toutes les sessions d'école sont mises en

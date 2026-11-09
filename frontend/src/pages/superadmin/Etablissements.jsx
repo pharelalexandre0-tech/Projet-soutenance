@@ -5,7 +5,6 @@ import Modal from '../../components/Modal';
 import ConfirmModal from '../../components/ConfirmModal';
 import Toast from '../../components/Toast';
 import ChampLogo from '../../components/ChampLogo';
-import ChampMotDePasse from '../../components/ChampMotDePasse';
 import { messageErreur } from '../../utils/erreurs';
 import { LIBELLES_ESPACES, depuis } from '../../utils/plateforme';
 import {
@@ -13,6 +12,7 @@ import {
   IconToggle, IconLock, IconTrash,
 } from '../../components/icons';
 import { LIBELLES_TYPES, TuileFonctionnalite } from './Fonctionnalites';
+import { AssistantCreationEcole, ReglesEcole, StructureEcole, ComptesAbonnementEcole } from './ParametrageEcole';
 
 const TRIS = {
   recent: { libelle: 'Plus récentes', fn: (a, b) => new Date(b.createdAt) - new Date(a.createdAt) },
@@ -75,7 +75,7 @@ export default function Etablissements({ onNaviguer }) {
         onCreer={() => setCreationOuverte(true)}
       />
       {creationOuverte && (
-        <FormulaireCreationEcole
+        <AssistantCreationEcole
           onFermer={() => setCreationOuverte(false)}
           onReussi={(etab) => {
             setCreationOuverte(false);
@@ -266,6 +266,15 @@ function FicheEtablissement({ etablissementId, onRetour, onSupprime, onNaviguer 
         <button role="tab" aria-selected={onglet === 'informations'} className={onglet === 'informations' ? 'actif' : ''} onClick={() => setOnglet('informations')}>
           Informations
         </button>
+        <button role="tab" aria-selected={onglet === 'regles'} className={onglet === 'regles' ? 'actif' : ''} onClick={() => setOnglet('regles')}>
+          Règles académiques
+        </button>
+        <button role="tab" aria-selected={onglet === 'structure'} className={onglet === 'structure' ? 'actif' : ''} onClick={() => setOnglet('structure')}>
+          Structure LMD
+        </button>
+        <button role="tab" aria-selected={onglet === 'comptes'} className={onglet === 'comptes' ? 'actif' : ''} onClick={() => setOnglet('comptes')}>
+          Comptes et abonnement
+        </button>
         <button role="tab" aria-selected={onglet === 'acces'} className={onglet === 'acces' ? 'actif' : ''} onClick={() => setOnglet('acces')}>
           Accès et sécurité
         </button>
@@ -284,6 +293,9 @@ function FicheEtablissement({ etablissementId, onRetour, onSupprime, onNaviguer 
       {onglet === 'informations' && (
         <InformationsEcole etablissement={etablissement} onEnregistre={(e) => { setEtablissement((x) => ({ ...x, ...e })); notifier('Informations de l’école enregistrées.'); }} />
       )}
+      {onglet === 'regles' && <ReglesEcole etablissementId={etablissement.id} notifier={notifier} />}
+      {onglet === 'structure' && <StructureEcole etablissementId={etablissement.id} notifier={notifier} />}
+      {onglet === 'comptes' && <ComptesAbonnementEcole etablissementId={etablissement.id} notifier={notifier} />}
       {onglet === 'acces' && (
         <AccesEcole etablissement={etablissement} onStatut={(e) => setEtablissement((x) => ({ ...x, ...e }))} onSupprime={onSupprime} notifier={notifier} />
       )}
@@ -446,6 +458,7 @@ function InformationsEcole({ etablissement: e, onEnregistre }) {
   const [form, setForm] = useState({
     nom: e.nom || '', sigle: e.sigle || '', devise: e.devise || '', ville: e.ville || '', pays: e.pays || '',
     boitePostale: e.boitePostale || '', telephone: e.telephone || '', email: e.email || '', logo: e.logo || '',
+    typeEtablissement: e.typeEtablissement || 'institut_superieur',
   });
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -587,106 +600,5 @@ function AccesEcole({ etablissement, onStatut, onSupprime, notifier }) {
         </ConfirmModal>
       )}
     </div>
-  );
-}
-
-function FormulaireCreationEcole({ onFermer, onReussi }) {
-  const [form, setForm] = useState({
-    nom: '', sigle: '', devise: '', ville: '', pays: 'République Gabonaise', boitePostale: '', telephone: '', email: '', logo: '', typeEtablissement: 'institut_superieur',
-    academieNom: '', academiePrenom: '', academieEmail: '', academieMotDePasse: '',
-  });
-  const [catalogue, setCatalogue] = useState(null);
-  const [choix, setChoix] = useState([]);
-  const [enCours, setEnCours] = useState(false);
-  const [erreur, setErreur] = useState('');
-  const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
-
-  useEffect(() => {
-    client.get('/superadmin/fonctionnalites').then((res) => setCatalogue(res.data.fonctionnalites)).catch(() => setCatalogue([]));
-  }, []);
-
-  function basculer(cle) {
-    setChoix((c) => (c.includes(cle) ? c.filter((x) => x !== cle) : [...c, cle]));
-  }
-
-  async function soumettre(e) {
-    e.preventDefault();
-    setEnCours(true);
-    setErreur('');
-    try {
-      const res = await client.post('/superadmin/etablissements', { ...form, fonctionnalites: choix });
-      onReussi(res.data.etablissement);
-    } catch (err) {
-      setErreur(messageErreur(err, "impossible d'affilier cette école"));
-      setEnCours(false);
-    }
-  }
-
-  return (
-    <Modal titre="Affilier une nouvelle école" onFermer={onFermer} largeur={680}>
-      <form className="formulaire" onSubmit={soumettre} autoComplete="off">
-        <h3>Identité de l'établissement</h3>
-        <ChampLogo valeur={form.logo} onChange={(logo) => setForm({ ...form, logo })} />
-        <div className="ligne-champs">
-          <div className="champ" style={{ flex: 3 }}><label>Nom de l'établissement</label><input value={form.nom} onChange={maj('nom')} required /></div>
-          <div className="champ"><label>Sigle</label><input value={form.sigle} onChange={maj('sigle')} /></div>
-        </div>
-        <div className="ligne-champs">
-          <div className="champ"><label>Ville</label><input value={form.ville} onChange={maj('ville')} required /></div>
-          <div className="champ"><label>Pays</label><input value={form.pays} onChange={maj('pays')} /></div>
-        </div>
-        <div className="champ"><label>Devise</label><input value={form.devise} onChange={maj('devise')} /></div>
-        <div className="ligne-champs">
-          <div className="champ"><label>Boîte postale</label><input value={form.boitePostale} onChange={maj('boitePostale')} /></div>
-          <div className="champ"><label>Téléphone</label><input value={form.telephone} onChange={maj('telephone')} /></div>
-        </div>
-        <div className="champ"><label>E-mail de contact</label><input type="email" autoComplete="off" value={form.email} onChange={maj('email')} /></div>
-
-        <div className="separateur-section" style={{ margin: '4px 0' }} />
-        <h3>Premier compte Académie</h3>
-        <div className="ligne-champs">
-          <div className="champ"><label>Prénom</label><input value={form.academiePrenom} onChange={maj('academiePrenom')} required /></div>
-          <div className="champ"><label>Nom</label><input value={form.academieNom} onChange={maj('academieNom')} required /></div>
-        </div>
-        <div className="ligne-champs">
-          <div className="champ"><label>E-mail</label><input type="email" autoComplete="off" value={form.academieEmail} onChange={maj('academieEmail')} required /></div>
-          <div className="champ"><label>Mot de passe</label><ChampMotDePasse autoComplete="new-password" value={form.academieMotDePasse} onChange={maj('academieMotDePasse')} required /></div>
-        </div>
-
-        <div className="separateur-section" style={{ margin: '4px 0' }} />
-        <div className="entete-section" style={{ marginBottom: 0 }}>
-          <h3>Fonctionnalités de l'école</h3>
-          {catalogue && catalogue.length > 0 && (
-            <button type="button" className="bouton-texte" onClick={() => setChoix(choix.length === catalogue.length ? [] : catalogue.map((f) => f.cle))}>
-              {choix.length === catalogue.length ? 'Tout retirer' : 'Tout sélectionner'}
-            </button>
-          )}
-        </div>
-        <p className="note-secondaire" style={{ margin: '-8px 0 0', fontSize: 13 }}>
-          Le socle (élèves, classes, notes, bulletins, frais) est toujours inclus. Choisis les fonctionnalités dont cette
-          école a besoin ; tu pourras en ajouter ou en retirer à tout moment depuis sa fiche.
-        </p>
-        {!catalogue && <div className="chargement">Chargement du catalogue…</div>}
-        {catalogue && (
-          <div className="cases-choix">
-            {catalogue.map((f) => {
-              const choisie = choix.includes(f.cle);
-              return (
-                <button key={f.cle} type="button" className={`case-choix ${choisie ? 'choisie' : ''}`} onClick={() => basculer(f.cle)} aria-pressed={choisie} title={f.description}>
-                  <span className="case-choix-coche">{choisie && <IconCheck />}</span>
-                  <span>{f.nom}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {erreur && <div className="message-erreur">{erreur}</div>}
-        <div className="confirmation-actions">
-          <button type="button" className="secondaire" onClick={onFermer}>Annuler</button>
-          <button className="primaire" type="submit" disabled={enCours}>{enCours ? 'Affiliation…' : "Affilier l'école"}</button>
-        </div>
-      </form>
-    </Modal>
   );
 }

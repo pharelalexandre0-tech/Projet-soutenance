@@ -110,32 +110,9 @@ async function configurerEtablissement(req, res) {
 // UE. Le calcul des bulletins, les couleurs de saisie et les résultats de
 // classe suivent ces valeurs.
 async function configurerRegles(req, res) {
-  const seuil = Number(String(req.body.seuilValidation ?? '').replace(',', '.'));
-  const eliminatoire = Number(String(req.body.noteEliminatoire ?? '').replace(',', '.'));
-  if (!Number.isFinite(seuil) || seuil <= 0 || seuil > 20) {
-    return res.status(400).json({ erreur: 'le seuil de validation doit être compris entre 0 et 20' });
-  }
-  if (!Number.isFinite(eliminatoire) || eliminatoire < 0 || eliminatoire >= seuil) {
-    return res.status(400).json({ erreur: 'la note éliminatoire doit être positive et inférieure au seuil de validation' });
-  }
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
-  // Compensation et passage avec dette : valeurs propres à l'école, exigées
-  // seulement quand elle active la règle.
-  const actif = (v) => v === true || v === 'true';
-  const nombre = (v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.')));
-  const b = req.body;
-  const compensationActive = b.compensationActive === undefined ? etablissement.compensationActive : actif(b.compensationActive);
-  const noteMinCompensation = b.noteMinCompensation === undefined ? etablissement.noteMinCompensation : nombre(b.noteMinCompensation);
-  const passageDetteActif = b.passageDetteActif === undefined ? etablissement.passageDetteActif : actif(b.passageDetteActif);
-  const creditsMinPassagePct = b.creditsMinPassagePct === undefined ? etablissement.creditsMinPassagePct : nombre(b.creditsMinPassagePct);
-  if (compensationActive && (noteMinCompensation === null || !Number.isFinite(noteMinCompensation) || noteMinCompensation < eliminatoire || noteMinCompensation >= seuil)) {
-    return res.status(400).json({ erreur: 'la note minimale de compensation doit être comprise entre la note éliminatoire et le seuil de validation' });
-  }
-  if (passageDetteActif && (creditsMinPassagePct === null || !Number.isFinite(creditsMinPassagePct) || creditsMinPassagePct <= 0 || creditsMinPassagePct >= 100)) {
-    return res.status(400).json({ erreur: 'la part de crédits exigée pour un passage avec dette doit être comprise entre 1 et 99 %' });
-  }
-  await etablissement.update({ seuilValidation: seuil, noteEliminatoire: eliminatoire, compensationActive, noteMinCompensation, passageDetteActif, creditsMinPassagePct });
+  await etablissement.update(require('../services/parametrageEcoleService').validerRegles(req.body, etablissement));
   return res.json({ etablissement });
 }
 
@@ -278,6 +255,7 @@ async function creerEleve(req, res) {
   if (!classe || classe.etablissementId !== req.utilisateur.etablissementId) {
     return res.status(404).json({ erreur: 'classe introuvable' });
   }
+  await require('../services/parametrageEcoleService').verifierQuotaEtudiants(req.utilisateur.etablissementId);
   if (!email) {
     return res.status(400).json({ erreur: "l'e-mail du compte étudiant est obligatoire" });
   }
