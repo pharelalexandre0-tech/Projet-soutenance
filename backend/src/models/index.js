@@ -6,6 +6,7 @@ const Classe = require('./Classe');
 const Semestre = require('./Semestre');
 const UniteEnseignement = require('./UniteEnseignement');
 const Formation = require('./Formation');
+const RegleNationale = require('./RegleNationale');
 const Matiere = require('./Matiere');
 const EmploiDuTemps = require('./EmploiDuTemps');
 const PublicationEmploiDuTemps = require('./PublicationEmploiDuTemps');
@@ -255,6 +256,7 @@ DossierBourse.belongsTo(Eleve, { foreignKey: 'eleveId' });
 module.exports = {
   sequelize,
   Formation,
+  RegleNationale,
   Utilisateur,
   Professeur,
   Classe,

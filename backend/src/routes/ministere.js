@@ -8,6 +8,11 @@ const ministere = autoriserRoles('ministere');
 const academie = autoriserRoles('academie');
 
 // Espace du Ministère de l'Enseignement supérieur.
+const regles = require('../controllers/reglesNationalesController');
+router.get('/ministere/regles-nationales', authentifier, ministere, regles.consulter);
+router.post('/ministere/regles-nationales', authentifier, ministere, regles.publier);
+router.get('/etablissement/regles-nationales', authentifier, academie, regles.pourEtablissement);
+router.post('/etablissement/regles-nationales/adopter', authentifier, academie, regles.adopter);
 router.get('/ministere/vue-nationale', authentifier, ministere, ctrl.vueNationale);
 router.get('/ministere/etablissements/:id', authentifier, ministere, ctrl.ficheEtablissement);
 router.post('/ministere/etablissements/:id/agrement', authentifier, ministere, ctrl.deciderAgrement);

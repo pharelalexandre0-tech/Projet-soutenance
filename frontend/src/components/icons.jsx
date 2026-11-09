@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, PenLine, KeyRound, Mail, Lock, CalendarX2, Banknote, CreditCard, TriangleAlert,
   Wallet, FileText, MessagesSquare, LogOut, Building2, Settings, Menu, GraduationCap, BookOpen, X, Search,
-  Download, MapPin, Blocks, RefreshCw, Megaphone, History, Bell, Wrench, CalendarDays, Check, Layers,
+  Download, MapPin, Blocks, RefreshCw, Megaphone, History, Bell, Wrench, CalendarDays, Check, Layers, Scale,
   TrendingDown, Receipt, CircleAlert, ClipboardList, ShieldCheck, UserCog, ChevronRight, ChevronDown, Plus, ExternalLink,
   Link2, Library, Video, Globe, Trash2, Pencil, Info, Send, Calendar, Newspaper, LifeBuoy, Briefcase, Award,
   Bus, Utensils, HandCoins, ArrowLeft, Database, Activity, CornerDownLeft, CircleCheck, Clock, LogIn, Eye,
@@ -52,6 +52,7 @@ export const IconSparkles = avecTrait(Sparkles);
 export const IconWrench = avecTrait(Wrench);
 export const IconCalendar = avecTrait(CalendarDays);
 export const IconCheck = avecTrait(Check);
+export const IconScale = avecTrait(Scale);
 
 export const IconLayers = avecTrait(Layers);
 export const IconTrendingDown = avecTrait(TrendingDown);

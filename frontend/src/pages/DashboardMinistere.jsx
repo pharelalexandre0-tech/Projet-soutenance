@@ -1,7 +1,7 @@
 import { lazy, useState } from 'react';
 import EspaceDashboard from '../components/EspaceDashboard';
 import {
-  IconDashboard, IconBuilding, IconGraduationCap, IconTrendingDown, IconMegaphone, IconShield, IconDocument, IconCalendar, IconTrophy, IconLayers, IconClipboard,
+  IconDashboard, IconBuilding, IconGraduationCap, IconTrendingDown, IconMegaphone, IconShield, IconDocument, IconCalendar, IconTrophy, IconLayers, IconClipboard, IconScale,
 } from '../components/icons';
 
 const VueNationale = lazy(() => import('./ministere/VueNationale'));
@@ -13,6 +13,7 @@ const Habilitations = lazy(() => import('./ministere/Habilitations'));
 const Inspections = lazy(() => import('./ministere/Inspections'));
 const Calendrier = lazy(() => import('./ministere/Calendrier'));
 const Annuaire = lazy(() => import('./ministere/Annuaire'));
+const ReglesNationales = lazy(() => import('./ministere/ReglesNationales'));
 const VerificationDocuments = lazy(() => import('./ministere/Documents').then((m) => ({ default: m.VerificationDocuments })));
 const Rapports = lazy(() => import('./ministere/Documents').then((m) => ({ default: m.Rapports })));
 
@@ -25,6 +26,8 @@ const ONGLETS = [
     description: 'Registre des établissements sous tutelle : agréments, formations habilitées, inspections et correspondance.' },
   { id: 'habilitations', label: 'Habilitations', composant: Habilitations, icone: IconGraduationCap, groupe: 'Tutelle',
     description: 'Habilitation des offres de formation (licence, master, doctorat) par arrêté, renouvellement et retrait.' },
+  { id: 'regles', label: 'Règles LMD nationales', composant: ReglesNationales, icone: IconScale, groupe: 'Tutelle',
+    description: 'Référentiel national des règles de validation (seuil, note éliminatoire, compensation, dette), adopté par les établissements.' },
   { id: 'calendrier', label: 'Calendrier national', composant: Calendrier, icone: IconCalendar, groupe: 'Tutelle',
     description: 'Calendrier universitaire national publié à tous les établissements, avec suivi des accusés de réception.' },
   { id: 'circulaires', label: 'Circulaires', composant: Circulaires, icone: IconMegaphone, groupe: 'Tutelle',

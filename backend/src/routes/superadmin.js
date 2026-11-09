@@ -38,6 +38,8 @@ router.put('/etablissements/:id/reinitialiser-academie', authentifier, superadmi
 const parametrage = require('../controllers/parametrageEcoleController');
 router.get('/etablissements/:id/parametrage', authentifier, superadmin, parametrage.obtenir);
 router.put('/etablissements/:id/regles', authentifier, superadmin, parametrage.regles);
+router.get('/regles-nationales', authentifier, superadmin, require('../controllers/reglesNationalesController').lireActuelle);
+router.post('/etablissements/:id/regles-nationales/adopter', authentifier, superadmin, require('../controllers/reglesNationalesController').adopterParSuperadmin);
 router.put('/etablissements/:id/abonnement', authentifier, superadmin, parametrage.abonnement);
 router.post('/etablissements/:id/maquette', authentifier, superadmin, parametrage.maquette);
 router.post('/etablissements/:id/structure', authentifier, superadmin, parametrage.importer);

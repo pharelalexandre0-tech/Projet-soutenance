@@ -4039,3 +4039,8 @@ th { background: #F7F8F6; color: var(--texte-clair); }
   .assistant-etapes span { font-size: 12px; }
   .usage-quotas { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Bandeau des règles nationales (Académie, superadmin) */
+.bandeau-national { display: flex; gap: 16px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--alerte-fond); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; }
+.bandeau-national.conforme { background: var(--succes-fond); }
+.bandeau-national p { margin: 6px 0 0; font-size: 13.5px; color: var(--texte-clair); }

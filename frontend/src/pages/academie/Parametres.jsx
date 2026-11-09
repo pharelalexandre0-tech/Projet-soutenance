@@ -7,6 +7,7 @@ import { messageErreur } from '../../utils/erreurs';
 import { IconDocument, IconKey, IconDownload } from '../../components/icons';
 import BoutonDocument from '../../components/BoutonDocument';
 import { motDePasseAleatoire } from '../../utils/excel';
+import { BandeauReglesNationales } from '../superadmin/ParametrageEcole';
 
 const CHAMPS_VIDES = { nom: '', sigle: '', devise: '', ville: '', pays: '', boitePostale: '', telephone: '', email: '', logo: '' };
 const COMPTE_VIDE = { nom: '', prenom: '', email: '', motDePasse: '', role: 'finance', service: '', fonction: '' };
@@ -268,6 +269,7 @@ function ReglesValidation() {
         Ces valeurs colorent aussi la saisie des notes.
       </p>
       {!form && <div className="chargement">Chargement…</div>}
+      {form && <BandeauReglesNationales url="/etablissement/regles-nationales/adopter" valeurs={form} onAdopte={(e) => { setForm({ ...form, seuilValidation: String(e.seuilValidation), noteEliminatoire: String(e.noteEliminatoire), compensationActive: Boolean(e.compensationActive), noteMinCompensation: e.noteMinCompensation == null ? '' : String(e.noteMinCompensation), passageDetteActif: Boolean(e.passageDetteActif), creditsMinPassagePct: e.creditsMinPassagePct == null ? '' : String(e.creditsMinPassagePct) }); setToast({ message: 'Règles nationales appliquées.', type: 'succes' }); }} />}
       {form && (
         <form className="formulaire" onSubmit={enregistrer}>
           <div className="ligne-champs">

@@ -18,8 +18,44 @@ const ROLES = { academie: 'Académie', finance: 'Finance' };
 const anneeCourante = () => { const d = new Date(); const a = d.getMonth() >= 7 ? d.getFullYear() : d.getFullYear() - 1; return `${a}-${a + 1}`; };
 const REGLES_VIDES = { seuilValidation: '10', noteEliminatoire: '7', compensationActive: false, noteMinCompensation: '', passageDetteActif: false, creditsMinPassagePct: '' };
 
+
+// Référentiel national publié par le Ministère : rappel des valeurs, position
+// de l'établissement et adoption en un clic.
+const fr = (n) => (n === null || n === undefined || n === '' ? '-' : String(n).replace('.', ','));
+export function BandeauReglesNationales({ url, valeurs, onAdopte, source = 'academie' }) {
+  const [ref, setRef] = useState(undefined);
+  const [confirmation, setConfirmation] = useState(false);
+  useEffect(() => {
+    client.get(source === 'superadmin' ? '/superadmin/regles-nationales' : '/etablissement/regles-nationales').then((r) => setRef(r.data.actuelle)).catch(() => setRef(null));
+  }, [source]);
+  if (!ref) return null;
+  const num = (v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.')));
+  const conforme = num(valeurs.seuilValidation) === ref.seuilValidation && num(valeurs.noteEliminatoire) === ref.noteEliminatoire
+    && Boolean(valeurs.compensationActive) === ref.compensationActive && (!ref.compensationActive || num(valeurs.noteMinCompensation) === ref.noteMinCompensation)
+    && Boolean(valeurs.passageDetteActif) === ref.passageDetteActif && (!ref.passageDetteActif || num(valeurs.creditsMinPassagePct) === ref.creditsMinPassagePct);
+  async function adopter() {
+    const r = await client.post(url);
+    setConfirmation(false);
+    onAdopte(r.data.regles || r.data.etablissement);
+  }
+  return (
+    <div className={`bandeau-national ${conforme ? 'conforme' : ''}`}>
+      <div>
+        <strong>Règles nationales du Ministère</strong> <span className={`badge ${conforme ? 'vert' : 'or'}`}>{conforme ? 'Appliquées' : 'Différentes de l’école'}</span>
+        <p>{ref.texteReference} · version {ref.version} : seuil {fr(ref.seuilValidation)}, éliminatoire {fr(ref.noteEliminatoire)}, compensation {ref.compensationActive ? `à partir de ${fr(ref.noteMinCompensation)}` : 'non'}, passage avec dette {ref.passageDetteActif ? `à partir de ${fr(ref.creditsMinPassagePct)} %` : 'non'}.</p>
+      </div>
+      {!conforme && <button type="button" className="secondaire" onClick={() => setConfirmation(true)}>Appliquer les règles nationales</button>}
+      {confirmation && (
+        <ConfirmModal titre="Appliquer les règles nationales ?" boutonConfirmer="Appliquer" onConfirmer={adopter} onAnnuler={() => setConfirmation(false)}>
+          Les règles de validation de l’établissement prendront les valeurs publiées par le Ministère ({ref.texteReference}). Les bulletins les appliqueront aussitôt.
+        </ConfirmModal>
+      )}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ Règles académiques
-function ChampsRegles({ valeur, onChange }) {
+export function ChampsRegles({ valeur, onChange }) {
   const maj = (champ) => (e) => onChange({ ...valeur, [champ]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
   return (
     <>
@@ -69,6 +105,7 @@ export function ReglesEcole({ etablissementId, notifier }) {
       <h2>Règles académiques</h2>
       <p className="note-secondaire texte-aide">Les mêmes réglages que ceux de l’Académie dans ses paramètres. L’école peut les ajuster ensuite.</p>
       {!form && <div className="chargement">Chargement…</div>}
+      {form && <BandeauReglesNationales url={`/superadmin/etablissements/${etablissementId}/regles-nationales/adopter`} valeurs={form} onAdopte={(g) => { setForm({ ...g, seuilValidation: String(g.seuilValidation), noteEliminatoire: String(g.noteEliminatoire), noteMinCompensation: g.noteMinCompensation ?? '', creditsMinPassagePct: g.creditsMinPassagePct ?? '' }); notifier('Règles nationales appliquées à l’école.'); }} source="superadmin" />}
       {form && (
         <form className="formulaire" onSubmit={enregistrer} style={{ maxWidth: 720 }}>
           <ChampsRegles valeur={form} onChange={setForm} />
