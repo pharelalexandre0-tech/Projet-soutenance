@@ -22,7 +22,7 @@ const LIBELLES_ROLE = {
   academie: 'Espace Académie',
   finance: 'Espace Finance',
   etudiant: 'Espace Étudiant',
-  ministere: 'Ministère, Enseignement supérieur',
+  ministere: 'Espace de tutelle',
 };
 
 // Le parent ouvre le compte étudiant de son enfant : même espace, présenté
@@ -70,7 +70,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   const ministere = profil?.role === 'ministere';
   const sansLogo = ministere || (profil?.role !== 'superadmin' && etablissement && !etablissement.logo);
   const initialesEcole = (() => {
-    if (ministere) return 'MESR';
+    if (ministere) return 'MESRS';
     const sigle = String(etablissement?.sigle || '').replace(/[^\p{L}\p{N}]/gu, '');
     if (sigle) return sigle.slice(0, 4).toUpperCase();
     const mots = String(etablissement?.nom || '').split(/[\s'’-]+/).filter((m) => m.length > 2 || /^[A-Z]/.test(m));
@@ -79,7 +79,7 @@ export default function EspaceDashboard({ onglets, actif, onChange, avantContenu
   const vignette = sansLogo
     ? <span className={`marque-initiales ${initialesEcole.length > 3 ? 'longues' : ''}`} aria-hidden="true">{initialesEcole}</span>
     : <img src={logoAffiche} alt="" />;
-  const nomAffiche = ministere ? "Ministère de l'Enseignement supérieur" : (etablissement?.nom || 'EduSphere');
+  const nomAffiche = ministere ? "Ministère de l'Enseignement Supérieur et de la Recherche Scientifique" : (etablissement?.nom || 'EduSphere');
 
   // État de la plateforme vu depuis une école : fonctionnalités ajoutées
   // par le superadmin, annonce en cours, notes de version. Mis à jour en

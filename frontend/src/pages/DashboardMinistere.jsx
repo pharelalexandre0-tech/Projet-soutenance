@@ -21,9 +21,9 @@ const Rapports = lazy(() => import('./ministere/Documents').then((m) => ({ defau
 // données agrégées par établissement, jamais un dossier d'étudiant.
 const ONGLETS = [
   { id: 'national', label: 'Vue nationale', composant: VueNationale, icone: IconDashboard,
-    description: 'Situation de l’enseignement supérieur : établissements, effectifs, réussite, risques et agréments.' },
+    description: 'Situation de l’enseignement supérieur : établissements, effectifs, réussite, risques et situation des établissements.' },
   { id: 'etablissements', label: 'Registre national', composant: Etablissements, icone: IconBuilding, groupe: 'Tutelle',
-    description: 'Registre des établissements sous tutelle : agréments, formations habilitées, inspections et correspondance.' },
+    description: 'Registre des établissements sous tutelle : habilitations, autorisations d’ouverture, avis de la CESP, conformité, inspections.' },
   { id: 'habilitations', label: 'Habilitations', composant: Habilitations, icone: IconGraduationCap, groupe: 'Tutelle',
     description: 'Habilitation des offres de formation (licence, master, doctorat) par arrêté, renouvellement et retrait.' },
   { id: 'regles', label: 'Règles LMD nationales', composant: ReglesNationales, icone: IconScale, groupe: 'Tutelle',

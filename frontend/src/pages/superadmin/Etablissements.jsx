@@ -459,6 +459,7 @@ function InformationsEcole({ etablissement: e, onEnregistre }) {
     nom: e.nom || '', sigle: e.sigle || '', devise: e.devise || '', ville: e.ville || '', pays: e.pays || '',
     boitePostale: e.boitePostale || '', telephone: e.telephone || '', email: e.email || '', logo: e.logo || '',
     typeEtablissement: e.typeEtablissement || 'institut_superieur',
+    modeleDocuments: e.modeleDocuments || 'classique', couleurDocuments: e.couleurDocuments || '#0B1E3D',
   });
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -500,6 +501,14 @@ function InformationsEcole({ etablissement: e, onEnregistre }) {
           </div>
         </div>
         <div className="champ"><label>Devise</label><input value={form.devise} onChange={maj('devise')} /></div>
+        <div className="ligne-champs">
+          <div className="champ"><label htmlFor="sa-modele">Modèle des attestations</label>
+            <select id="sa-modele" value={form.modeleDocuments} onChange={maj('modeleDocuments')}>
+              <option value="classique">Classique</option><option value="moderne">Moderne</option><option value="prestige">Prestige</option>
+            </select>
+          </div>
+          <div className="champ" style={{ maxWidth: 200 }}><label htmlFor="sa-couleur">Couleur des documents</label><input id="sa-couleur" type="color" value={form.couleurDocuments} onChange={(ev) => setForm({ ...form, couleurDocuments: ev.target.value.toUpperCase() })} style={{ height: 38, padding: 2 }} /></div>
+        </div>
         <div className="ligne-champs">
           <div className="champ"><label>Boîte postale</label><input value={form.boitePostale} onChange={maj('boitePostale')} /></div>
           <div className="champ"><label>Téléphone</label><input value={form.telephone} onChange={maj('telephone')} /></div>

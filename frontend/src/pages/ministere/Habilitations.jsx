@@ -141,7 +141,7 @@ function FormulaireHabilitation({ initial, etablissements, onFermer, onEnregistr
           <div className="champ"><label htmlFor="hb-spec">Spécialité (facultatif)</label><input id="hb-spec" placeholder="Ex. Génie logiciel" {...champ('specialite')} /></div>
         </div>
         <div className="ligne-champs">
-          <div className="champ"><label htmlFor="hb-arrete">N° de l’arrêté</label><input id="hb-arrete" placeholder="Ex. 0042/MESR/2026" {...champ('numeroArrete')} /></div>
+          <div className="champ"><label htmlFor="hb-arrete">N° de l’arrêté</label><input id="hb-arrete" placeholder="Ex. 0042/MESRS/2026" {...champ('numeroArrete')} /></div>
           <div className="champ"><label htmlFor="hb-statut">Statut</label>
             <select id="hb-statut" {...champ('statut')}>{Object.entries(STATUTS_HABILITATION).map(([s, [l]]) => <option key={s} value={s}>{l}</option>)}</select>
           </div>

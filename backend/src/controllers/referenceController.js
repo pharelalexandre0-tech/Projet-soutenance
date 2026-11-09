@@ -98,11 +98,46 @@ async function configurerEtablissement(req, res) {
   // logo undefined (champ absent du payload) => inchangé ; logo explicitement
   // '' ou null => retiré. Distinction utile car le formulaire ne renvoie pas
   // toujours le logo (image déjà en place, pas retouchée à cet enregistrement).
+  const style = require('../services/modelesAttestation').validerStyleDocuments(req.body);
   await etablissement.update({
     nom, sigle, devise, ville, pays, boitePostale, telephone, email,
     ...(logo !== undefined && { logo: logo || null }),
+    ...style,
   });
   return res.json({ etablissement });
+}
+
+// Style des documents officiels seul (modèle et couleur), sans toucher au
+// reste de la fiche.
+async function configurerStyleDocuments(req, res) {
+  const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
+  if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
+  const { validerStyleDocuments } = require('../services/modelesAttestation');
+  await etablissement.update(validerStyleDocuments({ modeleDocuments: req.body.modeleDocuments, couleurDocuments: req.body.couleurDocuments || null }));
+  return res.json({ modeleDocuments: etablissement.modeleDocuments, couleurDocuments: etablissement.couleurDocuments });
+}
+
+// Aperçu d'une attestation avec le modèle et la couleur choisis, avant de
+// les enregistrer : document fictif, marqué « aperçu sans valeur », jamais
+// certifié ni archivé.
+async function apercuAttestation(req, res) {
+  const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
+  if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
+  const { modele, couleur, type = 'scolarite' } = req.query;
+  require('../services/modelesAttestation').validerStyleDocuments({ modeleDocuments: modele, couleurDocuments: couleur || undefined });
+  const { attestationPDF } = require('../services/documentsOfficielsService');
+  const pdf = await attestationPDF({
+    etablissement: etablissement.toJSON(),
+    eleve: { id: 0, nom: 'Exemple', prenom: 'Prénom', matricule: `${(etablissement.sigle || 'ECO').toUpperCase()}-L1-0001`, dateNaissance: '2005-01-15' },
+    classe: { nom: 'Licence 1', niveau: 'Licence 1' },
+    type: ['scolarite', 'inscription', 'reussite'].includes(type) ? type : 'scolarite',
+    anneeScolaire: '2025-2026',
+    semestre: { id: 0, libelle: 'Semestre 1' },
+    resultat: { moyenneGenerale: 13.5, creditsValides: 30, creditsTotal: 30, decisionJury: 'admis' },
+    apercu: { modele, couleur },
+  });
+  res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': 'inline; filename="apercu_attestation.pdf"' });
+  return res.send(pdf);
 }
 
 // "Paramètres" (Académie) : règles de validation de l'école, sur 20. Le
@@ -705,6 +740,8 @@ async function statistiquesAcademiques(req, res) {
 }
 
 module.exports = {
+  apercuAttestation,
+  configurerStyleDocuments,
   modifierUE,
   listerFormations,
   creerFormation,

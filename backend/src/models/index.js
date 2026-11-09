@@ -46,6 +46,7 @@ const CertificationDocument = require('./CertificationDocument');
 const SessionUtilisateur = require('./SessionUtilisateur');
 const JournalAudit = require('./JournalAudit');
 const DecisionAgrement = require('./DecisionAgrement');
+const AvisCesp = require('./AvisCesp');
 const Circulaire = require('./Circulaire');
 const AccuseCirculaire = require('./AccuseCirculaire');
 const Deliberation = require('./Deliberation');
@@ -228,6 +229,8 @@ Salaire.belongsTo(Personnel, { foreignKey: 'personnelId' });
 // ---- Tutelle : Ministère de l'Enseignement supérieur ------------------------
 Etablissement.hasMany(DecisionAgrement, { foreignKey: 'etablissementId' });
 DecisionAgrement.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
+Etablissement.hasMany(AvisCesp, { foreignKey: 'etablissementId', onDelete: 'CASCADE' });
+AvisCesp.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
 Circulaire.hasMany(AccuseCirculaire, { foreignKey: 'circulaireId' });
 AccuseCirculaire.belongsTo(Circulaire, { foreignKey: 'circulaireId' });
 AccuseCirculaire.belongsTo(Etablissement, { foreignKey: 'etablissementId' });
@@ -312,6 +315,7 @@ module.exports = {
   SessionUtilisateur,
   JournalAudit,
   DecisionAgrement,
+  AvisCesp,
   Circulaire,
   AccuseCirculaire,
   Deliberation,

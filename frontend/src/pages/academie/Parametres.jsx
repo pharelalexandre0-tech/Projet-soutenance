@@ -8,6 +8,7 @@ import { IconDocument, IconKey, IconDownload } from '../../components/icons';
 import BoutonDocument from '../../components/BoutonDocument';
 import { motDePasseAleatoire } from '../../utils/excel';
 import { BandeauReglesNationales } from '../superadmin/ParametrageEcole';
+import StyleDocuments from '../../components/StyleDocuments';
 
 const CHAMPS_VIDES = { nom: '', sigle: '', devise: '', ville: '', pays: '', boitePostale: '', telephone: '', email: '', logo: '' };
 const COMPTE_VIDE = { nom: '', prenom: '', email: '', motDePasse: '', role: 'finance', service: '', fonction: '' };
@@ -122,6 +123,8 @@ export default function Parametres() {
       )}
       {toast && <Toast message={toast.message} type={toast.type} onFermer={() => setToast(null)} />}
     </div>
+
+    <StyleDocuments />
 
     <ReglesValidation />
 

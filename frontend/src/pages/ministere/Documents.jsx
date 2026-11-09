@@ -93,7 +93,7 @@ export function Rapports() {
     <div className="grille-documents">
       <section className="carte carte-document">
         <div className="entete-carte"><h2><IconDocument /> Rapport national (PDF)</h2></div>
-        <p className="carte-document-texte">Synthèse nationale, établissements sous tutelle (agrément, effectifs, réussite, assiduité, risques), répartition par province et par niveau. Document certifié : QR code et code de vérification.</p>
+        <p className="carte-document-texte">Synthèse nationale, établissements sous tutelle (situation administrative, effectifs, réussite, assiduité, risques), répartition par province et par niveau. Document certifié : QR code et code de vérification.</p>
         <div className="carte-document-actions">
           <BoutonDocument className="primaire" chemin="/api/ministere/rapport"><IconDownload width={16} height={16} /> Télécharger le PDF</BoutonDocument>
         </div>

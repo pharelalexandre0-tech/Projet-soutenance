@@ -9,6 +9,7 @@ const { LIBELLES_DECISION } = require('./deliberationService');
 const { enTeteOfficiel, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, certifier, dessinerLigne } = outils;
 const C = outils.couleurs;
 const { nouveauPDF, tableau, finaliser, limiteBas } = outilsTableaux;
+const { dessinerAttestation, styleDe } = require('./modelesAttestation');
 
 const nomComplet = (e) => `${String(e.nom || '').toUpperCase()} ${e.prenom || ''}`.trim();
 const dateFr = (d) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Libreville' });
@@ -86,7 +87,7 @@ async function pvDeliberationPDF({ etablissement, classe, semestre, deliberation
 // ---------------------------------------------------------------------------
 const TITRES_ATTESTATION = { scolarite: 'ATTESTATION DE SCOLARITÉ', inscription: "ATTESTATION D'INSCRIPTION", reussite: 'ATTESTATION DE RÉUSSITE' };
 
-async function attestationPDF({ etablissement, eleve, classe, type, semestre, resultat, anneeScolaire, emisParId }) {
+async function attestationPDF({ etablissement, eleve, classe, type, semestre, resultat, anneeScolaire, emisParId, apercu = null }) {
   const nom = nomComplet(eleve);
   const naissance = eleve.dateNaissance ? dateFr(`${eleve.dateNaissance}T12:00:00`) : null;
   const elements = [['Matricule', eleve.matricule], ['Né(e) le', naissance], ['Classe', `${classe.nom} (${classe.niveau})`], ['Année universitaire', anneeScolaire]];
@@ -94,7 +95,8 @@ async function attestationPDF({ etablissement, eleve, classe, type, semestre, re
     elements.push(['Semestre', semestre.libelle], ['Moyenne', `${noteFr(resultat.moyenneGenerale)} / 20`], ['Mention', mention(resultat.moyenneGenerale)],
       ['Crédits', `${resultat.creditsValides} / ${resultat.creditsTotal}`], ['Décision', LIBELLES_DECISION[resultat.decisionJury || 'admis']]);
   }
-  const certification = await certifier({
+  // Aperçu (Paramètres) : aucun document n'est certifié ni enregistré.
+  const certification = apercu ? { code: 'APERCU-0000-0000' } : await certifier({
     cle: `attestation_${type}_${eleve.id}_${type === 'reussite' ? semestre.id : anneeScolaire}`,
     type: 'attestation',
     etablissement,
@@ -105,25 +107,39 @@ async function attestationPDF({ etablissement, eleve, classe, type, semestre, re
   });
 
   const { doc, termine } = nouveauPDF({ margin: 56 });
-  const marge = doc.page.margins.left;
-  const largeur = doc.page.width - marge - doc.page.margins.right;
-  let y = enTeteOfficiel(doc, etablissement, { surtitre: `ANNÉE ${anneeScolaire || ''}`.trim(), titre: TITRES_ATTESTATION[type], reference: `N° ${certification.code}`, largeurTitre: 240, certification });
-  y += 26;
   const signataire = 'Le Directeur des études';
-  const phrases = {
-    scolarite: () => `atteste que ${eleve.prenom} ${String(eleve.nom).toUpperCase()}${naissance ? `, né(e) le ${naissance}` : ''}, matricule ${eleve.matricule || 'non attribué'}, est régulièrement inscrit(e) et suit les enseignements de la classe ${classe.nom} (${classe.niveau}) au titre de l'année universitaire ${anneeScolaire || 'en cours'}.`,
-    inscription: () => `atteste que ${eleve.prenom} ${String(eleve.nom).toUpperCase()}${naissance ? `, né(e) le ${naissance}` : ''}, matricule ${eleve.matricule || 'non attribué'}, est inscrit(e) en ${classe.niveau} (${classe.nom}) pour l'année universitaire ${anneeScolaire || 'en cours'}.`,
-    reussite: () => `atteste que ${eleve.prenom} ${String(eleve.nom).toUpperCase()}, matricule ${eleve.matricule || 'non attribué'}, inscrit(e) en ${classe.niveau} (${classe.nom}), a validé le ${semestre.libelle} de l'année universitaire ${anneeScolaire || ''} avec une moyenne de ${noteFr(resultat.moyenneGenerale)}/20, mention ${mention(resultat.moyenneGenerale)}, ${resultat.creditsValides} crédits ECTS obtenus sur ${resultat.creditsTotal}${resultat.decisionJury === 'admis_jury' ? ', par décision du jury' : ''}.`,
+  const titulaire = `${eleve.prenom} ${String(eleve.nom).toUpperCase()}`;
+  const annee = anneeScolaire || 'en cours';
+  const ne = naissance ? `né(e) le ${naissance}, ` : '';
+  const suites = {
+    scolarite: `${ne}est régulièrement inscrit(e) dans l'établissement et suit les enseignements de la classe ${classe.nom} (${classe.niveau}) au titre de l'année universitaire ${annee}.`,
+    inscription: `${ne}est inscrit(e) en ${classe.niveau} (${classe.nom}) pour l'année universitaire ${annee}, ses droits d'inscription ayant été enregistrés par l'établissement.`,
+    reussite: type === 'reussite' ? `inscrit(e) en ${classe.niveau} (${classe.nom}), a validé le ${semestre.libelle} de l'année universitaire ${annee}${resultat.decisionJury === 'admis_jury' ? ' par décision du jury' : ''}, avec les résultats suivants.` : '',
   };
-  doc.font('Times-Roman').fontSize(12.5).fillColor(C.COULEUR_TEXTE)
-    .text(`${signataire} de l'établissement ${etablissement.nom} ${phrases[type]()}`, marge, y, { width: largeur, align: 'justify', lineGap: 5 });
-  y = doc.y + 18;
-  doc.font('Times-Italic').fontSize(12).text("En foi de quoi, la présente attestation lui est délivrée pour servir et valoir ce que de droit.", marge, y, { width: largeur, lineGap: 4 });
-  y = doc.y + 30;
-  y = blocIdentite(doc, marge, y, largeur, elements.filter(([, v]) => v).slice(0, 4).map(([l, v], i) => [l, v, i === 2 ? 1.4 : 1, l === 'Matricule'])) + 30;
-  blocSignature(doc, y, etablissement, signataire, certification);
-  piedDePageOfficiel(doc, `Attestation délivrée par ${etablissement.nom} via EduSphere  ·  vérifiable en ligne`, certification);
-  return finaliser(doc, termine, certification);
+  // L'attestation de réussite se concentre sur les résultats.
+  const paires = [['Nom et prénoms', nom], ['Matricule', eleve.matricule || 'non attribué', true]];
+  if (naissance && type !== 'reussite') paires.push(['Date de naissance', naissance]);
+  paires.push(['Classe', `${classe.nom} (${classe.niveau})`]);
+  if (type !== 'reussite') paires.push(['Année universitaire', annee]);
+  if (type === 'reussite') {
+    paires.push(['Semestre', semestre.libelle], ['Moyenne', `${noteFr(resultat.moyenneGenerale)} / 20`], ['Mention', mention(resultat.moyenneGenerale)],
+      ['Crédits ECTS', `${resultat.creditsValides} / ${resultat.creditsTotal}`], ['Décision', LIBELLES_DECISION[resultat.decisionJury || 'admis']]);
+  }
+  const COMPLEMENTS = { scolarite: 'de scolarité', inscription: "d'inscription", reussite: 'de réussite' };
+  dessinerAttestation(doc, {
+    etablissement,
+    style: styleDe(etablissement, apercu || {}),
+    certification,
+    titre: TITRES_ATTESTATION[type],
+    complement: COMPLEMENTS[type],
+    reference: `Année universitaire ${annee}  ·  N° ${certification.code}`,
+    corps: { introduction: `${signataire} de l'établissement ${etablissement.nom} atteste que`, titulaire, suite: suites[type] },
+    formule: 'En foi de quoi, la présente attestation lui est délivrée pour servir et valoir ce que de droit.',
+    paires,
+    signataire,
+  });
+  piedDePageOfficiel(doc, `${apercu ? 'APERÇU SANS VALEUR  ·  ' : ''}Attestation délivrée par ${etablissement.nom} via EduSphere  ·  vérifiable en ligne`, certification);
+  return finaliser(doc, termine, apercu ? null : certification);
 }
 
 // ---------------------------------------------------------------------------

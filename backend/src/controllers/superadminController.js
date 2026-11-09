@@ -186,6 +186,7 @@ async function modifierEtablissement(req, res) {
     ...(logo !== undefined && { logo: logo || null }),
     ...(province !== undefined && { province: province || require('../services/ministereService').provinceDe(ville) }),
     ...(typeEtablissement && { typeEtablissement }),
+    ...require('../services/modelesAttestation').validerStyleDocuments(req.body),
   });
   await journaliser(req.utilisateur, 'etablissement', `Modification de la fiche de « ${etablissement.nom} »`);
   return res.json({ etablissement });

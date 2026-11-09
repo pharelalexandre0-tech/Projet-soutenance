@@ -16,6 +16,8 @@ router.post('/etablissement/regles-nationales/adopter', authentifier, academie, 
 router.get('/ministere/vue-nationale', authentifier, ministere, ctrl.vueNationale);
 router.get('/ministere/etablissements/:id', authentifier, ministere, ctrl.ficheEtablissement);
 router.post('/ministere/etablissements/:id/agrement', authentifier, ministere, ctrl.deciderAgrement);
+router.post('/ministere/etablissements/:id/cesp', authentifier, ministere, ctrl.enregistrerAvisCesp);
+router.put('/ministere/etablissements/:id/conformite', authentifier, ministere, ctrl.enregistrerConformite);
 router.get('/ministere/circulaires', authentifier, ministere, ctrl.listerCirculaires);
 router.post('/ministere/circulaires', authentifier, ministere, ctrl.publierCirculaire);
 router.get('/ministere/circulaires/:id', authentifier, ministere, ctrl.suiviCirculaire);

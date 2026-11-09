@@ -4073,3 +4073,28 @@ th { background: #F7F8F6; color: var(--texte-clair); }
 
 /* Liens publics de la connexion */
 .login-liens-publics { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+
+/* Style des documents officiels (Paramètres) */
+.style-docs { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.style-docs-modeles { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.style-docs-modele { display: flex; flex-direction: row; align-items: center; text-align: left; gap: 14px; padding: 10px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--fond-carte, #fff); cursor: pointer; font: inherit; color: inherit; }
+.style-docs-modele[aria-checked="true"] { border-color: var(--edu-bleu, #1D5FA8); box-shadow: 0 0 0 2px rgba(29, 95, 168, 0.18); }
+.style-docs-modele strong { font-size: 0.85rem; }
+.style-docs-modele span { font-size: 0.78rem; color: var(--texte-clair); }
+.mini-page { position: relative; width: 64px; height: 90px; background: #fff; border: 1px solid #D8DCD6; overflow: hidden; }
+.mini-page i { position: absolute; display: block; }
+.mini-page .l { left: 14px; right: 14px; height: 2px; background: #C9CFD6; }
+.mini-page.classique .cadre { inset: 4px; border: 1.5px solid var(--accent-doc); }
+.mini-page.prestige .cadre { inset: 3px; border: 2.5px double var(--accent-doc); }
+.mini-page.moderne .bande { left: 0; top: 0; bottom: 0; width: 6px; background: var(--accent-doc); }
+.mini-page .rond { top: 10px; left: 26px; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--accent-doc); }
+.mini-page.moderne .rond { left: 12px; }
+.mini-page .titre { top: 30px; left: 16px; right: 16px; height: 4px; background: var(--accent-doc); }
+.mini-page.moderne .titre { left: 12px; right: 22px; }
+.style-docs-couleurs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pastille-couleur { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--bordure); cursor: pointer; padding: 0; }
+.pastille-couleur[aria-checked="true"] { box-shadow: 0 0 0 2px var(--edu-bleu, #1D5FA8); }
+.style-docs-apercu { border: 1px solid var(--bordure); border-radius: 8px; overflow: hidden; background: #EEF0F2; aspect-ratio: 210 / 297; }
+.style-docs-apercu iframe { width: 100%; height: 100%; border: 0; display: block; }
+@media (max-width: 860px) { .style-docs { grid-template-columns: 1fr; } .style-docs-apercu { display: none; } }
+.mini-page { flex: none; }

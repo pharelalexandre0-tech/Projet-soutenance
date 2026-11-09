@@ -36,7 +36,7 @@ const ONGLETS = [
   { id: 'superadmins', label: 'Superadmins', composant: Superadmins, icone: IconShield, groupe: 'Administration',
     description: 'Comptes ayant accès à l’administration de la plateforme.' },
   { id: 'ministere', label: 'Comptes Ministère', composant: ComptesMinistere, icone: IconBuilding, groupe: 'Administration',
-    description: 'Agents du Ministère de l’Enseignement supérieur : accès à la vue nationale, aux agréments et aux circulaires.' },
+    description: 'Agents du Ministère de l’Enseignement Supérieur et de la Recherche Scientifique : vue nationale, décisions de tutelle et circulaires.' },
   { id: 'profil', label: 'Mon profil', composant: MonProfil, icone: IconUserCog, groupe: 'Administration',
     description: 'Vos informations, votre mot de passe, la sécurité du compte et votre activité.' },
 ];

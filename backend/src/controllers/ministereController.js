@@ -1,16 +1,19 @@
 const { Op } = require('sequelize');
 const XLSX = require('xlsx');
-const { Etablissement, DecisionAgrement, Circulaire, AccuseCirculaire, Utilisateur, Notification } = require('../models');
+const { Etablissement, DecisionAgrement, AvisCesp, Circulaire, AccuseCirculaire, Utilisateur, Notification } = require('../models');
+const { MINISTERE } = require('../config/ministere');
+const T = require('../services/regimeTutelle');
 const { lireNational, LISTE_PROVINCES, etatRole } = require('../services/ministereService');
 const { journaliserAudit } = require('../services/auditService');
 const { rapportNationalPDF } = require('../services/rapportNationalService');
 
-// Espace du Ministère de l'Enseignement supérieur : tutelle des
-// établissements (agréments), statistiques nationales agrégées, alertes de
+// Espace du Ministère de l'Enseignement Supérieur et de la Recherche
+// Scientifique : tutelle des établissements (habilitation, autorisation
+// d'ouverture, avis de la CESP, conformité), statistiques agrégées, alertes de
 // décrochage, circulaires, vérification des documents, rapports.
 
-const STATUTS_AGREMENT = ['en_instruction', 'provisoire', 'agree', 'suspendu', 'retire'];
-const LIBELLES_AGREMENT = { en_instruction: 'En instruction', provisoire: 'Agrément provisoire', agree: 'Agréé', suspendu: 'Agrément suspendu', retire: 'Agrément retiré' };
+const STATUTS_AGREMENT = T.STATUTS_TUTELLE;
+const LIBELLES_AGREMENT = T.LIBELLES_TUTELLE;
 const TYPES = ['universite_publique', 'universite_privee', 'institut_superieur', 'grande_ecole'];
 const LIBELLES_TYPE = { universite_publique: 'Université publique', universite_privee: 'Université privée', institut_superieur: 'Institut supérieur', grande_ecole: 'Grande école' };
 
@@ -85,10 +88,12 @@ function synthese(fiches, resultats) {
   return {
     totaux: {
       etablissements: fiches.length,
-      agrees: fiches.filter((f) => f.agrementStatut === 'agree').length,
-      provisoires: fiches.filter((f) => f.agrementStatut === 'provisoire').length,
-      enInstruction: fiches.filter((f) => f.agrementStatut === 'en_instruction').length,
-      suspendusOuRetires: fiches.filter((f) => ['suspendu', 'retire'].includes(f.agrementStatut)).length,
+      autorises: fiches.filter((f) => f.agrementStatut === 'autorise').length,
+      publics: fiches.filter((f) => f.agrementStatut === 'cree_par_texte').length,
+      habilites: fiches.filter((f) => f.agrementStatut === 'habilite').length,
+      enInstruction: fiches.filter((f) => f.agrementStatut === 'dossier_depose').length,
+      misEnDemeure: fiches.filter((f) => f.agrementStatut === 'mise_en_demeure').length,
+      suspendusOuFermes: fiches.filter((f) => ['suspendu', 'ferme'].includes(f.agrementStatut)).length,
       effectif: somme('effectif'), enseignants: somme('enseignants'), classes: somme('classes'),
       evalues, admis, tauxReussite: taux(admis, evalues),
       moyenne: evalues ? Math.round((fiches.reduce((s, f) => s + (f.moyenne || 0) * f.evalues, 0) / evalues) * 100) / 100 : null,
@@ -100,7 +105,7 @@ function synthese(fiches, resultats) {
     parType: regrouper('typeEtablissement', LIBELLES_TYPE),
     parNiveau: [...niveaux.values()].map((n) => ({ niveau: n.niveau, evalues: n.evalues, admis: n.admis, tauxReussite: taux(n.admis, n.evalues), moyenne: n.evalues ? Math.round((n.somme / n.evalues) * 100) / 100 : null }))
       .sort((a, b) => a.niveau.localeCompare(b.niveau, 'fr')),
-    agrementsAEcheance: fiches.filter((f) => f.agrementExpiration && f.agrementExpiration <= dans90 && ['agree', 'provisoire'].includes(f.agrementStatut))
+    agrementsAEcheance: fiches.filter((f) => f.agrementExpiration && f.agrementExpiration <= dans90 && ['autorise', 'habilite'].includes(f.agrementStatut))
       .map((f) => ({ id: f.id, nom: f.nom, agrementExpiration: f.agrementExpiration, libelleAgrement: f.libelleAgrement })),
   };
 }
@@ -112,7 +117,11 @@ async function vueNationale(req, res) {
     etablissements: fiches,
     provinces: LISTE_PROVINCES,
     types: TYPES.map((t) => ({ valeur: t, libelle: LIBELLES_TYPE[t] })),
-    statutsAgrement: STATUTS_AGREMENT.map((s) => ({ valeur: s, libelle: LIBELLES_AGREMENT[s] })),
+    statutsAgrement: STATUTS_AGREMENT.map((s) => ({ valeur: s, libelle: LIBELLES_AGREMENT[s], acte: T.ACTES[s]?.acte || null, numeroObligatoire: Boolean(T.ACTES[s]?.obligatoire), exemple: T.ACTES[s]?.exemple || '' })),
+    objetsCesp: T.OBJETS_CESP.map((o) => ({ valeur: o, libelle: T.LIBELLES_OBJET_CESP[o] })),
+    avisCesp: T.AVIS_CESP.map((a) => ({ valeur: a, libelle: T.LIBELLES_AVIS_CESP[a] })),
+    pointsConformite: T.POINTS_CONFORMITE.map(([cle, libelle]) => ({ cle, libelle })),
+    ministere: MINISTERE,
     lectureRestreinte: etatRole(),
     calculeLe: new Date(),
   });
@@ -123,19 +132,36 @@ async function ficheEtablissement(req, res) {
   const fiche = fiches.find((f) => f.id === Number(req.params.id));
   if (!fiche) return res.status(404).json({ erreur: 'établissement introuvable' });
   const decisions = await DecisionAgrement.findAll({ where: { etablissementId: fiche.id }, order: [['createdAt', 'DESC']] });
+  const avisCesp = await AvisCesp.findAll({ where: { etablissementId: fiche.id }, order: [['session', 'DESC'], ['createdAt', 'DESC']] });
   const accuses = await AccuseCirculaire.findAll({ where: { etablissementId: fiche.id }, include: [{ model: Circulaire, attributes: ['reference', 'titre', 'publieeLe'] }], order: [['createdAt', 'DESC']], limit: 20 });
-  return res.json({ etablissement: fiche, decisions, accuses });
+  return res.json({ etablissement: fiche, decisions, accuses, avisCesp, conformite: T.evaluerConformite(fiche) });
 }
 
-// Décision d'agrément : met à jour l'établissement, ajoute la décision à
-// l'historique, prévient l'Académie de l'école et l'inscrit au journal.
+// Décision de tutelle (habilitation à fonder, autorisation d'ouverture,
+// mise en demeure, suspension, fermeture...) : met à jour l'établissement,
+// ajoute la décision à l'historique, prévient l'Académie et l'inscrit au journal.
+// Pour un établissement privé, l'habilitation et l'autorisation supposent un
+// avis favorable de la CESP, et l'autorisation suit l'habilitation.
 async function deciderAgrement(req, res) {
   const etablissement = await Etablissement.findByPk(req.params.id);
   if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
   const { statut, numero, dateEffet, dateExpiration, motif, typeEtablissement, province } = req.body || {};
   if (!STATUTS_AGREMENT.includes(statut)) return res.status(400).json({ erreur: 'décision invalide' });
   if (!motif || String(motif).trim().length < 10) return res.status(400).json({ erreur: 'motivez la décision (10 caractères au moins)' });
-  if (['agree', 'provisoire'].includes(statut) && !String(numero || '').trim()) return res.status(400).json({ erreur: "le numéro de l'arrêté d'agrément est obligatoire" });
+  const acte = T.ACTES[statut];
+  if (acte?.obligatoire && !String(numero || '').trim()) return res.status(400).json({ erreur: `le numéro du ${acte.acte} est obligatoire` });
+  const typeFinal = typeEtablissement || etablissement.typeEtablissement;
+  if (statut === 'cree_par_texte' && typeFinal !== 'universite_publique') return res.status(400).json({ erreur: 'seul un établissement public est créé par texte ; un établissement privé est habilité puis autorisé' });
+  if (T.AVIS_CESP_REQUIS[statut] && typeFinal !== 'universite_publique') {
+    const avis = await AvisCesp.findOne({ where: { etablissementId: etablissement.id, objet: T.AVIS_CESP_REQUIS[statut], avis: ['favorable', 'reserves'] } });
+    if (!avis) return res.status(400).json({ erreur: `enregistrez d'abord l'avis favorable de la CESP pour ${T.LIBELLES_OBJET_CESP[T.AVIS_CESP_REQUIS[statut]].toLowerCase()}` });
+    if (statut === 'autorise') {
+      const habilitation = await DecisionAgrement.findOne({ where: { etablissementId: etablissement.id, statut: ['habilite', 'autorise'] } });
+      if (!habilitation && !['habilite', 'autorise', 'mise_en_demeure', 'suspendu'].includes(etablissement.agrementStatut)) {
+        return res.status(400).json({ erreur: "l'autorisation d'ouverture suit l'habilitation à fonder : enregistrez d'abord le décret d'habilitation" });
+      }
+    }
+  }
   if (dateExpiration && dateEffet && dateExpiration <= dateEffet) return res.status(400).json({ erreur: "la date d'expiration doit suivre la date d'effet" });
   if (typeEtablissement && !TYPES.includes(typeEtablissement)) return res.status(400).json({ erreur: "type d'établissement invalide" });
   if (province && !LISTE_PROVINCES.includes(province)) return res.status(400).json({ erreur: 'province inconnue' });
@@ -148,18 +174,58 @@ async function deciderAgrement(req, res) {
   await etablissement.update({
     agrementStatut: statut,
     agrementNumero: numero || etablissement.agrementNumero,
-    agrementDate: ['agree', 'provisoire'].includes(statut) ? effet : etablissement.agrementDate,
-    agrementExpiration: dateExpiration || (['agree', 'provisoire'].includes(statut) ? null : etablissement.agrementExpiration),
+    agrementDate: ['autorise', 'habilite', 'cree_par_texte'].includes(statut) ? effet : etablissement.agrementDate,
+    agrementExpiration: dateExpiration || (['autorise', 'habilite', 'cree_par_texte'].includes(statut) ? null : etablissement.agrementExpiration),
     ...(typeEtablissement && { typeEtablissement }),
     ...(province && { province }),
   });
   const academies = await Utilisateur.findAll({ where: { etablissementId: etablissement.id, role: 'academie' }, attributes: ['id'] });
   await Notification.bulkCreate(academies.map((u) => ({
     utilisateurId: u.id, dateEnvoi: new Date(),
-    contenu: `Ministère de l'Enseignement supérieur : ${LIBELLES_AGREMENT[statut]}${numero ? ` (arrêté ${numero})` : ''}. ${String(motif).trim()}`.slice(0, 250),
+    contenu: `${MINISTERE.nom} : ${LIBELLES_AGREMENT[statut]}${numero ? ` (${/^[A-Za-zÀ-ÿ]{3,}/.test(numero) ? numero : `${acte?.acte || 'acte'} n° ${numero}`})` : ''}. ${String(motif).trim()}`.slice(0, 250),
   }))).catch(() => {});
   await journaliserAudit(req, { action: 'decision_agrement', cible: etablissement.nom, details: { statut, numero: numero || null }, etablissementId: etablissement.id });
   return res.json({ decision, etablissement });
+}
+
+// Avis de la CESP sur un établissement (session, objet, avis, observations).
+async function enregistrerAvisCesp(req, res) {
+  const etablissement = await Etablissement.findByPk(req.params.id);
+  if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
+  const { session, objet, avis, observations, rapporteur } = req.body || {};
+  if (!session || Number.isNaN(Date.parse(session))) return res.status(400).json({ erreur: 'date de session invalide' });
+  if (!T.OBJETS_CESP.includes(objet)) return res.status(400).json({ erreur: "objet de l'avis invalide" });
+  if (!T.AVIS_CESP.includes(avis)) return res.status(400).json({ erreur: 'avis invalide' });
+  if (!observations || String(observations).trim().length < 10) return res.status(400).json({ erreur: 'résumez les observations de la commission (10 caractères au moins)' });
+  const enregistre = await AvisCesp.create({
+    etablissementId: etablissement.id, session: String(session).slice(0, 10), objet, avis,
+    observations: String(observations).trim().slice(0, 4000), rapporteur: rapporteur ? String(rapporteur).trim().slice(0, 160) : null,
+    saisiParId: req.utilisateur.id, saisiParNom: nomAgent(req.utilisateur),
+  });
+  await journaliserAudit(req, { action: 'avis_cesp', cible: etablissement.nom, details: { objet, avis }, etablissementId: etablissement.id });
+  return res.status(201).json({ avis: enregistre });
+}
+
+// Grille de conformité : points vérifiés par les agents et capacité d'accueil.
+async function enregistrerConformite(req, res) {
+  const etablissement = await Etablissement.findByPk(req.params.id);
+  if (!etablissement) return res.status(404).json({ erreur: 'établissement introuvable' });
+  const corps = req.body || {};
+  const conformite = {};
+  for (const [cle] of T.POINTS_CONFORMITE) {
+    if (corps[cle] === true || corps[cle] === false) conformite[cle] = corps[cle];
+  }
+  if (corps.capaciteAccueil !== undefined && corps.capaciteAccueil !== '' && corps.capaciteAccueil !== null) {
+    const capacite = Number(corps.capaciteAccueil);
+    if (!Number.isInteger(capacite) || capacite < 1 || capacite > 200000) return res.status(400).json({ erreur: "capacité d'accueil invalide" });
+    conformite.capaciteAccueil = capacite;
+  }
+  conformite.observations = String(corps.observations || '').trim().slice(0, 2000);
+  conformite.verifieLe = new Date().toISOString().slice(0, 10);
+  conformite.verifieParNom = nomAgent(req.utilisateur);
+  await etablissement.update({ conformite });
+  await journaliserAudit(req, { action: 'conformite_etablissement', cible: etablissement.nom, details: conformite, etablissementId: etablissement.id });
+  return res.json({ conformite });
 }
 
 // ---------------------------------------------------------------------------
@@ -201,9 +267,9 @@ async function publierCirculaire(req, res) {
   };
   if (!propre.toutes && !propre.provinces.length && !propre.types.length && !propre.etablissements.length) return res.status(400).json({ erreur: 'choisissez au moins un destinataire' });
   const annee = new Date().getFullYear();
-  const deLAnnee = await Circulaire.count({ where: { reference: { [Op.like]: `MESR/${annee}/%` } } });
+  const deLAnnee = await Circulaire.count({ where: { reference: { [Op.like]: `${MINISTERE.sigle}/${annee}/%` } } });
   const circulaire = await Circulaire.create({
-    reference: `MESR/${annee}/${String(deLAnnee + 1).padStart(4, '0')}`,
+    reference: `${MINISTERE.sigle}/${annee}/${String(deLAnnee + 1).padStart(4, '0')}`,
     titre: String(titre).trim().slice(0, 200), objet: objet ? String(objet).trim().slice(0, 300) : null,
     contenu: String(contenu).trim(), priorite, cible: propre, echeance: echeance || null,
     auteurId: req.utilisateur.id, auteurNom: nomAgent(req.utilisateur), signataire: signataire || nomAgent(req.utilisateur),
@@ -297,7 +363,7 @@ async function statistiquesDocuments(req, res) {
 }
 
 module.exports = {
-  vueNationale, ficheEtablissement, deciderAgrement, listerCirculaires, publierCirculaire, suiviCirculaire,
+  vueNationale, ficheEtablissement, deciderAgrement, enregistrerAvisCesp, enregistrerConformite, listerCirculaires, publierCirculaire, suiviCirculaire,
   circulairesRecues, marquerLue: (req, res) => marquerCirculaire(req, res, 'lue'), accuserReception: (req, res) => marquerCirculaire(req, res, 'accuse'),
   rapport, statistiquesDocuments, LIBELLES_AGREMENT, LIBELLES_TYPE, donneesNationales, synthese, TYPES, STATUTS_AGREMENT,
 };

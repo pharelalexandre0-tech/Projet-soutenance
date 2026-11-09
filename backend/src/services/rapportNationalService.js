@@ -9,13 +9,7 @@ const { enTeteOfficiel, blocIdentite, blocSignature, piedDePageOfficiel, noteFr,
 const C = outils.couleurs;
 const { nouveauPDF, tableau, finaliser, limiteBas } = outilsTableaux;
 
-const MINISTERE = {
-  nom: "Ministère de l'Enseignement supérieur",
-  sigle: 'MESR',
-  devise: 'Union · Travail · Justice',
-  ville: 'Libreville',
-  pays: 'République Gabonaise',
-};
+const { MINISTERE } = require('../config/ministere');
 
 const pct = (v) => (v == null ? '-' : `${String(v).replace('.', ',')} %`);
 const entier = (n) => String(n ?? 0).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
@@ -69,7 +63,7 @@ async function rapportNationalPDF(donnees, agent) {
       { texte: e.nom, gras: true },
       { texte: e.province || 'Non renseignée' },
       { texte: e.libelleType || '' },
-      { texte: e.libelleAgrement || '', couleur: e.agrementStatut === 'agree' ? C.COULEUR_SUCCES : ['suspendu', 'retire'].includes(e.agrementStatut) ? C.COULEUR_ERREUR : C.COULEUR_RATTRAPAGE, gras: true },
+      { texte: e.libelleAgrement || '', couleur: ['autorise', 'cree_par_texte'].includes(e.agrementStatut) ? C.COULEUR_SUCCES : ['suspendu', 'ferme', 'mise_en_demeure'].includes(e.agrementStatut) ? C.COULEUR_ERREUR : C.COULEUR_RATTRAPAGE, gras: true },
       { texte: entier(e.effectif), align: 'right' },
       { texte: entier(e.evalues), align: 'right' },
       { texte: pct(e.tauxReussite), align: 'right', gras: true },

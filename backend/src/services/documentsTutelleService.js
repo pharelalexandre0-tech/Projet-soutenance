@@ -18,7 +18,7 @@ const colonnes = (largeur, poids) => {
   const total = poids.reduce((a, b) => a + b, 0);
   return poids.map((p) => (p * largeur) / total);
 };
-const couleurAgrement = (s) => (s === 'agree' ? C.COULEUR_SUCCES : ['suspendu', 'retire'].includes(s) ? C.COULEUR_ERREUR : C.COULEUR_RATTRAPAGE);
+const couleurAgrement = (s) => (['autorise', 'cree_par_texte'].includes(s) ? C.COULEUR_SUCCES : ['suspendu', 'ferme', 'mise_en_demeure'].includes(s) ? C.COULEUR_ERREUR : C.COULEUR_RATTRAPAGE);
 
 const LIBELLES_CYCLE = { licence: 'Licence', master: 'Master', doctorat: 'Doctorat' };
 const LIBELLES_HABILITATION = { habilitee: 'Habilitée', en_renouvellement: 'En renouvellement', suspendue: 'Suspendue', retiree: 'Retirée' };
@@ -74,7 +74,7 @@ async function registrePDF(fiches, agent) {
   const certification = await certifier({
     cle: `registre_national_${jour()}`, type: 'registre_national', etablissement: null,
     titre: `Registre national des établissements d'enseignement supérieur, ${dateLongue()}`,
-    elements: [['Établissements inscrits', String(fiches.length)], ['Établissements agréés', String(fiches.filter((f) => f.agrementStatut === 'agree').length)]],
+    elements: [['Établissements inscrits', String(fiches.length)], ['Établissements en activité', String(fiches.filter((f) => ['autorise', 'cree_par_texte'].includes(f.agrementStatut)).length)]],
     donnees: fiches.map((f) => [f.id, f.agrementStatut, f.agrementNumero, f.formationsHabilitees]), emisParId: agent?.id ?? null,
   });
   const { doc, termine } = nouveauPDF({ layout: 'landscape' });
@@ -82,9 +82,9 @@ async function registrePDF(fiches, agent) {
   const largeur = doc.page.width - marge - doc.page.margins.right;
   let y = entete(doc, certification, 'REGISTRE NATIONAL', 'Établissements d’enseignement supérieur');
   y = blocIdentite(doc, marge, y, largeur, [
-    ['Établissements inscrits', String(fiches.length)], ['Agréés', String(fiches.filter((f) => f.agrementStatut === 'agree').length)],
-    ['Agrément provisoire', String(fiches.filter((f) => f.agrementStatut === 'provisoire').length)], ['En instruction', String(fiches.filter((f) => f.agrementStatut === 'en_instruction').length)],
-    ['Suspendus ou retirés', String(fiches.filter((f) => ['suspendu', 'retire'].includes(f.agrementStatut)).length)],
+    ['Établissements inscrits', String(fiches.length)], ['Autorisés ou publics', String(fiches.filter((f) => ['autorise', 'cree_par_texte'].includes(f.agrementStatut)).length)],
+    ['Habilités, non ouverts', String(fiches.filter((f) => f.agrementStatut === 'habilite').length)], ['En instruction', String(fiches.filter((f) => f.agrementStatut === 'dossier_depose').length)],
+    ['Mis en demeure, suspendus ou fermés', String(fiches.filter((f) => ['mise_en_demeure', 'suspendu', 'ferme'].includes(f.agrementStatut)).length)],
   ]) + 16;
   y = tableau(doc, marge, y, colonnes(largeur, [28, 190, 78, 90, 104, 82, 62, 62, 52, 62]),
     ['N°', 'Établissement', 'Province', 'Type', 'Agrément', 'N° de l’arrêté', 'Agréé le', 'Expire le', 'Formations', 'Inspection'],

@@ -14,7 +14,7 @@ export default function VueNationale({ onNaviguer }) {
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Établissements sous tutelle</span><span className="puce-icone petite"><IconBuilding /></span></div>
           <div className="valeur">{t.etablissements}</div>
-          <small className="stat-tile-note">{t.agrees} agréé{t.agrees > 1 ? 's' : ''}, {t.enInstruction} en instruction</small>
+          <small className="stat-tile-note">{t.autorises + t.publics} en activité, {t.enInstruction} en instruction</small>
         </div>
         <div className="stat-tile">
           <div className="stat-tile-haut"><span className="libelle">Étudiants inscrits</span><span className="puce-icone petite"><IconUsers /></span></div>
@@ -68,18 +68,20 @@ export default function VueNationale({ onNaviguer }) {
 
         <div className="colonne-empilee">
           <section className="carte">
-            <h2>Agréments</h2>
+            <h2>Situation des établissements</h2>
             <dl className="registre-chiffres">
-              <div><dt>Agréés</dt><dd className="ton-vert">{t.agrees}</dd></div>
-              <div><dt>Provisoires</dt><dd>{t.provisoires}</dd></div>
-              <div><dt>En instruction</dt><dd className="ton-or">{t.enInstruction}</dd></div>
-              <div><dt>Suspendus ou retirés</dt><dd className="ton-rouge">{t.suspendusOuRetires}</dd></div>
+              <div><dt>Autorisés à ouvrir (privés)</dt><dd className="ton-vert">{t.autorises}</dd></div>
+              <div><dt>Établissements publics</dt><dd className="ton-vert">{t.publics}</dd></div>
+              <div><dt>Habilités, non ouverts</dt><dd>{t.habilites}</dd></div>
+              <div><dt>Dossiers en instruction</dt><dd className="ton-or">{t.enInstruction}</dd></div>
+              <div><dt>Mis en demeure</dt><dd className="ton-or">{t.misEnDemeure}</dd></div>
+              <div><dt>Suspendus ou fermés</dt><dd className="ton-rouge">{t.suspendusOuFermes}</dd></div>
             </dl>
             <button type="button" className="bouton-texte" onClick={() => onNaviguer?.('etablissements')}>Instruire les dossiers <IconChevronRight /></button>
           </section>
           <section className="carte">
-            <h2>Échéances d’agrément (90 jours)</h2>
-            {donnees.agrementsAEcheance.length === 0 && <div className="vide">Aucun agrément n’arrive à échéance.</div>}
+            <h2>Échéances des autorisations (90 jours)</h2>
+            {donnees.agrementsAEcheance.length === 0 && <div className="vide">Aucune autorisation n’arrive à échéance.</div>}
             <ul className="liste-echeances">
               {donnees.agrementsAEcheance.map((a) => (
                 <li key={a.id}><IconCalendarAlert /><span><strong>{a.nom}</strong><small>{a.libelleAgrement}, expire le {dateFr(a.agrementExpiration)}</small></span></li>

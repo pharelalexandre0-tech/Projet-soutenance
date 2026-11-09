@@ -3,21 +3,23 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import Toast from '../../components/Toast';
 import { messageErreur } from '../../utils/erreurs';
-import { useNational, pct, nombre, note, dateFr, dateCourte, BadgeAgrement, EtatChargement, tonReussite, Telechargements } from './commun';
+import { useNational, pct, nombre, note, dateFr, dateCourte, BadgeAgrement, referenceActe, EtatChargement, tonReussite, Telechargements } from './commun';
 import { IconSearch, IconBuilding, IconChevronRight, IconArrowLeft } from '../../components/icons';
 import Habilitations from './Habilitations';
 import Inspections from './Inspections';
+import { AvisCesp, Conformite } from './Cesp';
 
 const FILTRES_AGREMENT = [
   { cle: '', libelle: 'Tous', test: () => true },
-  { cle: 'agree', libelle: 'Agréés', test: (e) => e.agrementStatut === 'agree' },
-  { cle: 'provisoire', libelle: 'Provisoires', test: (e) => e.agrementStatut === 'provisoire' },
-  { cle: 'en_instruction', libelle: 'En instruction', test: (e) => e.agrementStatut === 'en_instruction' },
-  { cle: 'sanction', libelle: 'Suspendus ou retirés', test: (e) => ['suspendu', 'retire'].includes(e.agrementStatut) },
+  { cle: 'activite', libelle: 'En activité', test: (e) => ['autorise', 'cree_par_texte'].includes(e.agrementStatut) },
+  { cle: 'habilite', libelle: 'Habilités, non ouverts', test: (e) => e.agrementStatut === 'habilite' },
+  { cle: 'dossier_depose', libelle: 'Dossiers en instruction', test: (e) => e.agrementStatut === 'dossier_depose' },
+  { cle: 'mise_en_demeure', libelle: 'Mis en demeure', test: (e) => e.agrementStatut === 'mise_en_demeure' },
+  { cle: 'sanction', libelle: 'Suspendus ou fermés', test: (e) => ['suspendu', 'ferme'].includes(e.agrementStatut) },
 ];
 
 // Registre national des établissements sous tutelle, puis la fiche de
-// chacun (synthèse, agrément, formations, inspections, correspondance).
+// chacun (synthèse, décisions, avis CESP, conformité, formations, inspections, correspondance).
 export default function Etablissements() {
   const { donnees: referentiel, erreur } = useNational();
   const [registre, setRegistre] = useState(null);
@@ -42,7 +44,7 @@ export default function Etablissements() {
         <h2>Registre national des établissements <span className="entete-carte-compteur">{liste.length}</span></h2>
         <Telechargements chemin="/api/ministere/registre" libelle="Télécharger le registre" />
       </div>
-      <div className="filtres-puces" role="group" aria-label="Situation d’agrément">
+      <div className="filtres-puces" role="group" aria-label="Situation administrative">
         {FILTRES_AGREMENT.map((f) => (
           <button key={f.cle} type="button" aria-pressed={filtres.agrement === f.cle} className={filtres.agrement === f.cle ? 'actif' : ''} onClick={() => setFiltres({ ...filtres, agrement: f.cle })}>
             {f.libelle} <span>{registre.filter(f.test).length}</span>
@@ -50,7 +52,7 @@ export default function Etablissements() {
         ))}
       </div>
       <div className="barre-outils">
-        <label className="champ-recherche"><IconSearch /><input type="search" placeholder="Nom, sigle, ville ou arrêté…" value={filtres.q} onChange={(e) => setFiltres({ ...filtres, q: e.target.value })} aria-label="Rechercher un établissement" /></label>
+        <label className="champ-recherche"><IconSearch /><input type="search" placeholder="Nom, sigle, ville ou n° de décret…" value={filtres.q} onChange={(e) => setFiltres({ ...filtres, q: e.target.value })} aria-label="Rechercher un établissement" /></label>
         <select className="filtre-select" value={filtres.province} onChange={(e) => setFiltres({ ...filtres, province: e.target.value })} aria-label="Province">
           <option value="">Toutes les provinces</option>
           {referentiel.provinces.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -63,7 +65,7 @@ export default function Etablissements() {
       <div className="table-scroll">
         <table className="table-ministere">
           <thead>
-            <tr><th className="chiffre">N°</th><th>Établissement</th><th>Sigle</th><th>Province</th><th>Type</th><th>Agrément</th><th>N° de l’arrêté</th><th>Expire le</th><th className="chiffre">Formations</th><th>Dernière inspection</th><th className="chiffre">Recomm. ouvertes</th><th aria-label="Fiche" /></tr>
+            <tr><th className="chiffre">N°</th><th>Établissement</th><th>Sigle</th><th>Province</th><th>Type</th><th>Situation</th><th>N° de l’acte</th><th>Échéance</th><th className="chiffre">Formations</th><th>Dernière inspection</th><th className="chiffre">Recomm. ouvertes</th><th aria-label="Fiche" /></tr>
           </thead>
           <tbody>
             {liste.map((e) => (
@@ -91,7 +93,7 @@ export default function Etablissements() {
 }
 
 const ONGLETS_FICHE = [
-  ['synthese', 'Synthèse'], ['agrement', 'Agrément'], ['formations', 'Formations habilitées'], ['inspections', 'Inspections'], ['correspondance', 'Correspondance'],
+  ['synthese', 'Synthèse'], ['agrement', 'Décisions'], ['cesp', 'Avis CESP'], ['conformite', 'Conformité'], ['formations', 'Formations habilitées'], ['inspections', 'Inspections'], ['correspondance', 'Correspondance'],
 ];
 
 function FicheEtablissement({ id, referentiel, onRetour }) {
@@ -117,7 +119,7 @@ function FicheEtablissement({ id, referentiel, onRetour }) {
                 <BadgeAgrement statut={e.agrementStatut} libelle={e.libelleAgrement} />
                 <h2>{e.nom}</h2>
                 <p>{[e.sigle, e.libelleType, `${e.ville}${e.province ? `, ${e.province}` : ''}`].filter(Boolean).join(' · ')}</p>
-                {e.agrementNumero && <p className="identite-ecole-contact">Arrêté {e.agrementNumero}{e.agrementExpiration ? `, valable jusqu’au ${dateFr(e.agrementExpiration)}` : ''}</p>}
+                {e.agrementNumero && <p className="identite-ecole-contact">{referenceActe(referentiel.statutsAgrement.find((s) => s.valeur === e.agrementStatut)?.acte, e.agrementNumero)}{e.agrementExpiration ? `, échéance le ${dateFr(e.agrementExpiration)}` : ''}</p>}
               </div>
             </div>
             <dl className="identite-ecole-chiffres">
@@ -138,6 +140,8 @@ function FicheEtablissement({ id, referentiel, onRetour }) {
           {onglet === 'agrement' && (
             <DecisionAgrement e={e} decisions={fiche.decisions} referentiel={referentiel} onDecision={(m) => { setToast({ message: m, type: 'succes' }); charger(); }} />
           )}
+          {onglet === 'cesp' && <AvisCesp e={e} avis={fiche.avisCesp || []} referentiel={referentiel} onEnregistre={(m) => { setToast({ message: m, type: 'succes' }); charger(); }} />}
+          {onglet === 'conformite' && <Conformite key={fiche.conformite?.verifieLe || 'vide'} e={e} conformite={fiche.conformite} onEnregistre={(m) => { setToast({ message: m, type: 'succes' }); charger(); }} />}
           {onglet === 'formations' && <Habilitations etablissement={e} />}
           {onglet === 'inspections' && <Inspections etablissement={e} />}
           {onglet === 'correspondance' && <Correspondance accuses={fiche.accuses} />}
@@ -187,6 +191,7 @@ function DecisionAgrement({ e, decisions, referentiel, onDecision }) {
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   const champ = (cle) => ({ value: form[cle], onChange: (ev) => setForm({ ...form, [cle]: ev.target.value }) });
+  const acteChoisi = referentiel.statutsAgrement.find((s) => s.valeur === form.statut);
 
   async function decider(ev) {
     ev.preventDefault();
@@ -206,17 +211,22 @@ function DecisionAgrement({ e, decisions, referentiel, onDecision }) {
   return (
     <div className="grille-deux">
       <section className="carte">
-        <div className="entete-carte"><h2>Nouvelle décision d’agrément</h2></div>
+        <div className="entete-carte"><h2>Nouvelle décision</h2></div>
+        <p className="note-secondaire" style={{ marginTop: -6 }}>
+          {e.typeEtablissement === 'universite_publique'
+            ? 'Établissement public : il est créé par un texte (loi ou décret).'
+            : 'Établissement privé : habilitation à fonder puis autorisation d’ouverture, chacune par décret après avis favorable de la CESP.'}
+        </p>
         <form className="formulaire" onSubmit={decider}>
           <div className="ligne-champs">
             <div className="champ"><label htmlFor="ag-statut">Décision</label>
               <select id="ag-statut" {...champ('statut')}>{referentiel.statutsAgrement.map((s) => <option key={s.valeur} value={s.valeur}>{s.libelle}</option>)}</select>
             </div>
-            <div className="champ"><label htmlFor="ag-numero">N° de l’arrêté</label><input id="ag-numero" placeholder="Arrêté n°…/MESR/2026" {...champ('numero')} /></div>
+            <div className="champ"><label htmlFor="ag-numero">N° du {acteChoisi?.acte || 'acte'}{acteChoisi?.numeroObligatoire ? '' : ' (facultatif)'}</label><input id="ag-numero" placeholder={acteChoisi?.exemple || ''} {...champ('numero')} /></div>
           </div>
           <div className="ligne-champs">
             <div className="champ"><label htmlFor="ag-effet">Date d’effet</label><input id="ag-effet" type="date" {...champ('dateEffet')} /></div>
-            <div className="champ"><label htmlFor="ag-exp">Expire le (facultatif)</label><input id="ag-exp" type="date" {...champ('dateExpiration')} /></div>
+            <div className="champ"><label htmlFor="ag-exp">Échéance (facultatif)</label><input id="ag-exp" type="date" {...champ('dateExpiration')} /></div>
           </div>
           <div className="ligne-champs">
             <div className="champ"><label htmlFor="ag-type">Type d’établissement</label>
@@ -229,7 +239,7 @@ function DecisionAgrement({ e, decisions, referentiel, onDecision }) {
               </select>
             </div>
           </div>
-          <div className="champ"><label htmlFor="ag-motif">Motif (notifié à l’établissement)</label><textarea id="ag-motif" rows={4} placeholder="Ex. dossier complet, inspection pédagogique favorable" {...champ('motif')} /></div>
+          <div className="champ"><label htmlFor="ag-motif">Motif (notifié à l’établissement)</label><textarea id="ag-motif" rows={4} placeholder="Ex. avis favorable de la CESP du 12 mars, inspection des locaux satisfaisante" {...champ('motif')} /></div>
           {erreur && <div className="message-erreur">{erreur}</div>}
           <button type="submit" className="primaire" disabled={enCours || form.motif.trim().length < 10}>{enCours ? 'Enregistrement…' : 'Enregistrer la décision'}</button>
         </form>
@@ -242,9 +252,9 @@ function DecisionAgrement({ e, decisions, referentiel, onDecision }) {
             <li key={d.id}>
               <span className="historique-date">{dateCourte(d.dateEffet)}</span>
               <div>
-                <strong>{referentiel.statutsAgrement.find((s) => s.valeur === d.statut)?.libelle}{d.numero ? `, arrêté ${d.numero}` : ''}</strong>
+                <strong>{referentiel.statutsAgrement.find((s) => s.valeur === d.statut)?.libelle}{d.numero ? `, ${referenceActe(referentiel.statutsAgrement.find((s) => s.valeur === d.statut)?.acte, d.numero)}` : ''}</strong>
                 <p>{d.motif}</p>
-                <small>{d.decideParNom}{d.dateExpiration ? ` · valable jusqu’au ${dateCourte(d.dateExpiration)}` : ''}</small>
+                <small>{d.decideParNom}{d.dateExpiration ? ` · échéance le ${dateCourte(d.dateExpiration)}` : ''}</small>
               </div>
             </li>
           ))}

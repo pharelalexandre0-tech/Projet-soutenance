@@ -137,6 +137,12 @@ function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, tail
 // emploi du temps) : même en-tête, même pied de page, même signature.
 // ---------------------------------------------------------------------------
 
+// Couleur des documents choisie par l'école (Paramètres), marine sinon.
+function couleurEcole(etablissement) {
+  const c = etablissement && etablissement.couleurDocuments;
+  return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c) ? c : COULEUR_MARINE;
+}
+
 function sigleEtablissement(etablissement) {
   if (etablissement.sigle) return etablissement.sigle.slice(0, 5).toUpperCase();
   return (etablissement.nom || 'ES').split(/\s+/).filter((m) => m.length > 2).map((m) => m[0]).join('').slice(0, 4).toUpperCase();
@@ -146,6 +152,7 @@ function sigleEtablissement(etablissement) {
 // droite, filet marine dessous. Renvoie la position Y sous le filet.
 function enTeteOfficiel(doc, etablissement, { surtitre, titre, sousTitre, reference, largeurTitre = 190, certification = null, qrEnTete = false }) {
   const margeGauche = doc.page.margins.left;
+  const COULEUR_MARINE = couleurEcole(etablissement);
   // QR code en tête (documents sans zone de signature, comme les emplois du
   // temps) : le bloc titre se décale vers la gauche pour lui laisser la place.
   const tailleQrEnTete = certification && qrEnTete ? 58 : 0;
@@ -789,7 +796,7 @@ module.exports = {
   // Éléments communs réutilisés par les listes de l'Académie (documentsAcademieService).
   outils: {
     enTeteOfficiel, dessinerLigne, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, versMinutesEmploi, JOURS_EMPLOI,
-    sceauVerification, dessinerQr, certifier, sceller,
+    sceauVerification, dessinerQr, certifier, sceller, dessinerLogo, sigleEtablissement, microTexte,
     couleurs: {
       COULEUR_PRIMAIRE, COULEUR_TEXTE, COULEUR_TEXTE_CLAIR, COULEUR_BORDURE, COULEUR_SUCCES, COULEUR_SUCCES_FOND, COULEUR_ERREUR,
       COULEUR_ERREUR_FOND, COULEUR_UE_FOND, COULEUR_RATTRAPAGE, COULEUR_MARINE,

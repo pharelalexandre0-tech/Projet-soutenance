@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 4000;
     // sync({ alter: true }) : pratique pour un prototype de soutenance,
     // à remplacer par de vraies migrations Sequelize pour la production.
     await migrerCodesUE(sequelize);
+    await require('./services/regimeTutelle').migrerStatutsTutelle(sequelize);
     await retirerVuesMinistere(sequelize);
     await sequelize.sync({ alter: true });
     console.log('Connexion à PostgreSQL établie, modèles synchronisés.');

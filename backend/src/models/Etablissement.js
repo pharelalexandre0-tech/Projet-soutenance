@@ -53,12 +53,22 @@ Etablissement.init(
       validate: { isIn: [['universite_publique', 'universite_privee', 'institut_superieur', 'grande_ecole']] },
     },
     agrementStatut: {
-      type: DataTypes.STRING(20), allowNull: false, defaultValue: 'en_instruction',
-      validate: { isIn: [['en_instruction', 'provisoire', 'agree', 'suspendu', 'retire']] },
+      type: DataTypes.STRING(20), allowNull: false, defaultValue: 'dossier_depose',
+      validate: { isIn: [['dossier_depose', 'habilite', 'autorise', 'cree_par_texte', 'mise_en_demeure', 'suspendu', 'ferme']] },
     },
     agrementNumero: { type: DataTypes.STRING(60), allowNull: true },
     agrementDate: { type: DataTypes.DATEONLY, allowNull: true },
     agrementExpiration: { type: DataTypes.DATEONLY, allowNull: true },
+    // Grille de conformité tenue par le ministère (convention avec l'État,
+    // quitus fiscal, locaux, équipements, capacité d'accueil...).
+    conformite: { type: DataTypes.JSONB, allowNull: true },
+    // Style des documents officiels propre à l'école (Paramètres) : modèle de
+    // mise en page et couleur d'accent ; vide = marine EduSphere.
+    modeleDocuments: {
+      type: DataTypes.STRING(20), allowNull: false, defaultValue: 'classique',
+      validate: { isIn: [['classique', 'moderne', 'prestige']] },
+    },
+    couleurDocuments: { type: DataTypes.STRING(7), allowNull: true },
   },
   { sequelize, modelName: 'Etablissement', tableName: 'etablissements' }
 );

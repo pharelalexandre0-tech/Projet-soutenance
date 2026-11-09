@@ -23,7 +23,16 @@ export const nombre = (n) => String(n ?? 0).replace(/\B(?=(\d{3})+(?!\d))/g, ' '
 export const note = (n) => (n == null ? 'N/A' : String(Math.round(n * 100) / 100).replace('.', ','));
 export const dateFr = (d) => (d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
 
-const TONS_AGREMENT = { agree: 'vert', provisoire: 'bleu', en_instruction: 'or', suspendu: 'rouge', retire: 'rouge' };
+const TONS_AGREMENT = { autorise: 'vert', cree_par_texte: 'vert', habilite: 'bleu', dossier_depose: 'gris', mise_en_demeure: 'or', suspendu: 'rouge', ferme: 'rouge' };
+// Référence d'un acte : « Décret n° 0101/PR/MESRS », ou le numéro tel quel
+// s'il porte déjà sa nature (« Arrêté n° … »).
+export function referenceActe(acte, numero) {
+  if (!numero) return '';
+  if (/^[A-Za-zÀ-ÿ]{3,}/.test(numero)) return numero;
+  const nature = acte || 'acte';
+  return `${nature.charAt(0).toUpperCase()}${nature.slice(1)} n° ${numero}`;
+}
+
 export function BadgeAgrement({ statut, libelle }) {
   return <span className={`badge ${TONS_AGREMENT[statut] || 'gris'}`}>{libelle}</span>;
 }

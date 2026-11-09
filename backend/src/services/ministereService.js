@@ -34,7 +34,13 @@ const VUES = [
           e."agrementDate", e."agrementExpiration", e.statut, e."createdAt", e."seuilValidation",
           (SELECT count(*) FROM eleves el WHERE el."etablissementId" = e.id)::int AS effectif,
           (SELECT count(*) FROM classes c WHERE c."etablissementId" = e.id)::int AS classes,
-          (SELECT count(*) FROM professeurs p WHERE p."etablissementId" = e.id)::int AS enseignants
+          (SELECT count(*) FROM professeurs p WHERE p."etablissementId" = e.id)::int AS enseignants,
+          (SELECT count(*) FROM professeurs p WHERE p."etablissementId" = e.id AND p.statut = 'permanent')::int AS "enseignantsPermanents",
+          (SELECT count(*) FROM (SELECT 1 FROM unites_enseignement u JOIN semestres se ON se.id = u."semestreId"
+             WHERE se."etablissementId" = e.id GROUP BY u."semestreId", u."formationId") x)::int AS "semestresLmd",
+          (SELECT count(*) FROM (SELECT 1 FROM unites_enseignement u JOIN semestres se ON se.id = u."semestreId"
+             WHERE se."etablissementId" = e.id GROUP BY u."semestreId", u."formationId" HAVING sum(u.credits) = 30) x)::int AS "semestresLmdConformes",
+          e.conformite
    FROM etablissements e`,
   // Moyenne de chaque étudiant (notes finales (CC + examen) / 2 pondérées
   // par les coefficients), puis agrégat par établissement et par niveau :

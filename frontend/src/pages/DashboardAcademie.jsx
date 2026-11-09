@@ -81,7 +81,7 @@ const ONGLETS = [
   { id: 'parametres', label: 'Paramètres', composant: Parametres, icone: IconSettings, groupe: 'Établissement',
     description: 'Identité de l’établissement et comptes du personnel.' },
   { id: 'circulaires', label: 'Circulaires du Ministère', composant: CirculairesRecues, icone: IconMegaphone, groupe: 'Établissement',
-    description: 'Circulaires du Ministère de l’Enseignement supérieur, situation d’agrément et accusés de réception.' },
+    description: 'Circulaires du Ministère de l’Enseignement Supérieur et de la Recherche Scientifique, situation administrative et accusés de réception.' },
   { id: 'tutelle', label: 'Tutelle du Ministère', composant: TutelleMinistere, icone: IconBuilding, groupe: 'Établissement',
     description: 'Formations habilitées, calendrier universitaire national, inspections et réponses aux recommandations du Ministère.' },
   { id: 'audit', label: 'Journal d’audit', composant: JournalSecurite, icone: IconFingerprint, groupe: 'Établissement',

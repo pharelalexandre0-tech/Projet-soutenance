@@ -80,6 +80,8 @@ router.get('/tableau-de-bord/journal', authentifier, academie, async (req, res) 
 router.get('/etablissement', authentifier, ctrl.obtenirEtablissement);
 router.put('/etablissement', authentifier, academie, ctrl.configurerEtablissement);
 router.put('/etablissement/regles', authentifier, academie, ctrl.configurerRegles);
+router.put('/etablissement/style-documents', authentifier, academie, ctrl.configurerStyleDocuments);
+router.get('/etablissement/apercu-attestation', authentifier, academie, ctrl.apercuAttestation);
 router.get('/etablissement/export', authentifier, academie, ctrl.exporterDonneesEcole);
 
 module.exports = router;

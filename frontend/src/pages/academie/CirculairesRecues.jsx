@@ -7,11 +7,11 @@ import { messageErreur } from '../../utils/erreurs';
 import { IconMegaphone, IconChevronRight, IconBuilding } from '../../components/icons';
 
 const PRIORITES = { information: ['Information', 'gris'], instruction: ['Instruction', 'bleu'], urgent: ['Urgent', 'rouge'] };
-const TONS_AGREMENT = { agree: 'vert', provisoire: 'bleu', en_instruction: 'or', suspendu: 'rouge', retire: 'rouge' };
+const TONS_AGREMENT = { autorise: 'vert', cree_par_texte: 'vert', habilite: 'bleu', dossier_depose: 'gris', mise_en_demeure: 'or', suspendu: 'rouge', ferme: 'rouge' };
 const dateFr = (d) => (d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : '');
 
 // Circulaires du Ministère de l'Enseignement supérieur reçues par
-// l'établissement, situation d'agrément, lecture et accusé de réception.
+// l'établissement, situation administrative, lecture et accusé de réception.
 export default function CirculairesRecues() {
   const [donnees, setDonnees] = useState(null);
   const [ouverte, setOuverte] = useState(null);
@@ -44,7 +44,7 @@ export default function CirculairesRecues() {
         <section className="carte bandeau-agrement">
           <span className="tuile-fonctionnalite"><IconBuilding /></span>
           <div>
-            <h2>Agrément de l’établissement</h2>
+            <h2>Situation auprès du Ministère</h2>
             <p>
               <span className={`badge ${TONS_AGREMENT[ag.statut] || 'gris'}`}>{ag.libelle}</span>
               {ag.numero && <span className="mono"> {ag.numero}</span>}
@@ -87,7 +87,7 @@ export default function CirculairesRecues() {
             : <button type="button" className="primaire" onClick={accuser}>Accuser réception</button>}
         >
           <section className="tiroir-section">
-            <p className="note-secondaire">Ministère de l’Enseignement supérieur · {PRIORITES[ouverte.priorite][0]}{ouverte.echeance ? ` · réponse attendue avant le ${dateFr(ouverte.echeance)}` : ''}</p>
+            <p className="note-secondaire">Ministère de l’Enseignement Supérieur et de la Recherche Scientifique · {PRIORITES[ouverte.priorite][0]}{ouverte.echeance ? ` · réponse attendue avant le ${dateFr(ouverte.echeance)}` : ''}</p>
             {ouverte.objet && <p><strong>Objet :</strong> {ouverte.objet}</p>}
             <div className="texte-circulaire">{ouverte.contenu.split(/\n{2,}/).map((p, i) => <p key={i}>{p}</p>)}</div>
             <p className="note-secondaire">Signataire : {ouverte.signataire}</p>
