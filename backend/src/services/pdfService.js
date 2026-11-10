@@ -485,7 +485,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
       const res = resultatMatiere(m, regles);
       y = dessinerLigne(doc, margeGauche, y, LARGEURS_COLONNES, [
         { texte: m.code || '', couleur: COULEUR_TEXTE_CLAIR, taille: 7.3 },
-        { texte: `     ${m.matiere}${m.session === 'rattrapage' ? ' (rattrapage)' : ''}` },
+        { texte: `     ${m.matiere}${m.session === 'rattrapage' ? `  (rattr.${m.normale ? `, avant ${noteFr(m.normale.noteFinale)}` : ''})` : ''}`, taille: m.session === 'rattrapage' ? 7.2 : undefined },
         { texte: String(m.coefficient ?? ''), align: 'right' },
         { texte: noteFr(m.moyenneCC), align: 'right', couleur: COULEUR_TEXTE_CLAIR },
         { texte: noteFr(m.moyenneExamen), align: 'right', couleur: COULEUR_TEXTE_CLAIR },
@@ -521,7 +521,6 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   // Lieu, date et signature, ancrés vers le bas de la page (pas de grand
   // vide sous la signature), puis cachet et mentions de bas de page.
   const ySignature = y + Math.max(0, (doc.page.height - doc.page.margins.bottom - 132 - y) * 0.35);
-  habillage.cachet(doc, style, etablissement, droite - 190 + 36, ySignature + 47, semestre.anneeScolaire || '');
   blocSignature(doc, ySignature, etablissement, 'Le Directeur des études', certification);
   piedDePageOfficiel(doc, `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.`, certification);
 

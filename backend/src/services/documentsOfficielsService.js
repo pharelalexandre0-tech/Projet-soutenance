@@ -218,8 +218,6 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
     ], { hauteur: 20, fond: teinte(style.accent, 0.08), filets: true }) + 16;
   }
   if (y + 100 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
-  const droite = doc.page.width - doc.page.margins.right;
-  cachet(doc, style, etablissement, droite - 190 + 36, y + 47, evalues.length ? evalues[evalues.length - 1].semestre.anneeScolaire : '');
   blocSignature(doc, y, etablissement, 'Le Directeur des études', certification);
   piedDePageOfficiel(doc, `Relevé de notes établi par ${etablissement.nom} via EduSphere  ·  ${nomComplet(eleve)}  ·  Toute rature annule ce document.`, certification);
   return finaliser(doc, termine, certification);

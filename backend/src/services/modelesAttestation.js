@@ -390,7 +390,6 @@ function blocSignature(doc, s, zone, etablissement, signataire, certification, a
       if (certification) sceauVerification(doc, gauche, y + 22, certification, { taille: 60, largeurTexte: 160 });
       const l = 200;
       const x = droite - l;
-      cachet(doc, s, etablissement, x + 52, y + 44, annee);
       doc.font(serif ? 'Times-Bold' : 'Helvetica-Bold').fontSize(serif ? 11.5 : 9.5).fillColor(s.accent).text(signataire, x, y, { width: l, align: 'center' });
       doc.moveTo(x + 20, y + 72).lineTo(droite - 20, y + 72).lineWidth(0.6).strokeColor(C.COULEUR_TEXTE).stroke();
       doc.font('Helvetica').fontSize(7).fillColor(C.COULEUR_TEXTE_CLAIR).text('Signature et cachet', x, y + 77, { width: l, align: 'center' });

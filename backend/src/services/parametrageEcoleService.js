@@ -29,7 +29,9 @@ function validerRegles(corps, actuel) {
   if (passageDetteActif && (creditsMinPassagePct === null || !Number.isFinite(creditsMinPassagePct) || creditsMinPassagePct <= 0 || creditsMinPassagePct >= 100)) {
     throw erreur('la part de crédits exigée pour un passage avec dette doit être comprise entre 1 et 99 %');
   }
-  return { seuilValidation: seuil, noteEliminatoire: eliminatoire, compensationActive, noteMinCompensation, passageDetteActif, creditsMinPassagePct };
+  const regleRattrapage = corps.regleRattrapage === undefined ? (actuel.regleRattrapage || 'remplace') : corps.regleRattrapage;
+  if (!['remplace', 'meilleure', 'moyenne'].includes(regleRattrapage)) throw erreur('règle de rattrapage inconnue');
+  return { seuilValidation: seuil, noteEliminatoire: eliminatoire, compensationActive, noteMinCompensation, passageDetteActif, creditsMinPassagePct, regleRattrapage };
 }
 
 // Quotas et abonnement fixés par le superadmin.

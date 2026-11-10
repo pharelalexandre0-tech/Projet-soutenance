@@ -34,6 +34,13 @@ Etablissement.init(
     compensationActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     noteMinCompensation: { type: DataTypes.FLOAT, allowNull: true },
     passageDetteActif: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+    // Note retenue d'une matière repassée au rattrapage : « remplace » (la
+    // note de rattrapage remplace la note de la matière, puis la moyenne de
+    // l'UE est recalculée), « meilleure » des deux, ou « moyenne » des deux.
+    regleRattrapage: {
+      type: DataTypes.STRING(12), allowNull: false, defaultValue: 'remplace',
+      validate: { isIn: [['remplace', 'meilleure', 'moyenne']] },
+    },
     creditsMinPassagePct: { type: DataTypes.FLOAT, allowNull: true },
     // Dernière fois que l'école a téléchargé l'archive de ses données
     // (Paramètres > Récupérer les données) : vérifié avant toute suppression.

@@ -16,10 +16,11 @@ function reglesDe(etablissement) {
     noteMinCompensation: etablissement.noteMinCompensation ?? null,
     passageDetteActif: Boolean(etablissement.passageDetteActif),
     creditsMinPassagePct: etablissement.creditsMinPassagePct ?? null,
+    rattrapage: ['remplace', 'meilleure', 'moyenne'].includes(etablissement.regleRattrapage) ? etablissement.regleRattrapage : 'remplace',
   };
 }
 async function reglesEtablissement(etablissementId) {
-  return reglesDe(etablissementId ? await Etablissement.findByPk(etablissementId, { attributes: ['seuilValidation', 'noteEliminatoire', 'compensationActive', 'noteMinCompensation', 'passageDetteActif', 'creditsMinPassagePct'] }) : null);
+  return reglesDe(etablissementId ? await Etablissement.findByPk(etablissementId, { attributes: ['seuilValidation', 'noteEliminatoire', 'compensationActive', 'noteMinCompensation', 'passageDetteActif', 'creditsMinPassagePct', 'regleRattrapage'] }) : null);
 }
 async function reglesEleve(eleveId) {
   const eleve = await Eleve.findByPk(eleveId, { attributes: ['etablissementId'] });
@@ -58,11 +59,11 @@ async function obtenirNoteSession(eleveId, matiereId, session, regles = REGLES_P
   };
 }
 
-// Quand une matière a été repassée, la note retenue est la MOYENNE de la
-// session normale et de la session de rattrapage (convention LMD) — jamais
-// seulement la meilleure des deux, pour ne pas effacer complètement l'échec
-// initial. S'il n'y a pas de note normale (cas rare), le rattrapage sert
-// seul de note retenue.
+// Quand une matière a été repassée, la note retenue dépend de la règle de
+// l'école (Paramètres) : par défaut la note de rattrapage REMPLACE celle de
+// la matière, et la moyenne de l'UE est recalculée avec elle ; l'école peut
+// aussi retenir la meilleure des deux, ou leur moyenne. Sans note normale
+// (cas rare), le rattrapage sert seul de note retenue.
 async function obtenirResultatMatiere(eleveId, matiereId, regles = null, notes = null) {
   regles = regles || (await reglesEleve(eleveId));
   const normale = await obtenirNoteSession(eleveId, matiereId, 'normale', regles, notes);
@@ -72,15 +73,22 @@ async function obtenirResultatMatiere(eleveId, matiereId, regles = null, notes =
   let retenue;
   let sessionRetenue;
   if (rattrapage) {
-    const baseNormale = normale ? normale.noteFinale : rattrapage.noteFinale;
-    const noteFinale = Math.round(((baseNormale + rattrapage.noteFinale) / 2) * 100) / 100;
-    retenue = {
-      moyenneCC: rattrapage.moyenneCC,
-      moyenneExamen: rattrapage.moyenneExamen,
-      noteFinale,
-      eliminatoire: noteFinale < regles.eliminatoire,
-    };
-    sessionRetenue = 'rattrapage';
+    const regle = regles.rattrapage || 'remplace';
+    const base = normale ? normale.noteFinale : rattrapage.noteFinale;
+    if (regle === 'meilleure' && normale && normale.noteFinale > rattrapage.noteFinale) {
+      // La note de la session normale reste la meilleure : elle est gardée.
+      retenue = normale;
+      sessionRetenue = 'normale';
+    } else {
+      const noteFinale = regle === 'moyenne' ? Math.round(((base + rattrapage.noteFinale) / 2) * 100) / 100 : rattrapage.noteFinale;
+      retenue = {
+        moyenneCC: rattrapage.moyenneCC,
+        moyenneExamen: rattrapage.moyenneExamen,
+        noteFinale,
+        eliminatoire: noteFinale < regles.eliminatoire,
+      };
+      sessionRetenue = 'rattrapage';
+    }
   } else {
     retenue = normale;
     sessionRetenue = 'normale';

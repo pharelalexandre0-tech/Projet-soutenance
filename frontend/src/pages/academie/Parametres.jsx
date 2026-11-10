@@ -241,8 +241,9 @@ function ReglesValidation() {
         seuilValidation: String(e.seuilValidation ?? 10), noteEliminatoire: String(e.noteEliminatoire ?? 7),
         compensationActive: Boolean(e.compensationActive), noteMinCompensation: e.noteMinCompensation == null ? '' : String(e.noteMinCompensation),
         passageDetteActif: Boolean(e.passageDetteActif), creditsMinPassagePct: e.creditsMinPassagePct == null ? '' : String(e.creditsMinPassagePct),
+        regleRattrapage: e.regleRattrapage || 'remplace',
       });
-    }).catch(() => setForm({ seuilValidation: '10', noteEliminatoire: '7', compensationActive: false, noteMinCompensation: '', passageDetteActif: false, creditsMinPassagePct: '' }));
+    }).catch(() => setForm({ seuilValidation: '10', noteEliminatoire: '7', compensationActive: false, noteMinCompensation: '', passageDetteActif: false, creditsMinPassagePct: '', regleRattrapage: 'remplace' }));
   }, []);
 
   async function enregistrer(e) {
@@ -284,6 +285,15 @@ function ReglesValidation() {
               <label htmlFor="r-elim">Note éliminatoire (sur 20)</label>
               <input id="r-elim" type="number" min="0" max="20" step="0.25" value={form.noteEliminatoire} onChange={(e) => setForm({ ...form, noteEliminatoire: e.target.value })} required />
             </div>
+          </div>
+          <div className="champ">
+            <label htmlFor="r-rattrapage">Note retenue après un rattrapage</label>
+            <select id="r-rattrapage" value={form.regleRattrapage} onChange={(e) => setForm({ ...form, regleRattrapage: e.target.value })}>
+              <option value="remplace">La note de rattrapage remplace celle de la matière</option>
+              <option value="meilleure">La meilleure des deux notes</option>
+              <option value="moyenne">La moyenne des deux notes</option>
+            </select>
+            <small className="note-secondaire">La moyenne de l’UE est ensuite recalculée : si elle atteint le seuil sans matière éliminatoire, l’UE est validée au rattrapage et ses crédits sont acquis.</small>
           </div>
           <label className="case-confirmation">
             <input type="checkbox" checked={form.compensationActive} onChange={(e) => setForm({ ...form, compensationActive: e.target.checked })} />
