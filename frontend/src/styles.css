@@ -4098,3 +4098,6 @@ th { background: #F7F8F6; color: var(--texte-clair); }
 .style-docs-apercu iframe { width: 100%; height: 100%; border: 0; display: block; }
 @media (max-width: 860px) { .style-docs { grid-template-columns: 1fr; } .style-docs-apercu { display: none; } }
 .mini-page { flex: none; }
+
+.pastille-auto { background: conic-gradient(#0B1E3D, #157A8C, #1F6B45, #8A5A12, #7A1F2B, #3D2A6B, #0B1E3D); color: #fff; font-weight: 700; font-size: 0.75rem; }
+.mini-page.auto .cadre { inset: 4px; border: 1.5px dashed var(--accent-doc); }

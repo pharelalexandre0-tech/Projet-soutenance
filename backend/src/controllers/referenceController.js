@@ -124,11 +124,11 @@ async function apercuAttestation(req, res) {
   const etablissement = await obtenirEtablissementDe(req.utilisateur.etablissementId);
   if (!etablissement) return res.status(404).json({ erreur: 'aucun établissement rattaché à ce compte' });
   const { modele, couleur, type = 'scolarite' } = req.query;
-  require('../services/modelesAttestation').validerStyleDocuments({ modeleDocuments: modele, couleurDocuments: couleur || undefined });
+  require('../services/modelesAttestation').validerStyleDocuments({ modeleDocuments: modele || 'auto', couleurDocuments: couleur || undefined });
   const { attestationPDF } = require('../services/documentsOfficielsService');
   const pdf = await attestationPDF({
     etablissement: etablissement.toJSON(),
-    eleve: { id: 0, nom: 'Exemple', prenom: 'Prénom', matricule: `${(etablissement.sigle || 'ECO').toUpperCase()}-L1-0001`, dateNaissance: '2005-01-15' },
+    eleve: { id: 0, nom: 'Exemple', prenom: 'Prénom', matricule: `${(etablissement.sigle || 'ECO').toUpperCase()}-L1-0001`, dateNaissance: '2005-01-15', createdAt: '2025-10-06T09:00:00Z' },
     classe: { nom: 'Licence 1', niveau: 'Licence 1' },
     type: ['scolarite', 'inscription', 'reussite'].includes(type) ? type : 'scolarite',
     anneeScolaire: '2025-2026',

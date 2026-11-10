@@ -65,7 +65,7 @@ Etablissement.init(
     // Style des documents officiels propre à l'école (Paramètres) : modèle de
     // mise en page et couleur d'accent ; vide = marine EduSphere.
     modeleDocuments: {
-      type: DataTypes.STRING(20), allowNull: false, defaultValue: 'classique',
+      type: DataTypes.STRING(20), allowNull: true,
       validate: { isIn: [['classique', 'moderne', 'prestige']] },
     },
     couleurDocuments: { type: DataTypes.STRING(7), allowNull: true },

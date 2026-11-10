@@ -7,6 +7,7 @@ import { IconDocument } from './icons';
 import { messageErreur } from '../utils/erreurs';
 
 const MODELES = [
+  { cle: 'auto', nom: 'Propre à l’école', description: 'Modèle, frise et couleur calculés pour votre établissement : aucune autre école n’a le même.' },
   { cle: 'classique', nom: 'Classique', description: 'En-tête centré, cadre fin, typographie à empattements.' },
   { cle: 'moderne', nom: 'Moderne', description: 'Bande de couleur latérale, titre aligné à gauche.' },
   { cle: 'prestige', nom: 'Prestige', description: 'Double cadre orné, filigrane de l’école.' },
@@ -32,8 +33,8 @@ export default function StyleDocuments() {
   useEffect(() => {
     client.get('/etablissement').then((r) => {
       const e = r.data.etablissement;
-      setStyle({ modeleDocuments: e.modeleDocuments || 'classique', couleurDocuments: e.couleurDocuments || '#0B1E3D' });
-    }).catch(() => setStyle({ modeleDocuments: 'classique', couleurDocuments: '#0B1E3D' }));
+      setStyle({ modeleDocuments: e.modeleDocuments || 'auto', couleurDocuments: e.couleurDocuments || 'auto' });
+    }).catch(() => setStyle({ modeleDocuments: 'auto', couleurDocuments: 'auto' }));
   }, []);
 
   const cheminApercu = style ? `/api/etablissement/apercu-attestation?modele=${style.modeleDocuments}&couleur=${encodeURIComponent(style.couleurDocuments)}&type=${type}` : '';
@@ -75,7 +76,7 @@ export default function StyleDocuments() {
         </div>
       </div>
       <p style={{ color: 'var(--texte-clair)', fontSize: '0.85rem', marginTop: -6 }}>
-        Modèle et couleur des attestations de votre établissement. Les en-têtes du relevé de notes et des procès-verbaux prennent la même couleur.
+        Modèle et couleur des attestations de votre établissement, avec votre logo en filigrane derrière le texte. Les en-têtes du relevé de notes et des procès-verbaux prennent la même couleur.
       </p>
       {!style && <div className="chargement">Chargement…</div>}
       {style && (
@@ -86,7 +87,7 @@ export default function StyleDocuments() {
               <div className="style-docs-modeles" role="radiogroup" aria-labelledby="lib-modele">
                 {MODELES.map((m) => (
                   <button key={m.cle} type="button" role="radio" aria-checked={style.modeleDocuments === m.cle} className="style-docs-modele" onClick={() => setStyle((s) => ({ ...s, modeleDocuments: m.cle }))}>
-                    <span className={`mini-page ${m.cle}`} style={{ '--accent-doc': style.couleurDocuments }} aria-hidden="true">
+                    <span className={`mini-page ${m.cle}`} style={{ '--accent-doc': style.couleurDocuments === 'auto' ? '#157A8C' : style.couleurDocuments }} aria-hidden="true">
                       <i className="cadre" /><i className="bande" /><i className="rond" /><i className="titre" />
                       <i className="l" style={{ top: 44 }} /><i className="l" style={{ top: 50 }} /><i className="l" style={{ top: 56, right: 24 }} /><i className="l" style={{ top: 70, left: 38 }} />
                     </span>
@@ -101,9 +102,10 @@ export default function StyleDocuments() {
                 {COULEURS.map(([valeur, nom]) => (
                   <button key={valeur} type="button" role="radio" aria-checked={style.couleurDocuments.toUpperCase() === valeur} aria-label={nom} title={nom} className="pastille-couleur" style={{ background: valeur }} onClick={() => setStyle((s) => ({ ...s, couleurDocuments: valeur }))} />
                 ))}
+                <button type="button" role="radio" aria-checked={style.couleurDocuments === 'auto'} aria-label="Couleur propre à l’école" title="Couleur propre à l’école" className="pastille-couleur pastille-auto" onClick={() => setStyle((s) => ({ ...s, couleurDocuments: 'auto' }))}>A</button>
                 <label className="note-secondaire" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
                   Autre
-                  <input type="color" value={style.couleurDocuments} onChange={(e) => setStyle((s) => ({ ...s, couleurDocuments: e.target.value.toUpperCase() }))} style={{ width: 40, height: 30, padding: 0, border: 'none', background: 'none' }} />
+                  <input type="color" value={style.couleurDocuments === 'auto' ? '#0B1E3D' : style.couleurDocuments} onChange={(e) => setStyle((s) => ({ ...s, couleurDocuments: e.target.value.toUpperCase() }))} style={{ width: 40, height: 30, padding: 0, border: 'none', background: 'none' }} />
                 </label>
               </div>
             </div>

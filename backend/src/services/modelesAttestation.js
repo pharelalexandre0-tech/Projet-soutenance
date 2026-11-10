@@ -28,9 +28,11 @@ const hexValide = (v) => typeof v === 'string' && /^#[0-9a-fA-F]{6}$/.test(v);
 function validerStyleDocuments({ modeleDocuments, couleurDocuments } = {}) {
   const champs = {};
   if (modeleDocuments !== undefined) {
-    if (!MODELES_DOCUMENTS.includes(modeleDocuments)) throw Object.assign(new Error('modèle de document inconnu'), { status: 400 });
-    champs.modeleDocuments = modeleDocuments;
+    const auto = !modeleDocuments || modeleDocuments === 'auto';
+    if (!auto && !MODELES_DOCUMENTS.includes(modeleDocuments)) throw Object.assign(new Error('modèle de document inconnu'), { status: 400 });
+    champs.modeleDocuments = auto ? null : modeleDocuments;
   }
+  if (couleurDocuments === 'auto') couleurDocuments = null;
   if (couleurDocuments !== undefined) {
     if (couleurDocuments && !hexValide(couleurDocuments)) throw Object.assign(new Error('couleur invalide : format attendu #RRGGBB'), { status: 400 });
     // Une couleur trop claire rendrait le titre illisible sur le papier blanc.
@@ -54,11 +56,99 @@ function teinte(hex, t) {
   return `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
 }
 
+// Empreinte stable d'une école (FNV-1a) : elle fixe les variantes de son
+// identité graphique. Deux écoles n'obtiennent donc pas le même document,
+// même sans rien régler, et une école garde toujours le même.
+function empreinte(etablissement, sel = '') {
+  let h = 0x811c9dc5;
+  for (const c of `${sel}#${etablissement.id || 0}|${etablissement.nom || ''}|${etablissement.sigle || ''}#${sel}`) {
+    h ^= c.charCodeAt(0);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h;
+}
+
+const MOTIFS = ['losanges', 'points', 'creneaux', 'vagues', 'chevrons', 'filets'];
+
 function styleDe(etablissement, surcharge = {}) {
+  const tirage = (sel, n) => empreinte(etablissement, sel) % n;
+  const modeleAuto = MODELES_DOCUMENTS[tirage('modele', MODELES_DOCUMENTS.length)];
+  const couleurAuto = COULEURS_DOCUMENTS[tirage('couleur', COULEURS_DOCUMENTS.length)].valeur;
   const modele = MODELES_DOCUMENTS.includes(surcharge.modele) ? surcharge.modele
-    : (MODELES_DOCUMENTS.includes(etablissement.modeleDocuments) ? etablissement.modeleDocuments : 'classique');
-  const accent = hexValide(surcharge.couleur) ? surcharge.couleur : (hexValide(etablissement.couleurDocuments) ? etablissement.couleurDocuments : COULEUR_PAR_DEFAUT);
-  return { modele, accent };
+    : surcharge.modele === 'auto' ? modeleAuto
+      : (MODELES_DOCUMENTS.includes(etablissement.modeleDocuments) ? etablissement.modeleDocuments : modeleAuto);
+  const accent = hexValide(surcharge.couleur) ? surcharge.couleur
+    : surcharge.couleur === 'auto' ? couleurAuto
+      : (hexValide(etablissement.couleurDocuments) ? etablissement.couleurDocuments : couleurAuto);
+  return { modele, accent, motif: MOTIFS[tirage('motif', MOTIFS.length)], inclinaison: [-18, 0, 12, -8][tirage('inclinaison', 4)] };
+}
+
+// Frise propre à l'école le long d'un segment (motif choisi par empreinte).
+function frise(doc, s, x1, y1, x2, y2, couleur) {
+  const longueur = Math.hypot(x2 - x1, y2 - y1);
+  const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
+  doc.save().translate(x1, y1).rotate(angle).fillColor(couleur).strokeColor(couleur);
+  const pas = 11;
+  const n = Math.floor(longueur / pas);
+  const debut = (longueur - n * pas) / 2;
+  if (s.motif === 'losanges') {
+    for (let i = 0; i <= n; i += 1) doc.save().translate(debut + i * pas, 0).rotate(45).rect(-1.7, -1.7, 3.4, 3.4).fill().restore();
+  } else if (s.motif === 'points') {
+    for (let i = 0; i <= n; i += 1) doc.circle(debut + i * pas, 0, i % 2 ? 0.9 : 1.7).fill();
+  } else if (s.motif === 'creneaux') {
+    doc.moveTo(debut, 2);
+    for (let i = 0; i < n; i += 1) { const x = debut + i * pas; doc.lineTo(x, i % 2 ? 2 : -2).lineTo(x + pas, i % 2 ? 2 : -2); }
+    doc.lineWidth(0.8).stroke();
+  } else if (s.motif === 'vagues') {
+    doc.moveTo(debut, 0);
+    for (let i = 0; i < n; i += 1) { const x = debut + i * pas; doc.quadraticCurveTo(x + pas / 2, i % 2 ? 3.2 : -3.2, x + pas, 0); }
+    doc.lineWidth(0.8).stroke();
+  } else if (s.motif === 'chevrons') {
+    for (let i = 0; i < n; i += 1) { const x = debut + i * pas; doc.moveTo(x + 2, -2.4).lineTo(x + 6, 0).lineTo(x + 2, 2.4); }
+    doc.lineWidth(0.8).stroke();
+  } else {
+    doc.moveTo(0, -2.2).lineTo(longueur, -2.2).moveTo(0, 0).lineTo(longueur, 0).moveTo(0, 2.2).lineTo(longueur, 2.2).lineWidth(0.4).stroke();
+  }
+  doc.restore();
+}
+
+function friseCadre(doc, s, inset, couleur) {
+  const W = doc.page.width;
+  const H = doc.page.height;
+  frise(doc, s, inset + 10, inset, W - inset - 10, inset, couleur);
+  frise(doc, s, inset + 10, H - inset, W - inset - 10, H - inset, couleur);
+  frise(doc, s, inset, inset + 10, inset, H - inset - 10, couleur);
+  frise(doc, s, W - inset, inset + 10, W - inset, H - inset - 10, couleur);
+}
+
+// Filigrane : le logo de l'école en grand derrière le texte, très pâle
+// (ou son sigle s'il n'a pas de logo), légèrement incliné selon l'école.
+function filigrane(doc, e, s) {
+  const W = doc.page.width;
+  const H = doc.page.height;
+  const taille = 380;
+  doc.save().translate(W / 2, H / 2 + 40).rotate(s.inclinaison).opacity(e.logo ? 0.055 : 0.065);
+  if (!dessinerLogo(doc, e, -taille / 2, -taille / 2, taille)) {
+    doc.circle(0, 0, taille / 2 - 10).lineWidth(6).strokeColor(s.accent).stroke();
+    doc.circle(0, 0, taille / 2 - 24).lineWidth(1.5).strokeColor(s.accent).stroke();
+    doc.font('Times-Bold').fontSize(120).fillColor(s.accent).text(sigleEtablissement(e), -taille / 2, -62, { width: taille, align: 'center', lineBreak: false });
+  }
+  doc.restore();
+}
+
+// Cachet de l'établissement dessiné près de la signature : double cercle,
+// sigle et année, à la couleur de l'école.
+function cachet(doc, s, e, cx, cy, annee) {
+  doc.save().opacity(0.55);
+  doc.circle(cx, cy, 31).lineWidth(1.6).strokeColor(s.accent).stroke();
+  doc.circle(cx, cy, 26).lineWidth(0.5).strokeColor(s.accent).stroke();
+  for (let i = 0; i < 24; i += 1) {
+    const a = (i * Math.PI * 2) / 24;
+    doc.circle(cx + Math.cos(a) * 28.5, cy + Math.sin(a) * 28.5, 0.6).fill(s.accent);
+  }
+  doc.font('Helvetica-Bold').fontSize(10).fillColor(s.accent).text(sigleEtablissement(e), cx - 24, cy - 9, { width: 48, align: 'center', lineBreak: false });
+  doc.font('Helvetica').fontSize(5.6).fillColor(s.accent).text(annee || '', cx - 24, cy + 4, { width: 48, align: 'center', lineBreak: false });
+  doc.restore();
 }
 
 function losange(doc, cx, cy, taille, couleur) {
@@ -89,8 +179,9 @@ function logoOuSigle(doc, etablissement, x, y, taille, accent) {
 function decorClassique(doc, e, s, certification) {
   const W = doc.page.width;
   const H = doc.page.height;
-  doc.rect(24, 24, W - 48, H - 48).lineWidth(1.4).strokeColor(s.accent).stroke();
-  doc.rect(29, 29, W - 58, H - 58).lineWidth(0.4).strokeColor(teinte(s.accent, 0.55)).stroke();
+  friseCadre(doc, s, 24, teinte(s.accent, 0.8));
+  doc.rect(31, 31, W - 62, H - 62).lineWidth(0.6).strokeColor(s.accent).stroke();
+  [[31, 31], [W - 31, 31], [31, H - 31], [W - 31, H - 31]].forEach(([x, y]) => losange(doc, x, y, 6, s.accent));
   const gauche = 64;
   const droite = W - 64;
   const largeur = droite - gauche;
@@ -114,7 +205,9 @@ function decorModerne(doc, e, s, certification) {
   const H = doc.page.height;
   doc.rect(0, 0, 16, H).fill(s.accent);
   doc.rect(16, 0, 5, H).fill(teinte(s.accent, 0.25));
+  frise(doc, s, 8, 20, 8, H - 20, '#FFFFFF');
   doc.rect(W - 150, 0, 150, 6).fill(s.accent);
+  frise(doc, s, 40, H - 26, W - 40, H - 26, teinte(s.accent, 0.4));
   const gauche = 66;
   const droite = W - 56;
   const tailleLogo = 54;
@@ -136,16 +229,11 @@ function decorModerne(doc, e, s, certification) {
 function decorPrestige(doc, e, s, certification) {
   const W = doc.page.width;
   const H = doc.page.height;
-  // Filigrane : logo (ou sigle) très pâle au centre de la page.
-  doc.save().opacity(0.05);
-  if (!dessinerLogo(doc, e, W / 2 - 160, H / 2 - 130, 320)) {
-    doc.font('Times-Bold').fontSize(150).fillColor(s.accent).text(sigleEtablissement(e), 0, H / 2 - 70, { width: W, align: 'center', lineBreak: false });
-  }
-  doc.restore();
-  // Double cadre et coins ornés.
-  doc.rect(20, 20, W - 40, H - 40).lineWidth(2.6).strokeColor(s.accent).stroke();
-  doc.rect(27, 27, W - 54, H - 54).lineWidth(0.6).strokeColor(s.accent).stroke();
-  [[27, 27], [W - 27, 27], [27, H - 27], [W - 27, H - 27]].forEach(([x, y]) => losange(doc, x, y, 9, s.accent));
+  // Double cadre, frise de l'école entre les deux, coins ornés.
+  doc.rect(18, 18, W - 36, H - 36).lineWidth(2.6).strokeColor(s.accent).stroke();
+  friseCadre(doc, s, 27, teinte(s.accent, 0.7));
+  doc.rect(36, 36, W - 72, H - 72).lineWidth(0.6).strokeColor(s.accent).stroke();
+  [[36, 36], [W - 36, 36], [36, H - 36], [W - 36, H - 36]].forEach(([x, y]) => losange(doc, x, y, 9, s.accent));
   const gauche = 70;
   const droite = W - 70;
   const largeur = droite - gauche;
@@ -289,7 +377,8 @@ function blocIdentite(doc, s, zone, paires) {
         const l = seule ? largeur : lCase;
         const yc = y + lig * (hauteurCase + ecart);
         if (s.modele === 'moderne') {
-          doc.roundedRect(x, yc, l, hauteurCase, 4).fill(teinte(s.accent, 0.07));
+          // Fond translucide : le filigrane de l'école reste visible derrière.
+          doc.save().fillOpacity(0.55).roundedRect(x, yc, l, hauteurCase, 4).fill(teinte(s.accent, 0.1)).restore();
           doc.rect(x, yc, 3, hauteurCase).fill(s.accent);
         } else {
           doc.moveTo(x, yc + hauteurCase).lineTo(x + l, yc + hauteurCase).lineWidth(0.4).strokeColor(teinte(s.accent, 0.35)).stroke();
@@ -307,7 +396,7 @@ function blocIdentite(doc, s, zone, paires) {
   };
 }
 
-function blocSignature(doc, s, zone, etablissement, signataire, certification) {
+function blocSignature(doc, s, zone, etablissement, signataire, certification, annee) {
   const { gauche, droite } = zone;
   const dateDuJour = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Libreville' });
   const serif = s.modele !== 'moderne';
@@ -319,6 +408,7 @@ function blocSignature(doc, s, zone, etablissement, signataire, certification) {
       if (certification) sceauVerification(doc, gauche, y + 22, certification, { taille: 60, largeurTexte: 160 });
       const l = 200;
       const x = droite - l;
+      cachet(doc, s, etablissement, x + 52, y + 44, annee);
       doc.font(serif ? 'Times-Bold' : 'Helvetica-Bold').fontSize(serif ? 11.5 : 9.5).fillColor(s.accent).text(signataire, x, y, { width: l, align: 'center' });
       doc.moveTo(x + 20, y + 72).lineTo(droite - 20, y + 72).lineWidth(0.6).strokeColor(C.COULEUR_TEXTE).stroke();
       doc.font('Helvetica').fontSize(7).fillColor(C.COULEUR_TEXTE_CLAIR).text('Signature et cachet', x, y + 77, { width: l, align: 'center' });
@@ -348,16 +438,29 @@ function repartir(blocs, zone, ecartsBase) {
   });
 }
 
-function dessinerAttestation(doc, { etablissement, style, certification, titre, complement, reference, corps, formule, paires, signataire }) {
+function dessinerAttestation(doc, { etablissement, style, certification, titre, complement, reference, corps, formule, paires, signataire, annee }) {
+  filigrane(doc, etablissement, style);
   const zone = DECORS[style.modele](doc, etablissement, style, certification);
   const blocs = [
     blocTitre(doc, style, zone, { titre, complement, reference }),
     blocCorps(doc, style, zone, corps),
     blocIdentite(doc, style, zone, paires),
     blocTexte(doc, style, zone, formule, { italique: true, centre: true }),
-    blocSignature(doc, style, zone, etablissement, signataire, certification),
+    blocSignature(doc, style, zone, etablissement, signataire, certification, annee),
   ];
   repartir(blocs, zone, [24, 22, 18, 26]);
 }
 
-module.exports = { MODELES_DOCUMENTS, COULEURS_DOCUMENTS, COULEUR_PAR_DEFAUT, validerStyleDocuments, styleDe, dessinerAttestation };
+// Le modèle n'a plus de valeur par défaut : vide = identité calculée pour
+// l'école. Les écoles restées sur l'ancien défaut « classique » passent en
+// automatique, une seule fois (le défaut de colonne disparaît ensuite).
+async function migrerStyleDocuments(sequelize) {
+  const [[def]] = await sequelize.query(`SELECT pg_get_expr(d.adbin, d.adrelid) AS valeur FROM pg_attrdef d
+    JOIN pg_attribute a ON a.attrelid = d.adrelid AND a.attnum = d.adnum
+    WHERE d.adrelid = to_regclass('public.etablissements') AND a.attname = 'modeleDocuments'`);
+  if (!def || !String(def.valeur).includes('classique')) return;
+  await sequelize.query('ALTER TABLE etablissements ALTER COLUMN "modeleDocuments" DROP DEFAULT, ALTER COLUMN "modeleDocuments" DROP NOT NULL');
+  await sequelize.query(`UPDATE etablissements SET "modeleDocuments" = NULL WHERE "modeleDocuments" = 'classique'`);
+}
+
+module.exports = { MODELES_DOCUMENTS, COULEURS_DOCUMENTS, COULEUR_PAR_DEFAUT, validerStyleDocuments, styleDe, dessinerAttestation, migrerStyleDocuments };

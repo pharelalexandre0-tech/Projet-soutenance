@@ -111,16 +111,22 @@ async function attestationPDF({ etablissement, eleve, classe, type, semestre, re
   const titulaire = `${eleve.prenom} ${String(eleve.nom).toUpperCase()}`;
   const annee = anneeScolaire || 'en cours';
   const ne = naissance ? `né(e) le ${naissance}, ` : '';
+  const dateInscription = eleve.createdAt ? dateFr(eleve.createdAt) : null;
   const suites = {
     scolarite: `${ne}est régulièrement inscrit(e) dans l'établissement et suit les enseignements de la classe ${classe.nom} (${classe.niveau}) au titre de l'année universitaire ${annee}.`,
-    inscription: `${ne}est inscrit(e) en ${classe.niveau} (${classe.nom}) pour l'année universitaire ${annee}, ses droits d'inscription ayant été enregistrés par l'établissement.`,
+    inscription: `${ne}est inscrit(e) dans l'établissement au titre de l'année universitaire ${annee}, en ${classe.niveau}, classe ${classe.nom}${dateInscription ? `. Son inscription a été enregistrée le ${dateInscription}` : ''}.`,
     reussite: type === 'reussite' ? `inscrit(e) en ${classe.niveau} (${classe.nom}), a validé le ${semestre.libelle} de l'année universitaire ${annee}${resultat.decisionJury === 'admis_jury' ? ' par décision du jury' : ''}, avec les résultats suivants.` : '',
   };
   // L'attestation de réussite se concentre sur les résultats.
   const paires = [['Nom et prénoms', nom], ['Matricule', eleve.matricule || 'non attribué', true]];
   if (naissance && type !== 'reussite') paires.push(['Date de naissance', naissance]);
-  paires.push(['Classe', `${classe.nom} (${classe.niveau})`]);
-  if (type !== 'reussite') paires.push(['Année universitaire', annee]);
+  if (type === 'inscription') {
+    paires.push(['Niveau d’études', classe.niveau], ['Classe', classe.nom], ['Année universitaire', annee]);
+    if (dateInscription) paires.push(['Inscrit(e) le', dateInscription]);
+  } else {
+    paires.push(['Classe', `${classe.nom} (${classe.niveau})`]);
+    if (type !== 'reussite') paires.push(['Année universitaire', annee]);
+  }
   if (type === 'reussite') {
     paires.push(['Semestre', semestre.libelle], ['Moyenne', `${noteFr(resultat.moyenneGenerale)} / 20`], ['Mention', mention(resultat.moyenneGenerale)],
       ['Crédits ECTS', `${resultat.creditsValides} / ${resultat.creditsTotal}`], ['Décision', LIBELLES_DECISION[resultat.decisionJury || 'admis']]);
@@ -137,6 +143,7 @@ async function attestationPDF({ etablissement, eleve, classe, type, semestre, re
     formule: 'En foi de quoi, la présente attestation lui est délivrée pour servir et valoir ce que de droit.',
     paires,
     signataire,
+    annee,
   });
   piedDePageOfficiel(doc, `${apercu ? 'APERÇU SANS VALEUR  ·  ' : ''}Attestation délivrée par ${etablissement.nom} via EduSphere  ·  vérifiable en ligne`, certification);
   return finaliser(doc, termine, apercu ? null : certification);
