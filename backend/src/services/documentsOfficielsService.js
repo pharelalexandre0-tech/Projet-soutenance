@@ -194,20 +194,20 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
     y = doc.y + 5;
     const lignes = [];
     for (const u of calcul.detailParUE) {
-      lignes.push([{ texte: u.code || '', gras: true, couleur: C.COULEUR_MARINE }, { texte: `${u.ue} (${u.credits} cr.)`, gras: true, couleur: C.COULEUR_MARINE }, { texte: '' }, { texte: '' }, { texte: '' },
+      lignes.push([{ texte: u.code || '', gras: true, couleur: style.accent }, { texte: `${u.ue} (${u.credits} cr.)`, gras: true, couleur: style.accent }, { texte: '' }, { texte: '' }, { texte: '' },
         { texte: noteFr(u.moyenne), align: 'right', gras: true }, { texte: require('./moyenneService').libelleEtatUE(u, true), gras: true, couleur: u.acquise ? C.COULEUR_SUCCES : C.COULEUR_ERREUR }]);
       for (const m of u.matieres) {
         lignes.push([{ texte: m.code || '', couleur: C.COULEUR_TEXTE_CLAIR }, { texte: `   ${m.matiere}` }, { texte: String(m.coefficient ?? ''), align: 'right' },
           { texte: noteFr(m.moyenneCC), align: 'right' }, { texte: noteFr(m.moyenneExamen), align: 'right' }, { texte: noteFr(m.noteFinale), align: 'right', gras: true }, { texte: '' }]);
       }
     }
-    y = tableau(doc, marge, y, colonnes, ['Code', 'Unité / matière', 'Coef.', 'CC', 'Examen', 'Note', 'Résultat'], lignes, { hauteur: 17, taille: 7.6 });
+    y = tableau(doc, marge, y, colonnes, ['Code', 'Unité / matière', 'Coef.', 'CC', 'Examen', 'Note', 'Résultat'], lignes, { hauteur: 17, taille: 7.6, couleurEntete: style.accent, filets: true });
     y = dessinerLigne(doc, marge, y, [largeur * 0.4, largeur * 0.2, largeur * 0.2, largeur * 0.2], [
       { texte: 'Synthèse du semestre', gras: true },
       { texte: `Moyenne ${noteFr(calcul.moyenneGenerale)}/20`, gras: true },
       { texte: `Crédits ${calcul.creditsValides}/${calcul.creditsTotal}` },
       { texte: LIBELLES_DECISION[calcul.decisionJury || (calcul.admis ? 'admis' : 'rattrapage')], gras: true, couleur: calcul.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
-    ], { hauteur: 20, fond: teinte(style.accent, 0.08) }) + 16;
+    ], { hauteur: 20, fond: teinte(style.accent, 0.08), filets: true }) + 16;
   }
   if (cumul && evalues.length) {
     if (y + 40 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
@@ -215,11 +215,11 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
       { texte: `Cumul du cycle ${cumul.libelleCycle}`, gras: true },
       { texte: `Crédits acquis ${cumul.creditsAcquis} / ${cumul.creditsRequis}`, gras: true },
       { texte: `Restants ${cumul.creditsRestants}` },
-    ], { hauteur: 20, fond: teinte(style.accent, 0.08) }) + 16;
+    ], { hauteur: 20, fond: teinte(style.accent, 0.08), filets: true }) + 16;
   }
   if (y + 100 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
   const droite = doc.page.width - doc.page.margins.right;
-  cachet(doc, style, etablissement, droite - 190 + 44, y + 40, evalues.length ? evalues[evalues.length - 1].semestre.anneeScolaire : '');
+  cachet(doc, style, etablissement, droite - 190 + 36, y + 47, evalues.length ? evalues[evalues.length - 1].semestre.anneeScolaire : '');
   blocSignature(doc, y, etablissement, 'Le Directeur des études', certification);
   piedDePageOfficiel(doc, `Relevé de notes établi par ${etablissement.nom} via EduSphere  ·  ${nomComplet(eleve)}  ·  Toute rature annule ce document.`, certification);
   return finaliser(doc, termine, certification);

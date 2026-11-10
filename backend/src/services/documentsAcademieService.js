@@ -40,8 +40,8 @@ const dateFr = (d, options = { day: 'numeric', month: 'long', year: 'numeric' })
 const limiteBas = (doc, reserve = 0) => doc.page.height - doc.page.margins.bottom - 24 - reserve;
 
 // Tableau sur plusieurs pages : l'en-tête est redessiné en haut de chaque page.
-function tableau(doc, x, y, largeurs, entete, lignes, { hauteur = 18, taille = 8, reserveFin = 0, cases = [] } = {}) {
-  const dessinerEntete = (yy) => dessinerLigne(doc, x, yy, largeurs, entete.map((t, i) => ({ texte: t, gras: true, couleur: '#FFFFFF', align: i === 0 ? 'center' : 'left', taille: 7.2 })), { hauteur: 20, fond: C.COULEUR_MARINE });
+function tableau(doc, x, y, largeurs, entete, lignes, { hauteur = 18, taille = 8, reserveFin = 0, cases = [], couleurEntete = C.COULEUR_MARINE, filets = false } = {}) {
+  const dessinerEntete = (yy) => dessinerLigne(doc, x, yy, largeurs, entete.map((t, i) => ({ texte: t, gras: true, couleur: '#FFFFFF', align: i === 0 ? 'center' : 'left', taille: 7.2 })), { hauteur: 20, fond: couleurEntete, sansBordure: filets });
   y = dessinerEntete(y);
   lignes.forEach((cellules, i) => {
     if (y + hauteur > limiteBas(doc)) {
@@ -49,7 +49,7 @@ function tableau(doc, x, y, largeurs, entete, lignes, { hauteur = 18, taille = 8
       y = dessinerEntete(doc.page.margins.top);
     }
     const yLigne = y;
-    y = dessinerLigne(doc, x, y, largeurs, cellules, { hauteur, taille, fond: i % 2 ? '#F7F8F6' : undefined });
+    y = dessinerLigne(doc, x, y, largeurs, cellules, { hauteur, taille, fond: filets ? undefined : (i % 2 ? '#F7F8F6' : undefined), filets });
     // Cases à cocher dessinées (la police du PDF n'a pas de caractère « case »).
     for (const col of cases) {
       const cx = x + largeurs.slice(0, col).reduce((a, b) => a + b, 0) + largeurs[col] / 2 - 5;

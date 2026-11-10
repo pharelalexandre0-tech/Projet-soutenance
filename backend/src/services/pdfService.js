@@ -98,7 +98,7 @@ function nouveauDocument(nomFichier, options = {}) {
 
 // Dessine une ligne de tableau quadrillé (cellules bordées, fond optionnel)
 // et retourne la position Y suivante. `cellules` : [{ texte, align, gras }].
-function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, taille = 8, sansBordure = false, fusion } = {}) {
+function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, taille = 8, sansBordure = false, fusion, filets = false } = {}) {
   // `fusion` : [première, dernière] colonne réunies en une seule cellule
   // (le texte de la première occupe toute la largeur du bloc).
   const blocs = [];
@@ -112,8 +112,9 @@ function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, tail
   }
   blocs.forEach((bloc) => {
     if (fond) doc.rect(bloc.x, y, bloc.largeur, hauteur).fill(fond);
-    if (!sansBordure) doc.rect(bloc.x, y, bloc.largeur, hauteur).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
+    if (!sansBordure && !filets) doc.rect(bloc.x, y, bloc.largeur, hauteur).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
   });
+  if (filets && !sansBordure) doc.moveTo(x, y + hauteur).lineTo(cx, y + hauteur).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
   blocs.forEach((bloc) => {
     const cellule = cellules[bloc.indice];
     if (!cellule) return;
@@ -139,8 +140,9 @@ function dessinerLigne(doc, x, y, largeurs, cellules, { hauteur = 18, fond, tail
 
 // Couleur des documents choisie par l'école (Paramètres), marine sinon.
 function couleurEcole(etablissement) {
-  const c = etablissement && etablissement.couleurDocuments;
-  return typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c) ? c : COULEUR_MARINE;
+  if (!etablissement || !etablissement.nom) return COULEUR_MARINE;
+  // Couleur choisie, sinon celle calculée pour l'école (même que ses attestations).
+  return require('./modelesAttestation').styleDe(etablissement).accent;
 }
 
 function sigleEtablissement(etablissement) {
@@ -378,18 +380,18 @@ function resultatMatiere(m, regles = { seuil: 10 }) {
   return m.noteFinale >= regles.seuil ? { texte: 'VALIDÉE', couleur: COULEUR_SUCCES } : { texte: 'NON VALIDÉE', couleur: COULEUR_RATTRAPAGE };
 }
 
-function enTeteTableau(doc, x, y) {
+function enTeteTableau(doc, x, y, couleur = COULEUR_MARINE) {
   return dessinerLigne(
     doc, x, y, LARGEURS_COLONNES,
     EN_TETES.map((t, i) => ({ texte: t, align: i >= 2 && i <= 5 ? 'right' : 'left', gras: true, couleur: '#FFFFFF', taille: 6.8 })),
-    { hauteur: 22, fond: COULEUR_MARINE, taille: 6.8, sansBordure: true }
+    { hauteur: 22, fond: couleur, taille: 6.8, sansBordure: true }
   );
 }
 
-function assurerPlace(doc, y, hauteurNecessaire, margeGauche) {
+function assurerPlace(doc, y, hauteurNecessaire, margeGauche, couleur) {
   if (y + hauteurNecessaire > doc.page.height - doc.page.margins.bottom - 20) {
     doc.addPage();
-    return enTeteTableau(doc, margeGauche, doc.page.margins.top);
+    return enTeteTableau(doc, margeGauche, doc.page.margins.top, couleur);
   }
   return y;
 }
@@ -421,6 +423,12 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
     emisParId,
   });
   const { doc, termine, cheminRelatif } = nouveauDocument(nomFichier, { bufferPages: true });
+  const habillage = require('./modelesAttestation');
+  const style = habillage.styleDe(etablissement);
+  const accent = style.accent;
+  const fondUE = habillage.teinte(accent, 0.07);
+  habillage.fondDePage(doc, etablissement, style);
+  doc.on('pageAdded', () => habillage.fondDePage(doc, etablissement, style));
 
   const margeGauche = doc.page.margins.left;
   const largeurTotale = LARGEURS_COLONNES.reduce((a, b) => a + b, 0);
@@ -451,7 +459,7 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
     y += 30;
   }
 
-  y = enTeteTableau(doc, margeGauche, y);
+  y = enTeteTableau(doc, margeGauche, y, accent);
 
   if (sansNotes) {
     doc.rect(margeGauche, y, largeurTotale, 36).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
@@ -461,19 +469,19 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   }
 
   detailParUE.forEach((ligneUE) => {
-    y = assurerPlace(doc, y, 20 * (1 + ligneUE.matieres.length), margeGauche);
+    y = assurerPlace(doc, y, 20 * (1 + ligneUE.matieres.length), margeGauche, accent);
     const { texte: resultatUE, couleur: couleurResultatUE } = libelleResultatUE(ligneUE);
     const credits = `${ligneUE.credits} crédit${ligneUE.credits > 1 ? 's' : ''}`;
     y = dessinerLigne(doc, margeGauche, y, LARGEURS_COLONNES, [
-      { texte: ligneUE.code || '', gras: true, couleur: COULEUR_MARINE, taille: 7.5 },
-      { texte: `${ligneUE.ue}  ·  ${credits}${ligneUE.session === 'rattrapage' ? '  ·  rattrapage' : ''}`, gras: true, couleur: COULEUR_MARINE },
+      { texte: ligneUE.code || '', gras: true, couleur: accent, taille: 7.5 },
+      { texte: `${ligneUE.ue}  ·  ${credits}${ligneUE.session === 'rattrapage' ? '  ·  rattrapage' : ''}`, gras: true, couleur: accent },
       { texte: '' }, { texte: '' }, { texte: '' },
-      { texte: noteFr(ligneUE.moyenne), align: 'right', gras: true, couleur: COULEUR_MARINE },
+      { texte: noteFr(ligneUE.moyenne), align: 'right', gras: true, couleur: accent },
       { texte: resultatUE.toUpperCase(), gras: true, couleur: couleurResultatUE, taille: 6.5 },
-    ], { hauteur: 20, fond: COULEUR_UE, fusion: [1, 4] });
+    ], { hauteur: 20, fond: fondUE, fusion: [1, 4], filets: true });
 
     ligneUE.matieres.forEach((m) => {
-      y = assurerPlace(doc, y, 18, margeGauche);
+      y = assurerPlace(doc, y, 18, margeGauche, accent);
       const res = resultatMatiere(m, regles);
       y = dessinerLigne(doc, margeGauche, y, LARGEURS_COLONNES, [
         { texte: m.code || '', couleur: COULEUR_TEXTE_CLAIR, taille: 7.3 },
@@ -483,13 +491,13 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
         { texte: noteFr(m.moyenneExamen), align: 'right', couleur: COULEUR_TEXTE_CLAIR },
         { texte: noteFr(m.noteFinale), align: 'right', gras: true, couleur: res.couleur },
         { texte: res.texte, gras: true, couleur: res.couleur, taille: 6.5 },
-      ], { hauteur: 18 });
+      ], { hauteur: 18, filets: true });
     });
   });
 
   // Synthèse : 4 cases dans un cadre marine.
   y += 18;
-  y = assurerPlace(doc, y, 150, margeGauche);
+  y = assurerPlace(doc, y, 150, margeGauche, accent);
   const synthese = [
     ['MOYENNE GÉNÉRALE', sansNotes ? 'Non évaluée' : `${noteFr(moyenneGenerale)} / 20`, sansNotes ? COULEUR_TEXTE : moyenneGenerale >= regles.seuil ? COULEUR_SUCCES : COULEUR_ERREUR],
     ['CRÉDITS VALIDÉS', `${creditsValides} / ${creditsTotal}`, COULEUR_TEXTE],
@@ -499,17 +507,22 @@ async function genererBulletinPDF({ eleve, semestre, moyenneGenerale, creditsVal
   ];
   const largeurCase = largeurTotale / synthese.length;
   const hauteurSynthese = 46;
-  doc.rect(margeGauche, y, largeurTotale, hauteurSynthese).lineWidth(1.3).strokeColor(COULEUR_MARINE).stroke();
+  // Synthèse : fond très léger à la couleur de l'école, filet fort au-dessus.
+  doc.save().fillOpacity(0.7).rect(margeGauche, y, largeurTotale, hauteurSynthese).fill(fondUE).restore();
+  doc.rect(margeGauche, y, largeurTotale, 2.2).fill(accent);
   synthese.forEach(([label, valeur, couleur], i) => {
     const x = margeGauche + i * largeurCase;
-    if (i) doc.moveTo(x, y).lineTo(x, y + hauteurSynthese).lineWidth(0.6).strokeColor(COULEUR_BORDURE).stroke();
+    if (i) doc.moveTo(x, y + 10).lineTo(x, y + hauteurSynthese - 8).lineWidth(0.5).strokeColor(COULEUR_BORDURE).stroke();
     doc.font('Helvetica-Bold').fontSize(6.3).fillColor(COULEUR_TEXTE_CLAIR).text(label, x, y + 9, { width: largeurCase, align: 'center', characterSpacing: 0.6 });
     doc.font('Times-Bold').fontSize(13).fillColor(couleur).text(valeur, x, y + 22, { width: largeurCase, align: 'center' });
   });
   y += hauteurSynthese + 30;
 
-  // Lieu, date et signature, puis mentions de bas de page.
-  blocSignature(doc, y, etablissement, 'Le Directeur des études', certification);
+  // Lieu, date et signature, ancrés vers le bas de la page (pas de grand
+  // vide sous la signature), puis cachet et mentions de bas de page.
+  const ySignature = y + Math.max(0, (doc.page.height - doc.page.margins.bottom - 132 - y) * 0.35);
+  habillage.cachet(doc, style, etablissement, droite - 190 + 36, ySignature + 47, semestre.anneeScolaire || '');
+  blocSignature(doc, ySignature, etablissement, 'Le Directeur des études', certification);
   piedDePageOfficiel(doc, `Document établi par ${etablissement.nom} via EduSphere  ·  Réf. ${reference}  ·  Toute rature ou surcharge annule ce document.`, certification);
 
   doc.end();

@@ -68,7 +68,7 @@ function empreinte(etablissement, sel = '') {
   return h;
 }
 
-const MOTIFS = ['losanges', 'points', 'creneaux', 'vagues', 'chevrons', 'filets'];
+const CADRES = ['filet', 'double', 'equerres', 'liseres'];
 
 function styleDe(etablissement, surcharge = {}) {
   const tirage = (sel, n) => empreinte(etablissement, sel) % n;
@@ -80,45 +80,33 @@ function styleDe(etablissement, surcharge = {}) {
   const accent = hexValide(surcharge.couleur) ? surcharge.couleur
     : surcharge.couleur === 'auto' ? couleurAuto
       : (hexValide(etablissement.couleurDocuments) ? etablissement.couleurDocuments : couleurAuto);
-  return { modele, accent, motif: MOTIFS[tirage('motif', MOTIFS.length)], inclinaison: [-18, 0, 12, -8][tirage('inclinaison', 4)] };
+  return { modele, accent, cadre: CADRES[tirage('cadre', CADRES.length)], inclinaison: [-18, 0, 12, -8][tirage('inclinaison', 4)] };
 }
 
-// Frise propre à l'école le long d'un segment (motif choisi par empreinte).
-function frise(doc, s, x1, y1, x2, y2, couleur) {
-  const longueur = Math.hypot(x2 - x1, y2 - y1);
-  const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
-  doc.save().translate(x1, y1).rotate(angle).fillColor(couleur).strokeColor(couleur);
-  const pas = 11;
-  const n = Math.floor(longueur / pas);
-  const debut = (longueur - n * pas) / 2;
-  if (s.motif === 'losanges') {
-    for (let i = 0; i <= n; i += 1) doc.save().translate(debut + i * pas, 0).rotate(45).rect(-1.7, -1.7, 3.4, 3.4).fill().restore();
-  } else if (s.motif === 'points') {
-    for (let i = 0; i <= n; i += 1) doc.circle(debut + i * pas, 0, i % 2 ? 0.9 : 1.7).fill();
-  } else if (s.motif === 'creneaux') {
-    doc.moveTo(debut, 2);
-    for (let i = 0; i < n; i += 1) { const x = debut + i * pas; doc.lineTo(x, i % 2 ? 2 : -2).lineTo(x + pas, i % 2 ? 2 : -2); }
-    doc.lineWidth(0.8).stroke();
-  } else if (s.motif === 'vagues') {
-    doc.moveTo(debut, 0);
-    for (let i = 0; i < n; i += 1) { const x = debut + i * pas; doc.quadraticCurveTo(x + pas / 2, i % 2 ? 3.2 : -3.2, x + pas, 0); }
-    doc.lineWidth(0.8).stroke();
-  } else if (s.motif === 'chevrons') {
-    for (let i = 0; i < n; i += 1) { const x = debut + i * pas; doc.moveTo(x + 2, -2.4).lineTo(x + 6, 0).lineTo(x + 2, 2.4); }
-    doc.lineWidth(0.8).stroke();
-  } else {
-    doc.moveTo(0, -2.2).lineTo(longueur, -2.2).moveTo(0, 0).lineTo(longueur, 0).moveTo(0, 2.2).lineTo(longueur, 2.2).lineWidth(0.4).stroke();
-  }
-  doc.restore();
-}
-
-function friseCadre(doc, s, inset, couleur) {
+// Bordure de page sobre, choisie par école parmi des styles d'usage dans
+// les documents officiels : filet simple, double filet, équerres d'angle,
+// ou liserés haut et bas. Jamais de frise décorative.
+function cadre(doc, s, inset = 22) {
   const W = doc.page.width;
   const H = doc.page.height;
-  frise(doc, s, inset + 10, inset, W - inset - 10, inset, couleur);
-  frise(doc, s, inset + 10, H - inset, W - inset - 10, H - inset, couleur);
-  frise(doc, s, inset, inset + 10, inset, H - inset - 10, couleur);
-  frise(doc, s, W - inset, inset + 10, W - inset, H - inset - 10, couleur);
+  if (s.cadre === 'double') {
+    doc.rect(inset - 2, inset - 2, W - 2 * (inset - 2), H - 2 * (inset - 2)).lineWidth(1.6).strokeColor(s.accent).stroke();
+    doc.rect(inset + 2.5, inset + 2.5, W - 2 * (inset + 2.5), H - 2 * (inset + 2.5)).lineWidth(0.5).strokeColor(s.accent).stroke();
+  } else if (s.cadre === 'equerres') {
+    doc.rect(inset, inset, W - 2 * inset, H - 2 * inset).lineWidth(0.4).strokeColor(teinte(s.accent, 0.35)).stroke();
+    const b = 42;
+    doc.lineWidth(1.8).strokeColor(s.accent);
+    doc.moveTo(inset, inset + b).lineTo(inset, inset).lineTo(inset + b, inset).stroke();
+    doc.moveTo(W - inset - b, inset).lineTo(W - inset, inset).lineTo(W - inset, inset + b).stroke();
+    doc.moveTo(inset, H - inset - b).lineTo(inset, H - inset).lineTo(inset + b, H - inset).stroke();
+    doc.moveTo(W - inset - b, H - inset).lineTo(W - inset, H - inset).lineTo(W - inset, H - inset - b).stroke();
+  } else if (s.cadre === 'liseres') {
+    doc.rect(0, 0, W, 7).fill(s.accent);
+    doc.rect(0, 7, W, 2).fill(teinte(s.accent, 0.3));
+    doc.rect(0, H - 4, W, 4).fill(s.accent);
+  } else {
+    doc.rect(inset, inset, W - 2 * inset, H - 2 * inset).lineWidth(0.9).strokeColor(s.accent).stroke();
+  }
 }
 
 // Filigrane : le logo de l'école en grand derrière le texte, très pâle
@@ -179,9 +167,7 @@ function logoOuSigle(doc, etablissement, x, y, taille, accent) {
 function decorClassique(doc, e, s, certification) {
   const W = doc.page.width;
   const H = doc.page.height;
-  friseCadre(doc, s, 24, teinte(s.accent, 0.8));
-  doc.rect(31, 31, W - 62, H - 62).lineWidth(0.6).strokeColor(s.accent).stroke();
-  [[31, 31], [W - 31, 31], [31, H - 31], [W - 31, H - 31]].forEach(([x, y]) => losange(doc, x, y, 6, s.accent));
+  cadre(doc, s, 26);
   const gauche = 64;
   const droite = W - 64;
   const largeur = droite - gauche;
@@ -205,9 +191,7 @@ function decorModerne(doc, e, s, certification) {
   const H = doc.page.height;
   doc.rect(0, 0, 16, H).fill(s.accent);
   doc.rect(16, 0, 5, H).fill(teinte(s.accent, 0.25));
-  frise(doc, s, 8, 20, 8, H - 20, '#FFFFFF');
   doc.rect(W - 150, 0, 150, 6).fill(s.accent);
-  frise(doc, s, 40, H - 26, W - 40, H - 26, teinte(s.accent, 0.4));
   const gauche = 66;
   const droite = W - 56;
   const tailleLogo = 54;
@@ -229,11 +213,9 @@ function decorModerne(doc, e, s, certification) {
 function decorPrestige(doc, e, s, certification) {
   const W = doc.page.width;
   const H = doc.page.height;
-  // Double cadre, frise de l'école entre les deux, coins ornés.
-  doc.rect(18, 18, W - 36, H - 36).lineWidth(2.6).strokeColor(s.accent).stroke();
-  friseCadre(doc, s, 27, teinte(s.accent, 0.7));
-  doc.rect(36, 36, W - 72, H - 72).lineWidth(0.6).strokeColor(s.accent).stroke();
-  [[36, 36], [W - 36, 36], [36, H - 36], [W - 36, H - 36]].forEach(([x, y]) => losange(doc, x, y, 9, s.accent));
+  // Double cadre : trait fort à l'extérieur, filet fin à l'intérieur.
+  doc.rect(22, 22, W - 44, H - 44).lineWidth(2.2).strokeColor(s.accent).stroke();
+  doc.rect(28, 28, W - 56, H - 56).lineWidth(0.5).strokeColor(s.accent).stroke();
   const gauche = 70;
   const droite = W - 70;
   const largeur = droite - gauche;
@@ -463,15 +445,14 @@ async function migrerStyleDocuments(sequelize) {
   await sequelize.query(`UPDATE etablissements SET "modeleDocuments" = NULL WHERE "modeleDocuments" = 'classique'`);
 }
 
-// Fond d'une page de document long (relevé...) : logo de l'école en
-// filigrane, frise et filet de cadre à ses couleurs. Appelé à chaque page.
+// Fond d'une page de document long (relevé, bulletin) : logo de l'école
+// en filigrane et bordure à ses couleurs. Appelé à chaque page.
 function fondDePage(doc, e, s) {
   const { x, y } = doc;
   const W = doc.page.width;
   const H = doc.page.height;
   filigrane(doc, e, s);
-  friseCadre(doc, s, 20, teinte(s.accent, 0.75));
-  doc.rect(27, 27, W - 54, H - 54).lineWidth(0.5).strokeColor(teinte(s.accent, 0.6)).stroke();
+  cadre(doc, s, 22);
   doc.x = x;
   doc.y = y;
 }
