@@ -66,6 +66,22 @@ async function recapitulatifPresences(req, res) {
   return envoyer(res, contenu, `recapitulatif-presences-${propre(premiere.classe.nom)}-${aujourdhui()}`, format);
 }
 
+// Procès-verbal des résultats d'une classe (PDF ou Excel) : sert au
+// téléchargement d'une classe et au lot de plusieurs classes.
+async function pvResultats({ etablissementId, classe, semestre, format = 'pdf', ordre = 'merite', emisParId }) {
+  const eleves = await Eleve.findAll({ where: { classeId: classe.id }, order: [['nom', 'ASC'], ['prenom', 'ASC']] });
+  const premiere = { classe, eleves };
+  let ues = await UniteEnseignement.findAll({ where: { semestreId: semestre.id }, include: [Matiere], order: [['code', 'ASC']] });
+  const calculs = await calculerBulletinsClasse(eleves.map((e) => e.id), semestre.id);
+  const notees = new Set([...calculs.values()].flatMap((c) => c.detailParUE.map((d) => d.code)));
+  if (notees.size) ues = ues.filter((u) => notees.has(u.code));
+  else if (classe.formationId) ues = ues.filter((u) => !u.formationId || u.formationId === classe.formationId);
+  const regles = await reglesEtablissement(etablissementId);
+  const etablissement = await obtenirEtablissementDe(etablissementId);
+  const donnees = { etablissement, classe: premiere.classe, semestre, ues, eleves, calculs, regles, ordre, emisParId };
+  return format === 'xlsx' ? docs.procesVerbalXlsx(donnees) : docs.procesVerbalPDF(donnees);
+}
+
 async function resultats(req, res) {
   const [premiere] = await classesDemandees(req);
   const semestre = await semestreDeLEcole(req);
@@ -100,4 +116,5 @@ async function emploisDuTemps(req, res) {
   return envoyer(res, pdf, `emploi-du-temps-${nom}-${propre(semestre.libelle)}`, 'pdf');
 }
 
-module.exports = { listePresence, recapitulatifPresences, resultats, emploisDuTemps };
+module.exports = {
+  pvResultats, listePresence, recapitulatifPresences, resultats, emploisDuTemps };

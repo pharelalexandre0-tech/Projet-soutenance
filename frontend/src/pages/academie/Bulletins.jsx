@@ -3,6 +3,7 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import BulletinDocument from '../../components/BulletinDocument';
 import ResultatsClasse from '../../components/ResultatsClasse';
+import EnvoiGroupe from '../../components/EnvoiGroupe';
 
 // Consultation du bulletin côté Académie : même document que celui vu par
 // l'Étudiant (via BulletinDocument), avec en plus la possibilité de le
@@ -80,6 +81,8 @@ export default function Bulletins() {
   }
 
   return (
+    <>
+    <EnvoiGroupe documentInitial="bulletin" titre="Envoyer les bulletins de plusieurs étudiants" />
     <div className="carte">
       <h2>Bulletins scolaires</h2>
       <div className="ligne-champs">
@@ -131,5 +134,6 @@ export default function Bulletins() {
         </div>
       )}
     </div>
+    </>
   );
 }

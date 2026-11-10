@@ -47,6 +47,7 @@ const SessionUtilisateur = require('./SessionUtilisateur');
 const JournalAudit = require('./JournalAudit');
 const DecisionAgrement = require('./DecisionAgrement');
 const AvisCesp = require('./AvisCesp');
+const EnvoiGroupe = require('./EnvoiGroupe');
 const Circulaire = require('./Circulaire');
 const AccuseCirculaire = require('./AccuseCirculaire');
 const Deliberation = require('./Deliberation');
@@ -316,6 +317,7 @@ module.exports = {
   JournalAudit,
   DecisionAgrement,
   AvisCesp,
+  EnvoiGroupe,
   Circulaire,
   AccuseCirculaire,
   Deliberation,

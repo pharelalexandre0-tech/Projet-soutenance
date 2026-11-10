@@ -9,7 +9,7 @@ const { LIBELLES_DECISION } = require('./deliberationService');
 const { enTeteOfficiel, blocIdentite, blocSignature, piedDePageOfficiel, noteFr, mention, certifier, dessinerLigne } = outils;
 const C = outils.couleurs;
 const { nouveauPDF, tableau, finaliser, limiteBas } = outilsTableaux;
-const { dessinerAttestation, styleDe } = require('./modelesAttestation');
+const { dessinerAttestation, styleDe, fondDePage, cachet, teinte } = require('./modelesAttestation');
 
 const nomComplet = (e) => `${String(e.nom || '').toUpperCase()} ${e.prenom || ''}`.trim();
 const dateFr = (d) => new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Africa/Libreville' });
@@ -170,7 +170,10 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
     emisParId,
   });
 
-  const { doc, termine } = nouveauPDF();
+  const { doc, termine } = nouveauPDF({ margins: { top: 44, bottom: 44, left: 44, right: 44 } });
+  const style = styleDe(etablissement);
+  fondDePage(doc, etablissement, style);
+  doc.on('pageAdded', () => fondDePage(doc, etablissement, style));
   const marge = doc.page.margins.left;
   const largeur = doc.page.width - marge - doc.page.margins.right;
   let y = enTeteOfficiel(doc, etablissement, { surtitre: 'SCOLARITÉ', titre: 'RELEVÉ DE NOTES', sousTitre: 'Document officiel', reference: `Édité le ${dateFr(new Date())}`, largeurTitre: 220, certification });
@@ -186,8 +189,9 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
   }
   for (const { semestre, calcul } of evalues) {
     if (y + 80 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
-    doc.font('Times-Bold').fontSize(11.5).fillColor(C.COULEUR_MARINE).text(`${semestre.libelle} ${semestre.anneeScolaire || ''}`, marge, y);
-    y = doc.y + 4;
+    doc.rect(marge, y, 4, 14).fill(style.accent);
+    doc.font('Times-Bold').fontSize(11.5).fillColor(style.accent).text(`${semestre.libelle} ${semestre.anneeScolaire || ''}`, marge + 10, y + 1);
+    y = doc.y + 5;
     const lignes = [];
     for (const u of calcul.detailParUE) {
       lignes.push([{ texte: u.code || '', gras: true, couleur: C.COULEUR_MARINE }, { texte: `${u.ue} (${u.credits} cr.)`, gras: true, couleur: C.COULEUR_MARINE }, { texte: '' }, { texte: '' }, { texte: '' },
@@ -203,7 +207,7 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
       { texte: `Moyenne ${noteFr(calcul.moyenneGenerale)}/20`, gras: true },
       { texte: `Crédits ${calcul.creditsValides}/${calcul.creditsTotal}` },
       { texte: LIBELLES_DECISION[calcul.decisionJury || (calcul.admis ? 'admis' : 'rattrapage')], gras: true, couleur: calcul.admis ? C.COULEUR_SUCCES : C.COULEUR_RATTRAPAGE },
-    ], { hauteur: 20, fond: '#EEF3FA' }) + 16;
+    ], { hauteur: 20, fond: teinte(style.accent, 0.08) }) + 16;
   }
   if (cumul && evalues.length) {
     if (y + 40 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
@@ -211,9 +215,11 @@ async function relevePDF({ etablissement, eleve, classe, semestres, cumul, emisP
       { texte: `Cumul du cycle ${cumul.libelleCycle}`, gras: true },
       { texte: `Crédits acquis ${cumul.creditsAcquis} / ${cumul.creditsRequis}`, gras: true },
       { texte: `Restants ${cumul.creditsRestants}` },
-    ], { hauteur: 20, fond: '#EEF3FA' }) + 16;
+    ], { hauteur: 20, fond: teinte(style.accent, 0.08) }) + 16;
   }
   if (y + 100 > limiteBas(doc)) { doc.addPage(); y = doc.page.margins.top; }
+  const droite = doc.page.width - doc.page.margins.right;
+  cachet(doc, style, etablissement, droite - 190 + 44, y + 40, evalues.length ? evalues[evalues.length - 1].semestre.anneeScolaire : '');
   blocSignature(doc, y, etablissement, 'Le Directeur des études', certification);
   piedDePageOfficiel(doc, `Relevé de notes établi par ${etablissement.nom} via EduSphere  ·  ${nomComplet(eleve)}  ·  Toute rature annule ce document.`, certification);
   return finaliser(doc, termine, certification);

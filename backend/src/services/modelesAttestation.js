@@ -463,4 +463,17 @@ async function migrerStyleDocuments(sequelize) {
   await sequelize.query(`UPDATE etablissements SET "modeleDocuments" = NULL WHERE "modeleDocuments" = 'classique'`);
 }
 
-module.exports = { MODELES_DOCUMENTS, COULEURS_DOCUMENTS, COULEUR_PAR_DEFAUT, validerStyleDocuments, styleDe, dessinerAttestation, migrerStyleDocuments };
+// Fond d'une page de document long (relevé...) : logo de l'école en
+// filigrane, frise et filet de cadre à ses couleurs. Appelé à chaque page.
+function fondDePage(doc, e, s) {
+  const { x, y } = doc;
+  const W = doc.page.width;
+  const H = doc.page.height;
+  filigrane(doc, e, s);
+  friseCadre(doc, s, 20, teinte(s.accent, 0.75));
+  doc.rect(27, 27, W - 54, H - 54).lineWidth(0.5).strokeColor(teinte(s.accent, 0.6)).stroke();
+  doc.x = x;
+  doc.y = y;
+}
+
+module.exports = { MODELES_DOCUMENTS, COULEURS_DOCUMENTS, COULEUR_PAR_DEFAUT, validerStyleDocuments, styleDe, dessinerAttestation, migrerStyleDocuments, fondDePage, cachet, teinte };

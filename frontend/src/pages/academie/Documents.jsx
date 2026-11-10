@@ -3,6 +3,7 @@ import client from '../../api/client';
 import useActualisation from '../../hooks/useActualisation';
 import BoutonDocument from '../../components/BoutonDocument';
 import RegistreCertifications from '../../components/RegistreCertifications';
+import EnvoiGroupe, { PvPlusieursClasses } from '../../components/EnvoiGroupe';
 import { IconDownload, IconClipboard, IconDocument, IconCalendar, IconUsers } from '../../components/icons';
 
 // Documents à télécharger par l'Académie, à l'identité de l'établissement :
@@ -162,6 +163,8 @@ export default function Documents() {
         <Champ label="Semestre" htmlFor="e-sem"><ChoixSemestre id="e-sem" semestres={semestres} valeur={edt.semestreId} onChange={(v) => setEdt({ ...edt, semestreId: v })} /></Champ>
       </CarteDocument>
     </div>
+    <EnvoiGroupe titre="Bulletins, relevés et attestations en lot" />
+    <PvPlusieursClasses />
     <RegistreCertifications actualiser={emissions} />
     </>
   );
