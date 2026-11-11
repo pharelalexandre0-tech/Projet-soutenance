@@ -351,7 +351,8 @@ export default function Login() {
               <span><strong>EduSphere</strong><small>Enseignement supérieur · Gabon</small></span>
             </span>
             <span className="login-liens-publics">
-              <a href="/preinscription">S’inscrire en ligne</a>
+              <a href="/preinscription">Candidater en ligne</a>
+              <a href="/preinscription/suivi">Suivre ma candidature</a>
               <a href="/verifier"><IconShield aria-hidden="true" /> Vérifier un document</a>
             </span>
           </div>

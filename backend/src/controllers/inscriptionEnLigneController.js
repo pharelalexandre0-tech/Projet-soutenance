@@ -22,7 +22,7 @@ const fcfa = (n) => `${Math.round(n).toLocaleString('fr-FR')} FCFA`;
 
 // Appelé par l'Académie à l'acceptation : lien personnel envoyé par e-mail.
 async function ouvrirInscription(dossier, { classeId, fraisInscription }) {
-  const classe = await Classe.findOne({ where: { id: classeId, etablissementId: dossier.etablissementId } });
+  const classe = classeId ? await Classe.findOne({ where: { id: Number(classeId) || 0, etablissementId: dossier.etablissementId } }) : null;
   if (!classe) throw erreur('choisissez la classe dans laquelle le candidat sera inscrit');
   const frais = Math.max(0, Math.round(Number(String(fraisInscription ?? 0).replace(/\s/g, '')) || 0));
   const jeton = crypto.randomBytes(32).toString('hex');

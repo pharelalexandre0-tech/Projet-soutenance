@@ -13,7 +13,9 @@ const module_ = (cle) => exigerFonctionnalite(cle);
 // Préinscription (Académie)
 router.get('/preinscriptions', authentifier, academie, module_('preinscription'), ctrl.listerPreinscriptions);
 router.get('/preinscriptions/pieces/:id', authentifier, academie, module_('preinscription'), ctrl.telechargerPiece);
-router.put('/preinscriptions/:id', authentifier, academie, module_('preinscription'), ctrl.deciderPreinscription);
+const candidatures = require('../controllers/candidaturesController');
+router.post('/preinscriptions/lot', authentifier, academie, module_('preinscription'), candidatures.deciderLot);
+router.put('/preinscriptions/:id', authentifier, academie, module_('preinscription'), candidatures.decider);
 router.post('/preinscriptions/:id/inscrire', authentifier, academie, module_('preinscription'), ctrl.inscrireCandidat);
 
 // Anonymat des copies
@@ -43,8 +45,11 @@ router.delete('/transferts/:id', authentifier, academie, module_('mobilite'), ct
 
 // Préinscription publique (sans compte) : corps plus grand pour les pièces.
 const publique = express.Router();
-publique.get('/offres', ctrl.offresPubliques);
-publique.post('/', ctrl.deposer);
+publique.get('/offres', candidatures.offres);
+publique.post('/', candidatures.deposer);
+publique.post('/suivi', candidatures.suivre);
+publique.post('/suivi/pieces', candidatures.completer);
+publique.post('/suivi/renvoyer-lien', candidatures.renvoyerLien);
 const inscription = require('../controllers/inscriptionEnLigneController');
 publique.get('/inscription/:jeton', inscription.consulter);
 publique.post('/inscription/:jeton/paiement', inscription.payer);

@@ -4119,3 +4119,72 @@ th { background: #F7F8F6; color: var(--texte-clair); }
 .liste-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 8px; }
 .case-a-cocher { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--bordure); border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
 .case-a-cocher.forte { font-weight: 600; grid-column: 1 / -1; }
+
+/* Candidature en ligne */
+.candidature { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.candidature-etapes { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.candidature-etapes li { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--texte-clair); text-align: center; position: relative; }
+.candidature-etapes li::before { content: ''; position: absolute; top: 14px; left: -50%; width: 100%; height: 2px; background: var(--bordure); z-index: 0; }
+.candidature-etapes li:first-child::before { display: none; }
+.candidature-etapes li.faite::before, .candidature-etapes li.active::before { background: var(--edu-teal, #157A8C); }
+.candidature-etape-num { position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: 2px solid var(--bordure); background: var(--fond-carte, #fff); font-weight: 700; color: var(--texte-clair); }
+.candidature-etapes li.active { color: var(--texte); font-weight: 600; }
+.candidature-etapes li.active .candidature-etape-num { border-color: var(--edu-bleu, #1D5FA8); color: var(--edu-bleu, #1D5FA8); }
+.candidature-etapes li.faite .candidature-etape-num { background: var(--edu-teal, #157A8C); border-color: var(--edu-teal, #157A8C); color: #fff; }
+.candidature-carte { padding: 24px; }
+.candidature-carte h2 { margin-top: 0; }
+.profil-choix { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.profil-carte { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 16px; border: 1px solid var(--bordure); border-radius: 10px; background: var(--fond-carte, #fff); cursor: pointer; font: inherit; color: inherit; }
+.profil-carte strong { font-size: 1rem; }
+.profil-carte span { font-size: 0.85rem; color: var(--texte-clair); line-height: 1.45; }
+.profil-carte small { margin-top: auto; font-weight: 600; color: var(--edu-teal, #157A8C); }
+.profil-carte.choisi { border: 2px solid var(--edu-bleu, #1D5FA8); padding: 15px; }
+.candidature-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+.pieces-liste { display: flex; flex-direction: column; gap: 8px; }
+.piece-ligne { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px dashed var(--bordure); border-radius: 8px; cursor: pointer; flex-wrap: wrap; }
+.piece-ligne.jointe { border-style: solid; border-color: var(--edu-vert, #1F8A54); background: rgba(31, 138, 84, 0.05); }
+.piece-ligne input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.piece-nom { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.9rem; }
+.piece-fichier { font-size: 0.82rem; color: var(--edu-bleu, #1D5FA8); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.numero-dossier { font-size: 1.8rem; font-weight: 700; letter-spacing: 1px; margin: 4px 0 8px; color: var(--edu-marine, #0B1E3D); }
+.suite-candidature { margin: 0 0 18px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.bouton-lien { display: inline-block; padding: 11px 18px; border-radius: 8px; text-decoration: none; }
+.suivi-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.suivi-frise { list-style: none; margin: 20px 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.suivi-frise li { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; font-size: 0.78rem; color: var(--texte-clair); position: relative; }
+.suivi-frise li::before { content: ''; position: absolute; top: 9px; left: -50%; width: 100%; height: 2px; background: var(--bordure); }
+.suivi-frise li:first-child::before { display: none; }
+.suivi-frise li.faite::before, .suivi-frise li.en_cours::before { background: var(--edu-vert, #1F8A54); }
+.suivi-point { position: relative; z-index: 1; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--bordure); background: var(--fond-carte, #fff); display: inline-flex; align-items: center; justify-content: center; color: #fff; }
+.suivi-frise li.faite .suivi-point { background: var(--edu-vert, #1F8A54); border-color: var(--edu-vert, #1F8A54); }
+.suivi-frise li.en_cours { color: var(--texte); font-weight: 600; }
+.suivi-frise li.en_cours .suivi-point { border-color: var(--edu-bleu, #1D5FA8); box-shadow: 0 0 0 4px rgba(29, 95, 168, 0.15); }
+.suivi-frise li.refusee .suivi-point { border-color: var(--erreur, #A23B2E); background: var(--erreur, #A23B2E); }
+.suivi-explication { padding: 14px 16px; border-radius: 0 8px 8px 0; background: var(--fond-doux, #F3F5F7); border-left: 3px solid var(--edu-bleu, #1D5FA8); }
+.suivi-explication.vert { border-left-color: var(--edu-vert, #1F8A54); }
+.suivi-explication.or { border-left-color: var(--edu-or, #F0AD2E); }
+.suivi-explication.rouge { border-left-color: var(--erreur, #A23B2E); }
+.suivi-pieces { margin-top: 14px; }
+.suivi-pieces summary { cursor: pointer; font-weight: 600; }
+/* Candidatures côté Académie */
+.encart-candidatures { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.encart-candidatures > div { flex: 1 1 260px; }
+.lien-candidature { padding: 8px 10px; border: 1px solid var(--bordure); border-radius: 6px; font-size: 0.82rem; max-width: 100%; overflow-x: auto; white-space: nowrap; }
+.compteurs-candidatures { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.compteur-candidature { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--fond-carte, #fff); cursor: pointer; font: inherit; color: inherit; text-align: left; }
+.compteur-candidature span { font-size: 0.8rem; color: var(--texte-clair); }
+.compteur-candidature strong { font-size: 1.5rem; }
+.compteur-candidature.actif { border: 2px solid var(--edu-bleu, #1D5FA8); padding: 11px 13px; }
+.actions-lot { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px; border-radius: 8px; background: var(--fond-doux, #F3F5F7); }
+.choix-decision { display: flex; flex-wrap: wrap; gap: 8px; }
+.choix-decision .decision { padding: 8px 12px; border: 1px solid var(--bordure); border-radius: 8px; background: var(--fond-carte, #fff); cursor: pointer; font: inherit; color: inherit; }
+.choix-decision .decision.choisi { border: 2px solid var(--edu-bleu, #1D5FA8); padding: 7px 11px; font-weight: 600; }
+.choix-decision .decision.danger.choisi { border-color: var(--erreur, #A23B2E); color: var(--erreur, #A23B2E); }
+.encadre-texte { padding: 10px 12px; border: 1px solid var(--bordure); border-radius: 8px; }
+@media (max-width: 720px) {
+  .profil-choix { grid-template-columns: 1fr; }
+  .candidature-etape-nom { display: none; }
+  .candidature-etapes li.active .candidature-etape-nom { display: block; }
+  .candidature-carte { padding: 16px; }
+  .suivi-frise li span:last-child { font-size: 0.7rem; }
+}

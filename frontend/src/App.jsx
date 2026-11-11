@@ -19,6 +19,7 @@ const ReinitialiserMotDePasse = lazy(() => import('./pages/ReinitialiserMotDePas
 const Confidentialite = lazy(() => import('./pages/Confidentialite'));
 const Verifier = lazy(() => import('./pages/Verifier'));
 const PreinscriptionPublique = lazy(() => import('./pages/PreinscriptionPublique'));
+const SuiviCandidature = lazy(() => import('./pages/SuiviCandidature'));
 const FinaliserInscription = lazy(() => import('./pages/FinaliserInscription'));
 const DashboardAcademie = lazy(() => import('./pages/DashboardAcademie'));
 const DashboardEtudiant = lazy(() => import('./pages/DashboardEtudiant'));
@@ -67,6 +68,7 @@ export default function App() {
               <Route path="/confidentialite" element={<Confidentialite />} />
               <Route path="/verifier" element={<Verifier />} />
               <Route path="/preinscription" element={<PreinscriptionPublique />} />
+              <Route path="/preinscription/suivi" element={<SuiviCandidature />} />
               <Route path="/inscription/:jeton" element={<FinaliserInscription />} />
               <Route path="/verifier/:code" element={<Verifier />} />
               <Route
