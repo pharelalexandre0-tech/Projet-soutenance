@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "init:superadmin": "node src/scripts/initialiserSuperadmin.js",
+    "acces:superadmin": "node src/scripts/accesSuperadmin.js",
     "backup": "node src/scripts/sauvegarder.js",
     "restore": "node src/scripts/restaurer.js",
     "train:risque": "node src/scripts/entrainerModeleRisque.js",
